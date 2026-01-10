@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier
+_commit: 06be9d8
+_src_path: https://github.com/python-project-templates/base.git
+add_docs: false
+add_extension: rustjswasm
+add_wiki: false
+email: dev@1kbgz.com
+github: 1kbgz
+project_description: ''
+project_name: spaday
+python_version_primary: '3.11'
+team: 1kbgz

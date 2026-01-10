@@ -1,0 +1,66 @@
+{
+  "name": "spaday",
+  "version": "0.1.0",
+  "description": "",
+  "repository": "git@github.com:1kbgz/spaday.git",
+  "author": "1kbgz <dev@1kbgz.com>",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "unpkg": "dist/cdn/index.js",
+  "jsdelivr": "dist/cdn/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "default": "./dist/esm/index.js"
+    },
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/**/*",
+    "index.d.ts"
+  ],
+  "types": "./dist/esm/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "setup": "cargo install -f wasm-bindgen-cli --version 0.2.106",
+    "build:debug": "node build.mjs --debug",
+    "build:rust": "cargo build --release --all-features --target wasm32-unknown-unknown",
+    "build:wasm-bindgen": "wasm-bindgen ../target/wasm32-unknown-unknown/release/spaday.wasm --out-dir ./dist/pkg --target web",
+    "build:prod": "node build.mjs",
+    "build": "npm-run-all build:rust build:wasm-bindgen build:prod",
+    "clean": "rm -rf dist lib playwright-report ../spaday/extension",
+    "dev": "npm-run-all -p start watch",
+    "lint:js": "prettier --check \"src/**/*.{js,ts,jsx,tsx,less,css}\" \"tests/**/*.{js,ts,jsx,tsx}\" \"*.mjs\" \"*.json\"",
+    "lint:rust": "cargo clippy --all-features && cargo fmt --all -- --check",
+    "lint": "npm-run-all lint:*",
+    "fix:js": "prettier  --write \"src/**/*.{js,ts,jsx,tsx,less,css}\" \"tests/**/*.{js,ts,jsx,tsx}\" \"*.mjs\" \"*.json\"",
+    "fix:rust": "cargo fmt --all",
+    "fix": "npm-run-all fix:*",
+    "preinstall": "npx only-allow pnpm",
+    "prepack": "pnpm run build",
+    "start": "http-server -p 3000 -o examples/",
+    "start:tests": "http-server -p 3000 ",
+    "test:js": "playwright test",
+    "test:rust": "cargo test -- --show-output",
+    "test": "npm-run-all test:rust test:js",
+    "watch": "nodemon --watch src -e ts,less,html --exec \"pnpm build:debug\""
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@finos/perspective-esbuild-plugin": "^3.2.1",
+    "@playwright/test": "^1.56.1",
+    "@prospective.co/procss": "^0.1.17",
+    "cpy": "^12.1.0",
+    "esbuild": "^0.27.0",
+    "esbuild-plugin-less": "^1.3.35",
+    "http-server": "^14.1.1",
+    "nodemon": "^3.1.10",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3"
+  }
+}
