@@ -141,14 +141,12 @@ js/node_modules
 js/test-results
 js/playwright-report
 js/*.tgz
-spaday/extension
 
 # Jupyter
 .ipynb_checkpoints
 .autoversion
 Untitled*.ipynb
-!spaday/extension/spaday.json
-!spaday/extension/install.json
+spaday/extension
 spaday/nbextension
 spaday/labextension
 
@@ -157,3 +155,7 @@ spaday/labextension
 
 # Rust
 target
+
+# Hydra
+outputs/
+multirun/
