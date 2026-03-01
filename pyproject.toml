@@ -38,17 +38,17 @@ dependencies = []
 develop = [
     "build",
     "bump-my-version",
-    "check-manifest",
+    "check-dist",
     "cibuildwheel",
-    "codespell>=2.4,<2.5",
+    "codespell",
     "hatch-js",
     "hatch-rs",
     "hatchling",
-    "mdformat>=0.7.22,<1.1",
+    "mdformat",
     "mdformat-tables>=1",
     "pytest",
     "pytest-cov",
-    "ruff>=0.9,<0.15",
+    "ruff",
     "twine",
     "ty",
     "uv",
@@ -97,22 +97,6 @@ filename = "rust/Cargo.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 
-[tool.check-manifest]
-ignore = [
-    ".copier-answers.yaml",
-    "Cargo.toml",
-    "Cargo.lock",
-    "js/pnpm-lock.yaml",
-    "Makefile",
-    ".vscode/*",
-    "spaday/extension/**/*",
-    "docs/**/*",
-    "js/dist/**/*",
-    "rust/.config/*",
-    "rust/Cargo.lock",
-    "rust/README.md",
-]
-
 [tool.cibuildwheel]
 build = "cp310-*"
 test-command = "pytest -vvv {project}/spaday/tests"
@@ -140,6 +124,7 @@ branch = true
 omit = [
     "spaday/tests/integration/",
 ]
+
 [tool.coverage.report]
 exclude_also = [
     "raise NotImplementedError",
@@ -159,18 +144,22 @@ targets = [
 
 [tool.hatch.build.hooks.hatch-rs]
 verbose = true
+abi3 = true
 module = "spaday"
 path = "."
 
 [tool.hatch.build.targets.sdist]
 packages = [
     "spaday",
-    "/js",
-    "/rust",
-    "/src",
+    "js",
+    "rust",
+    "Cargo.toml",
+    "Cargo.lock",
 ]
-sources = [
-    ".",
+exclude = [
+    "js/node_modules",
+    "rust/Makefile",
+    "target",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -178,9 +167,8 @@ packages = [
     "spaday",
 ]
 exclude = [
-    "/js",
-    "/rust",
-    "/src",
+    "js",
+    "rust",
 ]
 
 [tool.pytest.ini_options]
