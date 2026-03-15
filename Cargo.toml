@@ -6,12 +6,12 @@ publish = false
 
 [lib]
 name = "spaday"
-path = "src/lib.rs"
+path = "rust/python/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
 spaday = { path = "./rust", version = "*" }
-pyo3 = { version = "0.27.1", features = ["abi3-py39", "extension-module", "multiple-pymethods"] }
+pyo3 = { version = "0.28.2", features = ["abi3", "extension-module", "multiple-pymethods"] }
 
 [profile.release]
 panic = 'abort'
