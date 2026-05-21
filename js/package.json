@@ -26,7 +26,7 @@
     "access": "public"
   },
   "scripts": {
-    "setup": "cargo install -f wasm-bindgen-cli --version 0.2.115 --locked",
+    "setup": "cargo install -f wasm-bindgen-cli --version 0.2.121 --locked",
     "build:debug": "node build.mjs --debug",
     "build:rust": "cargo build --release --all-features --target wasm32-unknown-unknown",
     "build:wasm-bindgen": "wasm-bindgen ../target/wasm32-unknown-unknown/release/spaday.wasm --out-dir ./dist/pkg --target web",
@@ -51,8 +51,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
-    "cpy": "^13.2.1",
+    "@playwright/test": "^1.60.0",
+    "cpy": "^13.2.2",
     "esbuild": "^0.28.0",
     "lightningcss": "^1.29.3",
     "http-server": "^14.1.1",
