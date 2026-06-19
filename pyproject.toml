@@ -205,3 +205,11 @@ section-order = [
     "F401",
     "F403",
 ]
+
+[tool.yardang]
+title = "spaday"
+root = "README.md"
+pages = [
+    "docs/src/api.md",
+]
+use-autoapi = false

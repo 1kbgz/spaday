@@ -19,7 +19,7 @@ impl Example {
     }
 
     fn __str__(&self) -> PyResult<String> {
-        Ok(format!("{}", self.example.stuff))
+        Ok(self.example.stuff.clone())
     }
 
     fn __repr__(&self) -> PyResult<String> {
