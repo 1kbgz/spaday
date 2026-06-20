@@ -19,3 +19,9 @@ pub fn diff(old: &str, new: &str) -> Result<String, JsError> {
 pub fn apply(root: &str, patch: &str) -> Result<String, JsError> {
     spaday::apply_json(root, patch).map_err(|e| JsError::new(&e.to_string()))
 }
+
+/// Parse a `custom-elements.json` manifest into the JSON-encoded list of component schemas.
+#[wasm_bindgen]
+pub fn parse_cem(manifest: &str) -> Result<String, JsError> {
+    spaday::parse_cem(manifest).map_err(|e| JsError::new(&e.to_string()))
+}

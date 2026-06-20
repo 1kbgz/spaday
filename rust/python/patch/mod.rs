@@ -14,3 +14,9 @@ pub fn diff(old: &str, new: &str) -> PyResult<String> {
 pub fn apply(root: &str, patch: &str) -> PyResult<String> {
     spaday::apply_json(root, patch).map_err(|e| PyValueError::new_err(e.to_string()))
 }
+
+/// Parse a `custom-elements.json` manifest into the JSON-encoded list of component schemas.
+#[pyfunction]
+pub fn parse_cem(manifest: &str) -> PyResult<String> {
+    spaday::parse_cem(manifest).map_err(|e| PyValueError::new_err(e.to_string()))
+}

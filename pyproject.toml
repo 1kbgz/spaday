@@ -56,6 +56,7 @@ develop = [
 ]
 
 [project.scripts]
+spaday-cem = "spaday.cem:_main"
 
 [project.urls]
 Repository = "https://github.com/1kbgz/spaday"
@@ -169,6 +170,7 @@ packages = [
 exclude = [
     "js",
     "rust",
+    "spaday/tests",
 ]
 
 [tool.pytest.ini_options]
@@ -210,6 +212,7 @@ section-order = [
 title = "spaday"
 root = "README.md"
 pages = [
+    "docs/src/components.md",
     "docs/src/api.md",
 ]
 use-autoapi = false
