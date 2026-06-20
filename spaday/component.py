@@ -72,6 +72,21 @@ class Component:
         self._slots.setdefault(slot, []).append(node)
         return self
 
+    def text(self, value: str) -> "Component":
+        """Set the element's text content (e.g. a button or option label).
+
+        Text is set as the ``textContent`` DOM property by the runtime, so this is for leaf elements
+        whose label *is* their text (don't combine it with child nodes).
+        """
+        self._props["textContent"] = value
+        return self
+
+    def prop(self, name: str, value: Any) -> "Component":
+        """Set an arbitrary prop (escape hatch for attributes a typed class doesn't expose)."""
+        if value is not None:
+            self._props[name] = value
+        return self
+
     def to_node(self) -> dict:
         """The node as the core's JSON-ready dict (empty fields omitted, like the Rust core)."""
         node: dict = {"tag": self.tag}
@@ -86,3 +101,14 @@ class Component:
     def to_json(self) -> str:
         """The node serialized for the core's ``diff``/``apply``."""
         return json.dumps(self.to_node())
+
+
+def element(tag: str, *, key: Optional[str] = None, **props: Any) -> Component:
+    """Build a plain element (e.g. a ``div`` container) for structure a typed component doesn't cover.
+
+    A prop name with a trailing underscore is de-escaped, so reserved words work: ``class_`` → ``class``.
+    """
+    clean = {(k[:-1] if k.endswith("_") else k): v for k, v in props.items()}
+    node = Component(key=key, props=clean)
+    node.tag = tag
+    return node

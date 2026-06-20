@@ -20,6 +20,11 @@ const BUNDLES = [
     entryPoints: ["src/ts/wrappers/lightweight-chart.ts"],
     outfile: "dist/cdn/wrappers/lightweight-chart.js",
   },
+  {
+    // Self-contained WebAwesome controls for the dashboard example (esbuild resolves WA's chunks).
+    entryPoints: ["src/ts/examples/webawesome.ts"],
+    outfile: "dist/cdn/examples/webawesome.js",
+  },
 ];
 
 async function build() {

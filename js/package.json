@@ -53,6 +53,7 @@
     "@awesome.me/webawesome": "^3.4.0"
   },
   "devDependencies": {
+    "@1kbgz/transports": "^0.3.0",
     "@playwright/test": "^1.60.0",
     "cpy": "^13.2.2",
     "esbuild": "^0.28.0",

@@ -12,6 +12,9 @@ importers:
         specifier: ^3.4.0
         version: 3.9.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)
     devDependencies:
+      '@1kbgz/transports':
+        specifier: ^0.3.0
+        version: 0.3.0
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.60.0
@@ -44,6 +47,9 @@ importers:
         version: 6.0.3
 
 packages:
+
+  '@1kbgz/transports@0.3.0':
+    resolution: {integrity: sha512-YfYAF0r/9UnsXjHRRbchTWWMQa3vMe7qHfUrM37pAt9M0uq0NhPPHuUdzZwzurChjLYZZeD3f0e/zGHQtFDfmQ==}
 
   '@awesome.me/webawesome@3.9.0':
     resolution: {integrity: sha512-doKgUCglb/E1d/dYSzXQQthlYmyndFOtG/Vr5HyHjIFqNwn/tbutMsIMYJrYFEjq07vPwcOHKeAulbiqoslRoQ==}
@@ -1260,6 +1266,8 @@ packages:
     hasBin: true
 
 snapshots:
+
+  '@1kbgz/transports@0.3.0': {}
 
   '@awesome.me/webawesome@3.9.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)':
     dependencies:

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spaday × transports — dashboard</title>
+    <link
+      rel="stylesheet"
+      href="/nm/@awesome.me/webawesome/dist/styles/webawesome.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/nm/@awesome.me/webawesome/dist/styles/themes/default.css"
+    />
+    <script type="module" src="/js/dist/cdn/examples/webawesome.js"></script>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #fafafa;
+        color: #222;
+      }
+      .card {
+        max-width: 940px;
+        margin: 32px auto;
+        padding: 16px 20px 20px;
+        background: #fff;
+        border: 1px solid #e6e6e6;
+        border-radius: 12px;
+        box-shadow: 0 1px 8px #0001;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 4px;
+      }
+      p {
+        margin: 0 0 14px;
+        color: #666;
+        font-size: 13px;
+      }
+      .status {
+        color: #2962ff;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>
+        Dashboard — WebAwesome controls driving a live chart, over transports
+      </h1>
+      <p>
+        The controls and chart are a typed spaday tree authored in Python; the
+        chart state is a transports model. Changing a control sends a transports
+        edit, so the server is authoritative and every open tab stays in sync.
+        <span class="status" id="status">connecting…</span>
+      </p>
+      <div id="host"></div>
+    </div>
+
+    <script type="module">
+      import { mount } from "/js/dist/esm/index.js";
+      import "/js/dist/cdn/wrappers/lightweight-chart.js";
+      import {
+        Client,
+        fromValue,
+        toValue,
+        wasm,
+      } from "/nm/@1kbgz/transports/dist/cdn/index.js";
+
+      await wasm.default({
+        module_or_path: "/nm/@1kbgz/transports/dist/pkg/transports_bg.wasm",
+      });
+
+      // mount the Python-authored shell (controls + chart)
+      const node = await (await fetch("/shell.json")).json();
+      mount(document.getElementById("host"), node);
+      const chart = document.getElementById("chart");
+      const typeSel = document.getElementById("type");
+      const liveSw = document.getElementById("live");
+      const clearBtn = document.getElementById("clear");
+      chart.style.height = "420px";
+
+      const client = new Client();
+      const status = document.getElementById("status");
+      let id = null;
+      const model = () => fromValue(client.value(id));
+
+      const ws = new WebSocket(`ws://${location.host}/ws`);
+      ws.binaryType = "arraybuffer";
+
+      // a control change → a transports edit (server-authoritative; the action DSL will replace this glue)
+      const send = (changes) =>
+        ws.send(client.edit(id, toValue({ ...model(), ...changes })));
+
+      ws.addEventListener("message", (event) => {
+        client.recv(
+          typeof event.data === "string"
+            ? event.data
+            : new Uint8Array(event.data),
+        );
+        if (id === null) id = client.ids()[0];
+        if (id == null) return;
+        const m = model();
+        if (!m) return;
+        chart.type = m.type; // drive the chart from the model
+        chart.data = m.data;
+        if (typeSel.value !== m.type) typeSel.value = m.type; // reflect (e.g. another tab changed it)
+        if (liveSw.checked !== m.live) liveSw.checked = m.live;
+        status.textContent = "live — synced over transports";
+      });
+      ws.addEventListener("close", () => {
+        status.textContent = "disconnected";
+      });
+
+      typeSel.addEventListener("change", () => send({ type: typeSel.value }));
+      liveSw.addEventListener("change", () => send({ live: liveSw.checked }));
+      clearBtn.addEventListener("click", () => send({ data: [] }));
+    </script>
+  </body>
+</html>
