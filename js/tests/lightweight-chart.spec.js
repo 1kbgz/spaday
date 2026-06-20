@@ -1,0 +1,78 @@
+import { test, expect } from "@playwright/test";
+
+// The <lightweight-chart> wrapper is mounted by the spaday runtime from a Python-shaped node (tagged
+// Value props) and must render a real chart. Proves the imperative-library recipe end to end.
+
+const LINE = [
+  { time: "2019-01-01", value: 10 },
+  { time: "2019-01-02", value: 12 },
+  { time: "2019-01-03", value: 9 },
+];
+
+// the wire form the runtime receives (what spaday.diff would produce for these props)
+const node = (type, points) => ({
+  tag: "lightweight-chart",
+  props: {
+    type: { Str: type },
+    data: {
+      List: points.map((p) => ({
+        Map: { time: { Str: p.time }, value: { Int: p.value } },
+      })),
+    },
+  },
+});
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("/tests/lightweight-chart.html");
+  await page.waitForFunction(
+    () => window.__spaday && customElements.get("lightweight-chart"),
+  );
+});
+
+test("renders a chart from Python-shaped props", async ({ page }) => {
+  await page.evaluate(
+    (n) => {
+      window.__el = window.__spaday.mount(document.body, n);
+    },
+    node("line", LINE),
+  );
+
+  // lightweight-charts draws to canvas(es) once connected + sized
+  await page.waitForFunction(
+    () => document.querySelector("lightweight-chart canvas"),
+    { timeout: 5000 },
+  );
+
+  const result = await page.evaluate(() => ({
+    tag: window.__el.tagName.toLowerCase(),
+    canvases: window.__el.querySelectorAll("canvas").length,
+    dataLen: window.__el.data.length,
+  }));
+  expect(result.tag).toBe("lightweight-chart");
+  expect(result.canvases).toBeGreaterThan(0);
+  expect(result.dataLen).toBe(3);
+});
+
+test("a SetProp patch updates the chart's data", async ({ page }) => {
+  await page.evaluate(
+    (n) => {
+      window.__el = window.__spaday.mount(document.body, n);
+    },
+    node("line", LINE),
+  );
+  await page.waitForFunction(() =>
+    document.querySelector("lightweight-chart canvas"),
+  );
+
+  const len = await page.evaluate(
+    (more) => {
+      window.__spaday.applyPatch(window.__el, {
+        ops: [{ SetProp: { path: [], name: "data", value: more } }],
+      });
+      return window.__el.data.length;
+    },
+    node("line", [...LINE, { time: "2019-01-04", value: 14 }]).props.data,
+  );
+
+  expect(len).toBe(4); // the runtime set the live element's `data` property
+});

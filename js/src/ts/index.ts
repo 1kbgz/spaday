@@ -17,3 +17,11 @@ export const apply = (root: string, patch: string): string =>
 // Custom Elements Manifest binding: parse a manifest into component schemas / a runtime registry.
 export { parseCem, registry } from "./cem";
 export type { ComponentSchema, PropSchema, PropType } from "./cem";
+
+// Browser runtime: render a component tree to the DOM and apply tree patches incrementally.
+export { mount, applyPatch } from "./runtime";
+export type { Node } from "./runtime";
+
+// Prop-value (`Value`) encode/decode.
+export { tag, untag } from "./value";
+export type { Value } from "./value";
