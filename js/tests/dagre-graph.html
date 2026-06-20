@@ -7,6 +7,7 @@
       import { mount, applyPatch } from "/dist/esm/index.js";
       import "/dist/cdn/wrappers/dagre-graph.js"; // defines <dagre-graph>
       window.__spaday = { mount, applyPatch };
+      window.__DagreGraph = customElements.get("dagre-graph"); // for the extension-hook test
     </script>
   </head>
   <body></body>

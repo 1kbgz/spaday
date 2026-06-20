@@ -88,3 +88,40 @@ test("a SetProp patch adds a node to the graph", async ({ page }) => {
   );
   expect(n).toBe(4); // the runtime set the live element's `nodes` property and it re-rendered
 });
+
+test("a registered custom shape renders (the daggre extension hook)", async ({
+  page,
+}) => {
+  // daggre registers its own shapes (house, hollowpoint) without forking the element; emulate that
+  // with a trivial polygon shape, then mount a node that uses it.
+  await page.evaluate(() => {
+    window.__DagreGraph.registerShape("test-house", (parent, _bbox, node) => {
+      const shape = parent
+        .insert("polygon", ":first-child")
+        .attr("class", "test-house")
+        .attr("points", "0,0 10,0 5,-10");
+      node.intersect = () => ({ x: node.x, y: node.y });
+      return shape;
+    });
+  });
+
+  await page.evaluate(() => {
+    window.__el = window.__spaday.mount(document.body, {
+      tag: "dagre-graph",
+      props: {
+        nodes: {
+          List: [{ Map: { id: { Str: "x" }, shape: { Str: "test-house" } } }],
+        },
+      },
+    });
+  });
+
+  await page.waitForFunction(
+    () => document.querySelector("dagre-graph svg polygon.test-house"),
+    { timeout: 5000 },
+  );
+  const found = await page.evaluate(
+    () => window.__el.querySelectorAll("svg polygon.test-house").length,
+  );
+  expect(found).toBe(1); // the consumer-registered shape was applied by the renderer
+});

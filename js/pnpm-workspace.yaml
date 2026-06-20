@@ -1,2 +1,5 @@
 allowBuilds:
   esbuild: true
+
+onlyBuiltDependencies:
+  - '@1kbgz/transports'

@@ -36,8 +36,28 @@ const RANKDIR: Record<string, string> = {
   "right-to-left": "RL",
 };
 
+// A dagre-d3 custom node-shape / arrowhead drawing function. The renderer exposes mutable shape and
+// arrow registries; consumers (e.g. the daggre app, with its `house` node and `hollowpoint` arrow)
+// register their own — built against `dagre-d3-es` directly — so this element stays domain-agnostic.
+type ShapeFn = (...args: never[]) => unknown;
+const customShapes: Record<string, ShapeFn> = {};
+const customArrows: Record<string, ShapeFn> = {};
+type Registries = {
+  shapes(): Record<string, ShapeFn>;
+  arrows(): Record<string, ShapeFn>;
+};
+
 /** A dagre-d3 graph as a custom element; set `direction`, `nodes`, and `edges` to render. */
 export class DagreGraph extends HTMLElement {
+  /** Register a custom dagre-d3 node shape (e.g. daggre's "house"); available to all <dagre-graph>. */
+  static registerShape(name: string, fn: ShapeFn): void {
+    customShapes[name] = fn;
+  }
+  /** Register a custom dagre-d3 arrowhead (e.g. daggre's "hollowpoint"). */
+  static registerArrow(name: string, fn: ShapeFn): void {
+    customArrows[name] = fn;
+  }
+
   private renderer = makeRender();
   private svg?: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private inner?: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -131,6 +151,10 @@ export class DagreGraph extends HTMLElement {
 
   private draw(): void {
     if (!this.inner) return;
+    // fold any consumer-registered shapes/arrows into this renderer's registries (idempotent)
+    const reg = this.renderer as unknown as Registries;
+    Object.assign(reg.shapes(), customShapes);
+    Object.assign(reg.arrows(), customArrows);
     const g = this.build();
     if (g.nodeCount() === 0) {
       this.inner.selectAll("*").remove();
