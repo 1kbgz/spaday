@@ -3,3 +3,7 @@ allowBuilds:
 
 onlyBuiltDependencies:
   - '@1kbgz/transports'
+
+# Exempt our own freshly-published package from the minimumReleaseAge install delay.
+minimumReleaseAgeExclude:
+  - '@1kbgz/transports'
