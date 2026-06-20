@@ -7,5 +7,6 @@ for an *imperative* library (TradingView lightweight-charts), bound via a hand-a
 """
 
 from . import webawesome
+from .dagre_graph import DagreGraph  # noqa: F401  (an imperative-library wrapper)
 from .lightweight_charts import LightweightChart  # noqa: F401  (an imperative-library wrapper)
 from .webawesome import *  # noqa: F401,F403  (re-export the generated component classes)
