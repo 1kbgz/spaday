@@ -6,7 +6,7 @@ the live wire.
 
 | | files | shows |
 |---|---|---|
-| **Dashboard** | `dashboard.py` + `dashboard.html` | WebAwesome controls drive a live chart; control edits sync across tabs |
+| **Dashboard** | `dashboard.py` + `dashboard.html` | WebAwesome controls drive charts; **global** state shared across tabs vs **per-session** state isolated per browser |
 | **Live chart** | `server.py` + `live.html` | a chart streamed from a Python server over transports |
 | **Offline** | `chart.py` + `index.html` | render + replay one precomputed patch, no server |
 
@@ -22,10 +22,15 @@ The servers serve the built `js/dist` bundles and the `@1kbgz/transports` / WebA
 
 ## Dashboard (all-in-one)
 
-A `Chart { type, data, live }` model in a `transports.Session`, served over a WebSocket. The UI —
-`WaSelect` / `WaSwitch` / `WaButton` / `LightweightChart` — is authored in Python (`dashboard.shell()`)
-and mounted by the runtime. Changing a control sends a transports **edit**, so the server is
-authoritative and **every open tab stays in sync** (change the type in one, all update).
+Two `Chart { type, data, live }` panels, each `WaSelect` / `WaSwitch` / `WaButton` / `LightweightChart`
+authored in Python (`dashboard.chart_panel()`) and mounted by the runtime. Control changes are
+transports **edits** (server-authoritative). The two panels differ in *scope*:
+
+- **Global** — one shared model on a `transports.Server` at `/ws`. Every browser mirrors it, so a
+  control change in one tab updates **all** tabs.
+- **Per session** — a `transports.Hub` at `/ws/session` routes each connection (by a per-tab
+  `?session=` id) to its **own private** model. Each browser gets an isolated chart — the multi-tenant
+  case. Open the page in two browsers to see the difference.
 
 ```bash
 python -m spaday.examples.dashboard          # -> http://127.0.0.1:8001
