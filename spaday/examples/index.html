@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spaday × lightweight-charts</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #fafafa;
+        color: #222;
+      }
+      .card {
+        max-width: 940px;
+        margin: 32px auto;
+        padding: 16px 20px 20px;
+        background: #fff;
+        border: 1px solid #e6e6e6;
+        border-radius: 12px;
+        box-shadow: 0 1px 8px #0001;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 4px;
+      }
+      p {
+        margin: 0 0 14px;
+        color: #666;
+        font-size: 13px;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+      button {
+        font: inherit;
+        padding: 7px 12px;
+        border: 1px solid #d0d0d0;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #f3f3f3;
+      }
+      .status {
+        margin-left: 10px;
+        color: #888;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>A chart authored in Python, rendered by spaday</h1>
+      <p>
+        The chart below was built as a typed <code>LightweightChart</code>
+        component in Python, serialized to spaday's wire form, and mounted by
+        the browser runtime. <em>Apply update</em> applies a patch computed by
+        the Rust <code>diff</code> engine — a live, incremental change.
+      </p>
+      <div id="host"></div>
+      <div style="margin-top: 12px">
+        <button id="update">Apply update (area → line, +60 days)</button>
+        <span class="status" id="status"></span>
+      </div>
+    </div>
+
+    <script type="module">
+      // The spaday runtime (mount/applyPatch) and the lightweight-charts wrapper (defines the
+      // <lightweight-chart> element). Built into js/dist by `cd js && pnpm build`.
+      import { mount, applyPatch } from "/js/dist/esm/index.js";
+      import "/js/dist/cdn/wrappers/lightweight-chart.js";
+
+      // The component tree authored by spaday/examples/chart.py.
+      const node = await (await fetch("./chart.json")).json();
+      const chart = mount(document.getElementById("host"), node);
+      chart.style.height = "440px";
+
+      document.getElementById("update").addEventListener("click", async () => {
+        const patch = await (await fetch("./chart.patch.json")).json();
+        applyPatch(chart, patch); // the incremental update
+        document.getElementById("status").textContent =
+          `applied a ${patch.ops.length}-op patch from spaday.diff`;
+      });
+    </script>
+  </body>
+</html>
