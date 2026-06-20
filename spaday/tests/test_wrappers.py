@@ -24,7 +24,7 @@ def test_lightweight_charts_codegen_is_current():
     """The committed wrapper class must match its hand-authored CEM through the generator (AST compare,
     so `ruff format` doesn't cause a false mismatch)."""
     fresh = generate(str(COMPONENTS / "lightweight_charts.cem.json"))
-    committed = (COMPONENTS / "lightweight_charts.py").read_text()
+    committed = (COMPONENTS / "lightweight_charts.py").read_text(encoding="utf-8")
     assert ast.dump(ast.parse(fresh)) == ast.dump(ast.parse(committed)), (
         "spaday/components/lightweight_charts.py is stale — regenerate:\n"
         "  python -m spaday.cem spaday/components/lightweight_charts.cem.json "
