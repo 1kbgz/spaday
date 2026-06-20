@@ -1,10 +1,9 @@
-onlyBuiltDependencies:
-  - esbuild
-
-# @1kbgz/transports ships prebuilt dist and its only install script is an only-allow-pnpm
-# guard we don't want to run for a dependency; acknowledge it so CI doesn't fail on the ignored build.
-ignoredBuiltDependencies:
-  - '@1kbgz/transports'
+# Build-script approval (pnpm 11 `allowBuilds` map). @1kbgz/transports' only install script is an
+# only-allow-pnpm guard (harmless under pnpm) and esbuild builds its native binary; allow both so the
+# install isn't blocked by pnpm's ignored-builds guard.
+allowBuilds:
+  '@1kbgz/transports': true
+  esbuild: true
 
 # Exempt our own freshly-published package from the minimumReleaseAge install delay.
 minimumReleaseAgeExclude:
