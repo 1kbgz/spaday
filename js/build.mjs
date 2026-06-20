@@ -15,6 +15,11 @@ const BUNDLES = [
     entryPoints: ["src/ts/index.ts"],
     outfile: "dist/cdn/index.js",
   },
+  {
+    // Self-contained wrapper bundle (lightweight-charts included); importing it defines the element.
+    entryPoints: ["src/ts/wrappers/lightweight-chart.ts"],
+    outfile: "dist/cdn/wrappers/lightweight-chart.js",
+  },
 ];
 
 async function build() {
