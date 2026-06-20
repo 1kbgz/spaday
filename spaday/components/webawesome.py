@@ -1131,8 +1131,7 @@ class WaDropdownItem(Component):
 
 
 class WaDropdown(Component):
-    """Dropdowns display a list of options that can be triggered by a button or other element. They support
-    keyboard navigation, submenus, and various customization options."""
+    """Dropdowns display a list of options that can be triggered by a button or other element. They support keyboard navigation, submenus, and various customization options."""
 
     tag = "wa-dropdown"
 
@@ -1883,8 +1882,7 @@ class WaRelativeTime(Component):
 
 
 class WaScroller(Component):
-    """Scrollers create an accessible container while providing visual cues that help users identify and navigate
-    through content that scrolls."""
+    """Scrollers create an accessible container while providing visual cues that help users identify and navigate through content that scrolls."""
 
     tag = "wa-scroller"
 

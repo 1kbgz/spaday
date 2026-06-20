@@ -15,8 +15,9 @@ import argparse
 import json
 import keyword
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
+from .component import Component
 from .spaday import parse_cem as _parse_cem
 
 _RESERVED = {"key", "self"}  # params Component owns / Python self
@@ -25,6 +26,36 @@ _RESERVED = {"key", "self"}  # params Component owns / Python self
 def schemas(manifest_path: str) -> List[dict]:
     """The normalized component schemas parsed from a manifest file."""
     return json.loads(_parse_cem(Path(manifest_path).read_text()))
+
+
+def classes(manifest_path: str) -> Dict[str, Type[Component]]:
+    """Build :class:`~spaday.component.Component` subclasses from a manifest *at runtime*.
+
+    The dynamic counterpart to :func:`generate`: returns ``{class_name: class}`` without emitting a
+    file. Handy for binding an arbitrary or one-off manifest on the fly. Unlike the committed,
+    generated catalog (e.g. :mod:`spaday.components.webawesome`), these classes are **not statically
+    typed** — the type checker can't see their per-attribute signatures — though they still validate
+    keyword names at call time. Reach for :func:`generate` (committed codegen) when you want typing.
+    """
+    return {schema["class_name"]: _make_class(schema) for schema in schemas(manifest_path)}
+
+
+def _make_class(schema: dict) -> Type[Component]:
+    name, tag = schema["class_name"], schema["tag_name"]
+    attr_of: Dict[str, str] = {}  # keyword-safe param name -> wire attribute name
+    seen: set = set()
+    for prop in schema["props"]:
+        param = _param_name(prop["name"], seen)
+        seen.add(param)
+        attr_of[param] = prop["name"]
+
+    def __init__(self, *, key: Optional[str] = None, **props: Any) -> None:
+        unknown = set(props) - attr_of.keys()
+        if unknown:
+            raise TypeError(f"{name}() got unexpected keyword argument(s): {', '.join(sorted(unknown))}")
+        Component.__init__(self, key=key, props={attr_of[p]: v for p, v in props.items()})
+
+    return type(name, (Component,), {"tag": tag, "__doc__": schema.get("summary"), "__init__": __init__})
 
 
 def generate(manifest_path: str, out_path: Optional[str] = None, *, source: Optional[str] = None) -> str:
@@ -83,7 +114,9 @@ def _render_class(schema: dict) -> _ClassBody:
         params.append(f"{param}: {anno} = None")
         assigns.append(f"            {json.dumps(attr)}: {param},")
 
-    doc = (schema.get("summary") or "").strip().replace("\\", "\\\\").replace('"""', "'''")
+    # Collapse to a single line so the docstring is stable under `ruff format` (which re-indents
+    # multi-line docstrings, an AST-visible change the drift test would otherwise trip over).
+    doc = " ".join((schema.get("summary") or "").split()).replace("\\", "\\\\").replace('"""', "'''")
     head = [f"class {name}(Component):"]
     if doc:
         head.append(f'    """{doc}"""')

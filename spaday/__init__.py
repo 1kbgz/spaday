@@ -1,4 +1,4 @@
-from .cem import generate
+from .cem import classes, generate
 from .component import Component
 from .spaday import apply, diff, parse_cem  # compiled Rust extension (rust/python)
 
@@ -12,5 +12,6 @@ __all__ = [
     # CEM binding generator
     "parse_cem",
     "generate",
+    "classes",
     "Component",
 ]

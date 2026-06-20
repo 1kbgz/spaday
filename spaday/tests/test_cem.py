@@ -1,9 +1,13 @@
+import ast
 import json
 from pathlib import Path
 
-from spaday import Component, apply, diff, generate, parse_cem
+import pytest
 
-FIXTURE = str(Path(__file__).parent / "fixtures" / "webawesome.cem.json")
+from spaday import Component, apply, classes, diff, generate, parse_cem
+
+FIXTURES = Path(__file__).parent / "fixtures"
+FIXTURE = str(FIXTURES / "webawesome.cem.json")
 
 
 def _module():
@@ -75,3 +79,34 @@ def test_committed_webawesome_components_import():
     # a generated component composes and round-trips like any node
     tree = WaCard().child(WaSwitch(checked=True)).to_json()
     assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
+
+
+def test_classes_builds_components_at_runtime():
+    klasses = classes(FIXTURE)
+    assert set(klasses) == {"WaSwitch", "WaButton", "WaCard"}
+    assert issubclass(klasses["WaSwitch"], Component)
+
+    node = klasses["WaSwitch"](checked=True, size="large").to_node()
+    assert node["tag"] == "wa-switch"
+    assert node["props"]["checked"] == {"Bool": True}
+    # keyword-named attribute is reachable as `for_` and maps back to the `for` prop
+    assert klasses["WaButton"](for_="field").to_node()["props"]["for"] == {"Str": "field"}
+    # unknown keywords are rejected (the runtime classes validate kwarg names)
+    with pytest.raises(TypeError):
+        klasses["WaSwitch"](nope=1)
+
+
+def test_committed_webawesome_is_not_stale():
+    """The committed catalog must match what the generator produces from its source manifest.
+
+    Comparison is on the parsed AST, not raw text, so the committed file's `ruff format` pass (which
+    rewraps lines) doesn't cause a false mismatch — only a real change in the generator or the source
+    manifest does.
+    """
+    fresh = generate(str(FIXTURES / "webawesome.3.4.0.cem.json"))
+    committed = (Path(__file__).parent.parent / "components" / "webawesome.py").read_text()
+    assert ast.dump(ast.parse(fresh)) == ast.dump(ast.parse(committed)), (
+        "spaday/components/webawesome.py is stale — regenerate it:\n"
+        "  python -m spaday.cem spaday/tests/fixtures/webawesome.3.4.0.cem.json "
+        "-o spaday/components/webawesome.py && ruff format spaday/components/webawesome.py"
+    )

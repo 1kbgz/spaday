@@ -170,6 +170,7 @@ packages = [
 exclude = [
     "js",
     "rust",
+    "spaday/tests",
 ]
 
 [tool.pytest.ini_options]

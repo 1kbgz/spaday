@@ -45,11 +45,25 @@ spaday-cem path/to/custom-elements.json -o my_components.py
 ```python
 import spaday
 
-code = spaday.generate("custom-elements.json")   # returns the module source
+code = spaday.generate("custom-elements.json")   # returns the module source (typed classes)
+```
+
+`generate` is the right choice when you want **typed, committed** classes (the WebAwesome catalog is
+produced this way). For a one-off or experimental manifest, {py:func}`spaday.classes` builds the
+component classes **at runtime** instead — no file, no static types, but it still validates keyword
+names:
+
+```python
+ns = spaday.classes("custom-elements.json")   # {"WaSwitch": <class>, ...}
+ns["WaSwitch"](checked=True).to_json()
 ```
 
 The same parse drives the JavaScript runtime registry (`registry(manifest)` in `spaday`'s JS
 package), so one manifest yields both the typed Python authoring API and the browser binding — the
 "one core, two bindings" model the diff engine already uses.
+
+The committed `spaday/components/webawesome.py` is checked against its source manifest by a test, so
+it can't silently drift from the generator; regenerate it with `python -m spaday.cem <manifest> -o
+spaday/components/webawesome.py` followed by `ruff format`.
 
 [Custom Elements Manifest]: https://github.com/webcomponents/custom-elements-manifest
