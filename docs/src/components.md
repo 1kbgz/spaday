@@ -67,4 +67,14 @@ The committed `spaday/components/webawesome.py` is checked against its source ma
 it can't silently drift from the generator; regenerate it with `python -m spaday.cem <manifest> -o
 spaday/components/webawesome.py` followed by `ruff format`.
 
+## Rendering in the browser
+
+A tree's JSON and the patches `spaday.diff` produces are consumed by spaday's **browser runtime** (the
+JS package): `mount(container, tree)` instantiates the web components into the DOM, and
+`applyPatch(root, patch)` applies an update **incrementally** — live element instances are preserved
+(a keyed reorder moves the same nodes rather than rebuilding them). So a UI authored and mutated in
+Python streams to the browser as minimal patches and renders without full re-draws. Wiring component
+*events* back to behavior is the declarative action DSL (a later phase); the runtime renders structure
+and props today.
+
 [Custom Elements Manifest]: https://github.com/webcomponents/custom-elements-manifest
