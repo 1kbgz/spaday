@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spaday × transports — dashboard</title>
+    <link
+      rel="stylesheet"
+      href="/nm/@awesome.me/webawesome/dist/styles/webawesome.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/nm/@awesome.me/webawesome/dist/styles/themes/default.css"
+    />
+    <script type="module" src="/js/dist/cdn/examples/webawesome.js"></script>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #fafafa;
+        color: #222;
+      }
+      header {
+        max-width: 940px;
+        margin: 28px auto 8px;
+      }
+      header h1 {
+        font-size: 17px;
+        margin: 0 0 4px;
+      }
+      header p {
+        margin: 0;
+        color: #666;
+        font-size: 13px;
+      }
+      .panel {
+        max-width: 940px;
+        margin: 16px auto;
+        padding: 16px 20px 20px;
+        background: #fff;
+        border: 1px solid #e6e6e6;
+        border-radius: 12px;
+        box-shadow: 0 1px 8px #0001;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Global vs per-session state, over transports</h1>
+      <p>
+        Open this page in two browsers. The <strong>global</strong> chart is one
+        shared model — controls sync across both. The
+        <strong>per-session</strong> chart is private to each browser (its own
+        transports tenant) — independent.
+      </p>
+    </header>
+    <div id="host"></div>
+
+    <script type="module">
+      import { mount } from "/js/dist/esm/index.js";
+      import "/js/dist/cdn/wrappers/lightweight-chart.js";
+      import {
+        Client,
+        fromValue,
+        toValue,
+        wasm,
+      } from "/nm/@1kbgz/transports/dist/cdn/index.js";
+
+      await wasm.default({
+        module_or_path: "/nm/@1kbgz/transports/dist/pkg/transports_bg.wasm",
+      });
+
+      // mount the Python-authored shell (two panels)
+      const node = await (await fetch("/shell.json")).json();
+      mount(document.getElementById("host"), node);
+
+      const byId = (id) => document.getElementById(id);
+
+      // wire one panel to its own transports connection
+      function panel(prefix, wsUrl) {
+        const chart = byId(`${prefix}-chart`);
+        const typeSel = byId(`${prefix}-type`);
+        const liveSw = byId(`${prefix}-live`);
+        const clearBtn = byId(`${prefix}-clear`);
+        const status = byId(`${prefix}-status`);
+        chart.style.height = "300px";
+
+        const client = new Client();
+        let id = null;
+        const model = () => fromValue(client.value(id));
+        const send = (changes) =>
+          ws.send(client.edit(id, toValue({ ...model(), ...changes })));
+
+        const ws = new WebSocket(wsUrl);
+        ws.binaryType = "arraybuffer";
+        ws.addEventListener("message", (event) => {
+          client.recv(
+            typeof event.data === "string"
+              ? event.data
+              : new Uint8Array(event.data),
+          );
+          if (id === null) id = client.ids()[0];
+          if (id == null) return;
+          const m = model();
+          if (!m) return;
+          chart.type = m.type;
+          chart.data = m.data;
+          if (typeSel.value !== m.type) typeSel.value = m.type;
+          if (liveSw.checked !== m.live) liveSw.checked = m.live;
+          status.textContent = "live";
+        });
+        ws.addEventListener(
+          "close",
+          () => (status.textContent = "disconnected"),
+        );
+
+        typeSel.addEventListener("change", () => send({ type: typeSel.value }));
+        liveSw.addEventListener("change", () => send({ live: liveSw.checked }));
+        clearBtn.addEventListener("click", () => send({ data: [] }));
+      }
+
+      const session = crypto.randomUUID(); // a fresh tenant per page load
+      panel("global", `ws://${location.host}/ws`);
+      panel("session", `ws://${location.host}/ws/session?session=${session}`);
+    </script>
+  </body>
+</html>

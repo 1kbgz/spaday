@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "modules": [
+    {
+      "path": "wrappers/lightweight-chart.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "LightweightChart",
+          "customElement": true,
+          "tagName": "lightweight-chart",
+          "summary": "A TradingView lightweight-charts chart as a web component, driven by its type and data.",
+          "attributes": [
+            {
+              "name": "type",
+              "type": { "text": "'line' | 'area' | 'candlestick' | 'bar' | 'histogram'" },
+              "default": "'line'",
+              "description": "The series type."
+            },
+            {
+              "name": "data",
+              "type": { "text": "unknown" },
+              "description": "The series data: an array of points. line/area/histogram use {time, value}; candlestick/bar use {time, open, high, low, close}."
+            }
+          ],
+          "slots": []
+        }
+      ]
+    }
+  ]
+}

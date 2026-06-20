@@ -155,3 +155,6 @@ ROADMAP.md
 AGENTS.md
 .github/hooks/sdlc.json
 .superpowers
+
+# spaday example generated data
+spaday/examples/*.json

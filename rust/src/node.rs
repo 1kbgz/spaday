@@ -106,7 +106,6 @@ impl Node {
     }
 }
 
-/*********************************/
 #[cfg(test)]
 mod node_tests {
     use super::*;

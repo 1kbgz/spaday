@@ -213,6 +213,7 @@ title = "spaday"
 root = "README.md"
 pages = [
     "docs/src/components.md",
+    "docs/src/wrappers.md",
     "docs/src/api.md",
 ]
 use-autoapi = false

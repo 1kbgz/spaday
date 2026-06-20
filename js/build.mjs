@@ -15,6 +15,21 @@ const BUNDLES = [
     entryPoints: ["src/ts/index.ts"],
     outfile: "dist/cdn/index.js",
   },
+  {
+    // Self-contained wrapper bundle (lightweight-charts included); importing it defines the element.
+    entryPoints: ["src/ts/wrappers/lightweight-chart.ts"],
+    outfile: "dist/cdn/wrappers/lightweight-chart.js",
+  },
+  {
+    // Self-contained wrapper bundle (dagre-d3-es + d3 included); importing it defines the element.
+    entryPoints: ["src/ts/wrappers/dagre-graph.ts"],
+    outfile: "dist/cdn/wrappers/dagre-graph.js",
+  },
+  {
+    // Self-contained WebAwesome controls for the dashboard example (esbuild resolves WA's chunks).
+    entryPoints: ["src/ts/examples/webawesome.ts"],
+    outfile: "dist/cdn/examples/webawesome.js",
+  },
 ];
 
 async function build() {
