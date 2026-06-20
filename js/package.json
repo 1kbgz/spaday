@@ -49,7 +49,9 @@
     "test": "npm-run-all test:rust test:js",
     "watch": "nodemon --watch src -e ts,css,html --exec \"pnpm build:debug\""
   },
-  "dependencies": {},
+  "dependencies": {
+    "@awesome.me/webawesome": "^3.4.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "cpy": "^13.2.2",

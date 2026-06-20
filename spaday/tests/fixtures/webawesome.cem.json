@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "modules": [
+    {
+      "path": "components/switch/switch.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "WaSwitch",
+          "customElement": true,
+          "tagName": "wa-switch",
+          "summary": "Switches allow the user to toggle an option on or off.",
+          "attributes": [
+            { "name": "checked", "type": { "text": "boolean" }, "default": "false", "description": "Draws the switch in a checked state." },
+            { "name": "disabled", "type": { "text": "boolean" }, "default": "false" },
+            { "name": "size", "type": { "text": "'small' | 'medium' | 'large'" }, "default": "'medium'", "description": "The switch's size." },
+            { "name": "name", "type": { "text": "string | null" }, "default": "null" }
+          ],
+          "events": [{ "name": "change" }, { "name": "input" }],
+          "slots": [{ "name": "" }, { "name": "hint" }]
+        }
+      ]
+    },
+    {
+      "path": "components/button/button.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "WaButton",
+          "customElement": true,
+          "tagName": "wa-button",
+          "summary": "Buttons represent actions that are available to the user.",
+          "attributes": [
+            { "name": "variant", "type": { "text": "'neutral' | 'brand' | 'success' | 'warning' | 'danger'" }, "default": "'neutral'" },
+            { "name": "disabled", "type": { "text": "boolean" }, "default": "false" },
+            { "name": "for", "type": { "text": "string" }, "description": "An attribute whose name is a Python keyword." }
+          ],
+          "events": [{ "name": "click" }],
+          "slots": [{ "name": "" }, { "name": "start" }, { "name": "end" }]
+        }
+      ]
+    },
+    {
+      "path": "components/card/card.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "WaCard",
+          "customElement": true,
+          "tagName": "wa-card",
+          "summary": "Cards can be used to group related subjects in a container.",
+          "attributes": [
+            { "name": "appearance", "type": { "text": "'accent' | 'filled' | 'outlined' | 'plain'" }, "default": "'outlined'" }
+          ],
+          "slots": [{ "name": "" }, { "name": "header" }, { "name": "footer" }]
+        },
+        {
+          "kind": "class",
+          "name": "CardHelper",
+          "customElement": false
+        }
+      ]
+    }
+  ]
+}
