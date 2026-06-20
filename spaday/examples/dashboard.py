@@ -67,13 +67,11 @@ class ChartSource:
             self.model.data = self.model.data + [self._point()]  # reassign so the Session observes it
 
 
-# --- global: one shared model everyone connects to ----------------------------------------------
 global_src = ChartSource(type="area", seed=7)
 global_session = transports.Session()
 global_session.host(global_src.model)
 global_server = transports.Server(global_session)
 
-# --- per session: a Hub routes each connection (by ?session=) to its own private model -----------
 session_hub = transports.Hub(key=lambda ws: ws.query_params.get("session", "anon"))
 session_srcs: Dict[str, ChartSource] = {}
 

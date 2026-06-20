@@ -75,7 +75,6 @@ impl<T: Into<Value>> From<Vec<T>> for Value {
     }
 }
 
-/*********************************/
 #[cfg(test)]
 mod value_tests {
     use super::*;

@@ -47,8 +47,6 @@ function build(node: Node): Element {
   return el;
 }
 
-// --- prop strategy ------------------------------------------------------------------------------
-
 /** Set a prop the way the element expects: a DOM property when it has one, else an HTML attribute. */
 function setProp(el: Element, name: string, value: unknown): void {
   if (name in el) {
@@ -68,8 +66,6 @@ function removeProp(el: Element, name: string): void {
   }
   el.removeAttribute(name);
 }
-
-// --- slot helpers (named slots are routed by the child's `slot` attribute) ----------------------
 
 function slotOf(child: Element): string {
   return child.getAttribute("slot") ?? DEFAULT_SLOT;
@@ -101,8 +97,6 @@ function insertInSlot(
     parent.appendChild(child);
   }
 }
-
-// --- ops ----------------------------------------------------------------------------------------
 
 type Op =
   | { SetProp: { path: Path; name: string; value: Value } }
