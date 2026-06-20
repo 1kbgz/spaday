@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>spaday × transports — live chart</title>
+    <title>spaday × transports — live graph</title>
     <style>
       body {
         margin: 0;
@@ -38,16 +38,28 @@
         color: #2962ff;
         font-weight: 600;
       }
+      dagre-graph .node rect,
+      dagre-graph .node circle,
+      dagre-graph .node ellipse {
+        fill: #fff;
+        stroke: #2962ff;
+        stroke-width: 1.5px;
+      }
+      dagre-graph .edgePath path {
+        stroke: #999;
+        fill: none;
+        stroke-width: 1.5px;
+      }
     </style>
   </head>
   <body>
     <div class="card">
-      <h1>A live chart, synced over transports</h1>
+      <h1>A live graph, synced over transports</h1>
       <p>
-        A Python server hosts the chart in a <code>transports.Session</code> and
-        appends a point every second; the browser mirrors the model with
-        transports' <code>Client</code> and feeds it to the
-        <code>&lt;lightweight-chart&gt;</code> element rendered by spaday.
+        A Python server hosts the graph in a <code>transports.Session</code> and
+        adds a node every second; the browser mirrors the model with transports'
+        <code>Client</code> and feeds it to the
+        <code>&lt;dagre-graph&gt;</code> element (dagre-d3) rendered by spaday.
         <span class="status" id="status">connecting…</span>
       </p>
       <div id="host"></div>
@@ -55,7 +67,7 @@
 
     <script type="module">
       import { mount } from "/js/dist/esm/index.js"; // spaday runtime (pure JS)
-      import "/js/dist/cdn/wrappers/lightweight-chart.js"; // defines <lightweight-chart>
+      import "/js/dist/cdn/wrappers/dagre-graph.js"; // defines <dagre-graph>
       import {
         Client,
         fromValue,
@@ -67,10 +79,10 @@
         module_or_path: "/nm/@1kbgz/transports/dist/pkg/transports_bg.wasm",
       });
 
-      const chart = mount(document.getElementById("host"), {
-        tag: "lightweight-chart",
+      const graph = mount(document.getElementById("host"), {
+        tag: "dagre-graph",
       });
-      chart.style.height = "440px";
+      graph.style.height = "480px";
 
       const client = new Client();
       const status = document.getElementById("status");
@@ -87,13 +99,14 @@
         client.recv(data); // update the mirror (snapshot or patch)
         if (id === null) id = client.ids()[0];
         if (id == null) return;
-        const model = fromValue(client.value(id)); // untag -> { type, data }
-        if (model?.type) chart.type = model.type;
-        if (model?.data) chart.data = model.data;
+        const model = fromValue(client.value(id)); // untag -> { direction, nodes, edges }
+        if (model?.direction) graph.direction = model.direction;
+        if (model?.nodes) graph.nodes = model.nodes;
+        if (model?.edges) graph.edges = model.edges;
         status.textContent =
           updates++ === 0
             ? "live — streaming over transports"
-            : `live — ${updates} update(s)`;
+            : `live — ${updates} update(s), ${model?.nodes?.length ?? 0} nodes`;
       });
       ws.addEventListener("close", () => {
         status.textContent = `disconnected after ${updates} update(s)`;

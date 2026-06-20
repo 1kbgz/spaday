@@ -1,111 +1,85 @@
-"""A *live* spaday server: host a chart, append a point every second, and stream the changes.
+"""A live chart on **transports**: host a chart model, append a point every second, stream it.
 
-A Starlette server holds the chart, and on each tick computes a spaday ``diff`` against the previous
-tree and pushes the resulting patch to every connected browser over a WebSocket; the page applies it
-incrementally with the runtime. This is the real "server-pushed live updates" loop (the static
-``index.html`` only replays a precomputed patch).
+The chart's data lives in a `transports.Session`; `transports.Server` + `starlette_endpoint` serve it
+over a WebSocket and `autoflush` broadcasts the patches. The browser (`live.html`) mirrors the model
+with transports' JS `Client` and feeds it to the `<lightweight-chart>` element. transports is the
+wire; spaday renders.
 
-Run it (needs ``starlette``, ``uvicorn``, ``websockets``, and the built ``js/dist`` bundles)::
+Run (needs `transports`, `starlette`, `uvicorn`, `websockets`, and the built `js/dist` bundles +
+`@1kbgz/transports` in `js/node_modules`)::
 
     cd js && pnpm install && pnpm build && cd ..
     python -m spaday.examples.server      # -> http://127.0.0.1:8000
-
-In production the wire is **transports** (it owns hosting / diffing / flush / fan-out); this hand-rolls
-a minimal version so the example stays self-contained.
 """
 
 import asyncio
-import json
 import random
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
 from pathlib import Path
 
+import transports
 import uvicorn
+from pydantic import BaseModel, Field
 from starlette.applications import Starlette
 from starlette.responses import FileResponse
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
-from starlette.websockets import WebSocket, WebSocketDisconnect
-
-from spaday import diff
-from spaday.components import LightweightChart
 
 HERE = Path(__file__).parent
-REPO = HERE.parent.parent  # repository root, so we can serve js/dist
+JS = HERE.parent.parent / "js"  # spaday/js — holds the built dist/ and node_modules/ we serve
 
 
-class Series:
-    """A growing daily series; `node()` renders it as a spaday `LightweightChart`."""
-
-    def __init__(self, start_points: int = 60) -> None:
-        random.seed(7)
-        self.value, self.day, self.points = 100.0, date(2023, 1, 1), []
-        for _ in range(start_points):
-            self.tick()
-
-    def tick(self) -> None:
-        self.value += random.uniform(-1.4, 1.5)
-        self.points.append({"time": self.day.isoformat(), "value": round(self.value, 2)})
-        self.day += timedelta(days=1)
-
-    def node(self) -> dict:
-        return LightweightChart(type="area", data=self.points).to_node()
+class Chart(BaseModel):
+    type: str = "area"
+    data: list = Field(default_factory=list)
 
 
-series = Series()
-state = series.node()  # the last tree we broadcast (what every client currently mirrors)
-clients: set = set()
+_value, _day = 100.0, date(2023, 1, 1)
+
+
+def _point() -> dict:
+    global _value, _day
+    _value += random.uniform(-1.4, 1.5)
+    point = {"time": _day.isoformat(), "value": round(_value, 2)}
+    _day += timedelta(days=1)
+    return point
+
+
+random.seed(7)
+chart = Chart(type="area", data=[_point() for _ in range(60)])
+session = transports.Session()
+session.host(chart)  # the only model; the browser finds it by id
+server = transports.Server(session)
 
 
 async def homepage(request):
     return FileResponse(HERE / "live.html")
 
 
-async def stream(ws: WebSocket) -> None:
-    await ws.accept()
-    clients.add(ws)
-    await ws.send_json({"t": "snapshot", "node": state})  # bring the new client up to date
-    try:
-        while True:
-            await ws.receive_text()  # we don't expect inbound; this detects disconnect
-    except WebSocketDisconnect:
-        pass
-    finally:
-        clients.discard(ws)
-
-
 async def ticker() -> None:
-    global state
     while True:
         await asyncio.sleep(1.0)
-        series.tick()
-        old, state = state, series.node()
-        patch = json.loads(diff(json.dumps(old), json.dumps(state)))  # the change, via the shared core
-        if not patch["ops"]:
-            continue
-        message = {"t": "patch", "patch": patch}
-        for ws in list(clients):
-            try:
-                await ws.send_json(message)
-            except Exception:
-                clients.discard(ws)
+        chart.data = chart.data + [_point()]  # reassign so the reactive Session observes the change
 
 
 @asynccontextmanager
 async def lifespan(app):
-    task = asyncio.create_task(ticker())
+    flush = asyncio.create_task(transports.autoflush(server))  # broadcast patches to clients
+    tick = asyncio.create_task(ticker())
     try:
         yield
     finally:
-        task.cancel()
+        flush.cancel()
+        tick.cancel()
 
 
 app = Starlette(
     routes=[
         Route("/", homepage),
-        WebSocketRoute("/ws", stream),
-        Mount("/js", StaticFiles(directory=REPO / "js")),  # serves the built /js/dist bundles
+        WebSocketRoute("/ws", transports.starlette_endpoint(server)),
+        Mount("/js", StaticFiles(directory=JS)),
+        Mount("/nm", StaticFiles(directory=JS / "node_modules")),  # serves @1kbgz/transports, webawesome
     ],
     lifespan=lifespan,
 )

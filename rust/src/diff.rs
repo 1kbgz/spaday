@@ -367,7 +367,6 @@ fn apply_op(root: &mut Node, op: &Op) {
     }
 }
 
-/*********************************/
 #[cfg(test)]
 mod diff_tests {
     use super::*;
@@ -509,8 +508,6 @@ mod diff_tests {
             );
         assert_round_trip(&old, &new);
     }
-
-    // ---- deterministic property-based fuzz ----
 
     struct Lcg(u64);
     impl Lcg {

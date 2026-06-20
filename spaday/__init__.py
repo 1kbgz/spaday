@@ -1,5 +1,5 @@
 from .cem import classes, generate
-from .component import Component
+from .component import Component, element
 from .spaday import apply, diff, parse_cem  # compiled Rust extension (rust/python)
 
 __version__ = "0.1.0"
@@ -14,4 +14,5 @@ __all__ = [
     "generate",
     "classes",
     "Component",
+    "element",
 ]

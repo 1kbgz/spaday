@@ -25,7 +25,6 @@ pub fn apply_json(root: &str, patch: &str) -> Result<String, serde_json::Error> 
     serde_json::to_string(&root)
 }
 
-/*********************************/
 #[cfg(test)]
 mod json_tests {
     use super::*;

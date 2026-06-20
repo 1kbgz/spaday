@@ -14,8 +14,6 @@
 
 use serde::{Deserialize, Serialize};
 
-// --- input: the subset of the manifest we read --------------------------------------------------
-
 #[derive(Deserialize)]
 struct Manifest {
     #[serde(default)]
@@ -67,8 +65,6 @@ struct TypeText {
 struct Named {
     name: String,
 }
-
-// --- output: the normalized schema the bindings render ------------------------------------------
 
 /// A normalized type for a component prop, derived from the manifest's TS type string.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -226,7 +222,6 @@ fn clean_default(text: Option<&str>) -> Option<String> {
     }
 }
 
-/*********************************/
 #[cfg(test)]
 mod cem_tests {
     use super::*;

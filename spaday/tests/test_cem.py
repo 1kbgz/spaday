@@ -118,3 +118,15 @@ def test_committed_webawesome_is_not_stale():
         "  python -m spaday.cem spaday/tests/fixtures/webawesome.3.4.0.cem.json "
         "-o spaday/components/webawesome.py && ruff format spaday/components/webawesome.py"
     )
+
+
+def test_text_and_element_authoring():
+    from spaday import element
+
+    node = element("div", class_="row", style="display:flex").child(element("wa-button").text("Go")).to_node()
+    assert node["tag"] == "div"
+    assert node["props"]["class"] == {"Str": "row"}  # class_ de-escaped to the real attribute
+    assert node["props"]["style"] == {"Str": "display:flex"}
+    button = node["slots"]["default"][0]
+    assert button["tag"] == "wa-button"
+    assert button["props"]["textContent"] == {"Str": "Go"}  # .text() sets the label

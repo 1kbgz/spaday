@@ -53,8 +53,12 @@
     "@awesome.me/webawesome": "^3.4.0"
   },
   "devDependencies": {
+    "@1kbgz/transports": "^0.3.0",
     "@playwright/test": "^1.60.0",
+    "@types/d3": "^7.4.3",
     "cpy": "^13.2.2",
+    "d3": "^7.9.0",
+    "dagre-d3-es": "^7.0.14",
     "esbuild": "^0.28.0",
     "http-server": "^14.1.1",
     "lightningcss": "^1.29.3",
