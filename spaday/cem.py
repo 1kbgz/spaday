@@ -15,7 +15,7 @@ import argparse
 import json
 import keyword
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type, Union, overload
 
 from .component import Component
 from .spaday import parse_cem as _parse_cem
@@ -28,16 +28,27 @@ def schemas(manifest_path: str) -> List[dict]:
     return json.loads(_parse_cem(Path(manifest_path).read_text()))
 
 
-def classes(manifest_path: str) -> Dict[str, Type[Component]]:
+@overload
+def classes(manifest_path: str) -> Dict[str, Type[Component]]: ...
+@overload
+def classes(manifest_path: str, name: str) -> Type[Component]: ...
+def classes(manifest_path: str, name: Optional[str] = None) -> Union[Dict[str, Type[Component]], Type[Component]]:
     """Build :class:`~spaday.component.Component` subclasses from a manifest *at runtime*.
 
-    The dynamic counterpart to :func:`generate`: returns ``{class_name: class}`` without emitting a
-    file. Handy for binding an arbitrary or one-off manifest on the fly. Unlike the committed,
-    generated catalog (e.g. :mod:`spaday.components.webawesome`), these classes are **not statically
-    typed** — the type checker can't see their per-attribute signatures — though they still validate
-    keyword names at call time. Reach for :func:`generate` (committed codegen) when you want typing.
+    The dynamic counterpart to :func:`generate`: build classes without emitting a file. With ``name``,
+    returns just that one class (``MyClass = spaday.classes(manifest, "MyClass")``); otherwise returns
+    ``{class_name: class}`` for the whole manifest. Handy for binding an arbitrary or one-off manifest
+    on the fly. Unlike the committed, generated catalog (e.g. :mod:`spaday.components.webawesome`),
+    these classes are **not statically typed** — the type checker can't see their per-attribute
+    signatures — though they still validate keyword names at call time. Reach for :func:`generate`
+    (committed codegen) when you want typing.
     """
-    return {schema["class_name"]: _make_class(schema) for schema in schemas(manifest_path)}
+    built = {schema["class_name"]: _make_class(schema) for schema in schemas(manifest_path)}
+    if name is None:
+        return built
+    if name not in built:
+        raise KeyError(f"no component named {name!r} in {manifest_path} (have: {', '.join(sorted(built))})")
+    return built[name]
 
 
 def _make_class(schema: dict) -> Type[Component]:

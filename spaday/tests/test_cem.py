@@ -96,6 +96,14 @@ def test_classes_builds_components_at_runtime():
         klasses["WaSwitch"](nope=1)
 
 
+def test_classes_single_name_returns_one_class():
+    WaSwitch = classes(FIXTURE, "WaSwitch")
+    assert isinstance(WaSwitch, type) and WaSwitch.tag == "wa-switch"
+    assert WaSwitch(checked=True).to_node()["props"]["checked"] == {"Bool": True}
+    with pytest.raises(KeyError):
+        classes(FIXTURE, "NoSuchComponent")
+
+
 def test_committed_webawesome_is_not_stale():
     """The committed catalog must match what the generator produces from its source manifest.
 

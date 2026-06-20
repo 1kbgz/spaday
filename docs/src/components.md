@@ -54,8 +54,9 @@ component classes **at runtime** instead — no file, no static types, but it st
 names:
 
 ```python
-ns = spaday.classes("custom-elements.json")   # {"WaSwitch": <class>, ...}
-ns["WaSwitch"](checked=True).to_json()
+ns = spaday.classes("custom-elements.json")          # {"WaSwitch": <class>, ...}
+WaSwitch = spaday.classes("custom-elements.json", "WaSwitch")   # or just one class by name
+WaSwitch(checked=True).to_json()
 ```
 
 The same parse drives the JavaScript runtime registry (`registry(manifest)` in `spaday`'s JS
