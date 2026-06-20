@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spaday — live chart</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #fafafa;
+        color: #222;
+      }
+      .card {
+        max-width: 940px;
+        margin: 32px auto;
+        padding: 16px 20px 20px;
+        background: #fff;
+        border: 1px solid #e6e6e6;
+        border-radius: 12px;
+        box-shadow: 0 1px 8px #0001;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 4px;
+      }
+      p {
+        margin: 0 0 14px;
+        color: #666;
+        font-size: 13px;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+      .status {
+        color: #2962ff;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>A live chart, pushed from a Python server</h1>
+      <p>
+        A Starlette server hosts the chart and appends a point every second; each
+        change streams here as a spaday patch over a WebSocket and is applied
+        incrementally by the runtime. <span class="status" id="status">connecting…</span>
+      </p>
+      <div id="host"></div>
+    </div>
+
+    <script type="module">
+      import { mount, applyPatch } from "/js/dist/esm/index.js";
+      import "/js/dist/cdn/wrappers/lightweight-chart.js";
+
+      const host = document.getElementById("host");
+      const status = document.getElementById("status");
+      let root = null;
+      let updates = 0;
+
+      const ws = new WebSocket(`ws://${location.host}/ws`);
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.t === "snapshot") {
+          if (root) root.remove();
+          root = mount(host, msg.node); // the authored chart tree
+          root.style.height = "440px";
+          status.textContent = "live — streaming updates";
+        } else if (msg.t === "patch") {
+          applyPatch(root, msg.patch); // the incremental update
+          status.textContent = `live — ${++updates} update(s) received`;
+        }
+      };
+      ws.onclose = () => {
+        status.textContent = `disconnected after ${updates} update(s)`;
+      };
+    </script>
+  </body>
+</html>

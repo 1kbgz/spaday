@@ -58,8 +58,9 @@
       <p>
         The chart below was built as a typed <code>LightweightChart</code>
         component in Python, serialized to spaday's wire form, and mounted by
-        the browser runtime. <em>Apply update</em> applies a patch computed by
-        the Rust <code>diff</code> engine — a live, incremental change.
+        the browser runtime. <em>Apply update</em> replays one patch computed
+        offline by <code>spaday.diff</code> — for real server-pushed updates,
+        run <code>server.py</code> (see the README).
       </p>
       <div id="host"></div>
       <div style="margin-top: 12px">

@@ -1,32 +1,48 @@
-# Example: a chart authored in Python
+# spaday examples — a chart authored in Python
 
-`chart.py` builds a `LightweightChart` component in **typed Python** and writes spaday's wire form;
-`index.html` renders it in the browser with the spaday **runtime** + the **lightweight-charts
-wrapper**. The *Apply update* button applies a patch computed by the Rust `diff` engine — a live,
-incremental update (`area → line`, `+60 days`).
+A `LightweightChart` is authored in **typed Python**, serialized to spaday's wire form, and rendered
+in the browser by the spaday **runtime** + the **lightweight-charts wrapper**. Two demos:
 
-## Run
+| | file | shows |
+|---|---|---|
+| **Live server** | `server.py` + `live.html` | a Python server **pushes** updates over a WebSocket |
+| **Offline** | `chart.py` + `index.html` | render + replay one precomputed patch, no server |
+
+Both load the built bundles from `/js/dist`, so build first:
 
 ```bash
-# 1. build the JS bundles (runtime + wrapper) -> js/dist
 cd js && pnpm install && pnpm build && cd ..
-
-# 2. author the chart in Python (writes chart.json + chart.patch.json next to this file)
-python -m spaday.examples.chart        # (or `python spaday/examples/chart.py` if spaday is installed)
-
-# 3. serve the repo root, then open the example
-python -m http.server 8000
-#    -> http://localhost:8000/spaday/examples/index.html
 ```
 
-`spaday` must be importable (`pip install -e .` builds the extension), and the page loads the bundles
-from `/js/dist/...`, so serve from the repository root.
+## Live server (server-pushed updates)
+
+A Starlette server hosts the chart, appends a point every second, and streams each change to every
+connected browser as a `spaday.diff` patch over a WebSocket; the page applies it incrementally.
+
+```bash
+pip install starlette uvicorn websockets        # if not already present
+python -m spaday.examples.server                # -> http://127.0.0.1:8000
+```
+
+Open <http://127.0.0.1:8000> and watch the line grow in real time.
+
+## Offline (no server)
+
+```bash
+python -m spaday.examples.chart    # writes chart.json + chart.patch.json
+python -m http.server 8000         # from the repo root
+#   -> http://localhost:8000/spaday/examples/index.html
+```
+
+Renders the Python-authored chart; the button replays one patch `spaday.diff` computed offline
+(`area → line, +60 days`) so you can see the incremental-apply path without a server.
 
 ## What it shows
 
-- **Author once, in Python** — `LightweightChart(type="area", data=[...])`, a typed component, with no
+- **Author once, in Python** — `LightweightChart(type="area", data=[...])`, a typed component, no
   hand-written JSON or JS.
 - **Render anywhere** — the runtime mounts the real web component; an *imperative* charting library
   (TradingView lightweight-charts) draws it.
-- **Incremental updates** — the change between two Python-authored charts is a 2-op patch from the
-  shared Rust diff engine, applied to the live element without a full re-render.
+- **Incremental updates** — changes are patches from the shared Rust diff engine, applied to the live
+  element without a full re-render. In production the wire is **transports** (hosting / diffing /
+  fan-out); `server.py` hand-rolls a minimal version to stay self-contained.
