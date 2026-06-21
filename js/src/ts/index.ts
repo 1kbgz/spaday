@@ -18,6 +18,13 @@ export type { ComponentSchema, PropSchema, PropType } from "./cem";
 export { mount, applyPatch } from "./runtime";
 export type { Node } from "./runtime";
 
+// Action DSL: declarative behavior, interpreted in the browser on DOM events (no Python round-trip).
+export { interpret } from "./actions";
+export type { ActionContext } from "./actions";
+
+// High-level layout/shell primitives — defines the spa-* custom elements on import.
+export { SHELL_TAGS } from "./shell";
+
 // Prop-value (`Value`) encode/decode.
 export { tag, untag } from "./value";
 export type { Value } from "./value";

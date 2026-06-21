@@ -6,6 +6,7 @@
 // update instead of being re-created. Event handlers are bound later (with the action DSL); this
 // layer renders structure and props.
 
+import { interpret } from "./actions";
 import { untag, Value } from "./value";
 
 export interface Node {
@@ -50,11 +51,17 @@ function build(node: Node): Element {
   for (const [slot, children] of Object.entries(node.slots ?? {})) {
     for (const child of children) appendInSlot(el, slot, build(child));
   }
+  for (const [name, action] of Object.entries(node.events ?? {})) {
+    const a = untag(action as Value);
+    el.addEventListener(name, (event) =>
+      interpret(a, { event, currentTarget: el }),
+    );
+  }
   return el;
 }
 
 /** Set a prop the way the element expects: a DOM property when it has one, else an HTML attribute. */
-function setProp(el: Element, name: string, value: unknown): void {
+export function setProp(el: Element, name: string, value: unknown): void {
   if (name in el) {
     (el as unknown as Record<string, unknown>)[name] = value;
     return;

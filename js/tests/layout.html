@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>spaday layout test harness</title>
+    <!-- Real WebAwesome (CSS + the autoloader) so wa-* controls render exactly as in the example, and
+         the spaday runtime (which defines the spa-* shell elements). This harness exists to assert
+         rendered-layout invariants (no overflow/overlap), which the unit/DOM tests can't see. -->
+    <link
+      rel="stylesheet"
+      href="/node_modules/@awesome.me/webawesome/dist/styles/webawesome.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/node_modules/@awesome.me/webawesome/dist/styles/themes/default.css"
+    />
+    <script type="module" src="/dist/cdn/examples/webawesome.js"></script>
+    <script type="module">
+      import { mount } from "/dist/esm/index.js"; // runtime + spa-* shell elements
+      window.__spaday = { mount };
+    </script>
+  </head>
+  <body></body>
+</html>

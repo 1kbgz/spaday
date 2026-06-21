@@ -6,8 +6,8 @@ core's ``diff``/``apply`` understand. The typed component classes generated from
 Manifest (see :mod:`spaday.cem`) subclass this and expose each element's attributes as typed keyword
 arguments.
 
-Event handlers are intentionally absent here: binding behavior is the declarative action DSL (a later
-phase). This layer is about *structure* — composing typed web components from Python.
+Behavior is attached with :meth:`Component.on` — the declarative action DSL (see :mod:`spaday.actions`):
+the runtime interprets the action in the browser on the DOM event, with no round-trip to Python.
 """
 
 import json
@@ -57,6 +57,7 @@ class Component:
         self._key = key
         self._props: Dict[str, Any] = {k: v for k, v in (props or {}).items() if v is not None}
         self._slots: Dict[str, List[Child]] = {}
+        self._events: Dict[str, dict] = {}
 
     def key(self, key: str) -> "Component":
         """Set the reconciliation key (for keyed child diffing)."""
@@ -87,6 +88,15 @@ class Component:
             self._props[name] = value
         return self
 
+    def on(self, event: str, action: Any) -> "Component":
+        """Bind a declarative :class:`~spaday.actions.Action` to a DOM event (e.g. ``"click"``).
+
+        The action is serialized as data and interpreted in the browser when the event fires — no
+        round-trip to Python.
+        """
+        self._events[event] = action.to_dict()
+        return self
+
     def to_node(self) -> dict:
         """The node as the core's JSON-ready dict (empty fields omitted, like the Rust core)."""
         node: dict = {"tag": self.tag}
@@ -96,6 +106,8 @@ class Component:
             node["props"] = {name: _tag(v) for name, v in self._props.items()}
         if self._slots:
             node["slots"] = {slot: [_as_node(c) for c in children] for slot, children in self._slots.items()}
+        if self._events:
+            node["events"] = {name: _tag(action) for name, action in self._events.items()}
         return node
 
     def to_json(self) -> str:
