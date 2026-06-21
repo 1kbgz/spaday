@@ -25,7 +25,7 @@ _RESERVED = {"key", "self"}  # params Component owns / Python self
 
 def schemas(manifest_path: str) -> List[dict]:
     """The normalized component schemas parsed from a manifest file."""
-    return json.loads(_parse_cem(Path(manifest_path).read_text()))
+    return json.loads(_parse_cem(Path(manifest_path).read_text(encoding="utf-8")))
 
 
 @overload
@@ -73,7 +73,7 @@ def generate(manifest_path: str, out_path: Optional[str] = None, *, source: Opti
     """Render a manifest's components into a Python module; write it to ``out_path`` if given."""
     code = render(schemas(manifest_path), source=source or Path(manifest_path).name)
     if out_path is not None:
-        Path(out_path).write_text(code)
+        Path(out_path).write_text(code, encoding="utf-8")
     return code
 
 

@@ -18,7 +18,7 @@ def _module():
 
 
 def test_parse_cem_filters_to_custom_elements():
-    schemas = json.loads(parse_cem(Path(FIXTURE).read_text()))
+    schemas = json.loads(parse_cem(Path(FIXTURE).read_text(encoding="utf-8")))
     tags = {s["tag_name"] for s in schemas}
     assert tags == {"wa-switch", "wa-button", "wa-card"}  # the non-customElement CardHelper is excluded
     switch = next(s for s in schemas if s["tag_name"] == "wa-switch")
@@ -112,7 +112,7 @@ def test_committed_webawesome_is_not_stale():
     manifest does.
     """
     fresh = generate(str(FIXTURES / "webawesome.3.4.0.cem.json"))
-    committed = (Path(__file__).parent.parent / "components" / "webawesome.py").read_text()
+    committed = (Path(__file__).parent.parent / "components" / "webawesome.py").read_text(encoding="utf-8")
     assert ast.dump(ast.parse(fresh)) == ast.dump(ast.parse(committed)), (
         "spaday/components/webawesome.py is stale — regenerate it:\n"
         "  python -m spaday.cem spaday/tests/fixtures/webawesome.3.4.0.cem.json "

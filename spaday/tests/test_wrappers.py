@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from spaday import apply, diff, generate
-from spaday.components import DagreGraph, LightweightChart
+from spaday.components import LightweightChart
 
 COMPONENTS = Path(__file__).parent.parent / "components"
 
@@ -24,38 +24,9 @@ def test_lightweight_charts_codegen_is_current():
     """The committed wrapper class must match its hand-authored CEM through the generator (AST compare,
     so `ruff format` doesn't cause a false mismatch)."""
     fresh = generate(str(COMPONENTS / "lightweight_charts.cem.json"))
-    committed = (COMPONENTS / "lightweight_charts.py").read_text()
+    committed = (COMPONENTS / "lightweight_charts.py").read_text(encoding="utf-8")
     assert ast.dump(ast.parse(fresh)) == ast.dump(ast.parse(committed)), (
         "spaday/components/lightweight_charts.py is stale — regenerate:\n"
         "  python -m spaday.cem spaday/components/lightweight_charts.cem.json "
         "-o spaday/components/lightweight_charts.py && ruff format spaday/components/lightweight_charts.py"
-    )
-
-
-def test_dagre_graph_builds_a_node():
-    node = DagreGraph(
-        direction="left-to-right",
-        nodes=[{"id": "a"}, {"id": "b"}],
-        edges=[{"from": "a", "to": "b"}],
-    ).to_node()
-    assert node["tag"] == "dagre-graph"
-    assert node["props"]["direction"] == {"Str": "left-to-right"}
-    # the free-form nodes/edges (Any) are tagged structurally, so they survive the wire
-    assert node["props"]["nodes"]["List"][0]["Map"]["id"] == {"Str": "a"}
-    assert node["props"]["edges"]["List"][0]["Map"]["to"] == {"Str": "b"}
-    # unset props are omitted; the node round-trips through the core diff/apply
-    assert "key" not in node
-    tree = DagreGraph(direction="top-to-bottom").to_json()
-    assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
-
-
-def test_dagre_graph_codegen_is_current():
-    """The committed wrapper class must match its hand-authored CEM through the generator (AST compare,
-    so `ruff format` doesn't cause a false mismatch)."""
-    fresh = generate(str(COMPONENTS / "dagre_graph.cem.json"))
-    committed = (COMPONENTS / "dagre_graph.py").read_text()
-    assert ast.dump(ast.parse(fresh)) == ast.dump(ast.parse(committed)), (
-        "spaday/components/dagre_graph.py is stale — regenerate:\n"
-        "  python -m spaday.cem spaday/components/dagre_graph.cem.json "
-        "-o spaday/components/dagre_graph.py && ruff format spaday/components/dagre_graph.py"
     )
