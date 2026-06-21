@@ -31,9 +31,15 @@ export function mount(container: Element, tree: Node): Element {
   return el;
 }
 
-/** Apply a tree patch (from the core `diff`) to a mounted root, mutating the DOM in place. */
-export function applyPatch(root: Element, patch: { ops: Op[] }): void {
-  for (const op of patch.ops) applyOp(root, op);
+/**
+ * Apply a tree patch (from the core `diff`) to a mounted root, mutating the DOM in place. Returns the
+ * current root — a root-level `Replace` swaps the element, so callers must keep the returned value
+ * (the original `root` reference would be left detached).
+ */
+export function applyPatch(root: Element, patch: { ops: Op[] }): Element {
+  let current = root;
+  for (const op of patch.ops) current = applyOp(current, op);
+  return current;
 }
 
 function build(node: Node): Element {
@@ -115,7 +121,7 @@ function resolve(root: Element, path: Path): Element {
   return el;
 }
 
-function applyOp(root: Element, op: Op): void {
+function applyOp(root: Element, op: Op): Element {
   if ("SetProp" in op) {
     setProp(
       resolve(root, op.SetProp.path),
@@ -137,7 +143,11 @@ function applyOp(root: Element, op: Op): void {
     moving.remove();
     insertInSlot(parent, slot, to, moving);
   } else if ("Replace" in op) {
-    resolve(root, op.Replace.path).replaceWith(build(op.Replace.node));
+    const target = resolve(root, op.Replace.path);
+    const replacement = build(op.Replace.node);
+    target.replaceWith(replacement);
+    if (op.Replace.path.length === 0) return replacement; // the root element itself was swapped
   }
   // SetEvent / RemoveEvent / SetKey: events bind with the action DSL; keys are diff-engine metadata.
+  return root;
 }
