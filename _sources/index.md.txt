@@ -6,6 +6,10 @@ hidden: true
 
 
 
+docs/src/components.md
+
+docs/src/wrappers.md
+
 docs/src/api.md
 
 

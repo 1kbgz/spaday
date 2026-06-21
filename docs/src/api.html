@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="spaday" href="../../index.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="Wrapping an imperative library" href="wrappers.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>API - spaday v0.1.0</title>
+        <title>API Reference - spaday v0.1.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -178,7 +178,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -197,7 +197,9 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrapping an imperative library</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">API Reference</a></li>
 </ul>
 
 </div>
@@ -231,13 +233,102 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="api">
-<h1>API<a class="headerlink" href="#api" title="Link to this heading">¶</a></h1>
+          <section class="tex2jax_ignore mathjax_ignore" id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
+<section id="component-authoring">
+<h2>Component authoring<a class="headerlink" href="#component-authoring" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.Component">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">Component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">props</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/component.html#Component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base for a node in the spaday component tree.</p>
+<p>Subclasses set the class attribute <code class="docutils literal notranslate"><span class="pre">tag</span></code> and pass props (only the ones the author set —
+<code class="docutils literal notranslate"><span class="pre">None</span></code> means “leave the element’s own default”) to <code class="docutils literal notranslate"><span class="pre">super().__init__</span></code>. Compose children with
+<code class="docutils literal notranslate"><span class="pre">child</span></code> / <code class="docutils literal notranslate"><span class="pre">child_in</span></code> and set a reconciliation key with <code class="docutils literal notranslate"><span class="pre">key</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.key">
+<span class="sig-name descname"><span class="pre">key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.key" title="Link to this definition">¶</a></dt>
+<dd><p>Set the reconciliation key (for keyed child diffing).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.child">
+<span class="sig-name descname"><span class="pre">child</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.child"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.child" title="Link to this definition">¶</a></dt>
+<dd><p>Append a child to the default slot.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.child_in">
+<span class="sig-name descname"><span class="pre">child_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.child_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.child_in" title="Link to this definition">¶</a></dt>
+<dd><p>Append a child to a named slot.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.text">
+<span class="sig-name descname"><span class="pre">text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.text" title="Link to this definition">¶</a></dt>
+<dd><p>Set the element’s text content (e.g. a button or option label).</p>
+<p>Text is set as the <code class="docutils literal notranslate"><span class="pre">textContent</span></code> DOM property by the runtime, so this is for leaf elements
+whose label <em>is</em> their text (don’t combine it with child nodes).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.prop">
+<span class="sig-name descname"><span class="pre">prop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.prop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.prop" title="Link to this definition">¶</a></dt>
+<dd><p>Set an arbitrary prop (escape hatch for attributes a typed class doesn’t expose).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.to_node">
+<span class="sig-name descname"><span class="pre">to_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.to_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.to_node" title="Link to this definition">¶</a></dt>
+<dd><p>The node as the core’s JSON-ready dict (empty fields omitted, like the Rust core).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.to_json">
+<span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.to_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.to_json" title="Link to this definition">¶</a></dt>
+<dd><p>The node serialized for the core’s <code class="docutils literal notranslate"><span class="pre">diff</span></code>/<code class="docutils literal notranslate"><span class="pre">apply</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="cem-binding-generator">
+<h2>CEM binding generator<a class="headerlink" href="#cem-binding-generator" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.parse_cem">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">parse_cem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manifest</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#spaday.parse_cem" title="Link to this definition">¶</a></dt>
+<dd><p>Parse a <cite>custom-elements.json</cite> manifest into the JSON-encoded list of component schemas.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.generate">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">generate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manifest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../_modules/spaday/cem.html#generate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.generate" title="Link to this definition">¶</a></dt>
+<dd><p>Render a manifest’s components into a Python module; write it to <code class="docutils literal notranslate"><span class="pre">out_path</span></code> if given.</p>
+</dd></dl>
+
+</section>
+<section id="core-diff-apply">
+<h2>Core diff / apply<a class="headerlink" href="#core-diff-apply" title="Link to this heading">¶</a></h2>
+<p>The low-level component-tree engine (JSON wire form), shared byte-for-byte with the browser.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.diff">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">diff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#spaday.diff" title="Link to this definition">¶</a></dt>
+<dd><p>Diff two JSON-encoded component trees, returning the JSON-encoded patch.</p>
+<p>Thin wrapper over the shared core (<cite>spaday::diff_json</cite>); the same code runs in the wasm binding.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.apply">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#spaday.apply" title="Link to this definition">¶</a></dt>
+<dd><p>Apply a JSON-encoded patch to a JSON-encoded tree, returning the JSON-encoded result.</p>
+</dd></dl>
+
+</section>
 </section>
 
         </article>
@@ -246,14 +337,14 @@
         
         <div class="related-pages">
           
-          <a class="prev-page" href="../../index.html">
+          <a class="prev-page" href="wrappers.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Home</div>
+                <div class="title">Wrapping an imperative library</div>
                 
               </div>
             </a>
@@ -275,8 +366,49 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">API Reference</a><ul>
+<li><a class="reference internal" href="#component-authoring">Component authoring</a><ul>
+<li><a class="reference internal" href="#spaday.Component"><code class="docutils literal notranslate"><span class="pre">Component</span></code></a><ul>
+<li><a class="reference internal" href="#spaday.Component.key"><code class="docutils literal notranslate"><span class="pre">Component.key()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.child"><code class="docutils literal notranslate"><span class="pre">Component.child()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.child_in"><code class="docutils literal notranslate"><span class="pre">Component.child_in()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.text"><code class="docutils literal notranslate"><span class="pre">Component.text()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.prop"><code class="docutils literal notranslate"><span class="pre">Component.prop()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.to_node"><code class="docutils literal notranslate"><span class="pre">Component.to_node()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.to_json"><code class="docutils literal notranslate"><span class="pre">Component.to_json()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cem-binding-generator">CEM binding generator</a><ul>
+<li><a class="reference internal" href="#spaday.parse_cem"><code class="docutils literal notranslate"><span class="pre">parse_cem()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.generate"><code class="docutils literal notranslate"><span class="pre">generate()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#core-diff-apply">Core diff / apply</a><ul>
+<li><a class="reference internal" href="#spaday.diff"><code class="docutils literal notranslate"><span class="pre">diff()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.apply"><code class="docutils literal notranslate"><span class="pre">apply()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
