@@ -84,6 +84,39 @@ test("Replace swaps a subtree on tag change", async ({ page }) => {
   expect(html).toBe("<div><b>y</b></div>");
 });
 
+test("a root-level Replace returns the new root (caller's old ref goes stale)", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, applyPatch } = window.__spaday;
+    const c = document.createElement("div");
+    const root = mount(c, {
+      tag: "section",
+      props: { textContent: { Str: "x" } },
+    });
+    const newRoot = applyPatch(root, {
+      ops: [
+        {
+          Replace: {
+            path: [],
+            node: { tag: "article", props: { textContent: { Str: "y" } } },
+          },
+        },
+      ],
+    });
+    return {
+      html: c.innerHTML,
+      newTag: newRoot.tagName.toLowerCase(),
+      oldDetached: root.parentNode === null, // the original root was swapped out
+      newInDom: newRoot.parentNode === c,
+    };
+  });
+  expect(result.html).toBe("<article>y</article>");
+  expect(result.newTag).toBe("article");
+  expect(result.oldDetached).toBe(true);
+  expect(result.newInDom).toBe(true);
+});
+
 test("a keyed reorder patch moves live elements (incremental == full render)", async ({
   page,
 }) => {

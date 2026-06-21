@@ -39,7 +39,8 @@ from spaday.components.webawesome import WaButton, WaOption, WaSelect, WaSwitch
 
 HERE = Path(__file__).parent
 JS = HERE.parent.parent / "js"
-TYPES = ["line", "area", "candlestick", "bar", "histogram"]
+# value-shaped series only — the ticker emits {time, value}; candlestick/bar need OHLC points
+TYPES = ["line", "area", "histogram"]
 
 
 class Chart(BaseModel):
