@@ -178,7 +178,14 @@ def page() -> dict:
     """The whole page, authored from shell components (no layout divs; raw elements only for text)."""
     return (
         App()
-        .child(Nav().child(element("strong").text("spaday")).child(element("span").text("· shell + action DSL + transports")))
+        .child(
+            Nav()
+            .child(element("strong").text("spaday"))
+            .child(element("span").text("· shell + action DSL + transports"))
+            # right-aligned; wired to a `wa-dark` class toggle in index.html (class/root toggling
+            # is page chrome the action DSL doesn't model yet, like the transports edits below)
+            .child(WaSwitch().prop("id", "theme-toggle").prop("style", "margin-left:auto").text("Dark"))
+        )
         .child(
             Body()
             .child(

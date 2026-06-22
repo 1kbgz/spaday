@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="wa-theme-default">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -29,6 +29,21 @@
       a {
         color: #2962ff;
       }
+      /* Dark mode: WebAwesome components follow the `wa-dark` class; the shell reads these `--spa-*`
+         custom properties, which inherit through the shadow boundary, so the chrome follows too. */
+      html.wa-dark {
+        --spa-surface: #1c1c20;
+        --spa-surface-2: #26262c;
+        --spa-border: #36363d;
+        --spa-muted: #9a9aa4;
+      }
+      html.wa-dark body {
+        background: #161619;
+        color: #e8e8ec;
+      }
+      html.wa-dark p {
+        color: #b9b9c2;
+      }
     </style>
   </head>
   <body>
@@ -54,6 +69,12 @@
       mount(document.body, node); // shell + both cards; the action DSL is wired automatically
 
       const byId = (id) => document.getElementById(id);
+
+      // Light/dark toggle: flip the `wa-dark` class on <html>. (Class/root toggling is page chrome
+      // the action DSL doesn't model yet, so it's wired here like the transports edits.)
+      byId("theme-toggle").addEventListener("change", (e) =>
+        document.documentElement.classList.toggle("wa-dark", e.target.checked),
+      );
 
       // Wire one live chart to its transports connection (server-authoritative edits).
       function panel(prefix, wsUrl) {
