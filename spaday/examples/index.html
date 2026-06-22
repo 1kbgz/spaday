@@ -36,7 +36,7 @@
       // The whole page (shell layout + each control's Action) is authored by spaday/examples/__main__.py.
       // Mounting renders it and binds the action DSL — note there is NO addEventListener for the DSL card.
       // The only hand-written glue is for the two transports charts (edits aren't a declarative action yet).
-      import { mount } from "/js/dist/esm/index.js";
+      import { mount, init } from "/js/dist/esm/index.js";
       import "/js/dist/cdn/wrappers/lightweight-chart.js"; // defines <lightweight-chart>
       import {
         Client,
@@ -45,6 +45,7 @@
         wasm,
       } from "/js/node_modules/@1kbgz/transports/dist/cdn/index.js";
 
+      await init("/js/dist/pkg/spaday_bg.wasm"); // spaday's wasm core (the action interpreter)
       await wasm.default({
         module_or_path: "/js/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm",
       });

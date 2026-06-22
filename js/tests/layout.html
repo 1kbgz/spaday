@@ -16,7 +16,8 @@
     />
     <script type="module" src="/dist/cdn/examples/webawesome.js"></script>
     <script type="module">
-      import { mount } from "/dist/esm/index.js"; // runtime + spa-* shell elements
+      import { mount, init } from "/dist/esm/index.js"; // runtime + spa-* shell elements
+      await init("/dist/pkg/spaday_bg.wasm");
       window.__spaday = { mount };
     </script>
   </head>

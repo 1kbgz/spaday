@@ -45,15 +45,13 @@ def test_sequence_nests_actions():
     assert seq["actions"][1]["detail"] is None  # Emit with no detail
 
 
-def test_on_serializes_event_as_tagged_value_on_the_node():
+def test_on_serializes_event_as_plain_action_on_the_node():
     node = element("button").on("click", Toggle(this(), "hidden")).to_node()
-    # events ride the same externally-tagged `Value` form as props, so they survive the core wire
+    # events carry the action DSL's own wire form (plain), owned by the Rust core — not a tagged Value
     assert node["events"]["click"] == {
-        "Map": {
-            "kind": {"Str": "toggle"},
-            "target": {"Map": {"ref": {"Str": "this"}}},
-            "prop": {"Str": "hidden"},
-        }
+        "kind": "toggle",
+        "target": {"ref": "this"},
+        "prop": "hidden",
     }
 
 

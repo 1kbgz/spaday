@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 // The action DSL end-to-end: a node carries an action in its `events` map (the exact wire shape
-// `spaday/actions.py` emits), the runtime binds a listener in `build()`, and a real DOM event runs the
-// interpreter against live DOM. There is no server and no `diff`/`apply` here — that is the point:
-// behavior runs client-side with no round-trip to Python.
+// `spaday/actions.py` emits and the Rust core defines), the runtime binds a listener in `build()`, and
+// a real DOM event runs the interpreter against live DOM. Actions ride the wire as plain JSON (the
+// core's own DSL form), not a tagged Value. No server, no `diff`/`apply` — behavior runs client-side.
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/tests/runtime.html");
@@ -14,11 +14,10 @@ test("Toggle flips a boolean prop on the event's own element (this)", async ({
   page,
 }) => {
   const states = await page.evaluate(() => {
-    const { mount, tag } = window.__spaday;
-    const btn = mount(document.body, {
+    const btn = window.__spaday.mount(document.body, {
       tag: "button",
       events: {
-        click: tag({ kind: "toggle", target: { ref: "this" }, prop: "hidden" }),
+        click: { kind: "toggle", target: { ref: "this" }, prop: "hidden" },
       },
     });
     const seen = [];
@@ -35,8 +34,7 @@ test("SetProp by_id sets a literal on another element in the tree", async ({
   page,
 }) => {
   const hidden = await page.evaluate(() => {
-    const { mount, tag } = window.__spaday;
-    const root = mount(document.body, {
+    const root = window.__spaday.mount(document.body, {
       tag: "div",
       slots: {
         default: [
@@ -44,12 +42,12 @@ test("SetProp by_id sets a literal on another element in the tree", async ({
           {
             tag: "button",
             events: {
-              click: tag({
+              click: {
                 kind: "set",
                 target: { ref: "id", id: "panel" },
                 prop: "hidden",
                 value: { expr: "lit", value: true },
-              }),
+              },
             },
           },
         ],
@@ -67,8 +65,7 @@ test("SetProp binds an element prop to the event value through not_", async ({
   // The canonical `WaSwitch.on("change", SetProp(by_id("panel"), "hidden", not_(event_value())))`:
   // checking the box (event value true) shows the panel; unchecking hides it.
   const result = await page.evaluate(() => {
-    const { mount, tag } = window.__spaday;
-    const root = mount(document.body, {
+    const root = window.__spaday.mount(document.body, {
       tag: "div",
       slots: {
         default: [
@@ -77,12 +74,12 @@ test("SetProp binds an element prop to the event value through not_", async ({
             tag: "input",
             props: { type: { Str: "checkbox" } },
             events: {
-              change: tag({
+              change: {
                 kind: "set",
                 target: { ref: "id", id: "panel" },
                 prop: "hidden",
                 value: { expr: "not", of: { expr: "event" } },
-              }),
+              },
             },
           },
         ],
@@ -104,11 +101,10 @@ test("SetProp binds an element prop to the event value through not_", async ({
 
 test("Sequence runs its actions in order", async ({ page }) => {
   const state = await page.evaluate(() => {
-    const { mount, tag } = window.__spaday;
-    const btn = mount(document.body, {
+    const btn = window.__spaday.mount(document.body, {
       tag: "button",
       events: {
-        click: tag({
+        click: {
           kind: "seq",
           actions: [
             { kind: "toggle", target: { ref: "this" }, prop: "hidden" },
@@ -119,7 +115,7 @@ test("Sequence runs its actions in order", async ({ page }) => {
               value: { expr: "lit", value: "true" },
             },
           ],
-        }),
+        },
       },
     });
     btn.click();
@@ -130,19 +126,18 @@ test("Sequence runs its actions in order", async ({ page }) => {
 
 test("Emit dispatches a bubbling custom event", async ({ page }) => {
   const detail = await page.evaluate(() => {
-    const { mount, tag } = window.__spaday;
-    const root = mount(document.body, {
+    const root = window.__spaday.mount(document.body, {
       tag: "div",
       slots: {
         default: [
           {
             tag: "button",
             events: {
-              click: tag({
+              click: {
                 kind: "emit",
                 event: "ping",
                 detail: { expr: "lit", value: "hi" },
-              }),
+              },
             },
           },
         ],

@@ -52,9 +52,9 @@ function build(node: Node): Element {
     for (const child of children) appendInSlot(el, slot, build(child));
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
-    const a = untag(action as Value);
+    // actions ride the wire as the core's own DSL form (plain JSON), not a tagged Value
     el.addEventListener(name, (event) =>
-      interpret(a, { event, currentTarget: el }),
+      interpret(action, { event, currentTarget: el }),
     );
   }
   return el;

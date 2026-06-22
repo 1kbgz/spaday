@@ -3,15 +3,14 @@
 //! A [`Node`] is a single high-level web component: a tag, an optional reconciliation key,
 //! a bag of props (attributes/properties), named slots holding child nodes, and event handlers.
 //!
-//! Phase 0 models event handlers as an opaque [`Action`] (wrapping a [`Value`]) so the tree is
-//! structurally complete and diffable now. The real declarative action DSL replaces [`Action`]'s
-//! body in Phase 2 — the tree/diff machinery here is written against the `Action` type so that
-//! change is contained.
+//! Event handlers are the declarative [`Action`] DSL (see [`crate::action`]); the tree/diff machinery
+//! here is generic over the `Action` type.
 
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::action::Action;
 use crate::value::Value;
 
 pub type TagName = String;
@@ -22,13 +21,6 @@ pub type EventName = String;
 
 /// The conventional name for a component's unnamed (default) slot.
 pub const DEFAULT_SLOT: &str = "default";
-
-/// Phase 0 placeholder for a declarative event handler.
-///
-/// In Phase 2 this becomes the action DSL (`SetProp`/`Toggle`/`Bind`/`CallEndpoint`/...). It is a
-/// distinct newtype today so call sites and the diff engine don't have to change when that lands.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
-pub struct Action(pub Value);
 
 /// A node in the component tree.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -109,21 +101,23 @@ impl Node {
 #[cfg(test)]
 mod node_tests {
     use super::*;
+    use crate::action::Ref;
 
     #[test]
     fn test_builder() {
+        let toggle = Action::Toggle {
+            target: Ref::This,
+            prop: "checked".into(),
+        };
         let n = Node::new("wa-switch")
             .with_key("lamp")
             .prop("checked", true)
             .prop("size", "m")
-            .event("wa-change", Action(Value::str("toggle")));
+            .event("wa-change", toggle.clone());
         assert_eq!(n.tag, "wa-switch");
         assert_eq!(n.key.as_deref(), Some("lamp"));
         assert_eq!(n.props.get("checked"), Some(&Value::Bool(true)));
-        assert_eq!(
-            n.events.get("wa-change"),
-            Some(&Action(Value::str("toggle")))
-        );
+        assert_eq!(n.events.get("wa-change"), Some(&toggle));
     }
 
     #[test]
