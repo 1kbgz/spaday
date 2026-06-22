@@ -269,9 +269,13 @@ is independent per tab.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> authors the page (shell + controls + actions) and hosts two <code class="docutils literal notranslate"><span class="pre">Chart</span></code> models on transports
 (<code class="docutils literal notranslate"><span class="pre">Session</span></code>/<code class="docutils literal notranslate"><span class="pre">Server</span></code>, plus a <code class="docutils literal notranslate"><span class="pre">Hub</span></code> for per-session). It serves the page, the authored tree
 (<code class="docutils literal notranslate"><span class="pre">/tree.json</span></code>), the websockets (<code class="docutils literal notranslate"><span class="pre">/ws</span></code>, <code class="docutils literal notranslate"><span class="pre">/ws/session</span></code>), and the <code class="docutils literal notranslate"><span class="pre">js/</span></code> bundles.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">index.html</span></code> mounts the tree — which wires the action DSL automatically — and adds the only
-hand-written glue: the two transports charts’ control→edit listeners. That glue is what a future
-<code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> action will make declarative; the action DSL already removed it for the client-side card.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index.html</span></code> first <code class="docutils literal notranslate"><span class="pre">await</span> <span class="pre">init(&quot;…/spaday_bg.wasm&quot;)</span></code> (the action interpreter runs in spaday’s wasm
+core, so it must be initialized before interactions — otherwise an action fires a clear error), then
+mounts the tree — which wires the action DSL automatically. The transports controls are now declarative
+<code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> actions; each fires a <code class="docutils literal notranslate"><span class="pre">spaday:patch</span></code> intent that <strong>one</strong> generic sink routes to the right
+transports model (the per-control listeners are gone — only that model→wire bridge remains). The light/
+dark toggle (<code class="docutils literal notranslate"><span class="pre">wa-dark</span></code> on <code class="docutils literal notranslate"><span class="pre">&lt;html&gt;</span></code>) + chart theming stay hand-written, since class/root toggling isn’t
+in the DSL yet.</p></li>
 </ul>
 </section>
 <section id="notes">
