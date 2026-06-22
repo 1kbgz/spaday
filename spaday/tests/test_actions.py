@@ -3,6 +3,7 @@ import json
 from spaday import apply, diff, element
 from spaday.actions import (
     Emit,
+    SendPatch,
     Sequence,
     SetProp,
     Toggle,
@@ -30,6 +31,12 @@ def test_action_to_dict_wire_shapes():
         "kind": "emit",
         "event": "opened",
         "detail": {"expr": "lit", "value": True},
+    }
+    assert SendPatch("global", "type", event_value()).to_dict() == {
+        "kind": "patch",
+        "model": "global",
+        "field": "type",
+        "value": {"expr": "event"},
     }
 
 

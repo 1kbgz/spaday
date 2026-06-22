@@ -66,6 +66,14 @@ pub enum Action {
         #[serde(default)]
         detail: Option<Expr>,
     },
+    /// Set `field` to `value` on a host-routed model (e.g. a transports model named `model`). The
+    /// interpreter surfaces this as a patch intent; the app routes it to the actual wire.
+    #[serde(rename = "patch")]
+    SendPatch {
+        model: String,
+        field: String,
+        value: Expr,
+    },
 }
 
 #[cfg(test)]
@@ -149,6 +157,18 @@ mod tests {
                     {"kind": "emit", "event": "opened", "detail": {"expr": "lit", "value": true}},
                 ],
             }),
+        );
+    }
+
+    #[test]
+    fn send_patch_wire() {
+        round(
+            &Action::SendPatch {
+                model: "global".into(),
+                field: "type".into(),
+                value: Expr::Event,
+            },
+            json!({"kind": "patch", "model": "global", "field": "type", "value": {"expr": "event"}}),
         );
     }
 

@@ -150,3 +150,39 @@ test("Emit dispatches a bubbling custom event", async ({ page }) => {
   });
   expect(detail).toBe("hi");
 });
+
+test("SendPatch fires a routable spaday:patch intent carrying the event value", async ({
+  page,
+}) => {
+  const detail = await page.evaluate(() => {
+    const root = window.__spaday.mount(document.body, {
+      tag: "div",
+      slots: {
+        default: [
+          {
+            tag: "input",
+            props: { type: { Str: "checkbox" } },
+            events: {
+              change: {
+                kind: "patch",
+                model: "global",
+                field: "live",
+                value: { expr: "event" },
+              },
+            },
+          },
+        ],
+      },
+    });
+    return new Promise((resolve) => {
+      document.addEventListener("spaday:patch", (e) => resolve(e.detail), {
+        once: true,
+      });
+      const box = root.querySelector("input");
+      box.checked = true;
+      box.dispatchEvent(new Event("change"));
+    });
+  });
+  // the app routes this intent to its wire (e.g. a transports edit on model "global")
+  expect(detail).toEqual({ model: "global", field: "live", value: true });
+});

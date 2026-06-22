@@ -31,10 +31,11 @@ is independent per tab.
   (`/tree.json`), the websockets (`/ws`, `/ws/session`), and the `js/` bundles.
 - `index.html` first `await init("…/spaday_bg.wasm")` (the action interpreter runs in spaday's wasm
   core, so it must be initialized before interactions — otherwise an action fires a clear error), then
-  mounts the tree — which wires the action DSL automatically — and adds the only hand-written glue: the
-  two transports charts' control→edit listeners, plus the light/dark toggle (`wa-dark` on `<html>`).
-  That glue is what future `SendPatch` / class-toggle actions will make declarative; the action DSL
-  already removed it for the client-side card.
+  mounts the tree — which wires the action DSL automatically. The transports controls are now declarative
+  `SendPatch` actions; each fires a `spaday:patch` intent that **one** generic sink routes to the right
+  transports model (the per-control listeners are gone — only that model→wire bridge remains). The light/
+  dark toggle (`wa-dark` on `<html>`) + chart theming stay hand-written, since class/root toggling isn't
+  in the DSL yet.
 
 ## Notes
 

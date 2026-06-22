@@ -7,7 +7,8 @@ export * as wasm from "../../dist/pkg/spaday";
 
 /**
  * Initialize the wasm core (required before the action interpreter runs in the browser). Pass the
- * `spaday_bg.wasm` URL, e.g. `await init("/js/dist/pkg/spaday_bg.wasm")`, before interacting.
+ * `spaday_bg.wasm` URL, e.g. `await init({ module_or_path: "/js/dist/pkg/spaday_bg.wasm" })`, before
+ * interacting.
  */
 export async function init(
   moduleOrPath?: Parameters<typeof wasmInit>[0],

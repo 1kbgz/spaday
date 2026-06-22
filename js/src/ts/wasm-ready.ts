@@ -11,8 +11,8 @@ export function markReady(): void {
 export function assertReady(): void {
   if (!ready) {
     throw new Error(
-      'spaday: the wasm core is not initialized — `await init("…/spaday_bg.wasm")` before interacting ' +
-        "with components that carry actions.",
+      'spaday: the wasm core is not initialized — `await init({ module_or_path: "…/spaday_bg.wasm" })` ' +
+        "before interacting with components that carry actions.",
     );
   }
 }

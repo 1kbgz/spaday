@@ -17,6 +17,8 @@ extern "C" {
     fn event_value(this: &Host) -> JsValue;
     #[wasm_bindgen(method)]
     fn emit(this: &Host, event: &str, detail: JsValue);
+    #[wasm_bindgen(method, js_name = sendPatch)]
+    fn send_patch(this: &Host, model: &str, field: &str, value: JsValue);
 }
 
 /// Interpret a serialized action (the core's DSL wire form) against the DOM primitives in `host`.
@@ -31,7 +33,7 @@ pub fn interpret(action: &str, host: &Host) -> Result<(), JsError> {
 }
 
 fn run(action: &spaday::Action, host: &Host) {
-    use spaday::Action::{Emit, Sequence, SetProp, Toggle};
+    use spaday::Action::{Emit, SendPatch, Sequence, SetProp, Toggle};
     match action {
         SetProp {
             target,
@@ -58,6 +60,13 @@ fn run(action: &spaday::Action, host: &Host) {
                 .as_ref()
                 .map_or(JsValue::UNDEFINED, |e| eval(e, host));
             host.emit(event, d);
+        }
+        SendPatch {
+            model,
+            field,
+            value,
+        } => {
+            host.send_patch(model, field, eval(value, host));
         }
     }
 }

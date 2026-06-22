@@ -47,5 +47,13 @@ function host(ctx: ActionContext) {
       ctx.currentTarget.dispatchEvent(
         new CustomEvent(event, { detail, bubbles: true }),
       ),
+    // SendPatch is surfaced as a bubbling intent the app routes to its wire (e.g. a transports edit).
+    sendPatch: (model: string, field: string, value: unknown) =>
+      ctx.currentTarget.dispatchEvent(
+        new CustomEvent("spaday:patch", {
+          detail: { model, field, value },
+          bubbles: true,
+        }),
+      ),
   };
 }

@@ -15,9 +15,10 @@ It shows, on one page authored entirely in Python:
   listeners and never calls the server for these.
 - **transports (server-authoritative, multi-tenant)** — two live charts mirror Python models over
   ``@1kbgz/transports``. A **global** model on a shared :class:`transports.Server` syncs to every browser;
-  a **per-session** model on a :class:`transports.Hub` is private to each tab. Control changes are edits
-  applied on the server and fanned to clients (the hand-written glue in ``index.html`` is what a future
-  ``SendPatch`` action will make declarative).
+  a **per-session** model on a :class:`transports.Hub` is private to each tab. Control changes are
+  declarative :class:`~spaday.actions.SendPatch` actions: each fires a ``spaday:patch`` intent that one
+  generic sink in ``index.html`` routes to the right transports model — applied on the server and fanned
+  to clients. The per-control listeners are gone; only the model→wire bridge remains.
 """
 
 import asyncio
@@ -36,7 +37,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from spaday import element
-from spaday.actions import Sequence, SetProp, Toggle, by_id, event_value, not_
+from spaday.actions import SendPatch, Sequence, SetProp, Toggle, by_id, event_value, lit, not_
 from spaday.components.lightweight_charts import LightweightChart
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack, Toolbar
 from spaday.components.webawesome import WaButton, WaCallout, WaCard, WaOption, WaSelect, WaSwitch
@@ -139,8 +140,9 @@ def dsl_card() -> object:
 
 
 def transports_panel(prefix: str, title: str, chart_type: str) -> object:
-    """One live chart + its server-authoritative controls (wired to transports in index.html)."""
-    select = WaSelect(label="Type", value=chart_type).prop("id", f"{prefix}-type")
+    """One live chart + its controls. Edits are declarative SendPatch actions (routed to transports in
+    index.html); the ids remain so the inbound update can reflect the model back onto the controls."""
+    select = WaSelect(label="Type", value=chart_type).prop("id", f"{prefix}-type").on("change", SendPatch(prefix, "type", event_value()))
     for t in TYPES:
         select = select.child(WaOption(value=t).text(t.capitalize()))
     status = element("span").prop("id", f"{prefix}-status").prop("style", "margin-left:auto;color:#2962ff;font-size:.8rem").text("connecting…")
@@ -150,8 +152,8 @@ def transports_panel(prefix: str, title: str, chart_type: str) -> object:
         .child(
             Toolbar()
             .child(select)
-            .child(WaSwitch(checked=True).prop("id", f"{prefix}-live").text("Live"))
-            .child(WaButton(variant="neutral").prop("id", f"{prefix}-clear").text("Clear"))
+            .child(WaSwitch(checked=True).prop("id", f"{prefix}-live").text("Live").on("change", SendPatch(prefix, "live", event_value())))
+            .child(WaButton(variant="neutral").prop("id", f"{prefix}-clear").text("Clear").on("click", SendPatch(prefix, "data", lit([]))))
         )
         .child(LightweightChart(type=chart_type).prop("id", f"{prefix}-chart"))
     )

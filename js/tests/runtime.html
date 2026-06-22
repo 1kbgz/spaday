@@ -11,7 +11,7 @@
         tag,
         init,
       } from "/dist/esm/index.js";
-      await init("/dist/pkg/spaday_bg.wasm"); // the action interpreter runs in wasm
+      await init({ module_or_path: "/dist/pkg/spaday_bg.wasm" }); // the action interpreter runs in wasm
       window.__spaday = { mount, applyPatch, interpret, tag };
     </script>
   </head>

@@ -146,3 +146,18 @@ class Emit(Action):
     def to_dict(self) -> Dict[str, Any]:
         detail = _expr(self.detail).to_dict() if self.detail is not None else None
         return {"kind": "emit", "event": self.event, "detail": detail}
+
+
+class SendPatch(Action):
+    """Set ``field`` to ``value`` on a host-routed ``model`` (e.g. a transports model).
+
+    The runtime surfaces this as a patch *intent* (a bubbling ``spaday:patch`` DOM event carrying
+    ``{model, field, value}``); the app routes it to the actual wire. This is how a control edit is
+    authored declaratively instead of with a hand-written transports listener.
+    """
+
+    def __init__(self, model: str, field: str, value: Any) -> None:
+        self.model, self.field, self.value = model, field, value
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "patch", "model": self.model, "field": self.field, "value": _expr(self.value).to_dict()}
