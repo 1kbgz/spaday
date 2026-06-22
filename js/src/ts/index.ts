@@ -1,6 +1,21 @@
+import wasmInit from "../../dist/pkg/spaday";
 import * as wasm from "../../dist/pkg/spaday";
 
+import { markReady } from "./wasm-ready";
+
 export * as wasm from "../../dist/pkg/spaday";
+
+/**
+ * Initialize the wasm core (required before the action interpreter runs in the browser). Pass the
+ * `spaday_bg.wasm` URL, e.g. `await init({ module_or_path: "/js/dist/pkg/spaday_bg.wasm" })`, before
+ * interacting.
+ */
+export async function init(
+  moduleOrPath?: Parameters<typeof wasmInit>[0],
+): Promise<void> {
+  await wasmInit(moduleOrPath);
+  markReady();
+}
 
 /** Diff two JSON-encoded component trees, returning the JSON-encoded patch. */
 export const diff = (oldTree: string, newTree: string): string =>
@@ -21,6 +36,10 @@ export type { Node } from "./runtime";
 // Action DSL: declarative behavior, interpreted in the browser on DOM events (no Python round-trip).
 export { interpret } from "./actions";
 export type { ActionContext } from "./actions";
+
+// Register a named JS handler for the `NamedJs` action (the DSL's no-eval escape hatch).
+export { registerHandler } from "./handlers";
+export type { NamedHandler } from "./handlers";
 
 // High-level layout/shell primitives — defines the spa-* custom elements on import.
 export { SHELL_TAGS } from "./shell";

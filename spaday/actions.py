@@ -14,12 +14,15 @@ This is the "configure in Python, run in JS" core: the server holds session stat
 toggle or a prop binding runs client-side. The interpreter dispatches on each action's ``kind`` — there
 is no ``eval`` — so actions are safe to ship to untrusted, multi-tenant clients.
 
-The set here (``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` with literal / event-value / ``not``
-expressions and ``this`` / ``by_id`` targets) is the first slice; reactive ``Bind``, ``CallEndpoint``,
-``SendPatch``, and conditionals follow.
+Actions: ``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` (client-side); ``SendPatch`` (a model-edit
+intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST
+round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:
+``lit`` / ``event_value`` / ``not_`` / ``prop`` (read live element state); targets ``this`` / ``by_id``.
+``bind`` is a one-way reactive-binding helper. The signal-graph reactive engine (derived state, two-way
+binding) is the remaining Phase 2 work.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class Expr:
@@ -68,6 +71,20 @@ def not_(of: Any) -> Expr:
 def _expr(value: Any) -> Expr:
     """Coerce a plain Python value to a literal expression; pass an `Expr` through."""
     return value if isinstance(value, Expr) else _Lit(value)
+
+
+class _Prop(Expr):
+    def __init__(self, target: "Ref", name: str) -> None:
+        self.target, self.name = target, name
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "prop", "target": self.target.to_dict(), "name": self.name}
+
+
+def prop(target: "Ref", name: str) -> Expr:
+    """The current value of a ``name`` prop on ``target`` — reads live element state, e.g.
+    ``prop(by_id("sw"), "checked")`` for use as a condition."""
+    return _Prop(target, name)
 
 
 class Ref:
@@ -146,3 +163,72 @@ class Emit(Action):
     def to_dict(self) -> Dict[str, Any]:
         detail = _expr(self.detail).to_dict() if self.detail is not None else None
         return {"kind": "emit", "event": self.event, "detail": detail}
+
+
+class SendPatch(Action):
+    """Set ``field`` to ``value`` on a host-routed ``model`` (e.g. a transports model).
+
+    The runtime surfaces this as a patch *intent* (a bubbling ``spaday:patch`` DOM event carrying
+    ``{model, field, value}``); the app routes it to the actual wire. This is how a control edit is
+    authored declaratively instead of with a hand-written transports listener.
+    """
+
+    def __init__(self, model: str, field: str, value: Any) -> None:
+        self.model, self.field, self.value = model, field, value
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "patch", "model": self.model, "field": self.field, "value": _expr(self.value).to_dict()}
+
+
+class If(Action):
+    """Run ``then`` if ``cond`` is truthy, else ``els`` (if given) — branch on live state, e.g.
+    ``If(prop(by_id("sw"), "checked"), SetProp(...), SetProp(...))``."""
+
+    def __init__(self, cond: Any, then: Action, els: Optional[Action] = None) -> None:
+        self.cond, self.then, self.els = cond, then, els
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "kind": "if",
+            "cond": _expr(self.cond).to_dict(),
+            "then": self.then.to_dict(),
+            "else": self.els.to_dict() if self.els is not None else None,
+        }
+
+
+class CallEndpoint(Action):
+    """A REST round-trip: ``method`` ``url`` with an optional JSON ``body`` (an :class:`Expr` or a plain
+    value). The one intentional server call — the runtime performs it with ``fetch``."""
+
+    def __init__(self, method: str, url: str, body: Any = None) -> None:
+        self.method, self.url, self.body = method, url, body
+
+    def to_dict(self) -> Dict[str, Any]:
+        body = _expr(self.body).to_dict() if self.body is not None else None
+        return {"kind": "call", "method": self.method, "url": self.url, "body": body}
+
+
+class NamedJs(Action):
+    """The escape hatch: invoke a pre-registered named JS handler (no arbitrary ``eval``). Register it
+    on the JS side with ``registerHandler(name, fn)``; use only for the rare irreducible case."""
+
+    def __init__(self, handler: str) -> None:
+        self.handler = handler
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "js", "handler": self.handler}
+
+
+def bind(source: Any, target: Ref, target_prop: str, *, transform: Any = None) -> Any:
+    """One-way reactive binding: when ``source`` (a control component) changes, set ``target_prop`` on
+    ``target`` (a :class:`Ref`, e.g. ``by_id("panel")``) to the source's value — optionally passed
+    through ``transform`` (e.g. :func:`not_`). Returns ``source`` so it composes in a tree::
+
+        bind(WaSwitch().text("Show"), by_id("panel"), "hidden", transform=not_)
+
+    Event-driven (sugar over ``SetProp`` on the source's ``change``); the signal-graph reactive engine
+    and two-way binding are future work.
+    """
+    value = transform(event_value()) if transform else event_value()
+    source.on("change", SetProp(target, target_prop, value))
+    return source

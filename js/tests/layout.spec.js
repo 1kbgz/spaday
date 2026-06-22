@@ -212,3 +212,25 @@ test("the app shell lays out in order (nav → body → footer; gutter left of m
   expect(box.body.bottom).toBeLessThanOrEqual(box.footer.top + 1); // body above footer
   expect(box.gutter.right).toBeLessThanOrEqual(box.main.left + 1); // gutter left of main
 });
+
+test("layout props (gap / width) drive the shell's CSS custom properties", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    const { mount } = window.__spaday;
+    const stack = mount(document.body, {
+      tag: "spa-stack",
+      props: { gap: { Str: "24px" } },
+    });
+    const gutter = mount(document.body, {
+      tag: "spa-gutter",
+      props: { width: { Str: "320px" } },
+    });
+    return {
+      stackGap: getComputedStyle(stack).rowGap, // column gap = row-gap
+      gutterWidth: getComputedStyle(gutter).width,
+    };
+  });
+  expect(r.stackGap).toBe("24px");
+  expect(r.gutterWidth).toBe("320px");
+});

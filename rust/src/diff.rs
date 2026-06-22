@@ -22,7 +22,8 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
-use crate::node::{Action, Attr, EventName, Key, Node, SlotName};
+use crate::action::Action;
+use crate::node::{Attr, EventName, Key, Node, SlotName};
 
 /// One step down into a tree: the `index`-th child of slot `slot`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -370,7 +371,6 @@ fn apply_op(root: &mut Node, op: &Op) {
 #[cfg(test)]
 mod diff_tests {
     use super::*;
-    use crate::value::Value;
 
     fn assert_round_trip(old: &Node, new: &Node) -> Patch {
         let patch = diff(old, new);
@@ -406,10 +406,29 @@ mod diff_tests {
 
     #[test]
     fn test_event_changes() {
-        let old = Node::new("wa-button").event("click", Action(Value::str("a")));
+        use crate::action::Ref;
+        let old = Node::new("wa-button").event(
+            "click",
+            Action::Toggle {
+                target: Ref::This,
+                prop: "a".into(),
+            },
+        );
         let new = Node::new("wa-button")
-            .event("click", Action(Value::str("b")))
-            .event("dblclick", Action(Value::Null));
+            .event(
+                "click",
+                Action::Toggle {
+                    target: Ref::This,
+                    prop: "b".into(),
+                },
+            )
+            .event(
+                "dblclick",
+                Action::Emit {
+                    event: "x".into(),
+                    detail: None,
+                },
+            );
         assert_round_trip(&old, &new);
     }
 

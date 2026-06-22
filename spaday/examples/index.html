@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="wa-theme-default">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -14,20 +14,22 @@
     />
     <script type="module" src="/js/dist/cdn/examples/webawesome.js"></script>
     <style>
-      /* Typography only — all layout comes from the spa-* shell components (shadow-DOM encapsulated). */
+      /* Typography only — layout comes from the spa-* shell components. Colors reference WebAwesome
+         theme tokens, so the page + shell follow light/dark automatically (the shell does the same
+         internally); the `wa-dark` toggle alone re-themes everything except the canvas charts. */
       body {
         margin: 0;
         font-family: system-ui, sans-serif;
-        background: #fafafa;
-        color: #222;
+        background: var(--wa-color-surface-lowered, #fafafa);
+        color: var(--wa-color-text-normal, #222);
       }
       p {
         margin: 0 0 4px;
-        color: #555;
+        color: var(--wa-color-text-quiet, #555);
         line-height: 1.5;
       }
       a {
-        color: #2962ff;
+        color: var(--wa-color-text-link, #2962ff);
       }
     </style>
   </head>
@@ -36,7 +38,7 @@
       // The whole page (shell layout + each control's Action) is authored by spaday/examples/__main__.py.
       // Mounting renders it and binds the action DSL — note there is NO addEventListener for the DSL card.
       // The only hand-written glue is for the two transports charts (edits aren't a declarative action yet).
-      import { mount } from "/js/dist/esm/index.js";
+      import { mount, init } from "/js/dist/esm/index.js";
       import "/js/dist/cdn/wrappers/lightweight-chart.js"; // defines <lightweight-chart>
       import {
         Client,
@@ -45,6 +47,7 @@
         wasm,
       } from "/js/node_modules/@1kbgz/transports/dist/cdn/index.js";
 
+      await init({ module_or_path: "/js/dist/pkg/spaday_bg.wasm" }); // spaday's wasm core (the action interpreter)
       await wasm.default({
         module_or_path: "/js/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm",
       });
@@ -54,12 +57,31 @@
 
       const byId = (id) => document.getElementById(id);
 
-      // Wire one live chart to its transports connection (server-authoritative edits).
+      // Light/dark toggle: flip the `wa-dark` class on <html> (WebAwesome + the shell follow it), and
+      // recolor the charts, which are canvases that can't read CSS. (Class/root toggling and the chart
+      // theme are page chrome the action DSL doesn't model yet, so they're wired here.)
+      byId("theme-toggle").addEventListener("change", (e) => {
+        const dark = e.target.checked;
+        document.documentElement.classList.toggle("wa-dark", dark);
+        document
+          .querySelectorAll("lightweight-chart")
+          .forEach((c) => (c.theme = dark ? "dark" : "light"));
+      });
+
+      // The controls' edits are now declarative `SendPatch` actions; each fires a `spaday:patch`
+      // intent that this single sink routes to the right transports model. (Previously each control
+      // had its own hand-written listener; the only wiring left is this generic model→wire bridge.)
+      const patchSinks = {};
+      document.addEventListener("spaday:patch", (e) => {
+        const { model, field, value } = e.detail;
+        patchSinks[model]?.(field, value);
+      });
+
+      // Connect one live chart to its transports model (inbound updates + the outbound patch sink).
       function panel(prefix, wsUrl) {
         const chart = byId(`${prefix}-chart`);
         const typeSel = byId(`${prefix}-type`);
         const liveSw = byId(`${prefix}-live`);
-        const clearBtn = byId(`${prefix}-clear`);
         const status = byId(`${prefix}-status`);
         chart.style.height = "260px";
 
@@ -69,8 +91,9 @@
 
         const ws = new WebSocket(wsUrl);
         ws.binaryType = "arraybuffer";
-        const send = (changes) =>
-          ws.send(client.edit(id, toValue({ ...model(), ...changes })));
+        // outbound: a SendPatch intent for this model becomes a server-authoritative transports edit
+        patchSinks[prefix] = (field, value) =>
+          ws.send(client.edit(id, toValue({ ...model(), [field]: value })));
 
         ws.addEventListener("message", (event) => {
           client.recv(
@@ -84,7 +107,7 @@
           if (!m) return;
           chart.type = m.type;
           chart.data = m.data;
-          if (typeSel.value !== m.type) typeSel.value = m.type;
+          if (typeSel.value !== m.type) typeSel.value = m.type; // reflect model -> control
           if (liveSw.checked !== m.live) liveSw.checked = m.live;
           status.textContent = "live";
         });
@@ -92,10 +115,6 @@
           "close",
           () => (status.textContent = "disconnected"),
         );
-
-        typeSel.addEventListener("change", () => send({ type: typeSel.value }));
-        liveSw.addEventListener("change", () => send({ live: liveSw.checked }));
-        clearBtn.addEventListener("click", () => send({ data: [] }));
       }
 
       const session = crypto.randomUUID(); // a fresh tenant per page load

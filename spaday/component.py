@@ -107,7 +107,8 @@ class Component:
         if self._slots:
             node["slots"] = {slot: [_as_node(c) for c in children] for slot, children in self._slots.items()}
         if self._events:
-            node["events"] = {name: _tag(action) for name, action in self._events.items()}
+            # actions are the core's own DSL wire form (see spaday.actions) — plain, not a tagged Value
+            node["events"] = dict(self._events)
         return node
 
     def to_json(self) -> str:

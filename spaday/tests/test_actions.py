@@ -2,14 +2,20 @@ import json
 
 from spaday import apply, diff, element
 from spaday.actions import (
+    CallEndpoint,
     Emit,
+    If,
+    NamedJs,
+    SendPatch,
     Sequence,
     SetProp,
     Toggle,
+    bind,
     by_id,
     event_value,
     lit,
     not_,
+    prop,
     this,
 )
 
@@ -31,6 +37,19 @@ def test_action_to_dict_wire_shapes():
         "event": "opened",
         "detail": {"expr": "lit", "value": True},
     }
+    assert SendPatch("global", "type", event_value()).to_dict() == {
+        "kind": "patch",
+        "model": "global",
+        "field": "type",
+        "value": {"expr": "event"},
+    }
+    assert CallEndpoint("POST", "/api/order", event_value()).to_dict() == {
+        "kind": "call",
+        "method": "POST",
+        "url": "/api/order",
+        "body": {"expr": "event"},
+    }
+    assert NamedJs("confetti").to_dict() == {"kind": "js", "handler": "confetti"}
 
 
 def test_setprop_coerces_a_plain_value_to_a_literal():
@@ -45,18 +64,56 @@ def test_sequence_nests_actions():
     assert seq["actions"][1]["detail"] is None  # Emit with no detail
 
 
-def test_on_serializes_event_as_tagged_value_on_the_node():
+def test_on_serializes_event_as_plain_action_on_the_node():
     node = element("button").on("click", Toggle(this(), "hidden")).to_node()
-    # events ride the same externally-tagged `Value` form as props, so they survive the core wire
+    # events carry the action DSL's own wire form (plain), owned by the Rust core — not a tagged Value
     assert node["events"]["click"] == {
-        "Map": {
-            "kind": {"Str": "toggle"},
-            "target": {"Map": {"ref": {"Str": "this"}}},
-            "prop": {"Str": "hidden"},
-        }
+        "kind": "toggle",
+        "target": {"ref": "this"},
+        "prop": "hidden",
+    }
+
+
+def test_if_and_prop_wire_shapes():
+    action = If(prop(by_id("sw"), "checked"), Toggle(this(), "hidden"), SetProp(this(), "x", lit(1)))
+    assert action.to_dict() == {
+        "kind": "if",
+        "cond": {"expr": "prop", "target": {"ref": "id", "id": "sw"}, "name": "checked"},
+        "then": {"kind": "toggle", "target": {"ref": "this"}, "prop": "hidden"},
+        "else": {"kind": "set", "target": {"ref": "this"}, "prop": "x", "value": {"expr": "lit", "value": 1}},
+    }
+    assert If(prop(by_id("sw"), "checked"), Toggle(this(), "hidden")).to_dict()["else"] is None
+
+
+def test_bind_authors_a_setprop_on_the_source_change():
+    sw = element("wa-switch")
+    out = bind(sw, by_id("panel"), "hidden", transform=not_)
+    assert out is sw  # composes in a tree
+    assert sw.to_node()["events"]["change"] == {
+        "kind": "set",
+        "target": {"ref": "id", "id": "panel"},
+        "prop": "hidden",
+        "value": {"expr": "not", "of": {"expr": "event"}},
     }
 
 
 def test_node_with_events_round_trips_through_core_diff_apply():
     tree = element("button").on("click", Toggle(this(), "hidden")).to_json()
+    assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
+
+
+def test_every_action_kind_round_trips_through_core():
+    # one of each Action on a different event — proves the Rust core accepts/round-trips every variant
+    node = (
+        element("button")
+        .on("a", SetProp(this(), "x", lit(1)))
+        .on("b", Toggle(this(), "hidden"))
+        .on("c", Sequence(Toggle(this(), "hidden"), Emit("e", lit(1))))
+        .on("d", Emit("opened", lit(True)))
+        .on("e", SendPatch("m", "f", event_value()))
+        .on("f", If(prop(by_id("sw"), "checked"), Toggle(this(), "hidden"), SetProp(this(), "x", lit(0))))
+        .on("g", CallEndpoint("POST", "/u", lit({"k": 1})))
+        .on("h", NamedJs("fn"))
+    )
+    tree = node.to_json()
     assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
