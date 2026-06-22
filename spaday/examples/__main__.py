@@ -37,7 +37,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from spaday import element
-from spaday.actions import SendPatch, Sequence, SetProp, Toggle, by_id, event_value, lit, not_
+from spaday.actions import SendPatch, Sequence, SetProp, Toggle, bind, by_id, event_value, lit, not_
 from spaday.components.lightweight_charts import LightweightChart
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack, Toolbar
 from spaday.components.webawesome import WaButton, WaCallout, WaCard, WaOption, WaSelect, WaSwitch
@@ -119,8 +119,8 @@ def dsl_card() -> object:
         )
         .child(
             Row()
-            .child(WaSwitch().text("Reveal advanced").on("change", SetProp(by_id("advanced"), "hidden", not_(event_value()))))
-            .child(callout("advanced", "Hidden until the switch is on: SetProp(hidden = not(event value)).", hidden=True))
+            .child(bind(WaSwitch().text("Reveal advanced"), by_id("advanced"), "hidden", transform=not_))
+            .child(callout("advanced", "Hidden until the switch is on — a one-way bind(switch -> advanced.hidden, not_).", hidden=True))
         )
         .child(
             Row()

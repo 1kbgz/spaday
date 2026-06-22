@@ -3,14 +3,17 @@ import json
 from spaday import apply, diff, element
 from spaday.actions import (
     Emit,
+    If,
     SendPatch,
     Sequence,
     SetProp,
     Toggle,
+    bind,
     by_id,
     event_value,
     lit,
     not_,
+    prop,
     this,
 )
 
@@ -59,6 +62,29 @@ def test_on_serializes_event_as_plain_action_on_the_node():
         "kind": "toggle",
         "target": {"ref": "this"},
         "prop": "hidden",
+    }
+
+
+def test_if_and_prop_wire_shapes():
+    action = If(prop(by_id("sw"), "checked"), Toggle(this(), "hidden"), SetProp(this(), "x", lit(1)))
+    assert action.to_dict() == {
+        "kind": "if",
+        "cond": {"expr": "prop", "target": {"ref": "id", "id": "sw"}, "name": "checked"},
+        "then": {"kind": "toggle", "target": {"ref": "this"}, "prop": "hidden"},
+        "else": {"kind": "set", "target": {"ref": "this"}, "prop": "x", "value": {"expr": "lit", "value": 1}},
+    }
+    assert If(prop(by_id("sw"), "checked"), Toggle(this(), "hidden")).to_dict()["else"] is None
+
+
+def test_bind_authors_a_setprop_on_the_source_change():
+    sw = element("wa-switch")
+    out = bind(sw, by_id("panel"), "hidden", transform=not_)
+    assert out is sw  # composes in a tree
+    assert sw.to_node()["events"]["change"] == {
+        "kind": "set",
+        "target": {"ref": "id", "id": "panel"},
+        "prop": "hidden",
+        "value": {"expr": "not", "of": {"expr": "event"}},
     }
 
 

@@ -19,7 +19,7 @@ expressions and ``this`` / ``by_id`` targets) is the first slice; reactive ``Bin
 ``SendPatch``, and conditionals follow.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class Expr:
@@ -68,6 +68,20 @@ def not_(of: Any) -> Expr:
 def _expr(value: Any) -> Expr:
     """Coerce a plain Python value to a literal expression; pass an `Expr` through."""
     return value if isinstance(value, Expr) else _Lit(value)
+
+
+class _Prop(Expr):
+    def __init__(self, target: "Ref", name: str) -> None:
+        self.target, self.name = target, name
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "prop", "target": self.target.to_dict(), "name": self.name}
+
+
+def prop(target: "Ref", name: str) -> Expr:
+    """The current value of a ``name`` prop on ``target`` — reads live element state, e.g.
+    ``prop(by_id("sw"), "checked")`` for use as a condition."""
+    return _Prop(target, name)
 
 
 class Ref:
@@ -161,3 +175,34 @@ class SendPatch(Action):
 
     def to_dict(self) -> Dict[str, Any]:
         return {"kind": "patch", "model": self.model, "field": self.field, "value": _expr(self.value).to_dict()}
+
+
+class If(Action):
+    """Run ``then`` if ``cond`` is truthy, else ``els`` (if given) — branch on live state, e.g.
+    ``If(prop(by_id("sw"), "checked"), SetProp(...), SetProp(...))``."""
+
+    def __init__(self, cond: Any, then: Action, els: Optional[Action] = None) -> None:
+        self.cond, self.then, self.els = cond, then, els
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "kind": "if",
+            "cond": _expr(self.cond).to_dict(),
+            "then": self.then.to_dict(),
+            "else": self.els.to_dict() if self.els is not None else None,
+        }
+
+
+def bind(source: Any, target: Ref, target_prop: str, *, transform: Any = None) -> Any:
+    """One-way reactive binding: when ``source`` (a control component) changes, set ``target_prop`` on
+    ``target`` (a :class:`Ref`, e.g. ``by_id("panel")``) to the source's value — optionally passed
+    through ``transform`` (e.g. :func:`not_`). Returns ``source`` so it composes in a tree::
+
+        bind(WaSwitch().text("Show"), by_id("panel"), "hidden", transform=not_)
+
+    Event-driven (sugar over ``SetProp`` on the source's ``change``); the signal-graph reactive engine
+    and two-way binding are future work.
+    """
+    value = transform(event_value()) if transform else event_value()
+    source.on("change", SetProp(target, target_prop, value))
+    return source

@@ -1,5 +1,5 @@
 from . import actions
-from .actions import Emit, SendPatch, Sequence, SetProp, Toggle, by_id, event_value, lit, not_, this
+from .actions import Emit, If, SendPatch, Sequence, SetProp, Toggle, bind, by_id, event_value, lit, not_, prop, this
 from .cem import classes, generate
 from .component import Component, element
 from .spaday import apply, diff, parse_cem  # compiled Rust extension (rust/python)
@@ -24,9 +24,12 @@ __all__ = [
     "Sequence",
     "Emit",
     "SendPatch",
+    "If",
     "lit",
     "event_value",
     "not_",
+    "prop",
     "this",
     "by_id",
+    "bind",
 ]

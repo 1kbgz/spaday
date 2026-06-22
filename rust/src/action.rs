@@ -8,9 +8,12 @@
 //!
 //! The wire form (matched by `spaday.actions` in Python and the runtime in JS):
 //! - `Ref`:  `{"ref":"this"}` · `{"ref":"id","id":"panel"}`
-//! - `Expr`: `{"expr":"lit","value":<json>}` · `{"expr":"event"}` · `{"expr":"not","of":<Expr>}`
+//! - `Expr`: `{"expr":"lit","value":<json>}` · `{"expr":"event"}` · `{"expr":"not","of":<Expr>}` ·
+//!   `{"expr":"prop","target":<Ref>,"name":"checked"}`
 //! - `Action`: `{"kind":"set",target,prop,value}` · `{"kind":"toggle",target,prop}` ·
-//!   `{"kind":"seq","actions":[..]}` · `{"kind":"emit","event","detail":<Expr>|null}`
+//!   `{"kind":"seq","actions":[..]}` · `{"kind":"emit","event","detail":<Expr>|null}` ·
+//!   `{"kind":"patch","model","field","value":<Expr>}` ·
+//!   `{"kind":"if","cond":<Expr>,"then":<Action>,"else":<Action>|null}`
 
 use serde::{Deserialize, Serialize};
 
@@ -40,6 +43,8 @@ pub enum Expr {
     Event,
     /// Boolean negation of an expression.
     Not { of: Box<Expr> },
+    /// The current value of a `name` prop on `target` (reads live element state).
+    Prop { target: Ref, name: String },
 }
 
 /// A declarative event handler, interpreted in the browser.
@@ -73,6 +78,14 @@ pub enum Action {
         model: String,
         field: String,
         value: Expr,
+    },
+    /// Run `then` if `cond` is truthy, else `els` (if present).
+    #[serde(rename = "if")]
+    If {
+        cond: Expr,
+        then: Box<Action>,
+        #[serde(rename = "else", default)]
+        els: Option<Box<Action>>,
     },
 }
 
@@ -169,6 +182,47 @@ mod tests {
                 value: Expr::Event,
             },
             json!({"kind": "patch", "model": "global", "field": "type", "value": {"expr": "event"}}),
+        );
+    }
+
+    #[test]
+    fn if_with_prop_cond_and_else_wire() {
+        round(
+            &Action::If {
+                cond: Expr::Prop {
+                    target: Ref::Id { id: "sw".into() },
+                    name: "checked".into(),
+                },
+                then: Box::new(Action::Toggle {
+                    target: Ref::This,
+                    prop: "hidden".into(),
+                }),
+                els: Some(Box::new(Action::Emit {
+                    event: "off".into(),
+                    detail: None,
+                })),
+            },
+            json!({
+                "kind": "if",
+                "cond": {"expr": "prop", "target": {"ref": "id", "id": "sw"}, "name": "checked"},
+                "then": {"kind": "toggle", "target": {"ref": "this"}, "prop": "hidden"},
+                "else": {"kind": "emit", "event": "off", "detail": null},
+            }),
+        );
+    }
+
+    #[test]
+    fn if_without_else_serializes_null() {
+        round(
+            &Action::If {
+                cond: Expr::Event,
+                then: Box::new(Action::Toggle {
+                    target: Ref::This,
+                    prop: "hidden".into(),
+                }),
+                els: None,
+            },
+            json!({"kind": "if", "cond": {"expr": "event"}, "then": {"kind": "toggle", "target": {"ref": "this"}, "prop": "hidden"}, "else": null}),
         );
     }
 

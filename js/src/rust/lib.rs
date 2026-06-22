@@ -33,7 +33,7 @@ pub fn interpret(action: &str, host: &Host) -> Result<(), JsError> {
 }
 
 fn run(action: &spaday::Action, host: &Host) {
-    use spaday::Action::{Emit, SendPatch, Sequence, SetProp, Toggle};
+    use spaday::Action::{Emit, If, SendPatch, Sequence, SetProp, Toggle};
     match action {
         SetProp {
             target,
@@ -68,15 +68,25 @@ fn run(action: &spaday::Action, host: &Host) {
         } => {
             host.send_patch(model, field, eval(value, host));
         }
+        If { cond, then, els } => {
+            if truthy(&eval(cond, host)) {
+                run(then, host);
+            } else if let Some(e) = els {
+                run(e, host);
+            }
+        }
     }
 }
 
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
-    use spaday::Expr::{Event, Lit, Not};
+    use spaday::Expr::{Event, Lit, Not, Prop};
     match expr {
         Lit { value } => serde_wasm_bindgen::to_value(value).unwrap_or(JsValue::UNDEFINED),
         Event => host.event_value(),
         Not { of } => JsValue::from_bool(!truthy(&eval(of, host))),
+        Prop { target, name } => {
+            resolve(target, host).map_or(JsValue::NULL, |el| host.get_prop(&el, name))
+        }
     }
 }
 

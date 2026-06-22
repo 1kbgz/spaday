@@ -186,3 +186,58 @@ test("SendPatch fires a routable spaday:patch intent carrying the event value", 
   // the app routes this intent to its wire (e.g. a transports edit on model "global")
   expect(detail).toEqual({ model: "global", field: "live", value: true });
 });
+
+test("If runs then/else based on a prop condition read from another element", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const root = window.__spaday.mount(document.body, {
+      tag: "div",
+      slots: {
+        default: [
+          {
+            tag: "input",
+            props: { id: { Str: "sw" }, type: { Str: "checkbox" } },
+          },
+          { tag: "div", props: { id: { Str: "panel" } } },
+          {
+            tag: "button",
+            events: {
+              click: {
+                kind: "if",
+                cond: {
+                  expr: "prop",
+                  target: { ref: "id", id: "sw" },
+                  name: "checked",
+                },
+                then: {
+                  kind: "set",
+                  target: { ref: "id", id: "panel" },
+                  prop: "hidden",
+                  value: { expr: "lit", value: true },
+                },
+                else: {
+                  kind: "set",
+                  target: { ref: "id", id: "panel" },
+                  prop: "hidden",
+                  value: { expr: "lit", value: false },
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+    const sw = root.querySelector("#sw");
+    const btn = root.querySelector("button");
+    const panel = document.getElementById("panel");
+    btn.click(); // sw unchecked -> else -> hidden=false
+    const whenUnchecked = panel.hidden;
+    sw.checked = true;
+    btn.click(); // sw checked (prop cond true) -> then -> hidden=true
+    const whenChecked = panel.hidden;
+    return { whenUnchecked, whenChecked };
+  });
+  expect(result.whenUnchecked).toBe(false);
+  expect(result.whenChecked).toBe(true);
+});
