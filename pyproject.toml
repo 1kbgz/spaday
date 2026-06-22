@@ -124,6 +124,7 @@ skip = "*win32 *arm_64"
 branch = true
 omit = [
     "spaday/tests/integration/",
+    "spaday/examples/",
 ]
 
 [tool.coverage.report]
