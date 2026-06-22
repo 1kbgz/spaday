@@ -283,6 +283,14 @@ whose label <em>is</em> their text (don’t combine it with child nodes).</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.on">
+<span class="sig-name descname"><span class="pre">on</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.on" title="Link to this definition">¶</a></dt>
+<dd><p>Bind a declarative <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code> to a DOM event (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;click&quot;</span></code>).</p>
+<p>The action is serialized as data and interpreted in the browser when the event fires — no
+round-trip to Python.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="spaday.Component.to_node">
 <span class="sig-name descname"><span class="pre">to_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.to_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.to_node" title="Link to this definition">¶</a></dt>
 <dd><p>The node as the core’s JSON-ready dict (empty fields omitted, like the Rust core).</p>
@@ -386,6 +394,7 @@ whose label <em>is</em> their text (don’t combine it with child nodes).</p>
 <li><a class="reference internal" href="#spaday.Component.child_in"><code class="docutils literal notranslate"><span class="pre">Component.child_in()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.text"><code class="docutils literal notranslate"><span class="pre">Component.text()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.prop"><code class="docutils literal notranslate"><span class="pre">Component.prop()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.on"><code class="docutils literal notranslate"><span class="pre">Component.on()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.to_node"><code class="docutils literal notranslate"><span class="pre">Component.to_node()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.to_json"><code class="docutils literal notranslate"><span class="pre">Component.to_json()</span></code></a></li>
 </ul>

@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday examples - spaday v0.1.0</title>
+        <title>spaday example - spaday v0.1.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -238,88 +238,50 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="spaday-examples">
-<h1>spaday examples<a class="headerlink" href="#spaday-examples" title="Link to this heading">¶</a></h1>
-<p>Charts and controls <strong>authored in typed Python</strong>, serialized to spaday’s wire form, and rendered in
-the browser by the spaday <strong>runtime</strong> + the <strong>lightweight-charts wrapper</strong> — with <strong>transports</strong> as
-the live wire.</p>
-<div class="table-wrapper colwidths-auto docutils container">
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p></p></th>
-<th class="head"><p>files</p></th>
-<th class="head"><p>shows</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><strong>Dashboard</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">dashboard.py</span></code> + <code class="docutils literal notranslate"><span class="pre">dashboard.html</span></code></p></td>
-<td><p>WebAwesome controls drive charts; <strong>global</strong> state shared across tabs vs <strong>per-session</strong> state isolated per browser</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Live chart</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">server.py</span></code> + <code class="docutils literal notranslate"><span class="pre">live.html</span></code></p></td>
-<td><p>a chart streamed from a Python server over transports</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Offline</strong></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">chart.py</span></code> + <code class="docutils literal notranslate"><span class="pre">index.html</span></code></p></td>
-<td><p>render + replay one precomputed patch, no server</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<section id="setup">
-<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
+          <section class="tex2jax_ignore mathjax_ignore" id="spaday-example">
+<h1>spaday example<a class="headerlink" href="#spaday-example" title="Link to this heading">¶</a></h1>
+<p>One omnibus app showing the whole stack — authored in typed Python, rendered by the spaday runtime,
+with <strong>transports</strong> as the live wire.</p>
+<ul class="simple">
+<li><p><strong>Shell layout</strong> — the page is composed from <code class="docutils literal notranslate"><span class="pre">spa-*</span></code> shell components (<code class="docutils literal notranslate"><span class="pre">spaday.components.shell</span></code>:
+<code class="docutils literal notranslate"><span class="pre">App</span></code> / <code class="docutils literal notranslate"><span class="pre">Nav</span></code> / <code class="docutils literal notranslate"><span class="pre">Body</span></code> / <code class="docutils literal notranslate"><span class="pre">Gutter</span></code> / <code class="docutils literal notranslate"><span class="pre">Main</span></code> / <code class="docutils literal notranslate"><span class="pre">Footer</span></code>, with <code class="docutils literal notranslate"><span class="pre">Stack</span></code> / <code class="docutils literal notranslate"><span class="pre">Row</span></code> / <code class="docutils literal notranslate"><span class="pre">Toolbar</span></code>), not raw divs.</p></li>
+<li><p><strong>Action DSL (client-side)</strong> — controls carry declarative actions (<code class="docutils literal notranslate"><span class="pre">Component.on</span></code> + <code class="docutils literal notranslate"><span class="pre">spaday.actions</span></code>)
+interpreted in the browser: Toggle, SetProp bound to the event value, Sequence, and buttons that
+switch a chart’s series type. No event listeners are written, and the server is never called for these.</p></li>
+<li><p><strong>transports (server-authoritative, multi-tenant)</strong> — two live charts mirror Python models over
+<code class="docutils literal notranslate"><span class="pre">&#64;1kbgz/transports</span></code>: a <strong>global</strong> model (shared <code class="docutils literal notranslate"><span class="pre">transports.Server</span></code>) syncs to every browser; a
+<strong>per-session</strong> model (<code class="docutils literal notranslate"><span class="pre">transports.Hub</span></code>) is private to each tab. Control changes are edits applied on
+the server and fanned to clients.</p></li>
+</ul>
+<section id="run">
+<h2>Run<a class="headerlink" href="#run" title="Link to this heading">¶</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>transports<span class="w">                       </span><span class="c1"># the Python wire (also: starlette, uvicorn, websockets)</span>
 <span class="nb">cd</span><span class="w"> </span>js<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pnpm<span class="w"> </span>install<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pnpm<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>..<span class="w"> </span><span class="c1"># builds js/dist; pulls @1kbgz/transports + webawesome</span>
+python<span class="w"> </span>-m<span class="w"> </span>spaday.examples<span class="w">                    </span><span class="c1"># -&gt; http://127.0.0.1:8000</span>
 </pre></div>
 </div>
-<p>The servers serve the built <code class="docutils literal notranslate"><span class="pre">js/dist</span></code> bundles and the <code class="docutils literal notranslate"><span class="pre">&#64;1kbgz/transports</span></code> / WebAwesome packages from
-<code class="docutils literal notranslate"><span class="pre">js/node_modules</span></code>, so they’re self-contained once built.</p>
+<p>Open it in two tabs: changing the <strong>global</strong> chart in one tab updates both; the <strong>per-session</strong> chart
+is independent per tab.</p>
 </section>
-<section id="dashboard-all-in-one">
-<h2>Dashboard (all-in-one)<a class="headerlink" href="#dashboard-all-in-one" title="Link to this heading">¶</a></h2>
-<p>Two <code class="docutils literal notranslate"><span class="pre">Chart</span> <span class="pre">{</span> <span class="pre">type,</span> <span class="pre">data,</span> <span class="pre">live</span> <span class="pre">}</span></code> panels, each <code class="docutils literal notranslate"><span class="pre">WaSelect</span></code> / <code class="docutils literal notranslate"><span class="pre">WaSwitch</span></code> / <code class="docutils literal notranslate"><span class="pre">WaButton</span></code> / <code class="docutils literal notranslate"><span class="pre">LightweightChart</span></code>
-authored in Python (<code class="docutils literal notranslate"><span class="pre">dashboard.chart_panel()</span></code>) and mounted by the runtime. Control changes are
-transports <strong>edits</strong> (server-authoritative). The two panels differ in <em>scope</em>:</p>
+<section id="how-it-maps-to-the-architecture">
+<h2>How it maps to the architecture<a class="headerlink" href="#how-it-maps-to-the-architecture" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><strong>Global</strong> — one shared model on a <code class="docutils literal notranslate"><span class="pre">transports.Server</span></code> at <code class="docutils literal notranslate"><span class="pre">/ws</span></code>. Every browser mirrors it, so a
-control change in one tab updates <strong>all</strong> tabs.</p></li>
-<li><p><strong>Per session</strong> — a <code class="docutils literal notranslate"><span class="pre">transports.Hub</span></code> at <code class="docutils literal notranslate"><span class="pre">/ws/session</span></code> routes each connection (by a per-tab
-<code class="docutils literal notranslate"><span class="pre">?session=</span></code> id) to its <strong>own private</strong> model. Each browser gets an isolated chart — the multi-tenant
-case. Open the page in two browsers to see the difference.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> authors the page (shell + controls + actions) and hosts two <code class="docutils literal notranslate"><span class="pre">Chart</span></code> models on transports
+(<code class="docutils literal notranslate"><span class="pre">Session</span></code>/<code class="docutils literal notranslate"><span class="pre">Server</span></code>, plus a <code class="docutils literal notranslate"><span class="pre">Hub</span></code> for per-session). It serves the page, the authored tree
+(<code class="docutils literal notranslate"><span class="pre">/tree.json</span></code>), the websockets (<code class="docutils literal notranslate"><span class="pre">/ws</span></code>, <code class="docutils literal notranslate"><span class="pre">/ws/session</span></code>), and the <code class="docutils literal notranslate"><span class="pre">js/</span></code> bundles.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index.html</span></code> mounts the tree — which wires the action DSL automatically — and adds the only
+hand-written glue: the two transports charts’ control→edit listeners. That glue is what a future
+<code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> action will make declarative; the action DSL already removed it for the client-side card.</p></li>
 </ul>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>spaday.examples.dashboard<span class="w">          </span><span class="c1"># -&gt; http://127.0.0.1:8001</span>
-</pre></div>
-</div>
-</section>
-<section id="live-chart">
-<h2>Live chart<a class="headerlink" href="#live-chart" title="Link to this heading">¶</a></h2>
-<p>A <code class="docutils literal notranslate"><span class="pre">Chart</span> <span class="pre">{</span> <span class="pre">type,</span> <span class="pre">data</span> <span class="pre">}</span></code> hosted in a <code class="docutils literal notranslate"><span class="pre">transports.Session</span></code>; <code class="docutils literal notranslate"><span class="pre">transports.starlette_endpoint</span></code> + <code class="docutils literal notranslate"><span class="pre">autoflush</span></code>
-stream patches as a ticker appends points. The browser mirrors the model with transports’ JS <code class="docutils literal notranslate"><span class="pre">Client</span></code>
-and feeds it to the chart.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>spaday.examples.server<span class="w">             </span><span class="c1"># -&gt; http://127.0.0.1:8000</span>
-</pre></div>
-</div>
-</section>
-<section id="offline-no-server">
-<h2>Offline (no server)<a class="headerlink" href="#offline-no-server" title="Link to this heading">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>spaday.examples.chart<span class="w">              </span><span class="c1"># writes chart.json + chart.patch.json</span>
-python<span class="w"> </span>-m<span class="w"> </span>http.server<span class="w"> </span><span class="m">8000</span><span class="w">                   </span><span class="c1"># from the repo root</span>
-<span class="c1">#   -&gt; http://localhost:8000/spaday/examples/index.html</span>
-</pre></div>
-</div>
 </section>
 <section id="notes">
 <h2>Notes<a class="headerlink" href="#notes" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><strong>transports is the wire</strong>: it carries the data model (Python <code class="docutils literal notranslate"><span class="pre">Session</span></code>/<code class="docutils literal notranslate"><span class="pre">Server</span></code>/<code class="docutils literal notranslate"><span class="pre">autoflush</span></code>; the JS
-<code class="docutils literal notranslate"><span class="pre">Client</span></code> mirrors it). spaday renders. The dashboard’s edits are server-authoritative and fan out to
-every client.</p></li>
-<li><p><strong>Imperative event glue</strong>: the dashboard wires control events to transports edits with hand-written
-JS, because spaday’s declarative event→action binding (the action DSL) is a later phase — it will
-make that glue declarative.</p></li>
-<li><p><strong>Wholesale data patches</strong>: the series is one opaque prop, so each change resends <code class="docutils literal notranslate"><span class="pre">data</span></code> (correct,
-not minimal); structured per-point deltas need the series modeled as tree state — later.</p></li>
+<li><p><strong>Client-side vs round-trip</strong>: the DSL card runs entirely in the browser; the transports cards
+round-trip edits to the server (authoritative) and fan patches to every client.</p></li>
+<li><p><strong>Wholesale data patches</strong>: a chart’s series is one opaque prop, so each change resends <code class="docutils literal notranslate"><span class="pre">data</span></code>
+(correct, not minimal); per-point deltas need the series modeled as tree state — later.</p></li>
+<li><p><strong>TradingView logo</strong> is disabled in the chart wrapper; attribution is in the page footer.</p></li>
 </ul>
 </section>
 </section>
@@ -361,11 +323,9 @@ not minimal); structured per-point deltas need the series modeled as tree state 
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">spaday examples</a><ul>
-<li><a class="reference internal" href="#setup">Setup</a></li>
-<li><a class="reference internal" href="#dashboard-all-in-one">Dashboard (all-in-one)</a></li>
-<li><a class="reference internal" href="#live-chart">Live chart</a></li>
-<li><a class="reference internal" href="#offline-no-server">Offline (no server)</a></li>
+<li><a class="reference internal" href="#">spaday example</a><ul>
+<li><a class="reference internal" href="#run">Run</a></li>
+<li><a class="reference internal" href="#how-it-maps-to-the-architecture">How it maps to the architecture</a></li>
 <li><a class="reference internal" href="#notes">Notes</a></li>
 </ul>
 </li>

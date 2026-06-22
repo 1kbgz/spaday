@@ -1,66 +1,42 @@
-# spaday examples
+# spaday example
 
-Charts and controls **authored in typed Python**, serialized to spaday's wire form, and rendered in
-the browser by the spaday **runtime** + the **lightweight-charts wrapper** — with **transports** as
-the live wire.
+One omnibus app showing the whole stack — authored in typed Python, rendered by the spaday runtime,
+with **transports** as the live wire.
 
-| | files | shows |
-|---|---|---|
-| **Dashboard** | `dashboard.py` + `dashboard.html` | WebAwesome controls drive charts; **global** state shared across tabs vs **per-session** state isolated per browser |
-| **Live chart** | `server.py` + `live.html` | a chart streamed from a Python server over transports |
-| **Offline** | `chart.py` + `index.html` | render + replay one precomputed patch, no server |
+- **Shell layout** — the page is composed from `spa-*` shell components (`spaday.components.shell`:
+  `App` / `Nav` / `Body` / `Gutter` / `Main` / `Footer`, with `Stack` / `Row` / `Toolbar`), not raw divs.
+- **Action DSL (client-side)** — controls carry declarative actions (`Component.on` + `spaday.actions`)
+  interpreted in the browser: Toggle, SetProp bound to the event value, Sequence, and buttons that
+  switch a chart's series type. No event listeners are written, and the server is never called for these.
+- **transports (server-authoritative, multi-tenant)** — two live charts mirror Python models over
+  `@1kbgz/transports`: a **global** model (shared `transports.Server`) syncs to every browser; a
+  **per-session** model (`transports.Hub`) is private to each tab. Control changes are edits applied on
+  the server and fanned to clients.
 
-## Setup
+## Run
 
 ```bash
 pip install transports                       # the Python wire (also: starlette, uvicorn, websockets)
 cd js && pnpm install && pnpm build && cd .. # builds js/dist; pulls @1kbgz/transports + webawesome
+python -m spaday.examples                    # -> http://127.0.0.1:8000
 ```
 
-The servers serve the built `js/dist` bundles and the `@1kbgz/transports` / WebAwesome packages from
-`js/node_modules`, so they're self-contained once built.
+Open it in two tabs: changing the **global** chart in one tab updates both; the **per-session** chart
+is independent per tab.
 
-## Dashboard (all-in-one)
+## How it maps to the architecture
 
-Two `Chart { type, data, live }` panels, each `WaSelect` / `WaSwitch` / `WaButton` / `LightweightChart`
-authored in Python (`dashboard.chart_panel()`) and mounted by the runtime. Control changes are
-transports **edits** (server-authoritative). The two panels differ in *scope*:
-
-- **Global** — one shared model on a `transports.Server` at `/ws`. Every browser mirrors it, so a
-  control change in one tab updates **all** tabs.
-- **Per session** — a `transports.Hub` at `/ws/session` routes each connection (by a per-tab
-  `?session=` id) to its **own private** model. Each browser gets an isolated chart — the multi-tenant
-  case. Open the page in two browsers to see the difference.
-
-```bash
-python -m spaday.examples.dashboard          # -> http://127.0.0.1:8001
-```
-
-## Live chart
-
-A `Chart { type, data }` hosted in a `transports.Session`; `transports.starlette_endpoint` + `autoflush`
-stream patches as a ticker appends points. The browser mirrors the model with transports' JS `Client`
-and feeds it to the chart.
-
-```bash
-python -m spaday.examples.server             # -> http://127.0.0.1:8000
-```
-
-## Offline (no server)
-
-```bash
-python -m spaday.examples.chart              # writes chart.json + chart.patch.json
-python -m http.server 8000                   # from the repo root
-#   -> http://localhost:8000/spaday/examples/index.html
-```
+- `__main__.py` authors the page (shell + controls + actions) and hosts two `Chart` models on transports
+  (`Session`/`Server`, plus a `Hub` for per-session). It serves the page, the authored tree
+  (`/tree.json`), the websockets (`/ws`, `/ws/session`), and the `js/` bundles.
+- `index.html` mounts the tree — which wires the action DSL automatically — and adds the only
+  hand-written glue: the two transports charts' control→edit listeners. That glue is what a future
+  `SendPatch` action will make declarative; the action DSL already removed it for the client-side card.
 
 ## Notes
 
-- **transports is the wire**: it carries the data model (Python `Session`/`Server`/`autoflush`; the JS
-  `Client` mirrors it). spaday renders. The dashboard's edits are server-authoritative and fan out to
-  every client.
-- **Imperative event glue**: the dashboard wires control events to transports edits with hand-written
-  JS, because spaday's declarative event→action binding (the action DSL) is a later phase — it will
-  make that glue declarative.
-- **Wholesale data patches**: the series is one opaque prop, so each change resends `data` (correct,
-  not minimal); structured per-point deltas need the series modeled as tree state — later.
+- **Client-side vs round-trip**: the DSL card runs entirely in the browser; the transports cards
+  round-trip edits to the server (authoritative) and fan patches to every client.
+- **Wholesale data patches**: a chart's series is one opaque prop, so each change resends `data`
+  (correct, not minimal); per-point deltas need the series modeled as tree state — later.
+- **TradingView logo** is disabled in the chart wrapper; attribution is in the page footer.
