@@ -3,8 +3,8 @@
 //
 // This is the consumer of the diff engine: the server (Python) computes a patch with the shared Rust
 // `diff`; the browser applies it here against live DOM, so a `wa-switch`'s internal state survives an
-// update instead of being re-created. Event handlers are bound later (with the action DSL); this
-// layer renders structure and props.
+// update instead of being re-created. It renders structure + props and binds the action-DSL event
+// handlers, rebinding/detaching them as incremental `SetEvent`/`RemoveEvent` patches arrive.
 
 import { interpret } from "./actions";
 import { untag, Value } from "./value";
@@ -43,6 +43,30 @@ export function applyPatch(root: Element, patch: { ops: Op[] }): Element {
   return current;
 }
 
+// Live action listeners per element, so an incremental patch can update them: the diff engine emits
+// `SetEvent` when an action is added/changed and `RemoveEvent` when one is removed on an existing node.
+const listeners = new WeakMap<Element, Map<string, EventListener>>();
+
+function bindEvent(el: Element, name: string, action: unknown): void {
+  let map = listeners.get(el);
+  if (!map) listeners.set(el, (map = new Map()));
+  const existing = map.get(name);
+  if (existing) el.removeEventListener(name, existing); // replace, don't stack
+  const handler: EventListener = (event) =>
+    interpret(action, { event, currentTarget: el });
+  el.addEventListener(name, handler);
+  map.set(name, handler);
+}
+
+function unbindEvent(el: Element, name: string): void {
+  const map = listeners.get(el);
+  const handler = map?.get(name);
+  if (handler) {
+    el.removeEventListener(name, handler);
+    map!.delete(name);
+  }
+}
+
 function build(node: Node): Element {
   const el = document.createElement(node.tag);
   for (const [name, value] of Object.entries(node.props ?? {})) {
@@ -52,10 +76,7 @@ function build(node: Node): Element {
     for (const child of children) appendInSlot(el, slot, build(child));
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
-    // actions ride the wire as the core's own DSL form (plain JSON), not a tagged Value
-    el.addEventListener(name, (event) =>
-      interpret(action, { event, currentTarget: el }),
-    );
+    bindEvent(el, name, action); // actions ride the wire as the core's DSL form (plain JSON)
   }
   return el;
 }
@@ -137,6 +158,12 @@ function applyOp(root: Element, op: Op): Element {
     );
   } else if ("RemoveProp" in op) {
     removeProp(resolve(root, op.RemoveProp.path), op.RemoveProp.name);
+  } else if ("SetEvent" in op) {
+    const { path, name, action } = op.SetEvent;
+    bindEvent(resolve(root, path), name, action);
+  } else if ("RemoveEvent" in op) {
+    const { path, name } = op.RemoveEvent;
+    unbindEvent(resolve(root, path), name);
   } else if ("InsertChild" in op) {
     const { path, slot, index, node } = op.InsertChild;
     insertInSlot(resolve(root, path), slot, index, build(node));
@@ -155,6 +182,6 @@ function applyOp(root: Element, op: Op): Element {
     target.replaceWith(replacement);
     if (op.Replace.path.length === 0) return replacement; // the root element itself was swapped
   }
-  // SetEvent / RemoveEvent / SetKey: events bind with the action DSL; keys are diff-engine metadata.
+  // SetKey is diff-engine metadata (the key lives in the tree, not on the DOM element).
   return root;
 }

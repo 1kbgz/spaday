@@ -158,3 +158,54 @@ test("a keyed reorder patch moves live elements (incremental == full render)", a
   expect(result.after).toBe(result.full); // incremental apply == a full re-render
   expect(result.origOrder).toEqual([2, 0, 1]); // c, a, b — the *same* elements, reordered
 });
+
+const TOGGLE = { kind: "toggle", target: { ref: "this" }, prop: "hidden" };
+
+test("an incremental SetEvent patch binds the new action on a live element", async ({
+  page,
+}) => {
+  const oldTree = { tag: "button" };
+  const newTree = { tag: "button", events: { click: TOGGLE } };
+  const patch = JSON.parse(
+    diff(JSON.stringify(oldTree), JSON.stringify(newTree)),
+  );
+  expect(JSON.stringify(patch)).toContain("SetEvent"); // the core emits it
+
+  const hidden = await page.evaluate(
+    ({ oldTree, patch }) => {
+      const { mount, applyPatch } = window.__spaday;
+      const btn = mount(document.body, oldTree); // no listener yet
+      applyPatch(btn, patch); // SetEvent binds it
+      btn.click();
+      return btn.hidden;
+    },
+    { oldTree, patch },
+  );
+  expect(hidden).toBe(true); // the action added by the patch actually ran
+});
+
+test("an incremental RemoveEvent patch detaches the action from a live element", async ({
+  page,
+}) => {
+  const oldTree = { tag: "button", events: { click: TOGGLE } };
+  const newTree = { tag: "button" };
+  const patch = JSON.parse(
+    diff(JSON.stringify(oldTree), JSON.stringify(newTree)),
+  );
+  expect(JSON.stringify(patch)).toContain("RemoveEvent");
+
+  const states = await page.evaluate(
+    ({ oldTree, patch }) => {
+      const { mount, applyPatch } = window.__spaday;
+      const btn = mount(document.body, oldTree); // listener bound on build
+      btn.click(); // toggles hidden -> true (proves it was active)
+      const afterFirst = btn.hidden;
+      applyPatch(btn, patch); // RemoveEvent detaches it
+      btn.click(); // would toggle back to false if still attached
+      return { afterFirst, afterRemoved: btn.hidden };
+    },
+    { oldTree, patch },
+  );
+  expect(states.afterFirst).toBe(true); // listener worked before removal
+  expect(states.afterRemoved).toBe(true); // unchanged ⇒ the listener was detached
+});

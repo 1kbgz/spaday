@@ -29,9 +29,12 @@ is independent per tab.
 - `__main__.py` authors the page (shell + controls + actions) and hosts two `Chart` models on transports
   (`Session`/`Server`, plus a `Hub` for per-session). It serves the page, the authored tree
   (`/tree.json`), the websockets (`/ws`, `/ws/session`), and the `js/` bundles.
-- `index.html` mounts the tree — which wires the action DSL automatically — and adds the only
-  hand-written glue: the two transports charts' control→edit listeners. That glue is what a future
-  `SendPatch` action will make declarative; the action DSL already removed it for the client-side card.
+- `index.html` first `await init("…/spaday_bg.wasm")` (the action interpreter runs in spaday's wasm
+  core, so it must be initialized before interactions — otherwise an action fires a clear error), then
+  mounts the tree — which wires the action DSL automatically — and adds the only hand-written glue: the
+  two transports charts' control→edit listeners, plus the light/dark toggle (`wa-dark` on `<html>`).
+  That glue is what future `SendPatch` / class-toggle actions will make declarative; the action DSL
+  already removed it for the client-side card.
 
 ## Notes
 

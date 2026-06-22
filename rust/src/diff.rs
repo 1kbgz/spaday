@@ -371,7 +371,6 @@ fn apply_op(root: &mut Node, op: &Op) {
 #[cfg(test)]
 mod diff_tests {
     use super::*;
-    use crate::value::Value;
 
     fn assert_round_trip(old: &Node, new: &Node) -> Patch {
         let patch = diff(old, new);

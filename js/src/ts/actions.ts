@@ -7,6 +7,7 @@
 
 import { interpret as wasmInterpret } from "../../dist/pkg/spaday";
 import { setProp } from "./runtime";
+import { assertReady } from "./wasm-ready";
 
 /** The context an action runs in: the DOM event and the element the listener is bound to. */
 export interface ActionContext {
@@ -16,6 +17,7 @@ export interface ActionContext {
 
 /** Run one action (the core's plain DSL wire form) against the DOM in the given event context. */
 export function interpret(action: unknown, ctx: ActionContext): void {
+  assertReady(); // clear error if an action fires before the wasm core is initialized
   wasmInterpret(JSON.stringify(action), host(ctx));
 }
 
