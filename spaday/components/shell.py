@@ -15,6 +15,8 @@ First cut — pure structural containers (no typed props yet). :class:`Main` is 
 via ``.prop("style", ...)``.
 """
 
+from typing import Optional
+
 from ..component import Component
 
 __all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Stack", "Row", "Toolbar"]
@@ -39,9 +41,15 @@ class Body(Component):
 
 
 class Gutter(Component):
-    """A sidebar; place it before or after Main in a Body to get a left or right gutter."""
+    """A sidebar; place it before or after Main in a Body to get a left or right gutter.
+
+    ``width`` sets the gutter width (any CSS length); ``gap`` spaces its children.
+    """
 
     tag = "spa-gutter"
+
+    def __init__(self, *, width: Optional[str] = None, gap: Optional[str] = None, key: Optional[str] = None) -> None:
+        super().__init__(key=key, props={"width": width, "gap": gap})
 
 
 class Main(Component):
@@ -57,18 +65,28 @@ class Footer(Component):
 
 
 class Stack(Component):
-    """A vertical group (gap via the ``--spa-gap`` custom property)."""
+    """A vertical group. ``gap`` sets the space between children; ``align`` the cross-axis alignment."""
 
     tag = "spa-stack"
 
+    def __init__(self, *, gap: Optional[str] = None, align: Optional[str] = None, key: Optional[str] = None) -> None:
+        super().__init__(key=key, props={"gap": gap, "align": align})
+
 
 class Row(Component):
-    """A horizontal group, vertically centered (gap via ``--spa-gap``)."""
+    """A horizontal group. ``gap`` spaces children; ``align`` is cross-axis (default center) and
+    ``justify`` is main-axis distribution."""
 
     tag = "spa-row"
 
+    def __init__(self, *, gap: Optional[str] = None, align: Optional[str] = None, justify: Optional[str] = None, key: Optional[str] = None) -> None:
+        super().__init__(key=key, props={"gap": gap, "align": align, "justify": justify})
+
 
 class Toolbar(Component):
-    """A contained strip of actions/controls."""
+    """A contained strip of actions/controls. ``gap`` spaces them; ``align``/``justify`` lay them out."""
 
     tag = "spa-toolbar"
+
+    def __init__(self, *, gap: Optional[str] = None, align: Optional[str] = None, justify: Optional[str] = None, key: Optional[str] = None) -> None:
+        super().__init__(key=key, props={"gap": gap, "align": align, "justify": justify})
