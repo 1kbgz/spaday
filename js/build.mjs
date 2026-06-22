@@ -25,6 +25,11 @@ const BUNDLES = [
     entryPoints: ["src/ts/examples/webawesome.ts"],
     outfile: "dist/cdn/examples/webawesome.js",
   },
+  {
+    // spaday as an anywidget ESM (self-contained runtime); the Python Widget loads it as `_esm`.
+    entryPoints: ["src/ts/widget.ts"],
+    outfile: "dist/cdn/widget.js",
+  },
 ];
 
 async function build() {

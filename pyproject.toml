@@ -35,7 +35,9 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+widget = ["anywidget"]
 develop = [
+    "anywidget",
     "build",
     "bump-my-version",
     "check-dist",
