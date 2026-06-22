@@ -1,0 +1,148 @@
+"""The declarative action DSL: behavior authored in Python, executed in the browser.
+
+An :class:`Action` is *serializable data, not code* — it carries no Python callable. Attach one to a
+component with :meth:`~spaday.component.Component.on` and the spaday runtime interprets it directly on
+the DOM event, with **no round-trip to Python**::
+
+    from spaday.actions import SetProp, Toggle, by_id, event_value, not_
+    from spaday.components import WaButton, WaSwitch
+
+    WaButton(variant="neutral").text("Toggle").on("click", Toggle(by_id("panel"), "hidden"))
+    WaSwitch().text("Show").on("change", SetProp(by_id("panel"), "hidden", not_(event_value())))
+
+This is the "configure in Python, run in JS" core: the server holds session state, but an `onClick`
+toggle or a prop binding runs client-side. The interpreter dispatches on each action's ``kind`` — there
+is no ``eval`` — so actions are safe to ship to untrusted, multi-tenant clients.
+
+The set here (``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` with literal / event-value / ``not``
+expressions and ``this`` / ``by_id`` targets) is the first slice; reactive ``Bind``, ``CallEndpoint``,
+``SendPatch``, and conditionals follow.
+"""
+
+from typing import Any, Dict, List
+
+
+class Expr:
+    """A value computed in the browser at event time (a literal, the event's value, ...)."""
+
+    def to_dict(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+
+class _Lit(Expr):
+    def __init__(self, value: Any) -> None:
+        self.value = value
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "lit", "value": self.value}
+
+
+class _EventValue(Expr):
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "event"}
+
+
+class _Not(Expr):
+    def __init__(self, of: Any) -> None:
+        self.of = of
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "not", "of": _expr(self.of).to_dict()}
+
+
+def lit(value: Any) -> Expr:
+    """A literal value."""
+    return _Lit(value)
+
+
+def event_value() -> Expr:
+    """The triggering event's value — a control's ``checked`` (booleans) else ``value`` else ``detail``."""
+    return _EventValue()
+
+
+def not_(of: Any) -> Expr:
+    """Boolean negation of an expression (or a literal)."""
+    return _Not(of)
+
+
+def _expr(value: Any) -> Expr:
+    """Coerce a plain Python value to a literal expression; pass an `Expr` through."""
+    return value if isinstance(value, Expr) else _Lit(value)
+
+
+class Ref:
+    """A reference to a DOM element an action targets."""
+
+    def to_dict(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+
+class _This(Ref):
+    def to_dict(self) -> Dict[str, Any]:
+        return {"ref": "this"}
+
+
+class _Id(Ref):
+    def __init__(self, id: str) -> None:
+        self.id = id
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"ref": "id", "id": self.id}
+
+
+def this() -> Ref:
+    """The element the event fired on (the listener's element)."""
+    return _This()
+
+
+def by_id(id: str) -> Ref:
+    """The element with this ``id`` within the mounted tree."""
+    return _Id(id)
+
+
+class Action:
+    """Declarative behavior, interpreted in the browser. Serializes to the component's ``events`` map."""
+
+    def to_dict(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+
+class SetProp(Action):
+    """Set ``prop`` on ``target`` to ``value`` (an :class:`Expr` or a plain literal)."""
+
+    def __init__(self, target: Ref, prop: str, value: Any) -> None:
+        self.target, self.prop, self.value = target, prop, value
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "set", "target": self.target.to_dict(), "prop": self.prop, "value": _expr(self.value).to_dict()}
+
+
+class Toggle(Action):
+    """Flip a boolean ``prop`` on ``target`` (e.g. ``hidden``, ``checked``, ``open``)."""
+
+    def __init__(self, target: Ref, prop: str) -> None:
+        self.target, self.prop = target, prop
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "toggle", "target": self.target.to_dict(), "prop": self.prop}
+
+
+class Sequence(Action):
+    """Run several actions in order."""
+
+    def __init__(self, *actions: Action) -> None:
+        self.actions: List[Action] = list(actions)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "seq", "actions": [a.to_dict() for a in self.actions]}
+
+
+class Emit(Action):
+    """Dispatch a (bubbling) custom DOM event named ``event`` with an optional ``detail`` expression."""
+
+    def __init__(self, event: str, detail: Any = None) -> None:
+        self.event, self.detail = event, detail
+
+    def to_dict(self) -> Dict[str, Any]:
+        detail = _expr(self.detail).to_dict() if self.detail is not None else None
+        return {"kind": "emit", "event": self.event, "detail": detail}

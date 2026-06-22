@@ -40,7 +40,11 @@ export class LightweightChart extends HTMLElement {
   connectedCallback(): void {
     if (!this.style.display) this.style.display = "block";
     if (!this.style.height) this.style.height = "300px";
-    this.chart = createChart(this, { autoSize: true });
+    // attributionLogo off: the page must carry TradingView attribution elsewhere (lightweight-charts NOTICE).
+    this.chart = createChart(this, {
+      autoSize: true,
+      layout: { attributionLogo: false },
+    });
     this.addSeries();
     this.draw();
   }

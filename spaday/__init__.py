@@ -1,3 +1,5 @@
+from . import actions
+from .actions import Emit, Sequence, SetProp, Toggle, by_id, event_value, lit, not_, this
 from .cem import classes, generate
 from .component import Component, element
 from .spaday import apply, diff, parse_cem  # compiled Rust extension (rust/python)
@@ -15,4 +17,15 @@ __all__ = [
     "classes",
     "Component",
     "element",
+    # action DSL (declarative behavior, run in the browser)
+    "actions",
+    "SetProp",
+    "Toggle",
+    "Sequence",
+    "Emit",
+    "lit",
+    "event_value",
+    "not_",
+    "this",
+    "by_id",
 ]
