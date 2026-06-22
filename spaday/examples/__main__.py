@@ -265,8 +265,8 @@ async def ticker() -> None:
 @asynccontextmanager
 async def lifespan(app):
     tasks = [
-        asyncio.create_task(transports.autoflush(global_server)),
-        asyncio.create_task(transports.autoflush(session_hub)),
+        asyncio.create_task(transports.autosync(global_server)),
+        asyncio.create_task(transports.autosync(session_hub)),
         asyncio.create_task(ticker()),
     ]
     try:
@@ -280,7 +280,7 @@ app = Starlette(
     routes=[
         Route("/", homepage),
         Route("/tree.json", tree),
-        WebSocketRoute("/ws", transports.starlette_endpoint(global_server)),
+        WebSocketRoute("/ws", transports.ws_endpoint(global_server)),
         WebSocketRoute("/ws/session", session_endpoint),
         Mount("/js", StaticFiles(directory=JS)),
     ],
