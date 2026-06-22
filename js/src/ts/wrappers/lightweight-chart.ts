@@ -11,6 +11,7 @@ import {
   AreaSeries,
   BarSeries,
   CandlestickSeries,
+  ColorType,
   createChart,
   HistogramSeries,
   IChartApi,
@@ -36,6 +37,7 @@ export class LightweightChart extends HTMLElement {
   private _type: ChartType = "line";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- data shape varies by series type
   private _data: any[] = [];
+  private _theme: "light" | "dark" = "light";
 
   connectedCallback(): void {
     if (!this.style.display) this.style.display = "block";
@@ -45,6 +47,7 @@ export class LightweightChart extends HTMLElement {
       autoSize: true,
       layout: { attributionLogo: false },
     });
+    this.applyTheme();
     this.addSeries();
     this.draw();
   }
@@ -73,6 +76,32 @@ export class LightweightChart extends HTMLElement {
   set data(value: unknown[]) {
     this._data = (value as unknown[]) ?? [];
     this.draw();
+  }
+
+  // lightweight-charts is a canvas — it doesn't read CSS, so it can't follow the page's light/dark
+  // theme on its own. Set `theme` to recolor its text + grid; the background stays transparent so the
+  // surface behind it (e.g. a wa-card) shows through and matches whichever mode is active.
+  get theme(): "light" | "dark" {
+    return this._theme;
+  }
+  set theme(value: "light" | "dark") {
+    this._theme = value === "dark" ? "dark" : "light";
+    this.applyTheme();
+  }
+
+  private applyTheme(): void {
+    if (!this.chart) return;
+    const dark = this._theme === "dark";
+    this.chart.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: "rgba(0,0,0,0)" },
+        textColor: dark ? "#c9c9d2" : "#222222",
+      },
+      grid: {
+        vertLines: { color: dark ? "#2c2c34" : "#ededed" },
+        horzLines: { color: dark ? "#2c2c34" : "#ededed" },
+      },
+    });
   }
 
   private addSeries(): void {
