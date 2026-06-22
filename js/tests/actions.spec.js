@@ -241,3 +241,47 @@ test("If runs then/else based on a prop condition read from another element", as
   expect(result.whenUnchecked).toBe(false);
   expect(result.whenChecked).toBe(true);
 });
+
+test("CallEndpoint makes the REST call with the templated JSON body", async ({
+  page,
+}) => {
+  const seen = [];
+  await page.route("**/api/save", (route) => {
+    const req = route.request();
+    seen.push({ method: req.method(), body: req.postData() });
+    return route.fulfill({ status: 200, body: "ok" });
+  });
+  await page.evaluate(() => {
+    const btn = window.__spaday.mount(document.body, {
+      tag: "button",
+      events: {
+        click: {
+          kind: "call",
+          method: "POST",
+          url: "/api/save",
+          body: { expr: "lit", value: { x: 1 } },
+        },
+      },
+    });
+    btn.click();
+  });
+  await page.waitForTimeout(150); // let the fetch reach the route handler
+  expect(seen).toEqual([{ method: "POST", body: '{"x":1}' }]);
+});
+
+test("NamedJs invokes a pre-registered handler (the no-eval escape hatch)", async ({
+  page,
+}) => {
+  const ran = await page.evaluate(() => {
+    let calls = 0;
+    window.__spaday.registerHandler("count", () => (calls += 1));
+    const btn = window.__spaday.mount(document.body, {
+      tag: "button",
+      events: { click: { kind: "js", handler: "count" } },
+    });
+    btn.click();
+    btn.click();
+    return calls;
+  });
+  expect(ran).toBe(2);
+});

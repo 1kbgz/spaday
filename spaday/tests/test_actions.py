@@ -2,8 +2,10 @@ import json
 
 from spaday import apply, diff, element
 from spaday.actions import (
+    CallEndpoint,
     Emit,
     If,
+    NamedJs,
     SendPatch,
     Sequence,
     SetProp,
@@ -41,6 +43,13 @@ def test_action_to_dict_wire_shapes():
         "field": "type",
         "value": {"expr": "event"},
     }
+    assert CallEndpoint("POST", "/api/order", event_value()).to_dict() == {
+        "kind": "call",
+        "method": "POST",
+        "url": "/api/order",
+        "body": {"expr": "event"},
+    }
+    assert NamedJs("confetti").to_dict() == {"kind": "js", "handler": "confetti"}
 
 
 def test_setprop_coerces_a_plain_value_to_a_literal():
@@ -90,4 +99,21 @@ def test_bind_authors_a_setprop_on_the_source_change():
 
 def test_node_with_events_round_trips_through_core_diff_apply():
     tree = element("button").on("click", Toggle(this(), "hidden")).to_json()
+    assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
+
+
+def test_every_action_kind_round_trips_through_core():
+    # one of each Action on a different event — proves the Rust core accepts/round-trips every variant
+    node = (
+        element("button")
+        .on("a", SetProp(this(), "x", lit(1)))
+        .on("b", Toggle(this(), "hidden"))
+        .on("c", Sequence(Toggle(this(), "hidden"), Emit("e", lit(1))))
+        .on("d", Emit("opened", lit(True)))
+        .on("e", SendPatch("m", "f", event_value()))
+        .on("f", If(prop(by_id("sw"), "checked"), Toggle(this(), "hidden"), SetProp(this(), "x", lit(0))))
+        .on("g", CallEndpoint("POST", "/u", lit({"k": 1})))
+        .on("h", NamedJs("fn"))
+    )
+    tree = node.to_json()
     assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)

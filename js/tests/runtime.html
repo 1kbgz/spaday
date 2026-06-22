@@ -10,9 +10,10 @@
         interpret,
         tag,
         init,
+        registerHandler,
       } from "/dist/esm/index.js";
       await init({ module_or_path: "/dist/pkg/spaday_bg.wasm" }); // the action interpreter runs in wasm
-      window.__spaday = { mount, applyPatch, interpret, tag };
+      window.__spaday = { mount, applyPatch, interpret, tag, registerHandler };
     </script>
   </head>
   <body></body>

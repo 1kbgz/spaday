@@ -256,6 +256,7 @@ dependencies = [
 name = "spaday_js"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "serde-wasm-bindgen",
  "spaday",
  "wasm-bindgen",

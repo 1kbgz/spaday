@@ -1,3 +1,4 @@
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -19,6 +20,10 @@ extern "C" {
     fn emit(this: &Host, event: &str, detail: JsValue);
     #[wasm_bindgen(method, js_name = sendPatch)]
     fn send_patch(this: &Host, model: &str, field: &str, value: JsValue);
+    #[wasm_bindgen(method, js_name = callEndpoint)]
+    fn call_endpoint(this: &Host, method: &str, url: &str, body: JsValue);
+    #[wasm_bindgen(method, js_name = callNamed)]
+    fn call_named(this: &Host, handler: &str);
 }
 
 /// Interpret a serialized action (the core's DSL wire form) against the DOM primitives in `host`.
@@ -33,7 +38,7 @@ pub fn interpret(action: &str, host: &Host) -> Result<(), JsError> {
 }
 
 fn run(action: &spaday::Action, host: &Host) {
-    use spaday::Action::{Emit, If, SendPatch, Sequence, SetProp, Toggle};
+    use spaday::Action::{CallEndpoint, Emit, If, NamedJs, SendPatch, Sequence, SetProp, Toggle};
     match action {
         SetProp {
             target,
@@ -75,13 +80,22 @@ fn run(action: &spaday::Action, host: &Host) {
                 run(e, host);
             }
         }
+        CallEndpoint { method, url, body } => {
+            let b = body.as_ref().map_or(JsValue::UNDEFINED, |e| eval(e, host));
+            host.call_endpoint(method, url, b);
+        }
+        NamedJs { handler } => host.call_named(handler),
     }
 }
 
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
     use spaday::Expr::{Event, Lit, Not, Prop};
     match expr {
-        Lit { value } => serde_wasm_bindgen::to_value(value).unwrap_or(JsValue::UNDEFINED),
+        // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
+        // `JSON.stringify` (e.g. a CallEndpoint body) and set cleanly as props.
+        Lit { value } => value
+            .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
+            .unwrap_or(JsValue::UNDEFINED),
         Event => host.event_value(),
         Not { of } => JsValue::from_bool(!truthy(&eval(of, host))),
         Prop { target, name } => {

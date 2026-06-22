@@ -6,6 +6,7 @@
 // Requires the wasm to be initialized first (see `init` from the package entry).
 
 import { interpret as wasmInterpret } from "../../dist/pkg/spaday";
+import { getHandler } from "./handlers";
 import { setProp } from "./runtime";
 import { assertReady } from "./wasm-ready";
 
@@ -55,5 +56,18 @@ function host(ctx: ActionContext) {
           bubbles: true,
         }),
       ),
+    // CallEndpoint: the one intentional server round-trip (fire-and-forget JSON fetch).
+    callEndpoint: (method: string, url: string, body: unknown) =>
+      void fetch(url, {
+        method,
+        headers:
+          body === undefined
+            ? undefined
+            : { "content-type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      }),
+    // NamedJs escape hatch: invoke a pre-registered handler by name (no eval).
+    callNamed: (handler: string) =>
+      getHandler(handler)?.(ctx.event, ctx.currentTarget),
   };
 }

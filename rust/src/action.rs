@@ -13,7 +13,8 @@
 //! - `Action`: `{"kind":"set",target,prop,value}` · `{"kind":"toggle",target,prop}` ·
 //!   `{"kind":"seq","actions":[..]}` · `{"kind":"emit","event","detail":<Expr>|null}` ·
 //!   `{"kind":"patch","model","field","value":<Expr>}` ·
-//!   `{"kind":"if","cond":<Expr>,"then":<Action>,"else":<Action>|null}`
+//!   `{"kind":"if","cond":<Expr>,"then":<Action>,"else":<Action>|null}` ·
+//!   `{"kind":"call","method","url","body":<Expr>|null}` · `{"kind":"js","handler"}`
 
 use serde::{Deserialize, Serialize};
 
@@ -87,6 +88,19 @@ pub enum Action {
         #[serde(rename = "else", default)]
         els: Option<Box<Action>>,
     },
+    /// A REST round-trip: `method` `url` with an optional JSON `body`. The one intentional server call
+    /// (the interpreter performs it via the host's `fetch`).
+    #[serde(rename = "call")]
+    CallEndpoint {
+        method: String,
+        url: String,
+        #[serde(default)]
+        body: Option<Expr>,
+    },
+    /// The escape hatch: invoke a pre-registered named JS handler (no arbitrary `eval`). For the rare
+    /// irreducible case the declarative actions can't express.
+    #[serde(rename = "js")]
+    NamedJs { handler: String },
 }
 
 #[cfg(test)]
@@ -223,6 +237,36 @@ mod tests {
                 els: None,
             },
             json!({"kind": "if", "cond": {"expr": "event"}, "then": {"kind": "toggle", "target": {"ref": "this"}, "prop": "hidden"}, "else": null}),
+        );
+    }
+
+    #[test]
+    fn call_endpoint_wire() {
+        round(
+            &Action::CallEndpoint {
+                method: "POST".into(),
+                url: "/api/order".into(),
+                body: Some(Expr::Event),
+            },
+            json!({"kind": "call", "method": "POST", "url": "/api/order", "body": {"expr": "event"}}),
+        );
+        round(
+            &Action::CallEndpoint {
+                method: "GET".into(),
+                url: "/ping".into(),
+                body: None,
+            },
+            json!({"kind": "call", "method": "GET", "url": "/ping", "body": null}),
+        );
+    }
+
+    #[test]
+    fn named_js_wire() {
+        round(
+            &Action::NamedJs {
+                handler: "confetti".into(),
+            },
+            json!({"kind": "js", "handler": "confetti"}),
         );
     }
 

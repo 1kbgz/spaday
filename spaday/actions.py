@@ -14,9 +14,12 @@ This is the "configure in Python, run in JS" core: the server holds session stat
 toggle or a prop binding runs client-side. The interpreter dispatches on each action's ``kind`` — there
 is no ``eval`` — so actions are safe to ship to untrusted, multi-tenant clients.
 
-The set here (``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` with literal / event-value / ``not``
-expressions and ``this`` / ``by_id`` targets) is the first slice; reactive ``Bind``, ``CallEndpoint``,
-``SendPatch``, and conditionals follow.
+Actions: ``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` (client-side); ``SendPatch`` (a model-edit
+intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST
+round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:
+``lit`` / ``event_value`` / ``not_`` / ``prop`` (read live element state); targets ``this`` / ``by_id``.
+``bind`` is a one-way reactive-binding helper. The signal-graph reactive engine (derived state, two-way
+binding) is the remaining Phase 2 work.
 """
 
 from typing import Any, Dict, List, Optional
@@ -191,6 +194,29 @@ class If(Action):
             "then": self.then.to_dict(),
             "else": self.els.to_dict() if self.els is not None else None,
         }
+
+
+class CallEndpoint(Action):
+    """A REST round-trip: ``method`` ``url`` with an optional JSON ``body`` (an :class:`Expr` or a plain
+    value). The one intentional server call — the runtime performs it with ``fetch``."""
+
+    def __init__(self, method: str, url: str, body: Any = None) -> None:
+        self.method, self.url, self.body = method, url, body
+
+    def to_dict(self) -> Dict[str, Any]:
+        body = _expr(self.body).to_dict() if self.body is not None else None
+        return {"kind": "call", "method": self.method, "url": self.url, "body": body}
+
+
+class NamedJs(Action):
+    """The escape hatch: invoke a pre-registered named JS handler (no arbitrary ``eval``). Register it
+    on the JS side with ``registerHandler(name, fn)``; use only for the rare irreducible case."""
+
+    def __init__(self, handler: str) -> None:
+        self.handler = handler
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "js", "handler": self.handler}
 
 
 def bind(source: Any, target: Ref, target_prop: str, *, transform: Any = None) -> Any:

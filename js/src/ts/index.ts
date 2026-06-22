@@ -37,6 +37,10 @@ export type { Node } from "./runtime";
 export { interpret } from "./actions";
 export type { ActionContext } from "./actions";
 
+// Register a named JS handler for the `NamedJs` action (the DSL's no-eval escape hatch).
+export { registerHandler } from "./handlers";
+export type { NamedHandler } from "./handlers";
+
 // High-level layout/shell primitives — defines the spa-* custom elements on import.
 export { SHELL_TAGS } from "./shell";
 
