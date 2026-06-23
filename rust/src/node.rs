@@ -18,9 +18,28 @@ pub type Key = String;
 pub type Attr = String;
 pub type SlotName = String;
 pub type EventName = String;
+pub type Field = String;
 
 /// The conventional name for a component's unnamed (default) slot.
 pub const DEFAULT_SLOT: &str = "default";
+
+/// How a reactive [`Binding`] flows: one-way (state field → prop) or two-way (also prop → field, for
+/// value-like controls whose change should write the field back).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum BindMode {
+    #[serde(rename = "one-way")]
+    OneWay,
+    #[serde(rename = "two-way")]
+    TwoWay,
+}
+
+/// A reactive binding of a prop to a state field. The runtime's signal store keeps the prop in sync
+/// with the field; two-way bindings also write the field when the bound control changes.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Binding {
+    pub field: Field,
+    pub mode: BindMode,
+}
 
 /// A node in the component tree.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -39,6 +58,9 @@ pub struct Node {
     /// Event handlers keyed by event name (`"click"`, `"wa-change"`, ...).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub events: BTreeMap<EventName, Action>,
+    /// Reactive prop bindings: a prop name → the state field it tracks (see the runtime signal store).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub bindings: BTreeMap<Attr, Binding>,
 }
 
 impl Node {
@@ -50,6 +72,7 @@ impl Node {
             props: BTreeMap::new(),
             slots: BTreeMap::new(),
             events: BTreeMap::new(),
+            bindings: BTreeMap::new(),
         }
     }
 
@@ -68,6 +91,12 @@ impl Node {
     /// Builder: set an event handler.
     pub fn event(mut self, name: impl Into<EventName>, action: Action) -> Node {
         self.events.insert(name.into(), action);
+        self
+    }
+
+    /// Builder: bind a prop to a reactive state field.
+    pub fn bind(mut self, prop: impl Into<Attr>, binding: Binding) -> Node {
+        self.bindings.insert(prop.into(), binding);
         self
     }
 

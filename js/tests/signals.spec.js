@@ -1,0 +1,96 @@
+import fs from "fs";
+import { test, expect } from "@playwright/test";
+import { diff } from "../src/ts/index";
+import { initSync } from "../dist/pkg/spaday";
+
+// The reactive engine: a `Store` of named fields backs the tree's `bindings` (prop ↔ field). One-way
+// bindings flow field → prop; two-way bindings also write the field when the control changes. `diff`
+// runs here in node to produce SetBinding ops; `mount`/`applyPatch` run in the browser page.
+
+test.beforeAll(() => {
+  initSync({ module: fs.readFileSync("./dist/pkg/spaday_bg.wasm") });
+});
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("/tests/runtime.html");
+  await page.waitForFunction(() => window.__spaday);
+});
+
+test("one-way binding flows a field to the bound prop, reactively", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ msg: "hi" });
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "span",
+        bindings: { textContent: { field: "msg", mode: "one-way" } },
+      },
+      store,
+    );
+    const initial = root.textContent; // field's initial value applied on mount
+    store.set("msg", "bye"); // a field change updates the bound prop
+    return { initial, after: root.textContent };
+  });
+  expect(result.initial).toBe("hi");
+  expect(result.after).toBe("bye");
+});
+
+test("two-way binding: a control writes its field, updating other props bound to it", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ on: false });
+    const checkbox = (key) => ({
+      tag: "input",
+      key,
+      props: { type: { Str: "checkbox" } },
+      bindings: { checked: { field: "on", mode: "two-way" } },
+    });
+    const root = mount(
+      document.createElement("div"),
+      { tag: "div", slots: { default: [checkbox("a"), checkbox("b")] } },
+      store,
+    );
+    const [a, b] = root.querySelectorAll("input");
+    const before = [a.checked, b.checked];
+    a.checked = true;
+    a.dispatchEvent(new Event("change")); // control → field
+    return { before, storeOn: store.get("on"), bChecked: b.checked };
+  });
+  expect(result.before).toEqual([false, false]);
+  expect(result.storeOn).toBe(true); // the control's change wrote the field
+  expect(result.bChecked).toBe(true); // ...which flowed to the other bound control
+});
+
+test("an incremental SetBinding patch wires a binding on a live element", async ({
+  page,
+}) => {
+  const oldTree = { tag: "span" };
+  const newTree = {
+    tag: "span",
+    bindings: { textContent: { field: "x", mode: "one-way" } },
+  };
+  const patch = JSON.parse(
+    diff(JSON.stringify(oldTree), JSON.stringify(newTree)),
+  );
+  expect(JSON.stringify(patch)).toContain("SetBinding"); // the core emits it
+
+  const result = await page.evaluate(
+    ({ oldTree, patch }) => {
+      const { mount, applyPatch, Store } = window.__spaday;
+      const store = new Store({ x: "a" });
+      const root = mount(document.createElement("div"), oldTree, store); // unbound
+      applyPatch(root, patch, store); // SetBinding wires it
+      const initial = root.textContent;
+      store.set("x", "b");
+      return { initial, after: root.textContent };
+    },
+    { oldTree, patch },
+  );
+  expect(result.initial).toBe("a"); // bound on apply, initial value applied
+  expect(result.after).toBe("b"); // and reactive thereafter
+});
