@@ -37,6 +37,11 @@ export type { Binding, Node } from "./runtime";
 export { Store } from "./signals";
 export type { Field } from "./signals";
 
+// The transports seam: bidirectionally sync a Store with a transports-mirrored model. Imports nothing
+// from transports — it speaks to the Client through the ModelClient interface (spaday's view of the wire).
+export { connectStore } from "./store-sync";
+export type { ModelClient, ValueCodec, StoreLink } from "./store-sync";
+
 // Action DSL: declarative behavior, interpreted in the browser on DOM events (no Python round-trip).
 export { interpret } from "./actions";
 export type { ActionContext } from "./actions";
