@@ -1,7 +1,10 @@
 import json
 
-from spaday import apply, diff
-from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack, Toolbar
+import pytest
+
+from spaday import apply, diff, element
+from spaday.actions import field, not_
+from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Show, Stack, Toolbar
 
 
 def test_shell_classes_emit_spa_tags():
@@ -42,3 +45,23 @@ def test_shell_layout_props_become_attributes():
     assert Row(justify="space-between").to_node()["props"] == {"justify": {"Str": "space-between"}}
     # unset kwargs are omitted, so an unstyled primitive stays prop-free
     assert "props" not in Stack().to_node()
+
+
+def test_show_field_authors_a_when_binding():
+    node = Show(field="on").child(element("span")).to_node()
+    assert node["tag"] == "spa-show"
+    assert node["bindings"]["when"] == {"field": "on", "mode": "one-way"}
+    assert node["props"]["style"] == {"Str": "display:contents"}  # transparent wrapper
+    assert node["slots"]["default"][0]["tag"] == "span"
+
+
+def test_show_when_authors_a_compute_binding():
+    node = Show(when=not_(field("hidden"))).child(element("p")).to_node()
+    binding = node["bindings"]["when"]
+    assert binding["mode"] == "one-way"
+    assert binding["compute"] == {"expr": "not", "of": {"expr": "field", "name": "hidden"}}
+
+
+def test_show_requires_a_condition():
+    with pytest.raises(ValueError):
+        Show()

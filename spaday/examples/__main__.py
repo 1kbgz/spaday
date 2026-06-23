@@ -39,7 +39,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from spaday import element
 from spaday.actions import SendPatch, Sequence, SetProp, Toggle, bind, by_id, event_value, lit, not_
 from spaday.components.lightweight_charts import LightweightChart
-from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack, Toolbar
+from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Show, Stack, Toolbar
 from spaday.components.webawesome import WaButton, WaCallout, WaCard, WaOption, WaSelect, WaSwitch
 
 HERE = Path(__file__).parent
@@ -139,6 +139,28 @@ def dsl_card() -> object:
     )
 
 
+def structure_card() -> object:
+    """Reactive structure — a toggle that creates and removes a real chart element, client-side.
+
+    The switch is two-way bound to a signal ``show_chart``; a :class:`~spaday.components.shell.Show`
+    wrapper mounts the chart when it is on and removes it (real DOM create/destroy, not hide) when off —
+    no server, no event listeners, just the signal store.
+    """
+    return WaCard(appearance="outlined").child(
+        Stack()
+        .child(element("strong").text("Reactive structure — create/remove elements"))
+        .child(
+            element("p").text(
+                "The switch is two-way bound to a signal; a Show wrapper mounts the chart when it is on "
+                "and removes it (real DOM create/destroy, not merely hidden) when off — entirely "
+                "client-side, no server and no event listeners."
+            )
+        )
+        .child(WaSwitch().prop("id", "chart-toggle").bind("checked", "show_chart", mode="two-way").text("Show chart"))
+        .child(Show(field="show_chart").child(LightweightChart(type="area", data=random_walk(120)).prop("style", "height:260px;display:block")))
+    )
+
+
 def transports_panel(prefix: str, title: str, chart_type: str) -> object:
     """One live chart + its controls. Edits are declarative SendPatch actions (routed to transports in
     index.html); the ids remain so the inbound update can reflect the model back onto the controls."""
@@ -196,11 +218,12 @@ def page() -> dict:
                     .child(element("strong").text("Shows"))
                     .child(element("span").text("spa-* shell layout"))
                     .child(element("span").text("action DSL (client-side)"))
+                    .child(element("span").text("reactive structure (create/remove)"))
                     .child(element("span").text("transports live + edits"))
                     .child(element("span").text("global vs per-session"))
                 )
             )
-            .child(Main().child(dsl_card()).child(transports_card()))
+            .child(Main().child(dsl_card()).child(structure_card()).child(transports_card()))
         )
         .child(
             Footer()

@@ -8,6 +8,9 @@ with **transports** as the live wire.
 - **Action DSL (client-side)** — controls carry declarative actions (`Component.on` + `spaday.actions`)
   interpreted in the browser: Toggle, SetProp bound to the event value, Sequence, and buttons that
   switch a chart's series type. No event listeners are written, and the server is never called for these.
+- **Reactive structure (client-side)** — a "Show chart" switch is two-way bound to a signal; a `Show`
+  wrapper mounts a chart when it's on and removes it (real DOM create/destroy, not hide) when off — no
+  server and no event listeners, via the runtime's structural binding.
 - **transports (server-authoritative, multi-tenant)** — two live charts mirror Python models over
   `@1kbgz/transports`: a **global** model (shared `transports.Server`) syncs to every browser; a
   **per-session** model (`transports.Hub`) is private to each tab. Control changes are edits applied on
