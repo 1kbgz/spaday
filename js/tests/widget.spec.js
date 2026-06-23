@@ -99,3 +99,34 @@ test("runs a client-side action and forwards a SendPatch intent to the model", a
     detail: { model: "demo", field: "ping", value: true },
   });
 });
+
+test("two-way binds a control to the widget _state (notebook reactive)", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { widget, fakeModel } = window.__widget;
+    const model = fakeModel({
+      _state: { on: false },
+      _tree: {
+        tag: "input",
+        props: { type: { Str: "checkbox" } },
+        bindings: { checked: { field: "on", mode: "two-way" } },
+      },
+    });
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    await widget.initialize();
+    await widget.render({ model, el });
+
+    const box = el.querySelector("input");
+    const seededUnchecked = box.checked; // inbound: _state.on=false → unchecked on mount
+    box.checked = true;
+    box.dispatchEvent(new Event("change")); // outbound: control → _state
+    const stateAfterToggle = model.get("_state");
+    model.set("_state", { on: false }); // inbound from "Python": _state → control
+    return { seededUnchecked, stateAfterToggle, recheckedFalse: box.checked };
+  });
+  expect(result.seededUnchecked).toBe(false); // initial _state flowed to the control
+  expect(result.stateAfterToggle).toEqual({ on: true }); // the control wrote _state back
+  expect(result.recheckedFalse).toBe(false); // a Python-side _state change updated the control
+});

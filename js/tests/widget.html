@@ -5,8 +5,8 @@
     <title>spaday anywidget test harness</title>
     <script type="module">
       // Load the built anywidget ESM exactly as an anywidget host would, and stand up a minimal fake
-      // model (the bits widget.js uses: get / set / on / off / send) so the render flow is testable
-      // without a real kernel. The wasm core is inlined in the bundle, so nothing is fetched.
+      // model (the bits widget.js uses: get / set / save_changes / on / off / send) so the render flow
+      // is testable without a real kernel. The wasm core is inlined in the bundle, so nothing is fetched.
       import widget from "/dist/cdn/widget.js";
 
       function fakeModel(state) {
@@ -19,6 +19,7 @@
             state[k] = v;
             (listeners["change:" + k] || []).forEach((f) => f());
           },
+          save_changes: () => {},
           on: (ev, cb) => (listeners[ev] = (listeners[ev] || []).concat(cb)),
           off: (ev, cb) =>
             (listeners[ev] = (listeners[ev] || []).filter((f) => f !== cb)),

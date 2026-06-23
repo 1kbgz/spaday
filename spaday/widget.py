@@ -17,7 +17,7 @@ transports-hosted domain model: use this `Widget` to render a spaday tree direct
 """
 
 from pathlib import Path
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, List, Optional, Union
 
 import anywidget
 import traitlets
@@ -43,16 +43,34 @@ class Widget(anywidget.AnyWidget):
     _esm = _ESM
     _css = _CSS  # WebAwesome base + theme tokens, injected into the host page
     _tree = traitlets.Dict().tag(sync=True)
+    # the reactive data model the tree's bindings read/write; synced both ways over the comm, so a
+    # two-way-bound control updates Python here, and a Python-side change updates the bound props.
+    _state = traitlets.Dict().tag(sync=True)
 
-    def __init__(self, tree: Tree, **kwargs: Any) -> None:
+    def __init__(self, tree: Tree, state: Optional[dict] = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._tree = _to_node(tree)
+        self._state = dict(state or {})
         self._intent_handlers: List[Callable[[dict], None]] = []
         self.on_msg(self._on_msg)
 
     def update(self, tree: Tree) -> None:
         """Replace the rendered tree; the browser applies a minimal diff to the live DOM."""
         self._tree = _to_node(tree)
+
+    @property
+    def state(self) -> dict:
+        """The reactive data model backing the tree's bindings. Assign it to drive bound props from
+        Python; a two-way-bound control updates it from the browser. Use ``on_state`` to react."""
+        return self._state
+
+    @state.setter
+    def state(self, value: dict) -> None:
+        self._state = dict(value)
+
+    def on_state(self, handler: Callable[[dict], None]) -> None:
+        """Register a handler called with the new state dict whenever it changes (incl. from a control)."""
+        self.observe(lambda change: handler(change["new"]), names="_state")
 
     def on_intent(self, handler: Callable[[dict], None]) -> None:
         """Register a handler for frontend intents — a `SendPatch` action's ``{type, detail}``."""

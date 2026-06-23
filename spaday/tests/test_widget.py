@@ -26,6 +26,22 @@ def test_update_reassigns_the_synced_tree():
     assert w._tree["tag"] == "section"
 
 
+def test_state_seeds_and_is_settable():
+    w = Widget(element("div"), state={"on": True})
+    assert w._state == {"on": True}
+    assert w.state == {"on": True}
+    w.state = {"on": False, "level": 3}
+    assert w._state == {"on": False, "level": 3}
+
+
+def test_on_state_fires_on_change():
+    w = Widget(element("div"), state={"on": True})
+    seen = []
+    w.on_state(seen.append)
+    w.state = {"on": False}
+    assert seen == [{"on": False}]
+
+
 def test_on_intent_receives_frontend_messages():
     w = Widget(element("button").on("click", Toggle(by_id("x"), "hidden")))
     seen = []
