@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>spaday anywidget (WebAwesome) test harness</title>
+    <script type="module">
+      // The WebAwesome-inclusive widget bundle, loaded as an anywidget host would. Importing it must
+      // statically register the wa-* catalog (no runtime chunk loading). Same fake model as the lean
+      // harness so the render flow is testable without a kernel.
+      import widget from "/dist/cdn/widget.webawesome.js";
+
+      function fakeModel(state) {
+        const listeners = {};
+        const sent = [];
+        return {
+          _sent: sent,
+          get: (k) => state[k],
+          set: (k, v) => {
+            state[k] = v;
+            (listeners["change:" + k] || []).forEach((f) => f());
+          },
+          on: (ev, cb) => (listeners[ev] = (listeners[ev] || []).concat(cb)),
+          off: (ev, cb) =>
+            (listeners[ev] = (listeners[ev] || []).filter((f) => f !== cb)),
+          send: (content) => sent.push(content),
+        };
+      }
+
+      const wasm = await (
+        await fetch("/dist/pkg/spaday_bg.wasm")
+      ).arrayBuffer();
+      window.__widget = { widget, fakeModel, wasm };
+    </script>
+  </head>
+  <body></body>
+</html>

@@ -5,6 +5,18 @@ import { node_modules_external } from "./tools/externals.mjs";
 import fs from "fs";
 import cpy from "cpy";
 
+// Statically register the whole WebAwesome catalog by importing each installed component module, so the
+// widget bundle is self-contained (no runtime chunk loading — WebAwesome's own `webawesome.js` entry is
+// a lazy bootstrap that can't resolve under anywidget's single-file ESM). Generated from node_modules,
+// so it tracks the installed version with no committed list.
+const WA_COMPONENTS = "node_modules/@awesome.me/webawesome/dist/components";
+const WA_WIDGET_ENTRY =
+  fs
+    .readdirSync(WA_COMPONENTS)
+    .filter((n) => fs.existsSync(`${WA_COMPONENTS}/${n}/${n}.js`))
+    .map((n) => `import "@awesome.me/webawesome/dist/components/${n}/${n}.js";`)
+    .join("\n") + '\nexport { default } from "./src/ts/widget";\n';
+
 const BUNDLES = [
   {
     entryPoints: ["src/ts/index.ts"],
@@ -30,11 +42,22 @@ const BUNDLES = [
     entryPoints: ["src/ts/widget.ts"],
     outfile: "dist/cdn/widget.js",
   },
+  {
+    // The widget bundle with the full WebAwesome catalog statically registered — the default ESM for
+    // the Python `Widget`, so every wa-* element renders in a notebook with no extra script. The entry
+    // is a generated virtual module (see WA_WIDGET_ENTRY) re-exporting the lean widget's default.
+    stdin: { contents: WA_WIDGET_ENTRY, resolveDir: ".", loader: "js" },
+    outfile: "dist/cdn/widget.webawesome.js",
+  },
 ];
 
 async function build() {
   // Bundle css
   await bundle_css();
+  // WebAwesome's base + theme CSS (resolve its @import chain into one file) for the widget's `_css`.
+  await bundle_css(
+    "node_modules/@awesome.me/webawesome/dist/styles/webawesome.css",
+  );
 
   // Copy HTML
   cpy("src/html/*", "dist/");
