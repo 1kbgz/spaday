@@ -175,6 +175,12 @@ exclude = [
     "rust",
     "spaday/tests",
 ]
+# The JS build (hatch-js hook) emits the runtime/widget assets under spaday/extension, which is
+# git-ignored; include them as build artifacts so installed wheels ship the widget's _esm / _css /
+# wasm (without this, `from spaday.widget import Widget` fails on a pip-installed package).
+artifacts = [
+    "spaday/extension/**",
+]
 
 [tool.pytest.ini_options]
 addopts = [

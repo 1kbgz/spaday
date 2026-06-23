@@ -33,7 +33,19 @@ def test_on_intent_receives_frontend_messages():
     w.on_intent(seen.append)
     msg = {"type": "spaday:patch", "detail": {"model": "m", "field": "f", "value": True}}
     w._on_msg(w, msg, [])
+    w._on_msg(w, {"type": "other", "x": 1}, [])  # non-intent messages are ignored
+    w._on_msg(w, "not a dict", [])
     assert seen == [msg]
+
+
+def test_extension_assets_are_present():
+    from spaday import widget as widget_mod
+
+    # installed wheels must ship spaday/extension/** (force-included in pyproject); otherwise the
+    # _esm / _css / wasm the widget loads go missing and `import spaday.widget` breaks.
+    assert widget_mod._ESM.exists()
+    assert widget_mod._CSS.exists()
+    assert (widget_mod._EXT / "pkg" / "spaday_bg.wasm").exists()
 
 
 def test_widget_is_lazily_exported_from_the_package():

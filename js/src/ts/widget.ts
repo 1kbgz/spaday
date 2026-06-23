@@ -17,17 +17,27 @@ interface AnyModel {
   send(content: unknown): void;
 }
 
+// `_wasm` arrives as an ArrayBuffer or a view into one (anywidget hosts commonly traffic in DataViews);
+// honor the view's offset/length so we don't hand the initializer extra bytes from a shared buffer.
+function toBytes(raw: unknown): Uint8Array {
+  if (raw instanceof ArrayBuffer) return new Uint8Array(raw);
+  if (ArrayBuffer.isView(raw))
+    return new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+  throw new Error("widget _wasm must be an ArrayBuffer or a typed-array view");
+}
+
 // The wasm core is process-wide, so initialize it once from the first model's bytes; later widgets
-// reuse the same ready promise.
+// reuse the same ready promise. On failure, drop it so a later widget with valid bytes can retry
+// (a cached rejection would otherwise poison every subsequent render until reload).
 let ready: Promise<void> | undefined;
 function ensureWasm(model: AnyModel): Promise<void> {
   if (!ready) {
-    const raw = model.get("_wasm");
-    const bytes =
-      raw instanceof ArrayBuffer
-        ? new Uint8Array(raw)
-        : new Uint8Array((raw as DataView).buffer);
-    ready = init({ module_or_path: bytes });
+    ready = init({ module_or_path: toBytes(model.get("_wasm")) }).catch(
+      (err) => {
+        ready = undefined;
+        throw err;
+      },
+    );
   }
   return ready;
 }

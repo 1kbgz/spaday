@@ -10,6 +10,26 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.__widget);
 });
 
+test("accepts _wasm as a view into a larger buffer (offset honored)", async ({
+  page,
+}) => {
+  const ok = await page.evaluate(async () => {
+    const { widget, fakeModel, wasm } = window.__widget;
+    // pad the wasm into a bigger buffer and hand the widget a DataView slice of it
+    const pad = 8;
+    const buf = new ArrayBuffer(pad + wasm.byteLength);
+    new Uint8Array(buf, pad).set(new Uint8Array(wasm));
+    const view = new DataView(buf, pad, wasm.byteLength);
+
+    const model = fakeModel({ _wasm: view, _tree: { tag: "section" } });
+    const el = document.createElement("div");
+    await widget.initialize({ model });
+    await widget.render({ model, el });
+    return el.querySelector("section") !== null; // mounted ⇒ wasm initialized from the offset view
+  });
+  expect(ok).toBe(true);
+});
+
 test("renders the tree, then patches the live DOM on a _tree change", async ({
   page,
 }) => {

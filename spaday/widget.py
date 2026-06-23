@@ -62,6 +62,8 @@ class Widget(anywidget.AnyWidget):
         self._intent_handlers.append(handler)
 
     def _on_msg(self, _widget: Any, content: Any, _buffers: Any) -> None:
-        if isinstance(content, dict):
+        # Only the action DSL's intents (a `SendPatch`'s `spaday:patch`) reach handlers — not arbitrary
+        # frontend/host custom messages that may share this channel.
+        if isinstance(content, dict) and content.get("type") == "spaday:patch":
             for handler in self._intent_handlers:
                 handler(content)
