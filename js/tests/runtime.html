@@ -12,6 +12,7 @@
         init,
         registerHandler,
         Store,
+        connectStore,
       } from "/dist/esm/index.js";
       await init({ module_or_path: "/dist/pkg/spaday_bg.wasm" }); // the action interpreter runs in wasm
       window.__spaday = {
@@ -21,6 +22,7 @@
         tag,
         registerHandler,
         Store,
+        connectStore,
       };
     </script>
   </head>
