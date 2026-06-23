@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="Wrapping an imperative library" href="wrappers.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="How spaday works" href="concepts.html"><link rel="prev" title="Generate typed classes from a manifest" href="cem.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>API Reference - spaday v0.1.0</title>
+        <title>API reference - spaday v0.1.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -197,9 +197,15 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="components.html">Components</a></li>
-<li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrapping an imperative library</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial: build your first interactive UI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cem.html">Generate typed classes from a manifest</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">How spaday works</a></li>
 </ul>
 
 </div>
@@ -239,9 +245,12 @@
         </div>
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="api-reference">
-<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
-<section id="component-authoring">
-<h2>Component authoring<a class="headerlink" href="#component-authoring" title="Link to this heading">¶</a></h2>
+<h1>API reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
+<p>The Python surface of spaday. The component classes themselves (<code class="docutils literal notranslate"><span class="pre">WaButton</span></code>, <code class="docutils literal notranslate"><span class="pre">Stack</span></code>, <code class="docutils literal notranslate"><span class="pre">LightweightChart</span></code>,
+…) are generated and not listed here — see <a class="reference internal" href="components.html"><span class="std std-doc">Author a component tree</span></a> and
+<a class="reference internal" href="cem.html"><span class="std std-doc">Generate typed classes</span></a>.</p>
+<section id="authoring">
+<h2>Authoring<a class="headerlink" href="#authoring" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="spaday.Component">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">Component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">props</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/component.html#Component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component" title="Link to this definition">¶</a></dt>
@@ -300,6 +309,15 @@ browser — the field’s value flows to the prop with no round-trip to Python.<
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.compute">
+<span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.compute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.compute" title="Link to this definition">¶</a></dt>
+<dd><p>Reactively set <code class="docutils literal notranslate"><span class="pre">prop</span></code> to a value <em>computed</em> from state fields (one-way).</p>
+<p><code class="docutils literal notranslate"><span class="pre">expr</span></code> is a field expression (<code class="xref py py-func docutils literal notranslate"><span class="pre">field()</span></code> / <code class="docutils literal notranslate"><span class="pre">eq</span></code> / <code class="docutils literal notranslate"><span class="pre">not_</span></code> / <code class="docutils literal notranslate"><span class="pre">all_</span></code> /
+<code class="docutils literal notranslate"><span class="pre">any_</span></code> / <code class="docutils literal notranslate"><span class="pre">lit</span></code>) evaluated in the browser against the signal store and recomputed whenever any
+field it reads changes, e.g. <code class="docutils literal notranslate"><span class="pre">compute(&quot;disabled&quot;,</span> <span class="pre">not_(field(&quot;enabled&quot;)))</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="spaday.Component.to_node">
 <span class="sig-name descname"><span class="pre">to_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.to_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.to_node" title="Link to this definition">¶</a></dt>
 <dd><p>The node as the core’s JSON-ready dict (empty fields omitted, like the Rust core).</p>
@@ -311,6 +329,182 @@ browser — the field’s value flows to the prop with no round-trip to Python.<
 <dd><p>The node serialized for the core’s <code class="docutils literal notranslate"><span class="pre">diff</span></code>/<code class="docutils literal notranslate"><span class="pre">apply</span></code>.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.element">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">element</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">props</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#element"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.element" title="Link to this definition">¶</a></dt>
+<dd><p>Build a plain element (e.g. a <code class="docutils literal notranslate"><span class="pre">div</span></code> container) for structure a typed component doesn’t cover.</p>
+<p>A prop name with a trailing underscore is de-escaped, so reserved words work: <code class="docutils literal notranslate"><span class="pre">class_</span></code> → <code class="docutils literal notranslate"><span class="pre">class</span></code>.</p>
+</dd></dl>
+
+</section>
+<section id="action-dsl">
+<h2>Action DSL<a class="headerlink" href="#action-dsl" title="Link to this heading">¶</a></h2>
+<p>Behavior attached to a component with <code class="docutils literal notranslate"><span class="pre">Component.on</span></code>; see <a class="reference internal" href="behavior.html"><span class="std std-doc">Add behavior and reactivity</span></a>.</p>
+<section id="actions">
+<h3>Actions<a class="headerlink" href="#actions" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.SetProp">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">SetProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#SetProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.SetProp" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">prop</span></code> on <code class="docutils literal notranslate"><span class="pre">target</span></code> to <code class="docutils literal notranslate"><span class="pre">value</span></code> (an <code class="xref py py-class docutils literal notranslate"><span class="pre">Expr</span></code> or a plain literal).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.Toggle">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">Toggle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#Toggle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Toggle" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>Flip a boolean <code class="docutils literal notranslate"><span class="pre">prop</span></code> on <code class="docutils literal notranslate"><span class="pre">target</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">hidden</span></code>, <code class="docutils literal notranslate"><span class="pre">checked</span></code>, <code class="docutils literal notranslate"><span class="pre">open</span></code>).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.Sequence">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">Sequence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">actions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Action</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#Sequence"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Sequence" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>Run several actions in order.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.Emit">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">Emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detail</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#Emit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Emit" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>Dispatch a (bubbling) custom DOM event named <code class="docutils literal notranslate"><span class="pre">event</span></code> with an optional <code class="docutils literal notranslate"><span class="pre">detail</span></code> expression.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.SendPatch">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">SendPatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#SendPatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.SendPatch" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">field</span></code> to <code class="docutils literal notranslate"><span class="pre">value</span></code> on a host-routed <code class="docutils literal notranslate"><span class="pre">model</span></code> (e.g. a transports model).</p>
+<p>The runtime surfaces this as a patch <em>intent</em> (a bubbling <code class="docutils literal notranslate"><span class="pre">spaday:patch</span></code> DOM event carrying
+<code class="docutils literal notranslate"><span class="pre">{model,</span> <span class="pre">field,</span> <span class="pre">value}</span></code>); the app routes it to the actual wire. This is how a control edit is
+authored declaratively instead of with a hand-written transports listener.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.If">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">If</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">then</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">els</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Action</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#If"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.If" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>Run <code class="docutils literal notranslate"><span class="pre">then</span></code> if <code class="docutils literal notranslate"><span class="pre">cond</span></code> is truthy, else <code class="docutils literal notranslate"><span class="pre">els</span></code> (if given) — branch on live state, e.g.
+<code class="docutils literal notranslate"><span class="pre">If(prop(by_id(&quot;sw&quot;),</span> <span class="pre">&quot;checked&quot;),</span> <span class="pre">SetProp(...),</span> <span class="pre">SetProp(...))</span></code>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.CallEndpoint">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">CallEndpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#CallEndpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.CallEndpoint" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>A REST round-trip: <code class="docutils literal notranslate"><span class="pre">method</span></code> <code class="docutils literal notranslate"><span class="pre">url</span></code> with an optional JSON <code class="docutils literal notranslate"><span class="pre">body</span></code> (an <code class="xref py py-class docutils literal notranslate"><span class="pre">Expr</span></code> or a plain
+value). The one intentional server call — the runtime performs it with <code class="docutils literal notranslate"><span class="pre">fetch</span></code>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.NamedJs">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">NamedJs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#NamedJs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.NamedJs" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>The escape hatch: invoke a pre-registered named JS handler (no arbitrary <code class="docutils literal notranslate"><span class="pre">eval</span></code>). Register it
+on the JS side with <code class="docutils literal notranslate"><span class="pre">registerHandler(name,</span> <span class="pre">fn)</span></code>; use only for the rare irreducible case.</p>
+</dd></dl>
+
+</section>
+<section id="expressions-and-references">
+<h3>Expressions and references<a class="headerlink" href="#expressions-and-references" title="Link to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.lit">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">lit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#lit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.lit" title="Link to this definition">¶</a></dt>
+<dd><p>A literal value.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.event_value">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">event_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#event_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.event_value" title="Link to this definition">¶</a></dt>
+<dd><p>The triggering event’s value — a control’s <code class="docutils literal notranslate"><span class="pre">checked</span></code> (booleans) else <code class="docutils literal notranslate"><span class="pre">value</span></code> else <code class="docutils literal notranslate"><span class="pre">detail</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.not_">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">not_</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">of</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#not_"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.not_" title="Link to this definition">¶</a></dt>
+<dd><p>Boolean negation of an expression (or a literal).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.prop">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">prop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#prop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.prop" title="Link to this definition">¶</a></dt>
+<dd><p>The current value of a <code class="docutils literal notranslate"><span class="pre">name</span></code> prop on <code class="docutils literal notranslate"><span class="pre">target</span></code> — reads live element state, e.g.
+<code class="docutils literal notranslate"><span class="pre">prop(by_id(&quot;sw&quot;),</span> <span class="pre">&quot;checked&quot;)</span></code> for use as a condition.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.field">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.field" title="Link to this definition">¶</a></dt>
+<dd><p>The current value of a reactive state field — for a <em>computed</em> binding (<code class="docutils literal notranslate"><span class="pre">Component.compute</span></code>),
+evaluated against the signal store in the browser, e.g. <code class="docutils literal notranslate"><span class="pre">not_(field(&quot;enabled&quot;))</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.eq">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">eq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#eq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.eq" title="Link to this definition">¶</a></dt>
+<dd><p>True when two expressions are equal, e.g. <code class="docutils literal notranslate"><span class="pre">eq(field(&quot;mode&quot;),</span> <span class="pre">&quot;advanced&quot;)</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.all_">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">all_</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">exprs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#all_"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.all_" title="Link to this definition">¶</a></dt>
+<dd><p>True when every expression is truthy (logical AND).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.any_">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">any_</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">exprs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#any_"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.any_" title="Link to this definition">¶</a></dt>
+<dd><p>True when any expression is truthy (logical OR).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.this">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">this</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Ref</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#this"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.this" title="Link to this definition">¶</a></dt>
+<dd><p>The element the event fired on (the listener’s element).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.by_id">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">by_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Ref</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#by_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.by_id" title="Link to this definition">¶</a></dt>
+<dd><p>The element with this <code class="docutils literal notranslate"><span class="pre">id</span></code> within the mounted tree.</p>
+</dd></dl>
+
+</section>
+<section id="binding-helper">
+<h3>Binding helper<a class="headerlink" href="#binding-helper" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">spaday.bind</span></code> is a one-way event-driven convenience (control change → set a target prop). For reactive
+state bindings prefer <code class="docutils literal notranslate"><span class="pre">Component.bind</span></code> / <code class="docutils literal notranslate"><span class="pre">Component.compute</span></code> (above).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.bind">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">bind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_prop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#bind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.bind" title="Link to this definition">¶</a></dt>
+<dd><p>One-way reactive binding: when <code class="docutils literal notranslate"><span class="pre">source</span></code> (a control component) changes, set <code class="docutils literal notranslate"><span class="pre">target_prop</span></code> on
+<code class="docutils literal notranslate"><span class="pre">target</span></code> (a <code class="xref py py-class docutils literal notranslate"><span class="pre">Ref</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">by_id(&quot;panel&quot;)</span></code>) to the source’s value — optionally passed
+through <code class="docutils literal notranslate"><span class="pre">transform</span></code> (e.g. <a class="reference internal" href="#spaday.not_" title="spaday.not_"><code class="xref py py-func docutils literal notranslate"><span class="pre">not_()</span></code></a>). Returns <code class="docutils literal notranslate"><span class="pre">source</span></code> so it composes in a tree:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bind</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Show&quot;</span><span class="p">),</span> <span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;panel&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">not_</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Event-driven (sugar over <code class="docutils literal notranslate"><span class="pre">SetProp</span></code> on the source’s <code class="docutils literal notranslate"><span class="pre">change</span></code>); the signal-graph reactive engine
+and two-way binding are future work.</p>
+</dd></dl>
+
+</section>
+</section>
+<section id="validation">
+<h2>Validation<a class="headerlink" href="#validation" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.validate">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/spaday/validate.html#validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.validate" title="Link to this definition">¶</a></dt>
+<dd><p>Raise <a class="reference internal" href="#spaday.ValidationError" title="spaday.ValidationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationError</span></code></a> if any <code class="docutils literal notranslate"><span class="pre">by_id(...)</span></code> reference in the tree’s actions is unresolved.</p>
+<p>Pass a <a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a> (or its serialized node dict). Returns <code class="docutils literal notranslate"><span class="pre">None</span></code> on success.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="spaday.ValidationError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">ValidationError</span></span><a class="reference internal" href="../../_modules/spaday/validate.html#ValidationError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.ValidationError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></p>
+<p>Raised by <a class="reference internal" href="#spaday.validate" title="spaday.validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">validate()</span></code></a> when a component tree has unresolved references.</p>
 </dd></dl>
 
 </section>
@@ -328,10 +522,28 @@ browser — the field’s value flows to the prop with no round-trip to Python.<
 <dd><p>Render a manifest’s components into a Python module; write it to <code class="docutils literal notranslate"><span class="pre">out_path</span></code> if given.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.classes">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">classes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manifest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/spaday/cem.html#classes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.classes" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">classes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manifest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>Build <a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a> subclasses from a manifest <em>at runtime</em>.</p>
+<p>The dynamic counterpart to <a class="reference internal" href="#spaday.generate" title="spaday.generate"><code class="xref py py-func docutils literal notranslate"><span class="pre">generate()</span></code></a>: build classes without emitting a file. With <code class="docutils literal notranslate"><span class="pre">name</span></code>,
+returns just that one class (<code class="docutils literal notranslate"><span class="pre">MyClass</span> <span class="pre">=</span> <span class="pre">spaday.classes(manifest,</span> <span class="pre">&quot;MyClass&quot;)</span></code>); otherwise returns
+<code class="docutils literal notranslate"><span class="pre">{class_name:</span> <span class="pre">class}</span></code> for the whole manifest. Handy for binding an arbitrary or one-off manifest
+on the fly. Unlike the committed, generated catalog (e.g. <code class="xref py py-mod docutils literal notranslate"><span class="pre">spaday.components.webawesome</span></code>),
+these classes are <strong>not statically typed</strong> — the type checker can’t see their per-attribute
+signatures — though they still validate keyword names at call time. Reach for <a class="reference internal" href="#spaday.generate" title="spaday.generate"><code class="xref py py-func docutils literal notranslate"><span class="pre">generate()</span></code></a>
+(committed codegen) when you want typing.</p>
+</dd></dl>
+
+</section>
+<section id="notebook-host">
+<h2>Notebook host<a class="headerlink" href="#notebook-host" title="Link to this heading">¶</a></h2>
 </section>
 <section id="core-diff-apply">
 <h2>Core diff / apply<a class="headerlink" href="#core-diff-apply" title="Link to this heading">¶</a></h2>
-<p>The low-level component-tree engine (JSON wire form), shared byte-for-byte with the browser.</p>
+<p>The low-level component-tree engine (JSON wire form), shared byte-for-byte with the browser runtime.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="spaday.diff">
 <span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">diff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#spaday.diff" title="Link to this definition">¶</a></dt>
@@ -353,15 +565,23 @@ browser — the field’s value flows to the prop with no round-trip to Python.<
       <footer>
         
         <div class="related-pages">
-          
-          <a class="prev-page" href="wrappers.html">
+          <a class="next-page" href="concepts.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">How spaday works</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="cem.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Wrapping an imperative library</div>
+                <div class="title">Generate typed classes from a manifest</div>
                 
               </div>
             </a>
@@ -395,8 +615,8 @@ browser — the field’s value flows to the prop with no round-trip to Python.<
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">API Reference</a><ul>
-<li><a class="reference internal" href="#component-authoring">Component authoring</a><ul>
+<li><a class="reference internal" href="#">API reference</a><ul>
+<li><a class="reference internal" href="#authoring">Authoring</a><ul>
 <li><a class="reference internal" href="#spaday.Component"><code class="docutils literal notranslate"><span class="pre">Component</span></code></a><ul>
 <li><a class="reference internal" href="#spaday.Component.key"><code class="docutils literal notranslate"><span class="pre">Component.key()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.child"><code class="docutils literal notranslate"><span class="pre">Component.child()</span></code></a></li>
@@ -405,17 +625,57 @@ browser — the field’s value flows to the prop with no round-trip to Python.<
 <li><a class="reference internal" href="#spaday.Component.prop"><code class="docutils literal notranslate"><span class="pre">Component.prop()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.on"><code class="docutils literal notranslate"><span class="pre">Component.on()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.bind"><code class="docutils literal notranslate"><span class="pre">Component.bind()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.compute"><code class="docutils literal notranslate"><span class="pre">Component.compute()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.to_node"><code class="docutils literal notranslate"><span class="pre">Component.to_node()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.to_json"><code class="docutils literal notranslate"><span class="pre">Component.to_json()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#spaday.element"><code class="docutils literal notranslate"><span class="pre">element()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#action-dsl">Action DSL</a><ul>
+<li><a class="reference internal" href="#actions">Actions</a><ul>
+<li><a class="reference internal" href="#spaday.SetProp"><code class="docutils literal notranslate"><span class="pre">SetProp</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Toggle"><code class="docutils literal notranslate"><span class="pre">Toggle</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Sequence"><code class="docutils literal notranslate"><span class="pre">Sequence</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Emit"><code class="docutils literal notranslate"><span class="pre">Emit</span></code></a></li>
+<li><a class="reference internal" href="#spaday.SendPatch"><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code></a></li>
+<li><a class="reference internal" href="#spaday.If"><code class="docutils literal notranslate"><span class="pre">If</span></code></a></li>
+<li><a class="reference internal" href="#spaday.CallEndpoint"><code class="docutils literal notranslate"><span class="pre">CallEndpoint</span></code></a></li>
+<li><a class="reference internal" href="#spaday.NamedJs"><code class="docutils literal notranslate"><span class="pre">NamedJs</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#expressions-and-references">Expressions and references</a><ul>
+<li><a class="reference internal" href="#spaday.lit"><code class="docutils literal notranslate"><span class="pre">lit()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.event_value"><code class="docutils literal notranslate"><span class="pre">event_value()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.not_"><code class="docutils literal notranslate"><span class="pre">not_()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.prop"><code class="docutils literal notranslate"><span class="pre">prop()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.field"><code class="docutils literal notranslate"><span class="pre">field()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.eq"><code class="docutils literal notranslate"><span class="pre">eq()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.all_"><code class="docutils literal notranslate"><span class="pre">all_()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.any_"><code class="docutils literal notranslate"><span class="pre">any_()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.this"><code class="docutils literal notranslate"><span class="pre">this()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.by_id"><code class="docutils literal notranslate"><span class="pre">by_id()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#binding-helper">Binding helper</a><ul>
+<li><a class="reference internal" href="#spaday.bind"><code class="docutils literal notranslate"><span class="pre">bind()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#validation">Validation</a><ul>
+<li><a class="reference internal" href="#spaday.validate"><code class="docutils literal notranslate"><span class="pre">validate()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.ValidationError"><code class="docutils literal notranslate"><span class="pre">ValidationError</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#cem-binding-generator">CEM binding generator</a><ul>
 <li><a class="reference internal" href="#spaday.parse_cem"><code class="docutils literal notranslate"><span class="pre">parse_cem()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.generate"><code class="docutils literal notranslate"><span class="pre">generate()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.classes"><code class="docutils literal notranslate"><span class="pre">classes()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#notebook-host">Notebook host</a></li>
 <li><a class="reference internal" href="#core-diff-apply">Core diff / apply</a><ul>
 <li><a class="reference internal" href="#spaday.diff"><code class="docutils literal notranslate"><span class="pre">diff()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.apply"><code class="docutils literal notranslate"><span class="pre">apply()</span></code></a></li>

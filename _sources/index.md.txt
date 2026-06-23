@@ -6,11 +6,23 @@ hidden: true
 
 
 
+docs/src/tutorial.md
+
 docs/src/components.md
+
+docs/src/behavior.md
+
+docs/src/notebook.md
+
+docs/src/transports.md
 
 docs/src/wrappers.md
 
+docs/src/cem.md
+
 docs/src/api.md
+
+docs/src/concepts.md
 
 
 ```
@@ -22,7 +34,50 @@ docs/src/api.md
 [![License](https://img.shields.io/github/license/1kbgz/spaday)](https://github.com/1kbgz/spaday)
 [![PyPI](https://img.shields.io/pypi/v/spaday.svg)](https://pypi.python.org/pypi/spaday)
 
+Build reactive web-component UIs **configured in Python, executed in the browser**.
+
 ## Overview
 
-> [!NOTE]
-> This library was generated using [copier](https://copier.readthedocs.io/en/stable/) from the [Base Python Project Template repository](https://github.com/python-project-templates/base).
+You author a UI as a tree of typed Python components — [WebAwesome](https://webawesome.com) by default,
+or any library that ships a [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest).
+You attach behavior as **declarative data**: an action DSL (toggle a prop, send a model edit, call an
+endpoint) and reactive **bindings** (a control two-way-bound to a state field, or a prop computed from
+others). spaday's JavaScript runtime renders the tree to real web components and interprets that
+behavior **client-side** — so a toggle or a derived value updates with no round-trip to Python.
+
+That UI state is a [transports](https://github.com/1kbgz/transports) model, so it syncs over any
+connection (WebSocket, SSE, Jupyter comm) and any codec; the same tree drops into a web app or a Jupyter
+notebook unchanged.
+
+Like transports, spaday is a **Rust core with thin bindings**: the component tree, the diff engine, the
+CEM parser, the action interpreter, and the reactive engine live in Rust and compile to **PyO3** (Python
+authors the tree) and **wasm** (the browser runs it). One core, two bindings.
+
+```python
+from spaday import Widget
+from spaday.components.webawesome import WaCard, WaSwitch
+
+# a switch two-way-bound to a state field, rendered in a Jupyter cell
+ui = WaCard().child(WaSwitch().text("Lamp").bind("checked", "on", mode="two-way"))
+w = Widget(ui, state={"on": True})
+w  # flip the switch → w.state["on"] flips in Python; set w.state → the switch follows
+```
+
+## Install
+
+```bash
+pip install spaday            # core: author + serialize component trees
+pip install "spaday[widget]"  # + the Jupyter / anywidget host
+```
+
+## Documentation
+
+- **[Tutorial](docs/src/tutorial.md)** — build your first interactive UI, step by step (in a notebook).
+- **How-to guides** — [author a component tree](docs/src/components.md),
+  [add behavior and reactivity](docs/src/behavior.md),
+  [use it in a notebook](docs/src/notebook.md),
+  [sync to a server over transports](docs/src/transports.md),
+  [wrap an imperative JS library](docs/src/wrappers.md),
+  [generate typed classes from a manifest](docs/src/cem.md).
+- **[API reference](docs/src/api.md)** — the Python surface.
+- **[How spaday works](docs/src/concepts.md)** — the architecture and the reasoning behind it.

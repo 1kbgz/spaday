@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Components" href="docs/src/components.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Tutorial: build your first interactive UI" href="docs/src/tutorial.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
         <title>spaday v0.1.0</title>
@@ -197,9 +197,15 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
-<li class="toctree-l1"><a class="reference internal" href="docs/src/components.html">Components</a></li>
-<li class="toctree-l1"><a class="reference internal" href="docs/src/wrappers.html">Wrapping an imperative library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="docs/src/api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/tutorial.html">Tutorial: build your first interactive UI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/behavior.html">Add behavior and reactivity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/notebook.html">Use spaday in a Jupyter notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/transports.html">Sync a UI to a server over transports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/wrappers.html">Wrap an imperative JS library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/cem.html">Generate typed classes from a manifest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/concepts.html">How spaday works</a></li>
 </ul>
 
 </div>
@@ -246,12 +252,51 @@
 <a class="reference external" href="https://codecov.io/gh/1kbgz/spaday"><img alt="codecov" src="https://codecov.io/gh/1kbgz/spaday/branch/main/graph/badge.svg" /></a>
 <a class="reference external" href="https://github.com/1kbgz/spaday"><img alt="License" src="https://img.shields.io/github/license/1kbgz/spaday" /></a>
 <a class="reference external" href="https://pypi.python.org/pypi/spaday"><img alt="PyPI" src="https://img.shields.io/pypi/v/spaday.svg" /></a></p>
+<p>Build reactive web-component UIs <strong>configured in Python, executed in the browser</strong>.</p>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This library was generated using <a class="reference external" href="https://copier.readthedocs.io/en/stable/">copier</a> from the <a class="reference external" href="https://github.com/python-project-templates/base">Base Python Project Template repository</a>.</p>
+<p>You author a UI as a tree of typed Python components — <a class="reference external" href="https://webawesome.com">WebAwesome</a> by default,
+or any library that ships a <a class="reference external" href="https://github.com/webcomponents/custom-elements-manifest">Custom Elements Manifest</a>.
+You attach behavior as <strong>declarative data</strong>: an action DSL (toggle a prop, send a model edit, call an
+endpoint) and reactive <strong>bindings</strong> (a control two-way-bound to a state field, or a prop computed from
+others). spaday’s JavaScript runtime renders the tree to real web components and interprets that
+behavior <strong>client-side</strong> — so a toggle or a derived value updates with no round-trip to Python.</p>
+<p>That UI state is a <a class="reference external" href="https://github.com/1kbgz/transports">transports</a> model, so it syncs over any
+connection (WebSocket, SSE, Jupyter comm) and any codec; the same tree drops into a web app or a Jupyter
+notebook unchanged.</p>
+<p>Like transports, spaday is a <strong>Rust core with thin bindings</strong>: the component tree, the diff engine, the
+CEM parser, the action interpreter, and the reactive engine live in Rust and compile to <strong>PyO3</strong> (Python
+authors the tree) and <strong>wasm</strong> (the browser runs it). One core, two bindings.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaSwitch</span>
+
+<span class="c1"># a switch two-way-bound to a state field, rendered in a Jupyter cell</span>
+<span class="n">ui</span> <span class="o">=</span> <span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;on&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">))</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">ui</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;on&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">w</span>  <span class="c1"># flip the switch → w.state[&quot;on&quot;] flips in Python; set w.state → the switch follows</span>
+</pre></div>
 </div>
+</section>
+<section id="install">
+<h2>Install<a class="headerlink" href="#install" title="Link to this heading">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>spaday<span class="w">            </span><span class="c1"># core: author + serialize component trees</span>
+pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;spaday[widget]&quot;</span><span class="w">  </span><span class="c1"># + the Jupyter / anywidget host</span>
+</pre></div>
+</div>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong><a class="reference internal" href="docs/src/tutorial.html"><span class="std std-doc">Tutorial</span></a></strong> — build your first interactive UI, step by step (in a notebook).</p></li>
+<li><p><strong>How-to guides</strong> — <a class="reference internal" href="docs/src/components.html"><span class="std std-doc">author a component tree</span></a>,
+<a class="reference internal" href="docs/src/behavior.html"><span class="std std-doc">add behavior and reactivity</span></a>,
+<a class="reference internal" href="docs/src/notebook.html"><span class="std std-doc">use it in a notebook</span></a>,
+<a class="reference internal" href="docs/src/transports.html"><span class="std std-doc">sync to a server over transports</span></a>,
+<a class="reference internal" href="docs/src/wrappers.html"><span class="std std-doc">wrap an imperative JS library</span></a>,
+<a class="reference internal" href="docs/src/cem.html"><span class="std std-doc">generate typed classes from a manifest</span></a>.</p></li>
+<li><p><strong><a class="reference internal" href="docs/src/api.html"><span class="std std-doc">API reference</span></a></strong> — the Python surface.</p></li>
+<li><p><strong><a class="reference internal" href="docs/src/concepts.html"><span class="std std-doc">How spaday works</span></a></strong> — the architecture and the reasoning behind it.</p></li>
+</ul>
 </section>
 </section>
 
@@ -260,12 +305,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="docs/src/components.html">
+          <a class="next-page" href="docs/src/tutorial.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Components</div>
+                <div class="title">Tutorial: build your first interactive UI</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

@@ -195,9 +195,15 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
-<li class="toctree-l1"><a class="reference internal" href="docs/src/components.html">Components</a></li>
-<li class="toctree-l1"><a class="reference internal" href="docs/src/wrappers.html">Wrapping an imperative library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="docs/src/api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/tutorial.html">Tutorial: build your first interactive UI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/behavior.html">Add behavior and reactivity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/notebook.html">Use spaday in a Jupyter notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/transports.html">Sync a UI to a server over transports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/wrappers.html">Wrap an imperative JS library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/cem.html">Generate typed classes from a manifest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/concepts.html">How spaday works</a></li>
 </ul>
 
 </div>
@@ -233,12 +239,18 @@
           
 <section class="genindex-section">
   <h1 id="index">Index</h1>
-  <div class="genindex-jumpbox"><a href="#A"><strong>A</strong></a> | <a href="#B"><strong>B</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#K"><strong>K</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#T"><strong>T</strong></a></div>
+  <div class="genindex-jumpbox"><a href="#A"><strong>A</strong></a> | <a href="#B"><strong>B</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#I"><strong>I</strong></a> | <a href="#K"><strong>K</strong></a> | <a href="#L"><strong>L</strong></a> | <a href="#N"><strong>N</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#T"><strong>T</strong></a> | <a href="#V"><strong>V</strong></a></div>
 </section>
 <section id="A" class="genindex-section">
   <h2>A</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.all_">all_() (in module spaday)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.any_">any_() (in module spaday)</a>
+</li>
         <li><a href="docs/src/api.html#spaday.apply">apply() (in module spaday)</a>
 </li>
     </ul></td>
@@ -249,7 +261,15 @@
   <h2>B</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="docs/src/api.html#spaday.Component.bind">bind() (spaday.Component method)</a>
+        <li><a href="docs/src/api.html#spaday.bind">bind() (in module spaday)</a>
+
+        <ul>
+          <li><a href="docs/src/api.html#spaday.Component.bind">(spaday.Component method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.by_id">by_id() (in module spaday)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -259,13 +279,19 @@
   <h2>C</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.CallEndpoint">CallEndpoint (class in spaday)</a>
+</li>
         <li><a href="docs/src/api.html#spaday.Component.child">child() (spaday.Component method)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.Component.child_in">child_in() (spaday.Component method)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="docs/src/api.html#spaday.Component.child_in">child_in() (spaday.Component method)</a>
+        <li><a href="docs/src/api.html#spaday.classes">classes() (in module spaday)</a>
 </li>
         <li><a href="docs/src/api.html#spaday.Component">Component (class in spaday)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.Component.compute">compute() (spaday.Component method)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -281,6 +307,34 @@
   </tr></table>
 </section>
 
+<section id="E" class="genindex-section">
+  <h2>E</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.element">element() (in module spaday)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.Emit">Emit (class in spaday)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.eq">eq() (in module spaday)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.event_value">event_value() (in module spaday)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="F" class="genindex-section">
+  <h2>F</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.field">field() (in module spaday)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
 <section id="G" class="genindex-section">
   <h2>G</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
@@ -291,11 +345,45 @@
   </tr></table>
 </section>
 
+<section id="I" class="genindex-section">
+  <h2>I</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.If">If (class in spaday)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
 <section id="K" class="genindex-section">
   <h2>K</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.Component.key">key() (spaday.Component method)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="L" class="genindex-section">
+  <h2>L</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.lit">lit() (in module spaday)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="N" class="genindex-section">
+  <h2>N</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.NamedJs">NamedJs (class in spaday)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.not_">not_() (in module spaday)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -319,7 +407,27 @@
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="docs/src/api.html#spaday.Component.prop">prop() (spaday.Component method)</a>
+        <li><a href="docs/src/api.html#spaday.prop">prop() (in module spaday)</a>
+
+        <ul>
+          <li><a href="docs/src/api.html#spaday.Component.prop">(spaday.Component method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="S" class="genindex-section">
+  <h2>S</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.SendPatch">SendPatch (class in spaday)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.Sequence">Sequence (class in spaday)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.SetProp">SetProp (class in spaday)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -331,11 +439,29 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.Component.text">text() (spaday.Component method)</a>
 </li>
+        <li><a href="docs/src/api.html#spaday.this">this() (in module spaday)</a>
+</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.Component.to_json">to_json() (spaday.Component method)</a>
 </li>
         <li><a href="docs/src/api.html#spaday.Component.to_node">to_node() (spaday.Component method)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.Toggle">Toggle (class in spaday)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="V" class="genindex-section">
+  <h2>V</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.validate">validate() (in module spaday)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.ValidationError">ValidationError</a>
 </li>
     </ul></td>
   </tr></table>

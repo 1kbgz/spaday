@@ -196,9 +196,15 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../docs/src/components.html">Components</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../docs/src/wrappers.html">Wrapping an imperative library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../docs/src/api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/tutorial.html">Tutorial: build your first interactive UI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/behavior.html">Add behavior and reactivity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/notebook.html">Use spaday in a Jupyter notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/transports.html">Sync a UI to a server over transports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/wrappers.html">Wrap an imperative JS library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/cem.html">Generate typed classes from a manifest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/concepts.html">How spaday works</a></li>
 </ul>
 
 </div>
@@ -266,6 +272,8 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">classes</span><span class="p">(</span><span class="n">manifest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Type</span><span class="p">[</span><span class="n">Component</span><span class="p">]]:</span> <span class="o">...</span>
 <span class="nd">@overload</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">classes</span><span class="p">(</span><span class="n">manifest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">Component</span><span class="p">]:</span> <span class="o">...</span>
+<div class="viewcode-block" id="classes">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.classes">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">classes</span><span class="p">(</span><span class="n">manifest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Type</span><span class="p">[</span><span class="n">Component</span><span class="p">]],</span> <span class="n">Type</span><span class="p">[</span><span class="n">Component</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build :class:`~spaday.component.Component` subclasses from a manifest *at runtime*.</span>
 
@@ -282,7 +290,8 @@
         <span class="k">return</span> <span class="n">built</span>
     <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">built</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;no component named </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> in </span><span class="si">{</span><span class="n">manifest_path</span><span class="si">}</span><span class="s2"> (have: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">built</span><span class="p">))</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">built</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">built</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_make_class</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">Component</span><span class="p">]:</span>

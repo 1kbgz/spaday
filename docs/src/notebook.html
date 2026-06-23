@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Add behavior and reactivity" href="behavior.html"><link rel="prev" title="Tutorial: build your first interactive UI" href="tutorial.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Add behavior and reactivity" href="behavior.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Author a component tree - spaday v0.1.0</title>
+        <title>Use spaday in a Jupyter notebook - spaday v0.1.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -198,9 +198,9 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial: build your first interactive UI</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cem.html">Generate typed classes from a manifest</a></li>
@@ -226,7 +226,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../../_sources/docs/src/components.md.txt" title="View this page">
+  <a class="muted-link" href="../../_sources/docs/src/notebook.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -244,90 +244,76 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="author-a-component-tree">
-<h1>Author a component tree<a class="headerlink" href="#author-a-component-tree" title="Link to this heading">¶</a></h1>
-<p>This guide shows you how to build a spaday UI from typed components: setting props, nesting children,
-laying out with shell components, and serializing the result. To attach behavior, see
-<a class="reference internal" href="behavior.html"><span class="std std-doc">Add behavior and reactivity</span></a>.</p>
-<section id="use-a-built-in-component">
-<h2>Use a built-in component<a class="headerlink" href="#use-a-built-in-component" title="Link to this heading">¶</a></h2>
-<p>WebAwesome components are generated as typed classes. Import one and set its attributes as keyword
-arguments:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
+          <section class="tex2jax_ignore mathjax_ignore" id="use-spaday-in-a-jupyter-notebook">
+<h1>Use spaday in a Jupyter notebook<a class="headerlink" href="#use-spaday-in-a-jupyter-notebook" title="Link to this heading">¶</a></h1>
+<p>This guide shows you how to render a spaday UI in a notebook and round-trip its state with Python — no
+server. It works in Jupyter (Lab / Notebook / Colab / VS Code) and the wider
+<a class="reference external" href="https://anywidget.dev">anywidget</a> ecosystem (Marimo, Shiny-for-Python, Solara, Panel).</p>
+<p>Install the host:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;spaday[widget]&quot;</span>
+</pre></div>
+</div>
+<section id="render-a-tree">
+<h2>Render a tree<a class="headerlink" href="#render-a-tree" title="Link to this heading">¶</a></h2>
+<p>Wrap any component tree in <code class="docutils literal notranslate"><span class="pre">Widget</span></code> and return it from a cell:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaSwitch</span>
 
-<span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;large&quot;</span><span class="p">)</span>
+<span class="n">Widget</span><span class="p">(</span><span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)))</span>
 </pre></div>
 </div>
-<p>Every attribute is a typed keyword (<code class="docutils literal notranslate"><span class="pre">variant:</span> <span class="pre">Optional[Literal[&quot;brand&quot;,</span> <span class="pre">&quot;neutral&quot;,</span> <span class="pre">...]]</span></code>,
-<code class="docutils literal notranslate"><span class="pre">disabled:</span> <span class="pre">Optional[bool]</span></code>, …), so a typo or a wrong type is an error at authoring time. A prop you
-<strong>don’t</strong> pass is omitted, so the element keeps its own default and update patches stay minimal.</p>
-<p>To use a component library other than WebAwesome, <a class="reference internal" href="cem.html"><span class="std std-doc">generate its classes from a manifest</span></a>.</p>
+<p>The full WebAwesome catalog and the spaday runtime are bundled into the widget, so <code class="docutils literal notranslate"><span class="pre">wa-*</span></code> components
+render with nothing else to load.</p>
 </section>
-<section id="nest-children-into-slots">
-<h2>Nest children into slots<a class="headerlink" href="#nest-children-into-slots" title="Link to this heading">¶</a></h2>
-<p>Compose a tree with <code class="docutils literal notranslate"><span class="pre">.child(...)</span></code> for the default slot and <code class="docutils literal notranslate"><span class="pre">.child_in(&quot;slot&quot;,</span> <span class="pre">...)</span></code> for a named one:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaSwitch</span>
+<section id="update-the-rendered-tree">
+<h2>Update the rendered tree<a class="headerlink" href="#update-the-rendered-tree" title="Link to this heading">¶</a></h2>
+<p>Keep a reference and call <code class="docutils literal notranslate"><span class="pre">update</span></code> to replace the tree; the browser applies a minimal diff (live
+elements are preserved, not rebuilt):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)))</span>
+<span class="n">w</span>  <span class="c1"># display it</span>
 
-<span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="s2">&quot;header&quot;</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">())</span>
-</pre></div>
-</div>
-<p><code class="docutils literal notranslate"><span class="pre">.child</span></code> returns the parent, so calls chain. Children are other components (or a raw element — below).</p>
-</section>
-<section id="set-text">
-<h2>Set text<a class="headerlink" href="#set-text" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">.text(...)</span></code> sets a leaf’s text content — use it for labels, not alongside child nodes:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Save&quot;</span><span class="p">)</span>
+<span class="n">w</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Fan&quot;</span><span class="p">)))</span>
 </pre></div>
 </div>
 </section>
-<section id="lay-out-with-shell-components">
-<h2>Lay out with shell components<a class="headerlink" href="#lay-out-with-shell-components" title="Link to this heading">¶</a></h2>
-<p>spaday does not expose <code class="docutils literal notranslate"><span class="pre">div</span></code>. Compose layout from the <code class="docutils literal notranslate"><span class="pre">spa-*</span></code> shell components, which carry their own
-encapsulated layout:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">App</span><span class="p">,</span> <span class="n">Nav</span><span class="p">,</span> <span class="n">Body</span><span class="p">,</span> <span class="n">Gutter</span><span class="p">,</span> <span class="n">Main</span><span class="p">,</span> <span class="n">Footer</span><span class="p">,</span> <span class="n">Stack</span><span class="p">,</span> <span class="n">Row</span><span class="p">,</span> <span class="n">Toolbar</span>
+<section id="back-reactive-bindings-with-state">
+<h2>Back reactive bindings with state<a class="headerlink" href="#back-reactive-bindings-with-state" title="Link to this heading">¶</a></h2>
+<p>Pass a <code class="docutils literal notranslate"><span class="pre">state</span></code> dict to drive the tree’s <a class="reference internal" href="behavior.html"><span class="std std-doc">reactive bindings</span></a>. A two-way-bound control
+updates the state from the browser, and assigning <code class="docutils literal notranslate"><span class="pre">w.state</span></code> updates the control:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSwitch</span>
 
-<span class="n">App</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">Nav</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">...</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">Body</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">Gutter</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">...</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">Main</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">...</span><span class="p">)))</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">w</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">Stack</span></code> stacks children vertically, <code class="docutils literal notranslate"><span class="pre">Row</span></code> lays them horizontally, <code class="docutils literal notranslate"><span class="pre">Toolbar</span></code> is a control strip; <code class="docutils literal notranslate"><span class="pre">App</span></code> /
-<code class="docutils literal notranslate"><span class="pre">Nav</span></code> / <code class="docutils literal notranslate"><span class="pre">Body</span></code> / <code class="docutils literal notranslate"><span class="pre">Gutter</span></code> / <code class="docutils literal notranslate"><span class="pre">Main</span></code> / <code class="docutils literal notranslate"><span class="pre">Footer</span></code> are the page shell.</p>
-</section>
-<section id="reach-for-a-raw-element">
-<h2>Reach for a raw element<a class="headerlink" href="#reach-for-a-raw-element" title="Link to this heading">¶</a></h2>
-<p>For text or a structural tag a typed class doesn’t cover, use <code class="docutils literal notranslate"><span class="pre">element</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span>
-
-<span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">)</span>
-<span class="n">element</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;docs&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">state</span>                 <span class="c1"># -&gt; {&#39;lamp&#39;: True}; flip the switch, then re-read -&gt; {&#39;lamp&#39;: False}</span>
+<span class="n">w</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>  <span class="c1"># turns the switch back on</span>
 </pre></div>
 </div>
-<p>A trailing underscore on a prop name is stripped, so reserved words work: <code class="docutils literal notranslate"><span class="pre">element(&quot;label&quot;,</span> <span class="pre">for_=&quot;x&quot;)</span></code>.</p>
-</section>
-<section id="set-a-prop-a-typed-class-doesn-t-expose">
-<h2>Set a prop a typed class doesn’t expose<a class="headerlink" href="#set-a-prop-a-typed-class-doesn-t-expose" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">.prop(name,</span> <span class="pre">value)</span></code> is the escape hatch for an attribute the generated class doesn’t have (a custom
-attribute, <code class="docutils literal notranslate"><span class="pre">style</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, …):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;save&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;style&quot;</span><span class="p">,</span> <span class="s2">&quot;margin-left:auto&quot;</span><span class="p">)</span>
+<p>React to changes (including browser-driven ones) with <code class="docutils literal notranslate"><span class="pre">on_state</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_state</span><span class="p">(</span><span class="k">lambda</span> <span class="n">state</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;state:&quot;</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
 </pre></div>
 </div>
 </section>
-<section id="key-for-stable-updates">
-<h2>Key for stable updates<a class="headerlink" href="#key-for-stable-updates" title="Link to this heading">¶</a></h2>
-<p>Give a node a stable <code class="docutils literal notranslate"><span class="pre">key</span></code> so the diff engine reconciles it by identity across updates (so a reordered
-list moves live elements instead of rebuilding them):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">key</span><span class="p">(</span><span class="s2">&quot;lamp&quot;</span><span class="p">)</span>
+<section id="handle-a-sendpatch-intent">
+<h2>Handle a SendPatch intent<a class="headerlink" href="#handle-a-sendpatch-intent" title="Link to this heading">¶</a></h2>
+<p>A <a class="reference internal" href="behavior.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code></span></a> action surfaces an <em>intent</em> the host forwards to Python. Register a handler
+with <code class="docutils literal notranslate"><span class="pre">on_intent</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_intent</span><span class="p">(</span><span class="k">lambda</span> <span class="n">content</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;intent:&quot;</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>   <span class="c1"># content is {&quot;type&quot;: &quot;spaday:patch&quot;, &quot;detail&quot;: {...}}</span>
 </pre></div>
 </div>
+<p>For most cases prefer a two-way binding over <code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> + <code class="docutils literal notranslate"><span class="pre">on_intent</span></code> — the binding already carries the
+control→state edit.</p>
 </section>
-<section id="serialize">
-<h2>Serialize<a class="headerlink" href="#serialize" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">.to_node()</span></code> returns the JSON-ready node dict; <code class="docutils literal notranslate"><span class="pre">.to_json()</span></code> returns its string form. This is the wire
-form the core’s <code class="docutils literal notranslate"><span class="pre">diff</span></code> / <code class="docutils literal notranslate"><span class="pre">apply</span></code> understand and the runtime mounts:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">())</span><span class="o">.</span><span class="n">to_node</span><span class="p">()</span>
+<section id="embed-in-panel">
+<h2>Embed in Panel<a class="headerlink" href="#embed-in-panel" title="Link to this heading">¶</a></h2>
+<p>Because the widget is an anywidget, Panel renders it directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">panel</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pn</span>
+<span class="n">pn</span><span class="o">.</span><span class="n">extension</span><span class="p">()</span>
+<span class="n">pn</span><span class="o">.</span><span class="n">panel</span><span class="p">(</span><span class="n">Widget</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)))</span>
 </pre></div>
 </div>
-<p>In a notebook you rarely call these directly — <a class="reference internal" href="notebook.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">Widget</span></code></span></a> does it for you; over a server
-they are served as the tree the browser mounts.</p>
 </section>
 </section>
 
@@ -336,23 +322,23 @@ they are served as the tree the browser mounts.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="behavior.html">
+          <a class="next-page" href="transports.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Add behavior and reactivity</div>
+                <div class="title">Sync a UI to a server over transports</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="tutorial.html">
+          <a class="prev-page" href="behavior.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Tutorial: build your first interactive UI</div>
+                <div class="title">Add behavior and reactivity</div>
                 
               </div>
             </a>
@@ -386,15 +372,12 @@ they are served as the tree the browser mounts.</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Author a component tree</a><ul>
-<li><a class="reference internal" href="#use-a-built-in-component">Use a built-in component</a></li>
-<li><a class="reference internal" href="#nest-children-into-slots">Nest children into slots</a></li>
-<li><a class="reference internal" href="#set-text">Set text</a></li>
-<li><a class="reference internal" href="#lay-out-with-shell-components">Lay out with shell components</a></li>
-<li><a class="reference internal" href="#reach-for-a-raw-element">Reach for a raw element</a></li>
-<li><a class="reference internal" href="#set-a-prop-a-typed-class-doesn-t-expose">Set a prop a typed class doesn’t expose</a></li>
-<li><a class="reference internal" href="#key-for-stable-updates">Key for stable updates</a></li>
-<li><a class="reference internal" href="#serialize">Serialize</a></li>
+<li><a class="reference internal" href="#">Use spaday in a Jupyter notebook</a><ul>
+<li><a class="reference internal" href="#render-a-tree">Render a tree</a></li>
+<li><a class="reference internal" href="#update-the-rendered-tree">Update the rendered tree</a></li>
+<li><a class="reference internal" href="#back-reactive-bindings-with-state">Back reactive bindings with state</a></li>
+<li><a class="reference internal" href="#handle-a-sendpatch-intent">Handle a SendPatch intent</a></li>
+<li><a class="reference internal" href="#embed-in-panel">Embed in Panel</a></li>
 </ul>
 </li>
 </ul>

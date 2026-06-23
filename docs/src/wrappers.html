@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="API Reference" href="api.html"><link rel="prev" title="Components" href="components.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Generate typed classes from a manifest" href="cem.html"><link rel="prev" title="Sync a UI to a server over transports" href="transports.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Wrapping an imperative library - spaday v0.1.0</title>
+        <title>Wrap an imperative JS library - spaday v0.1.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -197,9 +197,15 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="components.html">Components</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Wrapping an imperative library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial: build your first interactive UI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Wrap an imperative JS library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cem.html">Generate typed classes from a manifest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">How spaday works</a></li>
 </ul>
 
 </div>
@@ -238,17 +244,17 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="wrapping-an-imperative-library">
-<h1>Wrapping an imperative library<a class="headerlink" href="#wrapping-an-imperative-library" title="Link to this heading">¶</a></h1>
-<p>Some libraries aren’t web components and aren’t configured by attributes — they expose a JavaScript
-API you <em>call</em> (charts, data grids, editors). spaday binds these the same way it binds WebAwesome,
-with one extra step: you write a thin <strong>custom element</strong> that drives the library’s API internally, so
-from Python it looks like any other component.</p>
-<p>The recipe, with <code class="docutils literal notranslate"><span class="pre">LightweightChart</span></code> (TradingView lightweight-charts) as the worked example:</p>
+          <section class="tex2jax_ignore mathjax_ignore" id="wrap-an-imperative-js-library">
+<h1>Wrap an imperative JS library<a class="headerlink" href="#wrap-an-imperative-js-library" title="Link to this heading">¶</a></h1>
+<p>Some libraries aren’t web components and aren’t configured by attributes — they expose a JavaScript API
+you <em>call</em> (charts, data grids, editors). This guide shows you how to bind one so that, from Python, it
+looks like any other component. You write a thin <strong>custom element</strong> that drives the library’s API
+internally, then <a class="reference internal" href="cem.html"><span class="std std-doc">generate a typed class</span></a> for it.</p>
+<p>The worked example is <code class="docutils literal notranslate"><span class="pre">LightweightChart</span></code> (TradingView lightweight-charts).</p>
 <section id="a-custom-element-that-drives-the-library">
 <h2>1. A custom element that drives the library<a class="headerlink" href="#a-custom-element-that-drives-the-library" title="Link to this heading">¶</a></h2>
-<p>The element creates the chart on connect and exposes the config you want from Python as <strong>properties</strong>
-whose setters call the library:</p>
+<p>Write an element that creates the library object on connect and exposes the config you want from Python
+as <strong>properties</strong> whose setters call the library:</p>
 <div class="highlight-ts notranslate"><div class="highlight"><pre><span></span><span class="c1">// js/src/ts/wrappers/lightweight-chart.ts (abridged)</span>
 <span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">createChart</span><span class="p">,</span><span class="w"> </span><span class="nx">LineSeries</span><span class="w"> </span><span class="cm">/* … */</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;lightweight-charts&quot;</span><span class="p">;</span>
 
@@ -266,25 +272,22 @@ whose setters call the library:</p>
 <span class="nx">customElements</span><span class="p">.</span><span class="nx">define</span><span class="p">(</span><span class="s2">&quot;lightweight-chart&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">LightweightChart</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>It is bundled self-contained (the library included) so consumers just load it; nothing else to
-install.</p>
+<p>Bundle it self-contained (the library included) so consumers just load it; nothing else to install.</p>
 </section>
 <section id="a-hand-authored-cem-a-typed-python-class">
 <h2>2. A hand-authored CEM → a typed Python class<a class="headerlink" href="#a-hand-authored-cem-a-typed-python-class" title="Link to this heading">¶</a></h2>
-<p>The library ships no <code class="docutils literal notranslate"><span class="pre">custom-elements.json</span></code>, so you write a small one describing the element’s
-props, and run the generator (see <a class="reference internal" href="components.html"><span class="std std-doc">Components</span></a>):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>spaday.cem<span class="w"> </span>spaday/components/lightweight_charts.cem.json<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-o<span class="w"> </span>spaday/components/lightweight_charts.py
+<p>The library ships no <code class="docutils literal notranslate"><span class="pre">custom-elements.json</span></code>, so write a small one describing the element’s props and
+<a class="reference internal" href="cem.html"><span class="std std-doc">generate a class from it</span></a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>spaday-cem<span class="w"> </span>spaday/components/lightweight_charts.cem.json<span class="w"> </span>-o<span class="w"> </span>spaday/components/lightweight_charts.py
 </pre></div>
 </div>
-<p>That yields a typed class — same authoring experience as WebAwesome:</p>
+<p>You now author it like any other component:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components</span><span class="w"> </span><span class="kn">import</span> <span class="n">LightweightChart</span>
 
-<span class="n">chart</span> <span class="o">=</span> <span class="n">LightweightChart</span><span class="p">(</span>
+<span class="n">LightweightChart</span><span class="p">(</span>
     <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
     <span class="n">data</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="s2">&quot;2019-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="s2">&quot;2019-01-02&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">}],</span>
 <span class="p">)</span>
-<span class="n">chart</span><span class="o">.</span><span class="n">to_json</span><span class="p">()</span>   <span class="c1"># the wire form</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">type</span></code> is a typed <code class="docutils literal notranslate"><span class="pre">Literal</span></code>; <code class="docutils literal notranslate"><span class="pre">data</span></code> is free-form (<code class="docutils literal notranslate"><span class="pre">Any</span></code>) — its shape is the library’s, carried through
@@ -292,15 +295,14 @@ untouched.</p>
 </section>
 <section id="the-runtime-mounts-it">
 <h2>3. The runtime mounts it<a class="headerlink" href="#the-runtime-mounts-it" title="Link to this heading">¶</a></h2>
-<p>The browser runtime (see <a class="reference internal" href="components.html"><span class="std std-doc">Components</span></a>) instantiates
-<code class="docutils literal notranslate"><span class="pre">&lt;lightweight-chart&gt;</span></code> and sets its <code class="docutils literal notranslate"><span class="pre">type</span></code>/<code class="docutils literal notranslate"><span class="pre">data</span></code> properties, so the element renders the real chart —
-and a patch that changes <code class="docutils literal notranslate"><span class="pre">data</span></code> updates the live chart in place. From Python you authored typed
-components; in the browser an imperative library draws.</p>
+<p>The browser runtime instantiates <code class="docutils literal notranslate"><span class="pre">&lt;lightweight-chart&gt;</span></code> and sets its <code class="docutils literal notranslate"><span class="pre">type</span></code> / <code class="docutils literal notranslate"><span class="pre">data</span></code> properties, so the
+element renders the real chart — and a patch that changes <code class="docutils literal notranslate"><span class="pre">data</span></code> updates the live chart in place. The
+element is an ordinary custom element, so it also takes <a class="reference internal" href="behavior.html"><span class="std std-doc">actions and bindings</span></a>: bind <code class="docutils literal notranslate"><span class="pre">data</span></code>
+to a state field and the chart redraws reactively as the field changes.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This is the seam for libraries like Perspective and regular-table too: a wrapper element exposing a
-config property whose setter calls the library (e.g. <code class="docutils literal notranslate"><span class="pre">viewer.restore(config)</span></code>). Wiring component
-<em>events</em> back to Python behavior is a separate, later capability (the action DSL).</p>
+config property whose setter calls the library (e.g. <code class="docutils literal notranslate"><span class="pre">viewer.restore(config)</span></code>).</p>
 </div>
 </section>
 </section>
@@ -310,23 +312,23 @@ config property whose setter calls the library (e.g. <code class="docutils liter
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="api.html">
+          <a class="next-page" href="cem.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">API Reference</div>
+                <div class="title">Generate typed classes from a manifest</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="components.html">
+          <a class="prev-page" href="transports.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Components</div>
+                <div class="title">Sync a UI to a server over transports</div>
                 
               </div>
             </a>
@@ -360,7 +362,7 @@ config property whose setter calls the library (e.g. <code class="docutils liter
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Wrapping an imperative library</a><ul>
+<li><a class="reference internal" href="#">Wrap an imperative JS library</a><ul>
 <li><a class="reference internal" href="#a-custom-element-that-drives-the-library">1. A custom element that drives the library</a></li>
 <li><a class="reference internal" href="#a-hand-authored-cem-a-typed-python-class">2. A hand-authored CEM → a typed Python class</a></li>
 <li><a class="reference internal" href="#the-runtime-mounts-it">3. The runtime mounts it</a></li>

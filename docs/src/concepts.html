@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Add behavior and reactivity" href="behavior.html"><link rel="prev" title="Tutorial: build your first interactive UI" href="tutorial.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="API reference" href="api.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Author a component tree - spaday v0.1.0</title>
+        <title>How spaday works - spaday v0.1.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -198,14 +198,14 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial: build your first interactive UI</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cem.html">Generate typed classes from a manifest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="concepts.html">How spaday works</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">How spaday works</a></li>
 </ul>
 
 </div>
@@ -226,7 +226,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../../_sources/docs/src/components.md.txt" title="View this page">
+  <a class="muted-link" href="../../_sources/docs/src/concepts.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -244,90 +244,98 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="author-a-component-tree">
-<h1>Author a component tree<a class="headerlink" href="#author-a-component-tree" title="Link to this heading">¶</a></h1>
-<p>This guide shows you how to build a spaday UI from typed components: setting props, nesting children,
-laying out with shell components, and serializing the result. To attach behavior, see
-<a class="reference internal" href="behavior.html"><span class="std std-doc">Add behavior and reactivity</span></a>.</p>
-<section id="use-a-built-in-component">
-<h2>Use a built-in component<a class="headerlink" href="#use-a-built-in-component" title="Link to this heading">¶</a></h2>
-<p>WebAwesome components are generated as typed classes. Import one and set its attributes as keyword
-arguments:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
-
-<span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;large&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Every attribute is a typed keyword (<code class="docutils literal notranslate"><span class="pre">variant:</span> <span class="pre">Optional[Literal[&quot;brand&quot;,</span> <span class="pre">&quot;neutral&quot;,</span> <span class="pre">...]]</span></code>,
-<code class="docutils literal notranslate"><span class="pre">disabled:</span> <span class="pre">Optional[bool]</span></code>, …), so a typo or a wrong type is an error at authoring time. A prop you
-<strong>don’t</strong> pass is omitted, so the element keeps its own default and update patches stay minimal.</p>
-<p>To use a component library other than WebAwesome, <a class="reference internal" href="cem.html"><span class="std std-doc">generate its classes from a manifest</span></a>.</p>
+          <section class="tex2jax_ignore mathjax_ignore" id="how-spaday-works">
+<h1>How spaday works<a class="headerlink" href="#how-spaday-works" title="Link to this heading">¶</a></h1>
+<p>This page explains the ideas behind spaday and why it is built the way it is. It is background reading,
+not a set of instructions — for those, see the <a class="reference internal" href="components.html"><span class="std std-doc">how-to guides</span></a>.</p>
+<section id="the-core-idea-configure-in-python-execute-in-javascript">
+<h2>The core idea: configure in Python, execute in JavaScript<a class="headerlink" href="#the-core-idea-configure-in-python-execute-in-javascript" title="Link to this heading">¶</a></h2>
+<p>A spaday UI is a <strong>tree of components</strong> you build in Python, plus <strong>behavior expressed as data</strong>. Python
+never renders anything and is never in the loop for an interaction. Instead, the tree and its behavior
+are serialized and handed to spaday’s JavaScript runtime, which instantiates real web components and
+interprets the behavior <strong>in the browser</strong>.</p>
+<p>This split is the whole point. The server holds lightweight per-session state; the UI and its logic are
+client-resident; Python is touched only when an interaction genuinely needs it (saving to a database,
+calling a REST API). That is what makes spaday suitable for <strong>massively multi-tenant</strong> apps — social
+feeds, dashboards, device walls — where a per-interaction round-trip to the server would never scale.</p>
 </section>
-<section id="nest-children-into-slots">
-<h2>Nest children into slots<a class="headerlink" href="#nest-children-into-slots" title="Link to this heading">¶</a></h2>
-<p>Compose a tree with <code class="docutils literal notranslate"><span class="pre">.child(...)</span></code> for the default slot and <code class="docutils literal notranslate"><span class="pre">.child_in(&quot;slot&quot;,</span> <span class="pre">...)</span></code> for a named one:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaSwitch</span>
-
-<span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="s2">&quot;header&quot;</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">())</span>
-</pre></div>
-</div>
-<p><code class="docutils literal notranslate"><span class="pre">.child</span></code> returns the parent, so calls chain. Children are other components (or a raw element — below).</p>
+<section id="the-component-tree-is-a-serializable-model">
+<h2>The component tree is a serializable model<a class="headerlink" href="#the-component-tree-is-a-serializable-model" title="Link to this heading">¶</a></h2>
+<p>Each node is a tag (<code class="docutils literal notranslate"><span class="pre">wa-switch</span></code>, or a shell tag like <code class="docutils literal notranslate"><span class="pre">spa-stack</span></code>), some props, named child slots, event
+handlers, and reactive bindings. The tree is plain data, so two trees can be <strong>diffed</strong> into a minimal
+patch, and a patch can be <strong>applied</strong> to a live DOM incrementally — a keyed reorder moves the same
+elements rather than rebuilding them, so a <code class="docutils literal notranslate"><span class="pre">wa-switch</span></code>’s internal state survives an update. Authoring in
+Python and mutating over time both reduce to producing patches the runtime applies.</p>
+<p>The typed Python classes are <strong>generated</strong> from a <a class="reference external" href="https://github.com/webcomponents/custom-elements-manifest">Custom Elements Manifest</a>
+— the standard description web-component libraries publish. WebAwesome is the default catalog, but the
+same generator turns <em>any</em> manifest into typed classes, and the same parse drives the browser runtime’s
+registry. spaday is not tied to WebAwesome; it is a binding layer for CEM-described components.</p>
+<p>spaday deliberately operates at a <strong>higher altitude</strong> than an HTML builder: it does not expose <code class="docutils literal notranslate"><span class="pre">div</span></code>/<code class="docutils literal notranslate"><span class="pre">p</span></code>.
+You compose from curated shell pieces (App, Nav, gutters, Main, Stack, Row) and high-level components,
+with raw HTML elements available only as an escape hatch for text. This is what separates “a Python
+wrapper over WebAwesome” from a UI framework.</p>
 </section>
-<section id="set-text">
-<h2>Set text<a class="headerlink" href="#set-text" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">.text(...)</span></code> sets a leaf’s text content — use it for labels, not alongside child nodes:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Save&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
+<section id="behavior-is-data-not-code">
+<h2>Behavior is data, not code<a class="headerlink" href="#behavior-is-data-not-code" title="Link to this heading">¶</a></h2>
+<p>An <code class="docutils literal notranslate"><span class="pre">onClick</span></code> in spaday is not a transpiled Python function and not arbitrary JavaScript — it is a
+<strong>declarative action</strong>: <code class="docutils literal notranslate"><span class="pre">Toggle(this,</span> <span class="pre">&quot;open&quot;)</span></code>, <code class="docutils literal notranslate"><span class="pre">SetProp(by_id(&quot;panel&quot;),</span> <span class="pre">&quot;hidden&quot;,</span> <span class="pre">true)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">SendPatch(model,</span> <span class="pre">field,</span> <span class="pre">value)</span></code>, <code class="docutils literal notranslate"><span class="pre">CallEndpoint(&quot;POST&quot;,</span> <span class="pre">url,</span> <span class="pre">body)</span></code>. Actions compose (<code class="docutils literal notranslate"><span class="pre">Sequence</span></code>, <code class="docutils literal notranslate"><span class="pre">If</span></code>)
+and reference values through small <strong>expressions</strong> (<code class="docutils literal notranslate"><span class="pre">event_value</span></code>, <code class="docutils literal notranslate"><span class="pre">prop</span></code>, <code class="docutils literal notranslate"><span class="pre">lit</span></code>, <code class="docutils literal notranslate"><span class="pre">field</span></code>, …).</p>
+<p>Because behavior is serializable data interpreted by a fixed dispatcher — never <code class="docutils literal notranslate"><span class="pre">eval</span></code>, never codegen —
+it is <strong>safe to ship to untrusted, multi-tenant clients</strong>, fully diffable, and identical whether it
+originated in Python or rode over the wire. The one escape hatch, <code class="docutils literal notranslate"><span class="pre">NamedJs</span></code>, invokes a <em>pre-registered</em>
+handler by name; it still never evaluates arbitrary strings.</p>
 </section>
-<section id="lay-out-with-shell-components">
-<h2>Lay out with shell components<a class="headerlink" href="#lay-out-with-shell-components" title="Link to this heading">¶</a></h2>
-<p>spaday does not expose <code class="docutils literal notranslate"><span class="pre">div</span></code>. Compose layout from the <code class="docutils literal notranslate"><span class="pre">spa-*</span></code> shell components, which carry their own
-encapsulated layout:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">App</span><span class="p">,</span> <span class="n">Nav</span><span class="p">,</span> <span class="n">Body</span><span class="p">,</span> <span class="n">Gutter</span><span class="p">,</span> <span class="n">Main</span><span class="p">,</span> <span class="n">Footer</span><span class="p">,</span> <span class="n">Stack</span><span class="p">,</span> <span class="n">Row</span><span class="p">,</span> <span class="n">Toolbar</span>
-
-<span class="n">App</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">Nav</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">...</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">Body</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">Gutter</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">...</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">Main</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">...</span><span class="p">)))</span>
-</pre></div>
-</div>
-<p><code class="docutils literal notranslate"><span class="pre">Stack</span></code> stacks children vertically, <code class="docutils literal notranslate"><span class="pre">Row</span></code> lays them horizontally, <code class="docutils literal notranslate"><span class="pre">Toolbar</span></code> is a control strip; <code class="docutils literal notranslate"><span class="pre">App</span></code> /
-<code class="docutils literal notranslate"><span class="pre">Nav</span></code> / <code class="docutils literal notranslate"><span class="pre">Body</span></code> / <code class="docutils literal notranslate"><span class="pre">Gutter</span></code> / <code class="docutils literal notranslate"><span class="pre">Main</span></code> / <code class="docutils literal notranslate"><span class="pre">Footer</span></code> are the page shell.</p>
+<section id="the-reactive-engine">
+<h2>The reactive engine<a class="headerlink" href="#the-reactive-engine" title="Link to this heading">¶</a></h2>
+<p>Beyond one-shot actions, spaday has a small <strong>signal store</strong>: named state fields with subscribers.
+Component props <em>bind</em> to it:</p>
+<ul class="simple">
+<li><p>a <strong>field binding</strong> keeps a prop in sync with a state field; two-way, it also writes the field back
+when the control changes (a switch ↔ <code class="docutils literal notranslate"><span class="pre">lamp</span></code>);</p></li>
+<li><p>a <strong>computed binding</strong> derives a prop from a <em>field-expression</em> (<code class="docutils literal notranslate"><span class="pre">not_(field(&quot;enabled&quot;))</span></code>,
+<code class="docutils literal notranslate"><span class="pre">eq(field(&quot;mode&quot;),</span> <span class="pre">&quot;advanced&quot;)</span></code>) and recomputes it whenever any field it reads changes.</p></li>
+</ul>
+<p>The engine runs in the browser, so a derived value or a two-way control updates immediately, with no
+round-trip. The store is the seam where UI state meets app state — see below.</p>
 </section>
-<section id="reach-for-a-raw-element">
-<h2>Reach for a raw element<a class="headerlink" href="#reach-for-a-raw-element" title="Link to this heading">¶</a></h2>
-<p>For text or a structural tag a typed class doesn’t cover, use <code class="docutils literal notranslate"><span class="pre">element</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span>
-
-<span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">)</span>
-<span class="n">element</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;docs&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>A trailing underscore on a prop name is stripped, so reserved words work: <code class="docutils literal notranslate"><span class="pre">element(&quot;label&quot;,</span> <span class="pre">for_=&quot;x&quot;)</span></code>.</p>
+<section id="one-core-two-bindings">
+<h2>One core, two bindings<a class="headerlink" href="#one-core-two-bindings" title="Link to this heading">¶</a></h2>
+<p>The component-tree model, the diff engine, the CEM parser, the action interpreter, and the reactive
+engine all live in a single <strong>Rust core</strong>. It compiles to two thin bindings:</p>
+<ul class="simple">
+<li><p><strong>PyO3</strong> — Python builds and validates the tree, and serializes it;</p></li>
+<li><p><strong>wasm</strong> — the browser reconstructs the tree, renders it, and interprets actions.</p></li>
+</ul>
+<p>Python and JavaScript therefore share <em>one</em> implementation of the diff, the wire format, and the action
+semantics — they can’t drift. The Python side adds only ergonomic typed component classes; the JavaScript
+side adds only thin DOM glue. This mirrors the decision in <a class="reference external" href="https://github.com/1kbgz/transports">transports</a>,
+which spaday is built on.</p>
 </section>
-<section id="set-a-prop-a-typed-class-doesn-t-expose">
-<h2>Set a prop a typed class doesn’t expose<a class="headerlink" href="#set-a-prop-a-typed-class-doesn-t-expose" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">.prop(name,</span> <span class="pre">value)</span></code> is the escape hatch for an attribute the generated class doesn’t have (a custom
-attribute, <code class="docutils literal notranslate"><span class="pre">style</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, …):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;save&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;style&quot;</span><span class="p">,</span> <span class="s2">&quot;margin-left:auto&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
+<section id="the-wire-transports">
+<h2>The wire: transports<a class="headerlink" href="#the-wire-transports" title="Link to this heading">¶</a></h2>
+<p>spaday does not invent its own networking. UI state is a <strong>transports model</strong>, so it inherits
+transports’ connection- and codec-agnostic sync: the same state moves over a WebSocket, SSE, or a Jupyter
+comm, in JSON or MessagePack, with multi-tenant sessions, without spaday reimplementing any of it.</p>
+<p>The boundary is strict and enforced in the types: spaday owns the UI (the tree, bindings, the signal
+store) and knows nothing about the wire; transports owns the wire (a <code class="docutils literal notranslate"><span class="pre">Client</span></code> that mirrors a model and
+sends edits) and knows nothing about UI. A single small adapter marries them — it sees transports only
+through a four-method interface. So you can back the same reactive store with a transports session on a
+webserver, or with the synced state of a Jupyter widget, and the UI code is identical.</p>
 </section>
-<section id="key-for-stable-updates">
-<h2>Key for stable updates<a class="headerlink" href="#key-for-stable-updates" title="Link to this heading">¶</a></h2>
-<p>Give a node a stable <code class="docutils literal notranslate"><span class="pre">key</span></code> so the diff engine reconciles it by identity across updates (so a reordered
-list moves live elements instead of rebuilding them):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">key</span><span class="p">(</span><span class="s2">&quot;lamp&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="serialize">
-<h2>Serialize<a class="headerlink" href="#serialize" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">.to_node()</span></code> returns the JSON-ready node dict; <code class="docutils literal notranslate"><span class="pre">.to_json()</span></code> returns its string form. This is the wire
-form the core’s <code class="docutils literal notranslate"><span class="pre">diff</span></code> / <code class="docutils literal notranslate"><span class="pre">apply</span></code> understand and the runtime mounts:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">())</span><span class="o">.</span><span class="n">to_node</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>In a notebook you rarely call these directly — <a class="reference internal" href="notebook.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">Widget</span></code></span></a> does it for you; over a server
-they are served as the tree the browser mounts.</p>
+<section id="two-hosts-one-ui">
+<h2>Two hosts, one UI<a class="headerlink" href="#two-hosts-one-ui" title="Link to this heading">¶</a></h2>
+<p>Because spaday is <em>a web-component runtime driven by a serialized model over a connection</em>, it slots into
+two places with the same tree:</p>
+<ul class="simple">
+<li><p>a <strong>web app</strong> — your tree served over a WebSocket, state in a transports <code class="docutils literal notranslate"><span class="pre">Session</span></code> (or a multi-tenant
+<code class="docutils literal notranslate"><span class="pre">Hub</span></code>); see <a class="reference internal" href="transports.html"><span class="std std-doc">the transports guide</span></a>;</p></li>
+<li><p>a <strong>Jupyter notebook</strong> (and the wider anywidget ecosystem — Marimo, Shiny, Solara, Panel) — the tree
+packaged as an <a class="reference external" href="https://anywidget.dev">anywidget</a>, state synced over the widget’s comm; see
+<a class="reference internal" href="notebook.html"><span class="std std-doc">the notebook guide</span></a>.</p></li>
+</ul>
+<p>The notebook host is the same engine with a different wire — which is exactly why the <a class="reference internal" href="tutorial.html"><span class="std std-doc">tutorial</span></a>
+can teach the whole model with no server at all.</p>
 </section>
 </section>
 
@@ -336,23 +344,15 @@ they are served as the tree the browser mounts.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="behavior.html">
-              <div class="page-info">
-                <div class="context">
-                  <span>Next</span>
-                </div>
-                <div class="title">Add behavior and reactivity</div>
-              </div>
-              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
-            </a>
-          <a class="prev-page" href="tutorial.html">
+          
+          <a class="prev-page" href="api.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Tutorial: build your first interactive UI</div>
+                <div class="title">API reference</div>
                 
               </div>
             </a>
@@ -386,15 +386,14 @@ they are served as the tree the browser mounts.</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Author a component tree</a><ul>
-<li><a class="reference internal" href="#use-a-built-in-component">Use a built-in component</a></li>
-<li><a class="reference internal" href="#nest-children-into-slots">Nest children into slots</a></li>
-<li><a class="reference internal" href="#set-text">Set text</a></li>
-<li><a class="reference internal" href="#lay-out-with-shell-components">Lay out with shell components</a></li>
-<li><a class="reference internal" href="#reach-for-a-raw-element">Reach for a raw element</a></li>
-<li><a class="reference internal" href="#set-a-prop-a-typed-class-doesn-t-expose">Set a prop a typed class doesn’t expose</a></li>
-<li><a class="reference internal" href="#key-for-stable-updates">Key for stable updates</a></li>
-<li><a class="reference internal" href="#serialize">Serialize</a></li>
+<li><a class="reference internal" href="#">How spaday works</a><ul>
+<li><a class="reference internal" href="#the-core-idea-configure-in-python-execute-in-javascript">The core idea: configure in Python, execute in JavaScript</a></li>
+<li><a class="reference internal" href="#the-component-tree-is-a-serializable-model">The component tree is a serializable model</a></li>
+<li><a class="reference internal" href="#behavior-is-data-not-code">Behavior is data, not code</a></li>
+<li><a class="reference internal" href="#the-reactive-engine">The reactive engine</a></li>
+<li><a class="reference internal" href="#one-core-two-bindings">One core, two bindings</a></li>
+<li><a class="reference internal" href="#the-wire-transports">The wire: transports</a></li>
+<li><a class="reference internal" href="#two-hosts-one-ui">Two hosts, one UI</a></li>
 </ul>
 </li>
 </ul>
