@@ -133,19 +133,79 @@ function unwireBinding(el: Element, prop: string): void {
   }
 }
 
+// `spa-show`: a structural binding. Its default-slot children are MOUNTED when the `when` condition is
+// truthy and TORN DOWN + removed (not merely hidden) when it is falsy — reactive creation/removal of real
+// elements. The wrapper itself stays put (authored `display:contents`), so sibling paths don't shift as
+// children come and go.
+function wireShow(el: Element, node: Node, store?: Store): void {
+  const cond = node.bindings?.when;
+  const childDefs = node.slots?.[DEFAULT_SLOT] ?? [];
+  if (!store || !cond) {
+    for (const c of childDefs) appendInSlot(el, DEFAULT_SLOT, build(c, store)); // inert: render always
+    return;
+  }
+  const evaluate = (): boolean =>
+    cond.compute !== undefined
+      ? !!evalExpr(cond.compute, store)
+      : !!store.get(cond.field!);
+  let mounted: Element[] = [];
+  const render = (): void => {
+    if (evaluate()) {
+      if (mounted.length === 0) {
+        for (const c of childDefs) {
+          const ce = build(c, store);
+          appendInSlot(el, DEFAULT_SLOT, ce);
+          mounted.push(ce);
+        }
+      }
+    } else if (mounted.length) {
+      for (const ce of mounted) {
+        teardownTree(ce);
+        ce.remove();
+      }
+      mounted = [];
+    }
+  };
+  render(); // initial state
+  const deps =
+    cond.compute !== undefined ? [...exprFields(cond.compute)] : [cond.field!];
+  const subs = deps.map((f) => store.subscribe(f, render));
+  let map = bindings.get(el); // record teardown so removing the spa-show unsubscribes (via teardownTree)
+  if (!map) bindings.set(el, (map = new Map()));
+  map.set("when", () => subs.forEach((u) => u()));
+}
+
+// Tear down the reactive bindings (store subscriptions) registered across an element subtree, so removing
+// it doesn't leak subscriptions that keep detached elements alive. DOM event listeners are released when
+// the element itself is garbage-collected.
+function teardownTree(el: Element): void {
+  for (const e of [el, ...el.querySelectorAll("*")]) {
+    const map = bindings.get(e);
+    if (map) {
+      for (const teardown of map.values()) teardown();
+      bindings.delete(e);
+    }
+  }
+}
+
 function build(node: Node, store?: Store): Element {
   const el = document.createElement(node.tag);
   for (const [name, value] of Object.entries(node.props ?? {})) {
     setProp(el, name, untag(value));
   }
-  for (const [slot, children] of Object.entries(node.slots ?? {})) {
-    for (const child of children) appendInSlot(el, slot, build(child, store));
+  if (node.tag === "spa-show") {
+    wireShow(el, node, store); // conditionally mounts the node's default-slot children
+  } else {
+    for (const [slot, children] of Object.entries(node.slots ?? {})) {
+      for (const child of children) appendInSlot(el, slot, build(child, store));
+    }
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
     bindEvent(el, name, action); // actions ride the wire as the core's DSL form (plain JSON)
   }
   if (store) {
     for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
+      if (node.tag === "spa-show" && prop === "when") continue; // structural — handled by wireShow
       wireBinding(el, prop, spec, store);
     }
   }
@@ -248,7 +308,9 @@ function applyOp(root: Element, op: Op, store?: Store): Element {
     insertInSlot(resolve(root, path), slot, index, build(node, store));
   } else if ("RemoveChild" in op) {
     const { path, slot, index } = op.RemoveChild;
-    childrenInSlot(resolve(root, path), slot)[index].remove();
+    const child = childrenInSlot(resolve(root, path), slot)[index];
+    teardownTree(child); // release the subtree's store subscriptions before detaching it
+    child.remove();
   } else if ("MoveChild" in op) {
     const { path, slot, from, to } = op.MoveChild;
     const parent = resolve(root, path);
@@ -257,6 +319,7 @@ function applyOp(root: Element, op: Op, store?: Store): Element {
     insertInSlot(parent, slot, to, moving);
   } else if ("Replace" in op) {
     const target = resolve(root, op.Replace.path);
+    teardownTree(target); // release the replaced subtree's store subscriptions
     const replacement = build(op.Replace.node, store);
     target.replaceWith(replacement);
     if (op.Replace.path.length === 0) return replacement; // the root element itself was swapped

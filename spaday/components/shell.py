@@ -15,11 +15,11 @@ a single :class:`Gutter` becomes a left or right gutter by where it sits in a
 via ``.prop("style", ...)``.
 """
 
-from typing import Optional
+from typing import Any, Optional
 
 from ..component import Component
 
-__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Stack", "Row", "Toolbar"]
+__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Stack", "Row", "Toolbar", "Show"]
 
 
 class App(Component):
@@ -90,3 +90,30 @@ class Toolbar(Component):
 
     def __init__(self, *, gap: Optional[str] = None, align: Optional[str] = None, justify: Optional[str] = None, key: Optional[str] = None) -> None:
         super().__init__(key=key, props={"gap": gap, "align": align, "justify": justify})
+
+
+class Show(Component):
+    """Conditionally render children from a reactive store field — they are *mounted* when the condition
+    is truthy and *removed* (not merely hidden) when it is falsy, so a toggle can create and destroy real
+    elements client-side.
+
+    Unlike the layout components above this is not a shadow-DOM element but a runtime **structural
+    binding** (``js/src/ts/runtime.ts``); the wrapper renders ``display:contents`` and is transparent.
+    Pass ``field`` for a plain store field, or ``when`` for a field-expression
+    (:func:`~spaday.actions.field` / ``not_`` / ``eq`` / ``all_`` / ``any_``)::
+
+        Show(field="show_chart").child(LightweightChart(...))
+
+    Active only when the tree is mounted with a signal ``Store`` (``mount(body, tree, store)``).
+    """
+
+    tag = "spa-show"
+
+    def __init__(self, *, field: Optional[str] = None, when: Optional[Any] = None, key: Optional[str] = None) -> None:
+        super().__init__(key=key, props={"style": "display:contents"})
+        if field is not None:
+            self._bindings["when"] = {"field": field, "mode": "one-way"}
+        elif when is not None:
+            self._bindings["when"] = {"compute": when.to_dict(), "mode": "one-way"}
+        else:
+            raise ValueError("Show requires field= (a store field) or when= (a field-expression)")
