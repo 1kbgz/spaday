@@ -25,6 +25,22 @@ export const diff = (oldTree: string, newTree: string): string =>
 export const apply = (root: string, patch: string): string =>
   wasm.apply(root, patch);
 
+/**
+ * Frame a JSON-encoded tree (`kind: "snapshot"`) or patch (`kind: "patch"`) into transports'
+ * length-prefixed envelope bytes, encoded with `codec` (`"application/json"` or `"application/msgpack"`).
+ */
+export const encodeFrame = (
+  payload: string,
+  modelType: string,
+  kind: "snapshot" | "patch",
+  rev: number,
+  codec = "application/json",
+): Uint8Array => wasm.encode_frame(payload, modelType, kind, rev, codec);
+
+/** Decode one frame back to a `{model_type,kind,rev,payload}` JSON string (payload ready for mount/applyPatch). */
+export const decodeFrame = (frame: Uint8Array): string =>
+  wasm.decode_frame(frame);
+
 // Custom Elements Manifest binding: parse a manifest into component schemas / a runtime registry.
 export { parseCem, registry } from "./cem";
 export type { ComponentSchema, PropSchema, PropType } from "./cem";

@@ -149,3 +149,24 @@ pub fn apply(root: &str, patch: &str) -> Result<String, JsError> {
 pub fn parse_cem(manifest: &str) -> Result<String, JsError> {
     spaday::parse_cem(manifest).map_err(|e| JsError::new(&e.to_string()))
 }
+
+/// Frame a JSON-encoded tree/patch into transports' length-prefixed envelope bytes.
+///
+/// `kind` is `"snapshot"` or `"patch"`; `codec` is `"application/json"` or `"application/msgpack"`.
+/// `rev` is a `u32` (not `u64`) so JS passes a plain number rather than a BigInt.
+#[wasm_bindgen]
+pub fn encode_frame(
+    payload: &str,
+    model_type: &str,
+    kind: &str,
+    rev: u32,
+    codec: &str,
+) -> Result<Vec<u8>, JsError> {
+    spaday::encode_frame(payload, model_type, kind, rev as u64, codec).map_err(|e| JsError::new(&e))
+}
+
+/// Decode one frame back to a `{"model_type","kind","rev","payload"}` JSON string.
+#[wasm_bindgen]
+pub fn decode_frame(frame: &[u8]) -> Result<String, JsError> {
+    spaday::decode_frame(frame).map_err(|e| JsError::new(&e))
+}

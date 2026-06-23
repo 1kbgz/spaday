@@ -22,7 +22,7 @@ from .actions import (
 )
 from .cem import classes, generate
 from .component import Component, element
-from .spaday import apply, diff, parse_cem  # compiled Rust extension (rust/python)
+from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
 from .validate import ValidationError, validate
 
 __version__ = "0.1.0"
@@ -32,6 +32,9 @@ __all__ = [
     # component-tree diff/patch (compiled core)
     "diff",
     "apply",
+    # framed wire (tree/patch over transports' Frame + JSON/msgpack codecs)
+    "encode_frame",
+    "decode_frame",
     # CEM binding generator
     "parse_cem",
     "generate",

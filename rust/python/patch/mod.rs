@@ -20,3 +20,23 @@ pub fn apply(root: &str, patch: &str) -> PyResult<String> {
 pub fn parse_cem(manifest: &str) -> PyResult<String> {
     spaday::parse_cem(manifest).map_err(|e| PyValueError::new_err(e.to_string()))
 }
+
+/// Frame a JSON-encoded tree/patch into transports' length-prefixed envelope bytes.
+///
+/// `kind` is `"snapshot"` or `"patch"`; `codec` is `"application/json"` or `"application/msgpack"`.
+#[pyfunction]
+pub fn encode_frame(
+    payload: &str,
+    model_type: &str,
+    kind: &str,
+    rev: u64,
+    codec: &str,
+) -> PyResult<Vec<u8>> {
+    spaday::encode_frame(payload, model_type, kind, rev, codec).map_err(PyValueError::new_err)
+}
+
+/// Decode one frame back to a `{"model_type","kind","rev","payload"}` JSON string.
+#[pyfunction]
+pub fn decode_frame(frame: &[u8]) -> PyResult<String> {
+    spaday::decode_frame(frame).map_err(PyValueError::new_err)
+}
