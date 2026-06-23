@@ -221,8 +221,23 @@ section-order = [
 title = "spaday"
 root = "README.md"
 pages = [
+    "docs/src/tutorial.md",
     "docs/src/components.md",
+    "docs/src/behavior.md",
+    "docs/src/notebook.md",
+    "docs/src/transports.md",
     "docs/src/wrappers.md",
+    "docs/src/cem.md",
     "docs/src/api.md",
+    "docs/src/concepts.md",
 ]
 use-autoapi = false
+exclude_patterns = [
+    "README.md",
+    "AGENTS.md",
+    "ROADMAP.md",
+    "REVIEW.md",
+    "TODO.md",
+    ".github",
+    "spaday/examples/README.md",
+]
