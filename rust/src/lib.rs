@@ -10,6 +10,7 @@
 //! - [`node`] — the serializable component tree ([`Node`], slots, events).
 //! - [`diff`] — structural diff/patch with keyed child reconciliation.
 //! - [`json`] — the JSON wire bridge the bindings call (`diff_json`/`apply_json`).
+//! - [`wire`] — the framed wire: tree/patch over transports' `Frame` + JSON/msgpack codecs.
 //! - [`cem`] — the Custom Elements Manifest parser (the binding generator).
 
 mod action;
@@ -19,6 +20,7 @@ mod example;
 mod json;
 mod node;
 mod value;
+mod wire;
 
 pub use action::{parse_action, Action, Expr, Ref};
 pub use cem::{parse_cem, parse_manifest, ComponentSchema, PropSchema, PropType};
@@ -27,3 +29,4 @@ pub use example::Example;
 pub use json::{apply_json, diff_json};
 pub use node::{Attr, EventName, Key, Node, SlotName, TagName, DEFAULT_SLOT};
 pub use value::Value;
+pub use wire::{decode_frame, encode_frame};
