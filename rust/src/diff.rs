@@ -474,7 +474,8 @@ mod diff_tests {
         let old = Node::new("wa-switch").bind(
             "checked",
             Binding {
-                field: "on".into(),
+                field: Some("on".into()),
+                compute: None,
                 mode: BindMode::TwoWay,
             },
         );
@@ -482,19 +483,38 @@ mod diff_tests {
             .bind(
                 "checked",
                 Binding {
-                    field: "lit".into(), // field changed
+                    field: Some("lit".into()), // field changed
+                    compute: None,
                     mode: BindMode::TwoWay,
                 },
             )
             .bind(
                 "disabled",
                 Binding {
-                    field: "locked".into(), // added
+                    field: Some("locked".into()), // added
+                    compute: None,
                     mode: BindMode::OneWay,
                 },
             );
         let patch = assert_round_trip(&old, &new);
         assert_eq!(patch.len(), 2); // checked's binding changed + disabled added
+    }
+
+    #[test]
+    fn test_compute_binding_round_trips() {
+        use crate::node::{BindMode, Binding};
+        let expr = serde_json::json!({"expr": "not", "of": {"expr": "field", "name": "enabled"}});
+        let old = Node::new("wa-button");
+        let new = Node::new("wa-button").bind(
+            "disabled",
+            Binding {
+                field: None,
+                compute: Some(expr),
+                mode: BindMode::OneWay,
+            },
+        );
+        let patch = assert_round_trip(&old, &new);
+        assert_eq!(patch.len(), 1); // one SetBinding carrying the compute expr
     }
 
     #[test]

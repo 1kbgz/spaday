@@ -7,11 +7,12 @@
 // handlers, rebinding/detaching them as incremental `SetEvent`/`RemoveEvent` patches arrive.
 
 import { interpret } from "./actions";
-import { Store } from "./signals";
+import { evalExpr, exprFields, Store } from "./signals";
 import { untag, Value } from "./value";
 
 export interface Binding {
-  field: string;
+  field?: string;
+  compute?: unknown;
   mode: string;
 }
 
@@ -99,14 +100,24 @@ function wireBinding(
 ): void {
   unwireBinding(el, prop); // replace any prior wiring for this prop
   const teardowns: Array<() => void> = [];
-  if (store.has(spec.field)) setProp(el, prop, store.get(spec.field)); // initial field → prop
-  teardowns.push(store.subscribe(spec.field, (v) => setProp(el, prop, v)));
-  if (spec.mode === "two-way") {
-    const onChange = () => store.set(spec.field, readProp(el, prop));
-    for (const ev of VALUE_EVENTS) el.addEventListener(ev, onChange);
-    teardowns.push(() => {
-      for (const ev of VALUE_EVENTS) el.removeEventListener(ev, onChange);
-    });
+  if (spec.compute !== undefined) {
+    // computed (derived) binding: recompute the prop from the expression whenever any field it reads
+    // changes. One-way by nature — there is nothing to write back.
+    const recompute = () => setProp(el, prop, evalExpr(spec.compute, store));
+    recompute(); // initial value
+    for (const field of exprFields(spec.compute)) {
+      teardowns.push(store.subscribe(field, recompute));
+    }
+  } else if (spec.field !== undefined) {
+    if (store.has(spec.field)) setProp(el, prop, store.get(spec.field)); // initial field → prop
+    teardowns.push(store.subscribe(spec.field, (v) => setProp(el, prop, v)));
+    if (spec.mode === "two-way") {
+      const onChange = () => store.set(spec.field!, readProp(el, prop));
+      for (const ev of VALUE_EVENTS) el.addEventListener(ev, onChange);
+      teardowns.push(() => {
+        for (const ev of VALUE_EVENTS) el.removeEventListener(ev, onChange);
+      });
+    }
   }
   let map = bindings.get(el);
   if (!map) bindings.set(el, (map = new Map()));

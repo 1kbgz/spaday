@@ -110,6 +110,16 @@ class Component:
         self._bindings[prop] = {"field": field, "mode": mode}
         return self
 
+    def compute(self, prop: str, expr: Any) -> "Component":
+        """Reactively set ``prop`` to a value *computed* from state fields (one-way).
+
+        ``expr`` is a field expression (:func:`~spaday.actions.field` / ``eq`` / ``not_`` / ``all_`` /
+        ``any_`` / ``lit``) evaluated in the browser against the signal store and recomputed whenever any
+        field it reads changes, e.g. ``compute("disabled", not_(field("enabled")))``.
+        """
+        self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
+        return self
+
     def to_node(self) -> dict:
         """The node as the core's JSON-ready dict (empty fields omitted, like the Rust core)."""
         node: dict = {"tag": self.tag}

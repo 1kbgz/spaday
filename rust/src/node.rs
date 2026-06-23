@@ -33,11 +33,16 @@ pub enum BindMode {
     TwoWay,
 }
 
-/// A reactive binding of a prop to a state field. The runtime's signal store keeps the prop in sync
-/// with the field; two-way bindings also write the field when the bound control changes.
+/// A reactive binding of a prop to state. Either a `field` — the prop tracks that state field (and a
+/// two-way binding writes it back when the control changes) — or a `compute` expression *derived* from
+/// state fields (one-way; recomputed when any field it reads changes). The runtime's signal store
+/// drives both; the compute expression is an opaque field-expr the runtime evaluates (see signals.ts).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Binding {
-    pub field: Field,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub field: Option<Field>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compute: Option<serde_json::Value>,
     pub mode: BindMode,
 }
 
