@@ -38,6 +38,9 @@ export const bundle = async (config) => {
     const result = await esbuild.build({
         ...DEFAULT_BUILD,
         ...config,
+        // merge (don't replace) the loader map so a bundle can override one extension, e.g. inline the
+        // wasm as bytes for the self-contained widget instead of emitting it as a file.
+        loader: { ...COMMON_LOADER, ...(config.loader || {}) },
     });
 
     if (result.metafile) {

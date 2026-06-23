@@ -2,10 +2,10 @@
 
 `Widget(tree)` hosts a spaday component tree in any anywidget host — Jupyter (Lab/Notebook/Colab/VS
 Code), Marimo, Shiny-for-Python, Solara, Panel — so a spaday UI drops into a notebook cell or a Panel
-app with no server. The component tree rides the widget's model (`_tree`); the spaday wasm core (the
-action interpreter) rides `_wasm`; the JS half (`extension/cdn/widget.webawesome.js`) mounts the tree
-with the spaday runtime and registers the full WebAwesome catalog, so `wa-*` controls render in the
-notebook with no extra script. Behavior authored in Python (the action DSL) runs client-side with no
+app with no server. The component tree rides the widget's model (`_tree`); the JS half
+(`extension/cdn/widget.webawesome.js`) inlines the spaday runtime *and* its wasm core and registers the
+full WebAwesome catalog, so it mounts the tree and renders `wa-*` controls in the notebook with no extra
+script and nothing else to load. Behavior authored in Python (the action DSL) runs client-side with no
 kernel round-trip; a `SendPatch` action's intent is delivered back to Python via `on_intent`.
 
 `update(tree)` re-syncs the tree, and the browser applies a minimal `diff`/`applyPatch` — the same
@@ -29,7 +29,6 @@ _EXT = Path(__file__).parent / "extension"
 # renders in a notebook with no extra script (the lean `widget.js` is for hosts that load WA themselves).
 _ESM = _EXT / "cdn" / "widget.webawesome.js"
 _CSS = _EXT / "css" / "webawesome.css"  # WebAwesome's base + theme tokens (import chain resolved)
-_WASM = (_EXT / "pkg" / "spaday_bg.wasm").read_bytes()
 
 Tree = Union[Component, dict]
 
@@ -43,8 +42,6 @@ class Widget(anywidget.AnyWidget):
 
     _esm = _ESM
     _css = _CSS  # WebAwesome base + theme tokens, injected into the host page
-    # the spaday wasm core (action interpreter), shipped to the frontend as a synced byte buffer
-    _wasm = traitlets.Bytes(_WASM).tag(sync=True)
     _tree = traitlets.Dict().tag(sync=True)
 
     def __init__(self, tree: Tree, **kwargs: Any) -> None:

@@ -4,9 +4,9 @@
     <meta charset="utf-8" />
     <title>spaday anywidget test harness</title>
     <script type="module">
-      // Load the built anywidget ESM exactly as an anywidget host would, and stand up a minimal
-      // fake model (the bits widget.js uses: get / on / off / send) so the render flow is testable
-      // without a real kernel. The spaday wasm rides the model as bytes, like the Python Widget ships it.
+      // Load the built anywidget ESM exactly as an anywidget host would, and stand up a minimal fake
+      // model (the bits widget.js uses: get / set / on / off / send) so the render flow is testable
+      // without a real kernel. The wasm core is inlined in the bundle, so nothing is fetched.
       import widget from "/dist/cdn/widget.js";
 
       function fakeModel(state) {
@@ -26,8 +26,7 @@
         };
       }
 
-      const wasm = await (await fetch("/dist/pkg/spaday_bg.wasm")).arrayBuffer();
-      window.__widget = { widget, fakeModel, wasm };
+      window.__widget = { widget, fakeModel };
     </script>
   </head>
   <body></body>
