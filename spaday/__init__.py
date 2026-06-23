@@ -50,4 +50,15 @@ __all__ = [
     "this",
     "by_id",
     "bind",
+    # anywidget host (optional; requires the `widget` extra)
+    "Widget",
 ]
+
+
+def __getattr__(name: str):
+    # `Widget` pulls in anywidget (an optional dep), so load it lazily — `import spaday` stays light.
+    if name == "Widget":
+        from .widget import Widget
+
+        return Widget
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
