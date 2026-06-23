@@ -44,3 +44,19 @@ is independent per tab.
 - **Wholesale data patches**: a chart's series is one opaque prop, so each change resends `data`
   (correct, not minimal); per-point deltas need the series modeled as tree state — later.
 - **TradingView logo** is disabled in the chart wrapper; attribution is in the page footer.
+
+## `reactive.py` — declarative two-way binding over transports (Phase 2.4)
+
+A second, focused app showing the spaday ↔ transports boundary at its cleanest. A `Controls` model lives
+in a `transports.Session`; the page authors controls **bound** to its fields
+(`.bind("value", "label", mode="two-way")`) and wires the wire in one line:
+
+- **transports** owns the wire — a `Client` mirrors the model and sends edits; spaday never touches it.
+- **spaday** owns the UI — a signal `Store` backs the tree's bindings; it never touches the wire.
+- **`connectStore`** is the only seam — model fields ↔ store fields, edits server-authoritative.
+
+There are no control listeners and no `client.edit` calls in the page; the bindings do it. Open two tabs
+and they stay in sync. This is what the omnibus's hand-wired `SendPatch`→sink bridge becomes once the
+reactive engine carries it.
+
+Run: `python -m spaday.examples.reactive` → http://127.0.0.1:8001

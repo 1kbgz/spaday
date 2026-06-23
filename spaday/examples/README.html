@@ -288,6 +288,21 @@ round-trip edits to the server (authoritative) and fan patches to every client.<
 <li><p><strong>TradingView logo</strong> is disabled in the chart wrapper; attribution is in the page footer.</p></li>
 </ul>
 </section>
+<section id="reactive-py-declarative-two-way-binding-over-transports-phase-2-4">
+<h2><code class="docutils literal notranslate"><span class="pre">reactive.py</span></code> — declarative two-way binding over transports (Phase 2.4)<a class="headerlink" href="#reactive-py-declarative-two-way-binding-over-transports-phase-2-4" title="Link to this heading">¶</a></h2>
+<p>A second, focused app showing the spaday ↔ transports boundary at its cleanest. A <code class="docutils literal notranslate"><span class="pre">Controls</span></code> model lives
+in a <code class="docutils literal notranslate"><span class="pre">transports.Session</span></code>; the page authors controls <strong>bound</strong> to its fields
+(<code class="docutils literal notranslate"><span class="pre">.bind(&quot;value&quot;,</span> <span class="pre">&quot;label&quot;,</span> <span class="pre">mode=&quot;two-way&quot;)</span></code>) and wires the wire in one line:</p>
+<ul class="simple">
+<li><p><strong>transports</strong> owns the wire — a <code class="docutils literal notranslate"><span class="pre">Client</span></code> mirrors the model and sends edits; spaday never touches it.</p></li>
+<li><p><strong>spaday</strong> owns the UI — a signal <code class="docutils literal notranslate"><span class="pre">Store</span></code> backs the tree’s bindings; it never touches the wire.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">connectStore</span></code></strong> is the only seam — model fields ↔ store fields, edits server-authoritative.</p></li>
+</ul>
+<p>There are no control listeners and no <code class="docutils literal notranslate"><span class="pre">client.edit</span></code> calls in the page; the bindings do it. Open two tabs
+and they stay in sync. This is what the omnibus’s hand-wired <code class="docutils literal notranslate"><span class="pre">SendPatch</span></code>→sink bridge becomes once the
+reactive engine carries it.</p>
+<p>Run: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.examples.reactive</span></code> → http://127.0.0.1:8001</p>
+</section>
 </section>
 
         </article>
@@ -331,6 +346,7 @@ round-trip edits to the server (authoritative) and fan patches to every client.<
 <li><a class="reference internal" href="#run">Run</a></li>
 <li><a class="reference internal" href="#how-it-maps-to-the-architecture">How it maps to the architecture</a></li>
 <li><a class="reference internal" href="#notes">Notes</a></li>
+<li><a class="reference internal" href="#reactive-py-declarative-two-way-binding-over-transports-phase-2-4"><code class="docutils literal notranslate"><span class="pre">reactive.py</span></code> — declarative two-way binding over transports (Phase 2.4)</a></li>
 </ul>
 </li>
 </ul>
