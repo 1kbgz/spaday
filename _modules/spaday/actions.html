@@ -258,8 +258,8 @@
 <span class="sd">intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST</span>
 <span class="sd">round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:</span>
 <span class="sd">``lit`` / ``event_value`` / ``not_`` / ``prop`` (read live element state); targets ``this`` / ``by_id``.</span>
-<span class="sd">``bind`` is a one-way reactive-binding helper. The signal-graph reactive engine (derived state, two-way</span>
-<span class="sd">binding) is the remaining Phase 2 work.</span>
+<span class="sd">``bind`` here is a one-way event-driven helper; reactive prop↔state bindings (one- or two-way) are</span>
+<span class="sd">authored with ``Component.bind`` and interpreted by the runtime&#39;s signal store.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
