@@ -74,6 +74,4 @@ def validate(tree: Union[Component, dict]) -> None:
     missing = sorted({ref for ref in refs if ref not in ids})
     if missing:
         known = sorted(ids)
-        raise ValidationError(
-            "unresolved by_id reference(s): " + ", ".join(repr(m) for m in missing) + f" (known ids: {known})"
-        )
+        raise ValidationError("unresolved by_id reference(s): " + ", ".join(repr(m) for m in missing) + f" (known ids: {known})")

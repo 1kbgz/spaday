@@ -17,11 +17,7 @@ from spaday import (
 
 
 def test_resolved_by_id_passes():
-    tree = (
-        element("div")
-        .child(element("button").on("click", Toggle(by_id("panel"), "hidden")))
-        .child(element("p").prop("id", "panel").text("hi"))
-    )
+    tree = element("div").child(element("button").on("click", Toggle(by_id("panel"), "hidden"))).child(element("p").prop("id", "panel").text("hi"))
     validate(tree)  # no raise
 
 
