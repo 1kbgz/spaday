@@ -33,9 +33,7 @@ def panel(devices: dict) -> Component:
     for name in devices:
         cards = cards.child(
             WaCard(appearance="outlined").child(
-                Row()
-                .child(element("strong").text(name))
-                .child(WaSwitch().prop("style", "margin-left:auto").bind("checked", name, mode="two-way"))
+                Row().child(element("strong").text(name)).child(WaSwitch().prop("style", "margin-left:auto").bind("checked", name, mode="two-way"))
             )
         )
     return cards
