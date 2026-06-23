@@ -23,7 +23,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use crate::action::Action;
-use crate::node::{Attr, EventName, Key, Node, SlotName};
+use crate::node::{Attr, Binding, EventName, Key, Node, SlotName};
 
 /// One step down into a tree: the `index`-th child of slot `slot`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,6 +56,15 @@ pub enum Op {
     RemoveEvent {
         path: Path,
         name: EventName,
+    },
+    SetBinding {
+        path: Path,
+        name: Attr,
+        binding: Binding,
+    },
+    RemoveBinding {
+        path: Path,
+        name: Attr,
     },
     SetKey {
         path: Path,
@@ -92,6 +101,8 @@ impl Op {
             | Op::RemoveProp { path, .. }
             | Op::SetEvent { path, .. }
             | Op::RemoveEvent { path, .. }
+            | Op::SetBinding { path, .. }
+            | Op::RemoveBinding { path, .. }
             | Op::SetKey { path, .. }
             | Op::InsertChild { path, .. }
             | Op::RemoveChild { path, .. }
@@ -188,6 +199,25 @@ fn diff_node(path: &Path, old: &Node, new: &Node, ops: &mut Vec<Op>) {
     for name in old.events.keys() {
         if !new.events.contains_key(name) {
             ops.push(Op::RemoveEvent {
+                path: path.to_vec(),
+                name: name.clone(),
+            });
+        }
+    }
+
+    // Bindings.
+    for (name, nb) in &new.bindings {
+        if old.bindings.get(name) != Some(nb) {
+            ops.push(Op::SetBinding {
+                path: path.to_vec(),
+                name: name.clone(),
+                binding: nb.clone(),
+            });
+        }
+    }
+    for name in old.bindings.keys() {
+        if !new.bindings.contains_key(name) {
+            ops.push(Op::RemoveBinding {
                 path: path.to_vec(),
                 name: name.clone(),
             });
@@ -336,6 +366,12 @@ fn apply_op(root: &mut Node, op: &Op) {
         Op::RemoveEvent { name, .. } => {
             target.events.remove(name);
         }
+        Op::SetBinding { name, binding, .. } => {
+            target.bindings.insert(name.clone(), binding.clone());
+        }
+        Op::RemoveBinding { name, .. } => {
+            target.bindings.remove(name);
+        }
         Op::SetKey { key, .. } => {
             target.key = key.clone();
         }
@@ -430,6 +466,35 @@ mod diff_tests {
                 },
             );
         assert_round_trip(&old, &new);
+    }
+
+    #[test]
+    fn test_binding_changes() {
+        use crate::node::{BindMode, Binding};
+        let old = Node::new("wa-switch").bind(
+            "checked",
+            Binding {
+                field: "on".into(),
+                mode: BindMode::TwoWay,
+            },
+        );
+        let new = Node::new("wa-switch")
+            .bind(
+                "checked",
+                Binding {
+                    field: "lit".into(), // field changed
+                    mode: BindMode::TwoWay,
+                },
+            )
+            .bind(
+                "disabled",
+                Binding {
+                    field: "locked".into(), // added
+                    mode: BindMode::OneWay,
+                },
+            );
+        let patch = assert_round_trip(&old, &new);
+        assert_eq!(patch.len(), 2); // checked's binding changed + disabled added
     }
 
     #[test]

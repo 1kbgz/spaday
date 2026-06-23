@@ -58,6 +58,7 @@ class Component:
         self._props: Dict[str, Any] = {k: v for k, v in (props or {}).items() if v is not None}
         self._slots: Dict[str, List[Child]] = {}
         self._events: Dict[str, dict] = {}
+        self._bindings: Dict[str, dict] = {}
 
     def key(self, key: str) -> "Component":
         """Set the reconciliation key (for keyed child diffing)."""
@@ -97,6 +98,18 @@ class Component:
         self._events[event] = action.to_dict()
         return self
 
+    def bind(self, prop: str, field: str, *, mode: str = "one-way") -> "Component":
+        """Reactively bind a ``prop`` to a state ``field`` in the runtime's signal store.
+
+        ``mode="one-way"`` keeps the prop in sync with the field; ``"two-way"`` also writes the field
+        back when the control changes (for value-like controls). The binding is data interpreted in the
+        browser — the field's value flows to the prop with no round-trip to Python.
+        """
+        if mode not in ("one-way", "two-way"):
+            raise ValueError(f"bind mode must be 'one-way' or 'two-way', not {mode!r}")
+        self._bindings[prop] = {"field": field, "mode": mode}
+        return self
+
     def to_node(self) -> dict:
         """The node as the core's JSON-ready dict (empty fields omitted, like the Rust core)."""
         node: dict = {"tag": self.tag}
@@ -109,6 +122,8 @@ class Component:
         if self._events:
             # actions are the core's own DSL wire form (see spaday.actions) — plain, not a tagged Value
             node["events"] = dict(self._events)
+        if self._bindings:
+            node["bindings"] = dict(self._bindings)
         return node
 
     def to_json(self) -> str:

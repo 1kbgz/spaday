@@ -31,7 +31,11 @@ export type { ComponentSchema, PropSchema, PropType } from "./cem";
 
 // Browser runtime: render a component tree to the DOM and apply tree patches incrementally.
 export { mount, applyPatch } from "./runtime";
-export type { Node } from "./runtime";
+export type { Binding, Node } from "./runtime";
+
+// Reactive engine: a signal store whose fields back the tree's reactive `bindings` (prop ↔ field).
+export { Store } from "./signals";
+export type { Field } from "./signals";
 
 // Action DSL: declarative behavior, interpreted in the browser on DOM events (no Python round-trip).
 export { interpret } from "./actions";
