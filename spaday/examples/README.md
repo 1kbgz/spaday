@@ -45,7 +45,7 @@ is independent per tab.
   (correct, not minimal); per-point deltas need the series modeled as tree state — later.
 - **TradingView logo** is disabled in the chart wrapper; attribution is in the page footer.
 
-## `reactive.py` — declarative two-way binding over transports (Phase 2.4)
+## `reactive.py` — declarative two-way binding over transports
 
 A second, focused app showing the spaday ↔ transports boundary at its cleanest. A `Controls` model lives
 in a `transports.Session`; the page authors controls **bound** to its fields

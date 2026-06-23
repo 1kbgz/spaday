@@ -1,4 +1,4 @@
-//! Custom Elements Manifest (CEM) parser — the Phase 1 binding-generator foundation.
+//! Custom Elements Manifest (CEM) parser — the binding-generator foundation.
 //!
 //! Web-component libraries publish a `custom-elements.json` (the [Custom Elements Manifest]) that
 //! describes every element: its tag, attributes (with types and defaults), events, and slots.
@@ -8,7 +8,7 @@
 //! same "one core, two bindings" shape as the diff engine.
 //!
 //! This layer is deliberately about *binding* only: attribute/slot/event structure. Event *handlers*
-//! (the declarative action DSL) are Phase 2.
+//! (the declarative action DSL) live in the [`crate::action`] module.
 //!
 //! [Custom Elements Manifest]: https://github.com/webcomponents/custom-elements-manifest
 

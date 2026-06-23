@@ -1,4 +1,4 @@
-"""High-level layout / shell components — Phase 4.1.
+"""High-level layout / shell components.
 
 spaday's "higher altitude" authoring surface: compose pages from these ``spa-*`` web components instead
 of building layout out of raw ``div``s. Each wraps a shadow-DOM layout primitive defined by the spaday
@@ -9,8 +9,8 @@ runtime (``js/src/ts/shell.ts``); structure comes from nesting them and spacing 
         Body(...).child(Gutter(...)).child(Main(...))
     ).child(Footer(...))
 
-First cut — pure structural containers (no typed props yet). :class:`Main` is the page's content region
-(the roadmap's "Page"); a single :class:`Gutter` becomes a left or right gutter by where it sits in a
+First cut — pure structural containers (no typed props yet). :class:`Main` is the page's content region;
+a single :class:`Gutter` becomes a left or right gutter by where it sits in a
 :class:`Body`. Tune spacing/surfaces with CSS custom properties (``--spa-gap``, ``--spa-gutter-width``)
 via ``.prop("style", ...)``.
 """
@@ -53,7 +53,7 @@ class Gutter(Component):
 
 
 class Main(Component):
-    """The primary content region (the roadmap's "Page")."""
+    """The primary content region."""
 
     tag = "spa-main"
 

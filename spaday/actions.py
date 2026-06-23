@@ -18,8 +18,8 @@ Actions: ``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` (client-side); ``Sen
 intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST
 round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:
 ``lit`` / ``event_value`` / ``not_`` / ``prop`` (read live element state); targets ``this`` / ``by_id``.
-``bind`` is a one-way reactive-binding helper. The signal-graph reactive engine (derived state, two-way
-binding) is the remaining Phase 2 work.
+``bind`` here is a one-way event-driven helper; reactive prop↔state bindings (one- or two-way) are
+authored with ``Component.bind`` and interpreted by the runtime's signal store.
 """
 
 from typing import Any, Dict, List, Optional

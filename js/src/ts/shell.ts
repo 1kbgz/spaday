@@ -1,4 +1,4 @@
-// spaday's high-level layout/shell primitives — Phase 4.1. These are the "higher altitude" authoring
+// spaday's high-level layout/shell primitives. These are the "higher altitude" authoring
 // surface: instead of building layout from raw `div`s, you compose real `spa-*` web components whose
 // layout (flex/grid, spacing, surfaces) is encapsulated in shadow DOM. Each is a thin custom element
 // with one default `<slot>` and a `:host` style; structure comes from how you nest them

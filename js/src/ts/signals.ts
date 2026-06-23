@@ -2,7 +2,7 @@
 // engine. The runtime binds component props to fields (a node's `bindings`, authored via `Component.bind`
 // in Python); setting a field notifies every bound prop, and a two-way-bound control writes its field
 // back on change. The same store can later be backed by a transports model or the anywidget model so UI
-// state and app/server state mirror (Phase 2.4).
+// state and app/server state mirror.
 
 export type Field = string;
 type Subscriber = (value: unknown) => void;

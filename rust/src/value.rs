@@ -1,9 +1,9 @@
 //! The scalar/structured value type used for component props and (later) reactive state.
 //!
-//! `Value` is a small tagged union mirroring the shape the `transports` core will own
-//! (see transports ROADMAP Phase 0). For now spaday carries its own copy so the component
+//! `Value` is a small tagged union mirroring the shape the `transports` core will own.
+//! For now spaday carries its own copy so the component
 //! tree and its diff/patch engine can be built without blocking on transports; the two
-//! will be reconciled when transports Phase 0 lands.
+//! will be reconciled when transports' core lands.
 
 use std::collections::BTreeMap;
 

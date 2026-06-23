@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-// The Phase 4.1 shell primitives (spa-app/nav/body/gutter/main/footer/stack/row/toolbar). They are real
+// The shell primitives (spa-app/nav/body/gutter/main/footer/stack/row/toolbar). They are real
 // custom elements defined on import of the runtime — each a shadow root with one default slot and
 // encapsulated layout CSS — so layout is authored by composing them, not by hand-writing div markup.
 
