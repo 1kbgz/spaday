@@ -8,7 +8,7 @@
 //! ```
 //!
 //! which the test suite exercises exhaustively (including a deterministic fuzz). This mirrors the
-//! shape of the `transports` patch engine (ROADMAP Phase 0.2); when transports lands its core, the
+//! shape of the `transports` patch engine; when transports lands its core, the
 //! tree becomes a transports model and this delegates rather than re-implements.
 //!
 //! ## Reconciliation

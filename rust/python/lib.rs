@@ -10,10 +10,10 @@ pub use example::Example;
 fn spaday(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     // Example
     m.add_class::<Example>().unwrap();
-    // Component-tree diff/patch (Phase 0.3) — JSON wire bridge over the shared core.
+    // Component-tree diff/patch — JSON wire bridge over the shared core.
     m.add_function(wrap_pyfunction!(patch::diff, m)?)?;
     m.add_function(wrap_pyfunction!(patch::apply, m)?)?;
-    // Custom Elements Manifest parser (Phase 1) — manifest JSON -> component schemas JSON.
+    // Custom Elements Manifest parser — manifest JSON -> component schemas JSON.
     m.add_function(wrap_pyfunction!(patch::parse_cem, m)?)?;
     Ok(())
 }

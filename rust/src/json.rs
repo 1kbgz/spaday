@@ -1,8 +1,8 @@
 //! JSON wire bridge — the bring-up codec for trees and patches.
 //!
 //! This is the minimal wire format so the PyO3 and wasm bindings can exchange trees and patches
-//! today. It is deliberately thin: `transports` will own real, pluggable codecs (transports ROADMAP
-//! Phase 2), at which point this becomes one codec among several rather than the only path.
+//! today. It is deliberately thin: `transports` will own real, pluggable codecs, at which point this
+//! becomes one codec among several rather than the only path.
 //!
 //! Both bindings call straight through to these two functions, which is what makes "one core, two
 //! bindings" concrete: a patch produced by [`diff_json`] in Python is consumed by [`apply_json`] in

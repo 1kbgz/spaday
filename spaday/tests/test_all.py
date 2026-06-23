@@ -4,7 +4,7 @@ from spaday import apply, diff
 
 
 # The wire form of a prop value is the externally-tagged `Value` enum, e.g. {"Bool": true},
-# {"Int": 3}, {"Str": "x"}. The ergonomic typed component classes (Phase 1) will hide this; for
+# {"Int": 3}, {"Str": "x"}. The ergonomic typed component classes will hide this; for
 # now the tests speak the raw wire contract directly.
 def _switch(checked: bool) -> str:
     return json.dumps({"tag": "wa-switch", "props": {"checked": {"Bool": checked}}})

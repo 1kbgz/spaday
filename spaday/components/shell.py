@@ -1,4 +1,4 @@
-"""High-level layout / shell components — Phase 4.1.
+"""High-level layout / shell components.
 
 spaday's "higher altitude" authoring surface: compose pages from these ``spa-*`` web components instead
 of building layout out of raw ``div``s. Each wraps a shadow-DOM layout primitive defined by the spaday

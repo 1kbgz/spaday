@@ -1,7 +1,7 @@
-//! The declarative action DSL — behavior as serializable data (Phase 2).
+//! The declarative action DSL — behavior as serializable data.
 //!
-//! An [`Action`] is the typed event-handler model the component tree carries (replacing the Phase 0
-//! `Action(Value)` placeholder). It is *data, not code*: authored in Python, serialized as the
+//! An [`Action`] is the typed event-handler model the component tree carries. It is *data, not code*:
+//! authored in Python, serialized as the
 //! canonical wire form defined here, and evaluated in the browser by the wasm interpreter (the `js`
 //! crate) against DOM primitives the browser supplies — there is no `eval`. The core owns the model
 //! and the wire format so both bindings agree on the shape.
