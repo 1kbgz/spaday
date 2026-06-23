@@ -16,6 +16,6 @@ crate-type = ["rlib"]
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-# spaday's prop/state `Value` IS transports' core `Value` (see rust/src/value.rs). Path for local dev,
-# version for publishing — spaday tracks the transports release it converged onto.
-transports = { path = "../../transports/rust", version = "0.4" }
+# spaday's prop/state `Value` IS transports' core `Value`, and its tree/patch ride transports' `Frame` +
+# codecs (see rust/src/value.rs, rust/src/wire.rs). Tracks the published transports release.
+transports = "0.4"
