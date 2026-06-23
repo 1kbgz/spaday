@@ -94,3 +94,54 @@ test("an incremental SetBinding patch wires a binding on a live element", async 
   expect(result.initial).toBe("a"); // bound on apply, initial value applied
   expect(result.after).toBe("b"); // and reactive thereafter
 });
+
+test("a computed binding derives a prop from fields and recomputes reactively", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ enabled: true, mode: "basic" });
+    // disabled = not(enabled); hidden = (mode == "advanced")
+    const tree = {
+      tag: "div",
+      slots: {
+        default: [
+          {
+            tag: "button",
+            bindings: {
+              disabled: {
+                compute: {
+                  expr: "not",
+                  of: { expr: "field", name: "enabled" },
+                },
+                mode: "one-way",
+              },
+            },
+          },
+          {
+            tag: "span",
+            bindings: {
+              hidden: {
+                compute: {
+                  expr: "eq",
+                  a: { expr: "field", name: "mode" },
+                  b: { expr: "lit", value: "advanced" },
+                },
+                mode: "one-way",
+              },
+            },
+          },
+        ],
+      },
+    };
+    const root = mount(document.createElement("div"), tree, store);
+    const btn = root.querySelector("button");
+    const span = root.querySelector("span");
+    const initial = { disabled: btn.disabled, hidden: span.hidden };
+    store.set("enabled", false); // not(false) → true
+    store.set("mode", "advanced"); // eq(advanced, advanced) → true
+    return { initial, after: { disabled: btn.disabled, hidden: span.hidden } };
+  });
+  expect(result.initial).toEqual({ disabled: false, hidden: false }); // not(true); eq(basic,advanced)
+  expect(result.after).toEqual({ disabled: true, hidden: true }); // recomputed when the fields changed
+});

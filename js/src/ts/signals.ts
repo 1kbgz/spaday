@@ -41,3 +41,43 @@ export class Store {
     };
   }
 }
+
+// A field-expression: serializable data the runtime evaluates against the store to drive a *computed*
+// binding (a prop derived from state fields). It shares the action DSL's `{expr: kind, ...}` shape plus
+// a `field` reference; only the store-relevant forms are evaluated here.
+export function evalExpr(expr: unknown, store: Store): unknown {
+  if (!expr || typeof expr !== "object") return expr;
+  const e = expr as Record<string, unknown>;
+  switch (e.expr) {
+    case "lit":
+      return e.value;
+    case "field":
+      return store.get(e.name as string);
+    case "not":
+      return !evalExpr(e.of, store);
+    case "eq":
+      return evalExpr(e.a, store) === evalExpr(e.b, store);
+    case "all":
+      return (e.of as unknown[]).every((x) => !!evalExpr(x, store));
+    case "any":
+      return (e.of as unknown[]).some((x) => !!evalExpr(x, store));
+    default:
+      return undefined;
+  }
+}
+
+/** The set of state fields a field-expression reads — the reactive dependencies of a computed binding. */
+export function exprFields(
+  expr: unknown,
+  out: Set<string> = new Set(),
+): Set<string> {
+  if (!expr || typeof expr !== "object") return out;
+  const e = expr as Record<string, unknown>;
+  if (e.expr === "field" && typeof e.name === "string") out.add(e.name);
+  for (const [key, value] of Object.entries(e)) {
+    if (key === "value") continue; // a `lit` payload is data, not a sub-expression
+    if (Array.isArray(value)) value.forEach((v) => exprFields(v, out));
+    else if (value && typeof value === "object") exprFields(value, out);
+  }
+  return out;
+}

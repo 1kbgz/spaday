@@ -87,6 +87,59 @@ def prop(target: "Ref", name: str) -> Expr:
     return _Prop(target, name)
 
 
+class _Field(Expr):
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "field", "name": self.name}
+
+
+def field(name: str) -> Expr:
+    """The current value of a reactive state field — for a *computed* binding (``Component.compute``),
+    evaluated against the signal store in the browser, e.g. ``not_(field("enabled"))``."""
+    return _Field(name)
+
+
+class _Eq(Expr):
+    def __init__(self, a: Any, b: Any) -> None:
+        self.a, self.b = a, b
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "eq", "a": _expr(self.a).to_dict(), "b": _expr(self.b).to_dict()}
+
+
+def eq(a: Any, b: Any) -> Expr:
+    """True when two expressions are equal, e.g. ``eq(field("mode"), "advanced")``."""
+    return _Eq(a, b)
+
+
+class _All(Expr):
+    def __init__(self, *exprs: Any) -> None:
+        self.exprs = exprs
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "all", "of": [_expr(e).to_dict() for e in self.exprs]}
+
+
+def all_(*exprs: Any) -> Expr:
+    """True when every expression is truthy (logical AND)."""
+    return _All(*exprs)
+
+
+class _Any(Expr):
+    def __init__(self, *exprs: Any) -> None:
+        self.exprs = exprs
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "any", "of": [_expr(e).to_dict() for e in self.exprs]}
+
+
+def any_(*exprs: Any) -> Expr:
+    """True when any expression is truthy (logical OR)."""
+    return _Any(*exprs)
+
+
 class Ref:
     """A reference to a DOM element an action targets."""
 
