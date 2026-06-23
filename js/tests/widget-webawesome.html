@@ -6,7 +6,7 @@
     <script type="module">
       // The WebAwesome-inclusive widget bundle, loaded as an anywidget host would. Importing it must
       // statically register the wa-* catalog (no runtime chunk loading). Same fake model as the lean
-      // harness so the render flow is testable without a kernel.
+      // harness; the wasm core is inlined in the bundle, so nothing is fetched.
       import widget from "/dist/cdn/widget.webawesome.js";
 
       function fakeModel(state) {
@@ -26,10 +26,7 @@
         };
       }
 
-      const wasm = await (
-        await fetch("/dist/pkg/spaday_bg.wasm")
-      ).arrayBuffer();
-      window.__widget = { widget, fakeModel, wasm };
+      window.__widget = { widget, fakeModel };
     </script>
   </head>
   <body></body>

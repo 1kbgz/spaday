@@ -7,11 +7,10 @@ from spaday import Toggle, by_id, element  # noqa: E402
 from spaday.widget import Widget  # noqa: E402
 
 
-def test_serializes_the_tree_and_ships_the_wasm_core():
+def test_serializes_the_tree():
     w = Widget(element("div").prop("id", "root").text("hi"))
     assert w._tree["tag"] == "div"
     assert "id" in w._tree["props"]
-    assert len(w._wasm) > 0  # the action-interpreter wasm rides the model to the frontend
 
 
 def test_accepts_a_prebuilt_node_dict():
@@ -41,11 +40,11 @@ def test_on_intent_receives_frontend_messages():
 def test_extension_assets_are_present():
     from spaday import widget as widget_mod
 
-    # installed wheels must ship spaday/extension/** (force-included in pyproject); otherwise the
-    # _esm / _css / wasm the widget loads go missing and `import spaday.widget` breaks.
+    # installed wheels must ship spaday/extension/** (artifacts in pyproject); otherwise the _esm /
+    # _css the widget loads go missing and it fails to render. (The wasm core is inlined into the _esm
+    # bundle at build time, so there is no separate wasm file to load at runtime.)
     assert widget_mod._ESM.exists()
     assert widget_mod._CSS.exists()
-    assert (widget_mod._EXT / "pkg" / "spaday_bg.wasm").exists()
 
 
 def test_widget_is_lazily_exported_from_the_package():

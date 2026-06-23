@@ -22,7 +22,7 @@ test("statically registers the WebAwesome catalog (no runtime chunk loading)", a
 
 test("mounts and upgrades a wa-* tree in the widget", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const { widget, fakeModel, wasm } = window.__widget;
+    const { widget, fakeModel } = window.__widget;
     const tree = {
       tag: "wa-button",
       props: { variant: { Str: "brand" }, textContent: { Str: "Go" } },
@@ -30,10 +30,10 @@ test("mounts and upgrades a wa-* tree in the widget", async ({ page }) => {
         click: { kind: "toggle", target: { ref: "this" }, prop: "hidden" },
       },
     };
-    const model = fakeModel({ _wasm: wasm, _tree: tree });
+    const model = fakeModel({ _tree: tree });
     const el = document.createElement("div");
     document.body.appendChild(el);
-    await widget.initialize({ model });
+    await widget.initialize();
     await widget.render({ model, el });
 
     const button = el.querySelector("wa-button");

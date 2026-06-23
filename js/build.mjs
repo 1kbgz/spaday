@@ -38,9 +38,12 @@ const BUNDLES = [
     outfile: "dist/cdn/examples/webawesome.js",
   },
   {
-    // spaday as an anywidget ESM (self-contained runtime); the Python Widget loads it as `_esm`.
+    // spaday as an anywidget ESM (self-contained runtime + inlined wasm); the Python Widget loads it
+    // as `_esm`. The `binary` loader inlines the wasm core into the bundle (see widget.ts), so the
+    // widget is one self-contained file with no separately-synced `_wasm`.
     entryPoints: ["src/ts/widget.ts"],
     outfile: "dist/cdn/widget.js",
+    loader: { ".wasm": "binary" },
   },
   {
     // The widget bundle with the full WebAwesome catalog statically registered — the default ESM for
@@ -48,6 +51,7 @@ const BUNDLES = [
     // is a generated virtual module (see WA_WIDGET_ENTRY) re-exporting the lean widget's default.
     stdin: { contents: WA_WIDGET_ENTRY, resolveDir: ".", loader: "js" },
     outfile: "dist/cdn/widget.webawesome.js",
+    loader: { ".wasm": "binary" },
   },
 ];
 
