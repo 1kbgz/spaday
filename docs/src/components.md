@@ -1,80 +1,99 @@
-# Components
+# Author a component tree
 
-spaday binds **web components** into a tree you author in typed Python. A UI is a tree of
-{py:class}`~spaday.component.Component` nodes — each a tag, props, and child slots — that serializes
-to the wire form the core's `diff`/`apply` engine understands.
+This guide shows you how to build a spaday UI from typed components: setting props, nesting children,
+laying out with shell components, and serializing the result. To attach behavior, see
+[Add behavior and reactivity](behavior.md).
 
-## Authoring a tree
+## Use a built-in component
 
-Component classes are generated from a web-component library's manifest (see below). WebAwesome ships
-built-in:
-
-```python
-from spaday.components.webawesome import WaCard, WaSwitch, WaButton
-
-card = (
-    WaCard(appearance="filled")
-    .child_in("header", WaButton(variant="brand"))
-    .child(WaSwitch(checked=True, size="large").key("lamp"))
-)
-
-card.to_json()   # the wire form for spaday.diff / spaday.apply
-```
-
-Each attribute is a typed keyword argument (`checked: Optional[bool]`, `size:
-Optional[Literal["small", "medium", "large"]]`, ...). A prop you don't set is omitted, so the element
-keeps its own default and patches stay minimal. Compose children with `child` / `child_in`, and set a
-reconciliation key with `key`.
-
-```{note}
-This is the binding layer — structure and props. Wiring *behavior* to events (the declarative action
-DSL) is a later phase; generated classes expose props and slots today.
-```
-
-## Binding any library — the CEM generator
-
-The typed classes are generated from a [Custom Elements Manifest] (`custom-elements.json`), the
-standard description web-component libraries publish. {py:func}`spaday.parse_cem` (in the Rust core)
-normalizes a manifest into component schemas; {py:func}`spaday.generate` renders them into a Python
-module. Point it at any library:
-
-```bash
-spaday-cem path/to/custom-elements.json -o my_components.py
-```
+WebAwesome components are generated as typed classes. Import one and set its attributes as keyword
+arguments:
 
 ```python
-import spaday
+from spaday.components.webawesome import WaButton
 
-code = spaday.generate("custom-elements.json")   # returns the module source (typed classes)
+WaButton(variant="brand", size="large")
 ```
 
-`generate` is the right choice when you want **typed, committed** classes (the WebAwesome catalog is
-produced this way). For a one-off or experimental manifest, {py:func}`spaday.classes` builds the
-component classes **at runtime** instead — no file, no static types, but it still validates keyword
-names:
+Every attribute is a typed keyword (`variant: Optional[Literal["brand", "neutral", ...]]`,
+`disabled: Optional[bool]`, …), so a typo or a wrong type is an error at authoring time. A prop you
+**don't** pass is omitted, so the element keeps its own default and update patches stay minimal.
+
+To use a component library other than WebAwesome, [generate its classes from a manifest](cem.md).
+
+## Nest children into slots
+
+Compose a tree with `.child(...)` for the default slot and `.child_in("slot", ...)` for a named one:
 
 ```python
-ns = spaday.classes("custom-elements.json")          # {"WaSwitch": <class>, ...}
-WaSwitch = spaday.classes("custom-elements.json", "WaSwitch")   # or just one class by name
-WaSwitch(checked=True).to_json()
+from spaday.components.webawesome import WaCard, WaButton, WaSwitch
+
+WaCard().child_in("header", WaButton(variant="brand")).child(WaSwitch())
 ```
 
-The same parse drives the JavaScript runtime registry (`registry(manifest)` in `spaday`'s JS
-package), so one manifest yields both the typed Python authoring API and the browser binding — the
-"one core, two bindings" model the diff engine already uses.
+`.child` returns the parent, so calls chain. Children are other components (or a raw element — below).
 
-The committed `spaday/components/webawesome.py` is checked against its source manifest by a test, so
-it can't silently drift from the generator; regenerate it with `python -m spaday.cem <manifest> -o
-spaday/components/webawesome.py` followed by `ruff format`.
+## Set text
 
-## Rendering in the browser
+`.text(...)` sets a leaf's text content — use it for labels, not alongside child nodes:
 
-A tree's JSON and the patches `spaday.diff` produces are consumed by spaday's **browser runtime** (the
-JS package): `mount(container, tree)` instantiates the web components into the DOM, and
-`applyPatch(root, patch)` applies an update **incrementally** — live element instances are preserved
-(a keyed reorder moves the same nodes rather than rebuilding them). So a UI authored and mutated in
-Python streams to the browser as minimal patches and renders without full re-draws. Wiring component
-*events* back to behavior is the declarative action DSL (a later phase); the runtime renders structure
-and props today.
+```python
+WaButton(variant="brand").text("Save")
+```
 
-[Custom Elements Manifest]: https://github.com/webcomponents/custom-elements-manifest
+## Lay out with shell components
+
+spaday does not expose `div`. Compose layout from the `spa-*` shell components, which carry their own
+encapsulated layout:
+
+```python
+from spaday.components.shell import App, Nav, Body, Gutter, Main, Footer, Stack, Row, Toolbar
+
+App().child(Nav().child(...)).child(Body().child(Gutter().child(...)).child(Main().child(...)))
+```
+
+`Stack` stacks children vertically, `Row` lays them horizontally, `Toolbar` is a control strip; `App` /
+`Nav` / `Body` / `Gutter` / `Main` / `Footer` are the page shell.
+
+## Reach for a raw element
+
+For text or a structural tag a typed class doesn't cover, use `element`:
+
+```python
+from spaday import element
+
+element("strong").text("Settings")
+element("a", href="https://example.com").text("docs")
+```
+
+A trailing underscore on a prop name is stripped, so reserved words work: `element("label", for_="x")`.
+
+## Set a prop a typed class doesn't expose
+
+`.prop(name, value)` is the escape hatch for an attribute the generated class doesn't have (a custom
+attribute, `style`, `id`, …):
+
+```python
+WaButton().prop("id", "save").prop("style", "margin-left:auto")
+```
+
+## Key for stable updates
+
+Give a node a stable `key` so the diff engine reconciles it by identity across updates (so a reordered
+list moves live elements instead of rebuilding them):
+
+```python
+WaSwitch().key("lamp")
+```
+
+## Serialize
+
+`.to_node()` returns the JSON-ready node dict; `.to_json()` returns its string form. This is the wire
+form the core's `diff` / `apply` understand and the runtime mounts:
+
+```python
+WaCard().child(WaSwitch()).to_node()
+```
+
+In a notebook you rarely call these directly — [`Widget`](notebook.md) does it for you; over a server
+they are served as the tree the browser mounts.
