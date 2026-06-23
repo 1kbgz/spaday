@@ -291,6 +291,15 @@ round-trip to Python.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.bind">
+<span class="sig-name descname"><span class="pre">bind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'one-way'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.bind"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.bind" title="Link to this definition">¶</a></dt>
+<dd><p>Reactively bind a <code class="docutils literal notranslate"><span class="pre">prop</span></code> to a state <code class="docutils literal notranslate"><span class="pre">field</span></code> in the runtime’s signal store.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mode=&quot;one-way&quot;</span></code> keeps the prop in sync with the field; <code class="docutils literal notranslate"><span class="pre">&quot;two-way&quot;</span></code> also writes the field
+back when the control changes (for value-like controls). The binding is data interpreted in the
+browser — the field’s value flows to the prop with no round-trip to Python.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="spaday.Component.to_node">
 <span class="sig-name descname"><span class="pre">to_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.to_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.to_node" title="Link to this definition">¶</a></dt>
 <dd><p>The node as the core’s JSON-ready dict (empty fields omitted, like the Rust core).</p>
@@ -395,6 +404,7 @@ round-trip to Python.</p>
 <li><a class="reference internal" href="#spaday.Component.text"><code class="docutils literal notranslate"><span class="pre">Component.text()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.prop"><code class="docutils literal notranslate"><span class="pre">Component.prop()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.on"><code class="docutils literal notranslate"><span class="pre">Component.on()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.bind"><code class="docutils literal notranslate"><span class="pre">Component.bind()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.to_node"><code class="docutils literal notranslate"><span class="pre">Component.to_node()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.to_json"><code class="docutils literal notranslate"><span class="pre">Component.to_json()</span></code></a></li>
 </ul>
