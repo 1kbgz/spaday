@@ -15,16 +15,18 @@ Run: ``python -m spaday.examples.reactive`` then open http://127.0.0.1:8001/.
 """
 
 import asyncio
+import json
 from pathlib import Path
 
 import transports
 import uvicorn
 from pydantic import BaseModel
 from starlette.applications import Starlette
-from starlette.responses import FileResponse, JSONResponse
+from starlette.responses import FileResponse, Response
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 
+import spaday
 from spaday import element
 from spaday.components.shell import Main, Row, Stack
 
@@ -62,8 +64,11 @@ async def homepage(_request):
     return FileResponse(HERE / "reactive.html")
 
 
-async def tree_json(_request):
-    return JSONResponse(tree())
+async def tree_frame(_request):
+    # The tree ships as a transports Snapshot frame — the same length-prefixed, codec-tagged envelope
+    # transports uses for model state, so the UI tree and the data ride one wire.
+    frame = spaday.encode_frame(json.dumps(tree()), "spa-main", "snapshot", 0, "application/json")
+    return Response(frame, media_type="application/octet-stream")
 
 
 async def startup():
@@ -73,7 +78,7 @@ async def startup():
 app = Starlette(
     routes=[
         Route("/", homepage),
-        Route("/tree.json", tree_json),
+        Route("/tree", tree_frame),
         WebSocketRoute("/ws", transports.ws_endpoint(server)),
         Mount("/js", StaticFiles(directory=JS)),
     ],
