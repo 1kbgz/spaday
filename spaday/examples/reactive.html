@@ -20,7 +20,7 @@
       // spaday owns the UI; transports owns the wire; connectStore is the only place they meet. Note
       // there is NO control-change handler and NO client.edit() call below — the tree's two-way
       // bindings + connectStore do it all.
-      import { mount, init, Store, connectStore } from "/js/dist/esm/index.js";
+      import { mount, init, Store, connectStore, decodeFrame } from "/js/dist/esm/index.js";
       import {
         Client,
         fromValue,
@@ -34,7 +34,9 @@
           "/js/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm",
       });
 
-      const node = await (await fetch("/tree.json")).json();
+      // the tree arrives as a transports frame; decode it back to the node for mount
+      const framed = new Uint8Array(await (await fetch("/tree")).arrayBuffer());
+      const node = JSON.parse(decodeFrame(framed)).payload;
 
       const store = new Store(); // spaday: reactive state backing the tree's bindings
       const client = new Client(); // transports: mirror of the authoritative model
