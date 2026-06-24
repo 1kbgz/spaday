@@ -23,7 +23,7 @@ with **transports** as the live wire.
 ## Run
 
 ```bash
-pip install transports                       # the Python wire (also: starlette, uvicorn, websockets)
+pip install "spaday[examples]"               # transports (the wire) + starlette + uvicorn + websockets
 cd js && pnpm install && pnpm build && cd .. # builds js/dist; pulls @1kbgz/transports + webawesome
 python -m spaday.examples                    # -> http://127.0.0.1:8000
 ```
@@ -82,6 +82,8 @@ chart, and a refresh re-fetches the current authoritative snapshot — all tabs 
 multi-worker setup, where each worker would tick its own diverging series). The page reconnects on a drop
 (e.g. a worker restart), re-fetching state each time.
 
-Needs a `transports` with the clustering API (`RelayBroadcaster` / `ZmqBackplane`; `pip install pyzmq`).
+Install: `pip install "spaday[cluster]"` (pulls `pyzmq` + the serving deps), with a `transports` that has
+the clustering API (`RelayBroadcaster` / `ZmqBackplane`). Set `SPADAY_CLUSTER_FRONT` / `SPADAY_CLUSTER_BACK`
+to run more than one independent cluster on a host (the default bus addresses are shared otherwise).
 
 Run: `uvicorn spaday.examples.cluster:app --workers 4 --port 8003` → http://127.0.0.1:8003
