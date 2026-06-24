@@ -8,8 +8,8 @@ Run: ``python -m spaday.examples.form`` then open http://127.0.0.1:8002/.
 """
 
 import asyncio
+import enum
 from pathlib import Path
-from typing import Literal
 
 import transports
 import uvicorn
@@ -25,13 +25,17 @@ HERE = Path(__file__).parent
 JS = HERE.parent.parent / "js"
 
 
+class Size(str, enum.Enum):
+    small = "small"
+    medium = "medium"
+    large = "large"
+
+
 class Settings(BaseModel):
     name: str = "lamp"
     enabled: bool = True
     brightness: int = 50
-    # a Literal (a plain str field) becomes a <wa-select>; an Enum would too, but transports'
-    # bigbrother deep-watch can't observe enum field values (enums aren't subclassable) — Literal sidesteps it
-    size: Literal["small", "medium", "large"] = "medium"
+    size: Size = Size.medium  # an Enum field → a <wa-select> of its members
 
 
 session = transports.Session()
