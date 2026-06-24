@@ -1,9 +1,9 @@
 import enum
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
 from pydantic import BaseModel
 
-from spaday.components import form
+from spaday.components import FormField, WaInput, form
 
 
 class Color(enum.Enum):
@@ -72,3 +72,42 @@ def test_exclude_skips_fields():
 
 def test_accepts_an_instance():
     assert set(_controls(Settings(name="x"))) == set(Settings.model_fields)
+
+
+class Hinted(BaseModel):
+    name: str = "x"
+    secret: Annotated[str, FormField(exclude=True)] = ""
+    size: Annotated[str, FormField(label="Box size")] = "m"
+    color: Annotated[str, FormField(control=WaInput(label="Pick"))] = "red"
+
+
+def test_annotated_formfield_excludes_and_relabels():
+    c = _controls(Hinted)
+    assert "secret" not in c  # FormField(exclude=True)
+    assert "name" in c
+    assert c["size"]["props"]["label"] == {"Str": "Box size"}  # FormField(label=...)
+
+
+def test_annotated_formfield_swaps_the_control():
+    c = _controls(Hinted)["color"]  # FormField(control=WaInput(label="Pick"))
+    assert c["props"]["label"] == {"Str": "Pick"}
+    assert c["bindings"]["value"]["field"] == "color"  # auto-bound two-way to the field
+    assert c["bindings"]["value"]["mode"] == "two-way"
+
+
+def test_call_site_overrides_win_over_annotated():
+    c = _controls(Hinted, overrides={"size": FormField(label="CALL")})
+    assert c["size"]["props"]["label"] == {"Str": "CALL"}  # call-site beats the Annotated label
+    assert "name" not in _controls(Hinted, overrides={"name": FormField(exclude=True)})
+
+
+def test_control_factory_receives_field_info_and_is_used_as_is():
+    seen = {}
+
+    def factory(name, annotation, required):
+        seen["call"] = (name, annotation, required)
+        return WaInput(label="factory").bind("value", name, mode="two-way")
+
+    c = _controls(Hinted, overrides={"name": FormField(control=factory)})["name"]
+    assert c["props"]["label"] == {"Str": "factory"}
+    assert seen["call"] == ("name", str, False)  # has a default → not required

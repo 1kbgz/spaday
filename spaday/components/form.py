@@ -11,6 +11,9 @@ field → control mapping:
 - ``int`` / ``float`` → ``wa-input`` (number)
 - ``Enum`` / ``Literal[...]`` → ``wa-select`` with a ``wa-option`` per choice
 
+Customize per field with `FormField` (drop, relabel, or swap the control) — co-located via
+``Annotated[T, FormField(...)]`` or at the call site via ``form(model, overrides={...})``.
+
 The returned `Stack` is an ordinary component — add a submit `WaButton` with a ``CallEndpoint`` action,
 or wrap it in a card, as you like. Richer schema constraints (min/max/pattern from field metadata) are a
 later refinement; required-ness is surfaced today.
@@ -19,11 +22,32 @@ later refinement; required-ness is surfaced today.
 from __future__ import annotations
 
 import enum
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, Literal, Union, get_args, get_origin
 
 from ..component import Component
 from .shell import Stack
 from .webawesome import WaInput, WaOption, WaSelect, WaSwitch
+
+
+@dataclass(frozen=True)
+class FormField:
+    """Per-field overrides for :func:`form`.
+
+    Attach one of two ways — co-located on the model with ``Annotated[T, FormField(...)]``, or at the
+    call site with ``form(model, overrides={name: FormField(...)})`` (the call-site one wins). Use it to:
+
+    - **drop** a field — ``exclude=True``
+    - **relabel** it — ``label="…"``
+    - **replace its control** — ``control=`` either a ready `Component` (two-way bound to the field on
+      ``value`` for you — good for inputs/selects/radios), or a ``(name, annotation, required) ->
+      Component`` factory you bind yourself (for anything else, e.g. a ``checked`` binding).
+    """
+
+    label: str | None = None
+    exclude: bool = False
+    control: Component | Callable[[str, Any, bool], Component] | None = None
 
 
 def _unwrap_optional(ann: Any) -> Any:
@@ -44,28 +68,50 @@ def _choices(ann: Any):
     return None
 
 
-def _control(name: str, annotation: Any, required: bool) -> Component:
+def _hint(info: Any, override: FormField | None) -> FormField | None:
+    """The effective override for a field — a call-site one wins over an ``Annotated`` one."""
+    if override is not None:
+        return override
+    return next((m for m in info.metadata if isinstance(m, FormField)), None)
+
+
+def _control(name: str, annotation: Any, required: bool, hint: FormField | None) -> Component:
+    if hint is not None and hint.control is not None:
+        control = hint.control
+        if isinstance(control, Component):
+            return control.bind("value", name, mode="two-way")
+        return control(name, annotation, required)
+
+    label = (hint.label if hint else None) or name
     ann = _unwrap_optional(annotation)
     req = required or None  # pass the prop only when True, so it's omitted otherwise
 
     choices = _choices(ann)
     if choices is not None:
-        select = WaSelect(label=name, required=req).bind("value", name, mode="two-way")
-        for value, label in choices:
-            select = select.child(WaOption(value=str(value)).text(str(label)))
+        select = WaSelect(label=label, required=req).bind("value", name, mode="two-way")
+        for value, opt_label in choices:
+            select = select.child(WaOption(value=str(value)).text(str(opt_label)))
         return select
     if ann is bool:
-        return WaSwitch().text(name).bind("checked", name, mode="two-way")
+        return WaSwitch().text(label).bind("checked", name, mode="two-way")
     input_type = "number" if ann in (int, float) else "text"
-    return WaInput(label=name, type=input_type, required=req).bind("value", name, mode="two-way")
+    return WaInput(label=label, type=input_type, required=req).bind("value", name, mode="two-way")
 
 
-def form(model: Any, *, exclude: tuple = ()) -> Stack:
-    """A two-way-bound form for a pydantic model (class or instance); fields in `exclude` are skipped."""
+def form(model: Any, *, exclude: tuple = (), overrides: dict[str, FormField] | None = None) -> Stack:
+    """A two-way-bound form for a pydantic model (class or instance).
+
+    Fields in ``exclude`` are skipped. Per-field tweaks come from `FormField` — either ``Annotated`` on
+    the model, or supplied/overridden here via ``overrides={name: FormField(...)}`` (which wins).
+    """
+    overrides = overrides or {}
     fields = (model if isinstance(model, type) else type(model)).model_fields
     stack = Stack()
     for name, info in fields.items():
         if name in exclude:
             continue
-        stack = stack.child(_control(name, info.annotation, info.is_required()))
+        hint = _hint(info, overrides.get(name))
+        if hint is not None and hint.exclude:
+            continue
+        stack = stack.child(_control(name, info.annotation, info.is_required(), hint))
     return stack
