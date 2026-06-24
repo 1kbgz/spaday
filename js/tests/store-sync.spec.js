@@ -110,3 +110,53 @@ test("inbound updates a two-way control, and applying an inbound frame does not 
   expect(result.checked).toBe(true); // the inbound value reached the bound control
   expect(result.echoes).toBe(0); // echo guard: inbound updates are not sent straight back out
 });
+
+test("inbound: a nested sub-model field flows to a dotted-path binding", async ({
+  page,
+}) => {
+  const text = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { mount, Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "span",
+        bindings: { textContent: { field: "address.street", mode: "one-way" } },
+      },
+      store,
+    );
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(JSON.stringify({ address: { street: "Main", city: "NYC" } }));
+    return root.textContent;
+  }, FAKE.toString());
+  expect(text).toBe("Main"); // the sub-model flattened to a dotted field and reached the bound prop
+});
+
+test("outbound: editing a nested control sends a deep-set edit preserving siblings", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { mount, Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const input = mount(
+      document.createElement("div"),
+      {
+        tag: "input",
+        bindings: { value: { field: "address.street", mode: "two-way" } },
+      },
+      store,
+    );
+    const sent = [];
+    const link = connectStore(store, client, (f) => sent.push(f), codec);
+    link.receive(JSON.stringify({ address: { street: "Main", city: "NYC" } }));
+    input.value = "Oak";
+    input.dispatchEvent(new Event("change")); // two-way: nested control → deep-set edit
+    return { sent: sent.map((f) => JSON.parse(f)) };
+  }, FAKE.toString());
+  // the whole model goes out with only the nested leaf changed — the sibling city is preserved
+  expect(result.sent).toContainEqual({
+    address: { street: "Oak", city: "NYC" },
+  });
+});
