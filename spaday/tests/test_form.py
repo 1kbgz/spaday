@@ -111,3 +111,46 @@ def test_control_factory_receives_field_info_and_is_used_as_is():
     c = _controls(Hinted, overrides={"name": FormField(control=factory)})["name"]
     assert c["props"]["label"] == {"Str": "factory"}
     assert seen["call"] == ("name", str, False)  # has a default → not required
+
+
+class Address(BaseModel):
+    street: str = "Main"
+    city: str = "NYC"
+
+
+class Person(BaseModel):
+    name: str = "Ada"
+    address: Address = Address()
+
+
+def _children(node):
+    return node["slots"]["default"]
+
+
+def test_sub_model_becomes_an_expand_collapse_group():
+    top = _children(form(Person).to_node())
+    assert top[0]["tag"] == "wa-input"  # name
+    group = top[1]
+    assert group["tag"] == "wa-details"  # a sub-model is a disclosure (expand/collapse) section
+    assert group["props"]["summary"] == {"Str": "address"}
+    assert group["props"]["open"] == {"Bool": True}
+
+
+def test_sub_model_controls_bind_to_dotted_paths():
+    group = _children(form(Person).to_node())[1]
+    inner = _children(group["slots"]["default"][0])  # the wa-details holds a stack of controls
+    assert [next(iter(c["bindings"].values()))["field"] for c in inner] == ["address.street", "address.city"]
+    assert [c["props"]["label"]["Str"] for c in inner] == ["street", "city"]  # child name, not the path
+
+
+def test_nested_field_excluded_by_dotted_path():
+    group = _children(form(Person, exclude=("address.city",)).to_node())[1]
+    inner = _children(group["slots"]["default"][0])
+    assert [next(iter(c["bindings"].values()))["field"] for c in inner] == ["address.street"]
+
+
+def test_group_override_wraps_the_sub_model():
+    from spaday.components import WaCard
+
+    top = _children(form(Person, overrides={"address": FormField(group=lambda label, inner: WaCard().child(inner))}).to_node())
+    assert top[1]["tag"] == "wa-card"  # the custom group wrapper, instead of the default wa-details

@@ -145,3 +145,55 @@ test("a computed binding derives a prop from fields and recomputes reactively", 
   expect(result.initial).toEqual({ disabled: false, hidden: false }); // not(true); eq(basic,advanced)
   expect(result.after).toEqual({ disabled: true, hidden: true }); // recomputed when the fields changed
 });
+
+test("nested-path fields: set/get a dotted path; notify the leaf and its ancestor, not a sibling", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ address: { street: "Main", city: "NYC" } });
+    const seen = { leaf: [], parent: 0, sibling: 0 };
+    store.subscribe("address.street", (v) => seen.leaf.push(v));
+    store.subscribe("address", () => (seen.parent += 1));
+    store.subscribe("address.city", () => (seen.sibling += 1));
+    const before = store.get("address.street");
+    store.set("address.street", "Oak"); // write one nested leaf
+    return {
+      before,
+      after: store.get("address.street"),
+      siblingValue: store.get("address.city"), // sibling preserved through the immutable set
+      leaf: seen.leaf,
+      parentFired: seen.parent, // ancestor identity changed → notified
+      siblingFired: seen.sibling, // unchanged → not notified
+    };
+  });
+  expect(result.before).toBe("Main");
+  expect(result.after).toBe("Oak");
+  expect(result.siblingValue).toBe("NYC");
+  expect(result.leaf).toEqual(["Oak"]);
+  expect(result.parentFired).toBe(1);
+  expect(result.siblingFired).toBe(0);
+});
+
+test("a binding to a dotted path reacts to nested state, two-way", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ address: { street: "Main" } });
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "input",
+        bindings: { value: { field: "address.street", mode: "two-way" } },
+      },
+      store,
+    );
+    const initial = root.value; // nested field → prop on mount
+    root.value = "Oak";
+    root.dispatchEvent(new Event("change")); // two-way: control → nested field
+    return { initial, stored: store.get("address.street") };
+  });
+  expect(result.initial).toBe("Main");
+  expect(result.stored).toBe("Oak");
+});

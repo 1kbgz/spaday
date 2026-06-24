@@ -34,11 +34,40 @@ export interface StoreLink {
   dispose(): void;
 }
 
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  v != null && typeof v === "object" && !Array.isArray(v);
+
+/** Flatten a model to [dotted-path, leaf] pairs — recursing plain objects (sub-models), not arrays. */
+function* leaves(
+  obj: Record<string, unknown>,
+  prefix = "",
+): Generator<[string, unknown]> {
+  for (const [k, v] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${k}` : k;
+    if (isObj(v)) yield* leaves(v, path);
+    else yield [path, v];
+  }
+}
+
+/** Immutably set a dotted path within a plain model, cloning each level. */
+function setPath(
+  obj: Record<string, unknown>,
+  parts: string[],
+  value: unknown,
+): Record<string, unknown> {
+  const [head, ...rest] = parts;
+  const clone = { ...obj };
+  clone[head] = rest.length
+    ? setPath(isObj(clone[head]) ? clone[head] : {}, rest, value)
+    : value;
+  return clone;
+}
+
 /**
- * Bidirectionally sync a `Store` with a transports-mirrored model. Top-level model fields map by name
- * to store fields: inbound frames pull them into the store; a store field change (e.g. from a two-way
- * control) is pushed back as a `client.edit`, sent via `send`. Edits are server-authoritative — the
- * change takes effect when the server echoes it back through `receive`.
+ * Bidirectionally sync a `Store` with a transports-mirrored model. Model fields map by name to store
+ * fields — and a nested sub-model flattens to dotted `parent.child` fields: inbound frames pull them
+ * into the store; a store field change (e.g. from a two-way control) is pushed back as a `client.edit`,
+ * sent via `send`. Edits are server-authoritative — it takes effect when the server echoes it back.
  */
 export function connectStore(
   store: Store,
@@ -59,15 +88,20 @@ export function connectStore(
       const model = codec.fromValue(client.value(id));
       if (!model) return;
       inbound = true;
-      for (const [field, value] of Object.entries(model)) {
-        store.set(field, value); // model → store (→ any bound props)
+      for (const [field, value] of leaves(model)) {
+        store.set(field, value); // model → store (→ any bound props); nested → a dotted field
         if (!wired.has(field)) {
           wired.add(field);
           unsubs.push(
             store.subscribe(field, (v) => {
               if (inbound || id === undefined) return; // ignore echoes of an inbound update
               const current = codec.fromValue(client.value(id)) ?? {};
-              send(client.edit(id, codec.toValue({ ...current, [field]: v })));
+              send(
+                client.edit(
+                  id,
+                  codec.toValue(setPath(current, field.split("."), v)),
+                ),
+              );
             }),
           );
         }

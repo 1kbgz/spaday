@@ -4,8 +4,28 @@
 // back on change. The same store can later be backed by a transports model or the anywidget model so UI
 // state and app/server state mirror.
 
-export type Field = string;
+export type Field = string; // a field name, or a dotted path into nested state (e.g. "address.street")
 type Subscriber = (value: unknown) => void;
+
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  v != null && typeof v === "object" && !Array.isArray(v);
+
+/** Is `a` a strict ancestor path of `b`? e.g. "address" of "address.street". */
+const isAncestor = (a: Field, b: Field): boolean => b.startsWith(a + ".");
+
+/** Immutably set a path within `obj`, cloning each level so every parent gets a fresh identity. */
+function setPath(
+  obj: Record<string, unknown>,
+  parts: string[],
+  value: unknown,
+): Record<string, unknown> {
+  const [head, ...rest] = parts;
+  const clone = { ...obj };
+  clone[head] = rest.length
+    ? setPath(isObj(clone[head]) ? clone[head] : {}, rest, value)
+    : value;
+  return clone;
+}
 
 export class Store {
   private values: Map<Field, unknown>;
@@ -15,20 +35,55 @@ export class Store {
     this.values = new Map(Object.entries(initial));
   }
 
+  /** Read a field; a dotted `field` walks into nested objects (undefined if the path breaks). */
   get(field: Field): unknown {
-    return this.values.get(field);
+    const [head, ...rest] = field.split(".");
+    let v = this.values.get(head);
+    for (const p of rest) {
+      if (!isObj(v)) return undefined;
+      v = v[p];
+    }
+    return v;
   }
 
   has(field: Field): boolean {
-    return this.values.has(field);
+    const [head, ...rest] = field.split(".");
+    if (!this.values.has(head)) return false;
+    let v = this.values.get(head);
+    for (const p of rest) {
+      if (!isObj(v) || !(p in v)) return false;
+      v = v[p];
+    }
+    return true;
   }
 
-  /** Set a field and notify its subscribers; a no-op if the value is unchanged. */
+  /**
+   * Set a field and notify subscribers; a no-op if unchanged. A dotted `field` sets a nested leaf,
+   * rebuilding its parents immutably, and notifies the leaf plus its ancestors (whose identity changed)
+   * and any subscribed descendant whose value changed.
+   */
   set(field: Field, value: unknown): void {
-    if (Object.is(this.values.get(field), value)) return;
-    this.values.set(field, value);
-    const subs = this.subscribers.get(field);
-    if (subs) for (const cb of [...subs]) cb(value);
+    if (Object.is(this.get(field), value)) return;
+    const related = [...this.subscribers.keys()].filter(
+      (k) => k === field || isAncestor(k, field) || isAncestor(field, k),
+    );
+    const before = new Map(related.map((k) => [k, this.get(k)]));
+    const parts = field.split(".");
+    if (parts.length === 1) {
+      this.values.set(field, value);
+    } else {
+      const head = parts[0];
+      const root = isObj(this.values.get(head)) ? this.values.get(head) : {};
+      this.values.set(
+        head,
+        setPath(root as Record<string, unknown>, parts.slice(1), value),
+      );
+    }
+    for (const k of related) {
+      const now = this.get(k);
+      if (!Object.is(before.get(k), now))
+        for (const cb of [...this.subscribers.get(k)!]) cb(now);
+    }
   }
 
   /** Subscribe to a field; returns an unsubscribe function. */
