@@ -38,6 +38,7 @@ export class LightweightChart extends HTMLElement {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- data shape varies by series type
   private _data: any[] = [];
   private _theme: "light" | "dark" = "light";
+  private resizeObserver?: ResizeObserver;
 
   connectedCallback(): void {
     if (!this.style.display) this.style.display = "block";
@@ -50,9 +51,19 @@ export class LightweightChart extends HTMLElement {
     this.applyTheme();
     this.addSeries();
     this.draw();
+    // `autoSize` keeps the canvas matched to the element, but it does not re-fit the time scale. While
+    // the tree is mounting the element can still have zero width, so the initial `fitContent()` in
+    // draw() leaves the series compacted until the next draw(); re-fit on resize so it spans the full
+    // width on the first real layout (and stays fitted on later resizes).
+    this.resizeObserver = new ResizeObserver(() =>
+      this.chart?.timeScale().fitContent(),
+    );
+    this.resizeObserver.observe(this);
   }
 
   disconnectedCallback(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
     this.chart?.remove();
     this.chart = undefined;
     this.series = undefined;
