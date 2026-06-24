@@ -59,6 +59,12 @@
       mount(document.body, node, store); // shell + cards; the action DSL + bindings are wired automatically
 
       const byId = (id) => document.getElementById(id);
+      // The chart series rides the wire as a time-keyed map (so a windowed slide stays a 2-op delta);
+      // lightweight-charts wants a time-sorted array.
+      const series = (d) =>
+        Object.entries(d || {})
+          .map(([time, value]) => ({ time, value }))
+          .sort((a, b) => (a.time < b.time ? -1 : 1));
 
       // Light/dark toggle: flip the `wa-dark` class on <html> (WebAwesome + the shell follow it), and
       // recolor the charts, which are canvases that can't read CSS. (Class/root toggling and the chart
@@ -109,7 +115,7 @@
           const m = model();
           if (!m) return;
           chart.type = m.type;
-          chart.data = m.data;
+          chart.data = series(m.data);
           if (typeSel.value !== m.type) typeSel.value = m.type; // reflect model -> control
           if (liveSw.checked !== m.live) liveSw.checked = m.live;
           status.textContent = "live";
