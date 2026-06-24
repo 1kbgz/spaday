@@ -51,8 +51,10 @@ is independent per tab.
 
 - **Client-side vs round-trip**: the DSL card runs entirely in the browser; the transports cards
   round-trip edits to the server (authoritative) and fan patches to every client.
-- **Wholesale data patches**: a chart's series is one opaque prop, so each change resends `data`
-  (correct, not minimal); per-point deltas need the series modeled as tree state — later.
+- **Per-point deltas + bounded snapshot**: the live series is a time-keyed **map** capped at a window,
+  so each tick diffs to a 2-op delta (`Set` newest + `Remove` oldest) and every new client's snapshot
+  stays bounded. A positional *list* would resend the whole series on a windowed slide — transports'
+  list diff is positional, so dropping the front re-`Set`s every shifted element.
 - **TradingView logo** is disabled in the chart wrapper; attribution is in the page footer.
 
 ## `reactive.py` — declarative two-way binding over transports

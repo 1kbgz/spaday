@@ -53,6 +53,11 @@ HERE = Path(__file__).parent
 JS = HERE.parent.parent / "js"
 # value-shaped series only — the ticker emits {time, value}; candlestick/bar need OHLC points
 TYPES = ["line", "area", "histogram"]
+# A live series is a time-keyed map capped at WINDOW points. The per-tick patch is already a granular
+# delta either way, but an unbounded list would grow the snapshot every new client downloads forever
+# (the real wholesale cost). A *map* (not a list) is also what keeps the windowed slide granular: dropping
+# the oldest key diffs to one Remove + one Set, where a sliding list re-Sets every shifted element.
+WINDOW = 120
 
 
 def random_walk(n: int, *, seed: int = 7, start: float = 100.0) -> list:
@@ -68,26 +73,36 @@ def random_walk(n: int, *, seed: int = 7, start: float = 100.0) -> list:
 class Chart(BaseModel):
     type: str = "area"
     live: bool = True
-    data: list = Field(default_factory=list)
+    # a time(str) -> value map (not a list): a windowed slide then diffs to Set(newest) + Remove(oldest),
+    # a per-point delta, instead of a positional list shift that re-Sets every element
+    data: dict = Field(default_factory=dict)
 
 
 class ChartSource:
-    """A `Chart` model plus the running state that appends points to it."""
+    """A `Chart` model plus the running state that windows points into it."""
 
     def __init__(self, type: str = "area", seed: int = 0) -> None:
         self._rng = random.Random(seed)
         self._value, self._day = 100.0, date(2023, 1, 1)
-        self.model = Chart(type=type, data=[self._point() for _ in range(60)])
+        self.model = Chart(type=type, data=dict(self._point() for _ in range(WINDOW)))
 
-    def _point(self) -> dict:
+    def _point(self) -> tuple[str, float]:
         self._value += self._rng.uniform(-1.4, 1.5)
-        point = {"time": self._day.isoformat(), "value": round(self._value, 2)}
+        t = self._day.isoformat()
         self._day += timedelta(days=1)
-        return point
+        return t, round(self._value, 2)
 
     def tick(self) -> None:
         if self.model.live:
-            self.model.data = self.model.data + [self._point()]  # reassign so the Session observes it
+            # add the newest point and drop the oldest, keeping the series to WINDOW entries. Because it's
+            # a time-keyed map, the Session diffs this to Set(newest) + Remove(oldest) — a 2-op per-point
+            # delta — and the snapshot every new client downloads stays bounded (not an ever-growing list).
+            data = dict(self.model.data)
+            t, v = self._point()
+            data[t] = v
+            while len(data) > WINDOW:
+                del data[next(iter(data))]
+            self.model.data = data
 
 
 global_src = ChartSource(type="area", seed=7)
@@ -208,7 +223,7 @@ def transports_panel(prefix: str, title: str, chart_type: str) -> object:
             Toolbar()
             .child(select)
             .child(WaSwitch(checked=True).prop("id", f"{prefix}-live").text("Live").on("change", SendPatch(prefix, "live", event_value())))
-            .child(WaButton(variant="neutral").prop("id", f"{prefix}-clear").text("Clear").on("click", SendPatch(prefix, "data", lit([]))))
+            .child(WaButton(variant="neutral").prop("id", f"{prefix}-clear").text("Clear").on("click", SendPatch(prefix, "data", lit({}))))
         )
         .child(LightweightChart(type=chart_type).prop("id", f"{prefix}-chart"))
     )
