@@ -76,3 +76,32 @@ test("a SetProp patch updates the chart's data", async ({ page }) => {
 
   expect(len).toBe(4); // the runtime set the live element's `data` property
 });
+
+test("re-fits the time scale on resize, so it isn't left compacted from a zero-width mount", async ({
+  page,
+}) => {
+  await page.evaluate(
+    (n) => {
+      window.__el = window.__spaday.mount(document.body, n);
+    },
+    node("line", LINE),
+  );
+  await page.waitForFunction(() =>
+    document.querySelector("lightweight-chart canvas"),
+  );
+
+  const fits = await page.evaluate(async () => {
+    const el = window.__el;
+    const ts = el.chart.timeScale(); // TS `private` is compile-time only — the field is live at runtime
+    let count = 0;
+    const orig = ts.fitContent.bind(ts);
+    ts.fitContent = () => {
+      count += 1;
+      return orig();
+    };
+    el.style.width = "200px"; // a real size change → ResizeObserver → the wrapper re-fits
+    await new Promise((r) => setTimeout(r, 150));
+    return count;
+  });
+  expect(fits).toBeGreaterThan(0); // without the resize→fitContent the series stays compacted
+});
