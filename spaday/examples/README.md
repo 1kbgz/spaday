@@ -23,7 +23,7 @@ with **transports** as the live wire.
 ## Run
 
 ```bash
-pip install transports                       # the Python wire (also: starlette, uvicorn, websockets)
+pip install "spaday[examples]"               # transports (the wire) + starlette + uvicorn + websockets
 cd js && pnpm install && pnpm build && cd .. # builds js/dist; pulls @1kbgz/transports + webawesome
 python -m spaday.examples                    # -> http://127.0.0.1:8000
 ```
@@ -72,3 +72,18 @@ and they stay in sync. This is what the omnibus's hand-wired `SendPatch`→sink 
 reactive engine carries it.
 
 Run: `python -m spaday.examples.reactive` → http://127.0.0.1:8001
+
+## `cluster.py` — multi-worker, one shared chart
+
+The scaling/consistency counterpart to the omnibus. One shared, windowed `Chart` is fanned across
+`uvicorn --workers N` by a `RelayBroadcaster` over a `ZmqBackplane`: the **one** elected worker ticks,
+every worker keeps a replica and fans it to its own clients. So a client on **any** worker sees the same
+chart, and a refresh re-fetches the current authoritative snapshot — all tabs always match (unlike a naive
+multi-worker setup, where each worker would tick its own diverging series). The page reconnects on a drop
+(e.g. a worker restart), re-fetching state each time.
+
+Install: `pip install "spaday[cluster]"` (pulls `pyzmq` + the serving deps), with a `transports` that has
+the clustering API (`RelayBroadcaster` / `ZmqBackplane`). Set `SPADAY_CLUSTER_FRONT` / `SPADAY_CLUSTER_BACK`
+to run more than one independent cluster on a host (the default bus addresses are shared otherwise).
+
+Run: `uvicorn spaday.examples.cluster:app --workers 4 --port 8003` → http://127.0.0.1:8003

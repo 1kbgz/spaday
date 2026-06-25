@@ -36,6 +36,8 @@ dependencies = []
 
 [project.optional-dependencies]
 widget = ["anywidget"]
+examples = ["transports", "starlette", "uvicorn", "websockets"]
+cluster = ["transports", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
 develop = [
     "anywidget",
     "build",
