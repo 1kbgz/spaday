@@ -19,6 +19,12 @@ with **transports** as the live wire.
   relabel, and a nested `Schedule` sub-model rendered as an expand/collapse `wa-details` whose controls
   bind to dotted `schedule.start` paths. Two-way bound to a hosted model via `connectStore`, so editing
   even a nested field is server-authoritative and fans to other tabs.
+- **Perspective — config pushed over transports (Mode B)** — a live `<perspective-panel>` (the
+  `PerspectivePanel` wrapper). The table **data** streams over Perspective's *own* websocket
+  (`/perspective`, a `perspective.Server`); spaday/transports sync only a small **config** model
+  (`ws_url`, `tables`, `layout` + per-viewer views). So the server can **push** a new view at any time —
+  the "Push a new view" button flips the workspace layout for *every* connected tab (not a one-time REST
+  call). Needs `pip install "spaday[perspective]"` and the perspective JS (built into the wrapper bundle).
 
 ## Run
 
