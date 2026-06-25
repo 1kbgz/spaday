@@ -17,8 +17,14 @@ Customize per field with `FormField` (drop, relabel, swap the control, or wrap a
 co-located via ``Annotated[T, FormField(...)]`` or at the call site via ``form(model, overrides={...})``.
 
 The returned `Stack` is an ordinary component — add a submit `WaButton` with a ``CallEndpoint`` action,
-or wrap it in a card, as you like. Richer schema constraints (min/max/pattern from field metadata) are a
-later refinement; required-ness is surfaced today.
+or wrap it in a card, as you like.
+
+Validation is surfaced from the schema as native control constraints, so a bad value is caught in the
+browser before it is sent (the runtime's two-way binding won't write/send a value its control reports
+invalid): a non-``Optional`` number or select is ``required`` (it can't be cleared to an empty value the
+model would reject), and ``ge``/``le`` → ``min``/``max``, ``min_length``/``max_length`` →
+``minlength``/``maxlength``, and ``pattern`` become input constraints. Server-side validation (transports)
+remains the authority; this just avoids the doomed round-trip and shows the error inline.
 """
 
 from __future__ import annotations
@@ -28,6 +34,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any, Literal, Union, get_args, get_origin
 
+import annotated_types as at
 from pydantic import BaseModel
 
 from ..component import Component
@@ -68,6 +75,47 @@ def _unwrap_optional(ann: Any) -> Any:
     return ann
 
 
+def _is_optional(ann: Any) -> bool:
+    """True if ``None`` is allowed (``Optional[X]`` / ``X | None``) — the field may be left empty."""
+    return get_origin(ann) is Union and type(None) in get_args(ann)
+
+
+def _required(info: Any) -> bool:
+    """Whether the control must not be left empty. A number or a select can't accept an empty value, so a
+    non-``Optional`` one is required even when it has a default (the bug: clearing a defaulted ``int`` sent
+    ``""``, which the model rejects). For other fields — notably ``str``, where ``""`` is a valid value —
+    keep pydantic's own required-ness (a ``min_length`` still adds a `minlength` constraint below)."""
+    ann = _unwrap_optional(info.annotation)
+    if ann in (int, float) or _choices(ann) is not None:
+        return not _is_optional(info.annotation)
+    return info.is_required()
+
+
+def _constraints(annotation: Any, metadata: Any) -> dict:
+    """Native validation attributes from the field's type + pydantic constraints, so the browser/control
+    validates before an edit is sent: ``ge``/``gt`` → ``min``, ``le``/``lt`` → ``max``,
+    ``min_length``/``max_length`` → ``minlength``/``maxlength``, ``pattern`` → ``pattern``; ints get ``step=1``."""
+    attrs: dict = {}
+    for m in metadata:
+        if isinstance(m, at.Ge):
+            attrs["min"] = m.ge
+        elif isinstance(m, at.Gt):
+            attrs["min"] = m.gt
+        elif isinstance(m, at.Le):
+            attrs["max"] = m.le
+        elif isinstance(m, at.Lt):
+            attrs["max"] = m.lt
+        elif isinstance(m, at.MinLen):
+            attrs["minlength"] = m.min_length
+        elif isinstance(m, at.MaxLen):
+            attrs["maxlength"] = m.max_length
+        elif getattr(m, "pattern", None):
+            attrs["pattern"] = m.pattern
+    if _unwrap_optional(annotation) is int:
+        attrs["step"] = 1  # integers only — no decimals
+    return attrs
+
+
 def _choices(ann: Any):
     """The `(value, label)` choices for an Enum or `Literal[...]`, else `None`."""
     if isinstance(ann, type) and issubclass(ann, enum.Enum):
@@ -88,7 +136,7 @@ def _label(name: str, hint: FormField | None) -> str:
     return (hint.label if hint and hint.label else None) or name
 
 
-def _control(field: str, label: str, annotation: Any, required: bool, hint: FormField | None) -> Component:
+def _control(field: str, label: str, annotation: Any, required: bool, hint: FormField | None, metadata: Any = ()) -> Component:
     if hint is not None and hint.control is not None:
         control = hint.control
         if isinstance(control, Component):
@@ -107,7 +155,10 @@ def _control(field: str, label: str, annotation: Any, required: bool, hint: Form
     if ann is bool:
         return WaSwitch().text(label).bind("checked", field, mode="two-way")
     input_type = "number" if ann in (int, float) else "text"
-    return WaInput(label=label, type=input_type, required=req).bind("value", field, mode="two-way")
+    inp = WaInput(label=label, type=input_type, required=req)
+    for name, value in _constraints(annotation, metadata).items():
+        inp = inp.prop(name, value)  # min / max / step / minlength / maxlength / pattern
+    return inp.bind("value", field, mode="two-way")
 
 
 def _group(label: str, prefix: str, submodel: type[BaseModel], exclude, overrides, hint: FormField | None) -> Component:
@@ -134,7 +185,7 @@ def _controls_for(model_cls: type[BaseModel], prefix: str, exclude, overrides) -
         if (hint is None or hint.control is None) and isinstance(ann, type) and issubclass(ann, BaseModel):
             yield _group(_label(name, hint), f"{path}.", ann, exclude, overrides, hint)
         else:
-            yield _control(path, _label(name, hint), info.annotation, info.is_required(), hint)
+            yield _control(path, _label(name, hint), info.annotation, _required(info), hint, info.metadata)
 
 
 def form(model: Any, *, exclude: tuple = (), overrides: dict[str, FormField] | None = None) -> Stack:
