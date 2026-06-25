@@ -155,7 +155,15 @@ function wireBinding(
     if (store.has(spec.field)) setProp(el, prop, store.get(spec.field)); // initial field → prop
     teardowns.push(store.subscribe(spec.field, (v) => setProp(el, prop, v)));
     if (spec.mode === "two-way") {
-      const onChange = () => store.set(spec.field!, readProp(el, prop));
+      const onChange = () => {
+        // Don't propagate an invalid value (e.g. a non-numeric or out-of-range entry in a constrained
+        // control): the store/server keep the last good value and the control shows its own invalid
+        // state. Server-side validation (transports) is still the authority; this just avoids the
+        // doomed round-trip. Controls without constraint validation always pass.
+        const v = el as unknown as { checkValidity?: () => boolean };
+        if (typeof v.checkValidity === "function" && !v.checkValidity()) return;
+        store.set(spec.field!, readProp(el, prop));
+      };
       for (const ev of VALUE_EVENTS) el.addEventListener(ev, onChange);
       teardowns.push(() => {
         for (const ev of VALUE_EVENTS) el.removeEventListener(ev, onChange);

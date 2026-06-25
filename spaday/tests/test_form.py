@@ -1,7 +1,7 @@
 import enum
 from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from spaday.components import FormField, WaInput, form
 
@@ -50,10 +50,31 @@ def test_numeric_fields_use_number_inputs():
     assert c["name"]["props"]["type"] == {"Str": "text"}
 
 
-def test_required_is_surfaced_from_the_schema():
+def test_required_blocks_empty_where_the_model_cannot_accept_it():
     c = _controls(Settings)
-    assert c["name"]["props"].get("required") == {"Bool": True}  # no default → required
-    assert "required" not in c["count"].get("props", {})  # has a default → not required
+    # A non-Optional number or select can't be left empty — clearing it would send '' (the reported
+    # server crash), so it's required even with a default. A str (where '' is valid) is required only if
+    # it has no default, and an Optional field is never forced required.
+    assert c["name"]["props"]["required"] == {"Bool": True}  # str, no default → required
+    assert c["count"]["props"]["required"] == {"Bool": True}  # int with a default → still required
+    assert c["ratio"]["props"]["required"] == {"Bool": True}  # float → required
+    assert c["color"]["props"]["required"] == {"Bool": True}  # enum select → required
+    assert "required" not in c["note"].get("props", {})  # Optional[str] → may be left empty
+
+
+def test_schema_constraints_become_native_validation_attributes():
+    class Constrained(BaseModel):
+        level: Annotated[int, Field(ge=0, le=100)] = 50
+        short: Annotated[str, Field(min_length=2, max_length=8)] = "ab"
+        code: Annotated[str, Field(pattern="[A-Z]+")] = "AB"
+
+    c = _controls(Constrained)
+    assert c["level"]["props"]["min"] == {"Int": 0}
+    assert c["level"]["props"]["max"] == {"Int": 100}
+    assert c["level"]["props"]["step"] == {"Int": 1}  # int → integer steps only
+    assert c["short"]["props"]["minlength"] == {"Int": 2}
+    assert c["short"]["props"]["maxlength"] == {"Int": 8}
+    assert c["code"]["props"]["pattern"] == {"Str": "[A-Z]+"}
 
 
 def test_enum_and_literal_become_options():
