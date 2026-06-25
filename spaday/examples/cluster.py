@@ -29,7 +29,6 @@ from starlette.applications import Starlette
 from starlette.responses import FileResponse
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
-from starlette.websockets import WebSocket, WebSocketDisconnect
 from transports import Hub, LastWriteWins, RelayBroadcaster, ZmqBackplane
 
 HERE = Path(__file__).parent
@@ -82,31 +81,6 @@ async def ticker() -> None:
             del data[next(iter(data))]
 
 
-async def _send(ws: WebSocket, msg) -> None:
-    await (ws.send_bytes(msg) if isinstance(msg, (bytes, bytearray)) else ws.send_text(msg))
-
-
-async def ws_handler(ws: WebSocket) -> None:
-    await ws.accept()
-    for msg in relay.open(ws):  # the current authoritative snapshot — a (re)connect always refetches
-        await _send(ws, msg)
-    try:
-        while True:
-            frame = await ws.receive()
-            if frame.get("type") == "websocket.disconnect":
-                break
-            data = frame.get("text") if frame.get("text") is not None else frame.get("bytes")
-            if data is None:
-                continue
-            for conn, msgs in relay.recv(ws, data).items():
-                for m in msgs:
-                    await _send(conn, m)
-    except WebSocketDisconnect:
-        pass
-    finally:
-        relay.close(ws)
-
-
 async def homepage(_request):
     return FileResponse(HERE / "cluster.html")
 
@@ -126,7 +100,7 @@ async def lifespan(app):
 app = Starlette(
     routes=[
         Route("/", homepage),
-        WebSocketRoute("/ws", ws_handler),
+        WebSocketRoute("/ws", transports.ws_endpoint(relay)),  # the relay satisfies the Broadcaster contract
         Mount("/js", StaticFiles(directory=JS)),
     ],
     lifespan=lifespan,
