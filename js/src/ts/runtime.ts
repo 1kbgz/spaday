@@ -58,6 +58,49 @@ export function applyPatch(
   return current;
 }
 
+/**
+ * Hydrate server-rendered HTML (see Python `spaday.render_html`): adopt the existing DOM under
+ * `container` for `tree` instead of rebuilding it — attach event handlers + reactive bindings and
+ * (re)set props (so complex props the HTML couldn't carry, like a chart's data, are applied), reusing
+ * the live elements. Returns the root. Falls back to a full `mount` if nothing was pre-rendered.
+ */
+export function hydrate(
+  container: Element,
+  tree: Node,
+  store?: Store,
+): Element {
+  const el = container.firstElementChild;
+  if (!el) return mount(container, tree, store);
+  hydrateNode(el, tree, store);
+  return el;
+}
+
+function hydrateNode(el: Element, node: Node, store?: Store): void {
+  for (const [name, value] of Object.entries(node.props ?? {})) {
+    setProp(el, name, untag(value)); // re-affirm props; sets complex/property-only ones the HTML omitted
+  }
+  if (node.tag === "spa-show") {
+    wireShow(el, node, store); // structural children are client-mounted (the HTML rendered none)
+  } else {
+    for (const [slot, children] of Object.entries(node.slots ?? {})) {
+      const existing = childrenInSlot(el, slot);
+      children.forEach((child, i) => {
+        if (existing[i]) hydrateNode(existing[i], child, store);
+        else appendInSlot(el, slot, build(child, store)); // HTML missing this child → build it
+      });
+    }
+  }
+  for (const [name, action] of Object.entries(node.events ?? {})) {
+    bindEvent(el, name, action);
+  }
+  if (store) {
+    for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
+      if (node.tag === "spa-show" && prop === "when") continue; // structural — handled by wireShow
+      wireBinding(el, prop, spec, store);
+    }
+  }
+}
+
 // Live action listeners per element, so an incremental patch can update them: the diff engine emits
 // `SetEvent` when an action is added/changed and `RemoveEvent` when one is removed on an existing node.
 const listeners = new WeakMap<Element, Map<string, EventListener>>();

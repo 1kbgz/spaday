@@ -43,6 +43,13 @@ def _as_node(child: Child) -> dict:
     return child.to_node() if isinstance(child, Component) else child
 
 
+def _css_name(name: str) -> str:
+    """A Python kwarg → its CSS name: drop one trailing ``_``, then ``_`` → ``-`` (``font_size`` → ``font-size``)."""
+    if name.endswith("_"):
+        name = name[:-1]
+    return name.replace("_", "-")
+
+
 class Component:
     """Base for a node in the spaday component tree.
 
@@ -59,6 +66,8 @@ class Component:
         self._slots: Dict[str, List[Child]] = {}
         self._events: Dict[str, dict] = {}
         self._bindings: Dict[str, dict] = {}
+        self._style: Dict[str, str] = {}  # inline CSS declarations + custom properties (theming)
+        self._classes: List[str] = []  # CSS classes (variants / states)
 
     def key(self, key: str) -> "Component":
         """Set the reconciliation key (for keyed child diffing)."""
@@ -87,6 +96,30 @@ class Component:
         """Set an arbitrary prop (escape hatch for attributes a typed class doesn't expose)."""
         if value is not None:
             self._props[name] = value
+        return self
+
+    def style(self, **decls: Any) -> "Component":
+        """Set inline CSS declarations, e.g. ``.style(padding="1rem", font_size="2rem")``.
+
+        Keys are kebab-cased (``font_size`` → ``font-size``; a trailing ``_`` is dropped so reserved
+        words work, ``float_`` → ``float``). Composes with :meth:`css` and any literal ``style`` prop.
+        """
+        self._style.update({_css_name(k): str(v) for k, v in decls.items() if v is not None})
+        return self
+
+    def css(self, **variables: Any) -> "Component":
+        """Set CSS **custom properties** — the theming knob, e.g. ``.css(background_color="navy")`` →
+        ``--background-color: navy``. This is how a web component's documented `--*` theme tokens are
+        set from Python (per component), and how the ``spa-*`` shell is re-themed at the app level
+        (``App().css(spa_surface="#111", spa_border="#333")`` cascades to the whole shell). WebAwesome's
+        own tokens (``--wa-color-*``) are set the same way. See :mod:`spaday.theme`.
+        """
+        self._style.update({"--" + _css_name(k): str(v) for k, v in variables.items() if v is not None})
+        return self
+
+    def classes(self, *names: str) -> "Component":
+        """Add CSS classes (component variants / theme states), e.g. ``.classes("wa-dark")``."""
+        self._classes.extend(n for n in names if n)
         return self
 
     def on(self, event: str, action: Any) -> "Component":
@@ -120,13 +153,26 @@ class Component:
         self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
         return self
 
+    def _final_props(self) -> Dict[str, Any]:
+        """Props with theming folded in: ``style``/``class`` merged from :meth:`style`/:meth:`css`/
+        :meth:`classes` (after any literal ``style``/``class`` prop)."""
+        props = dict(self._props)
+        if self._style:
+            decls = "; ".join(f"{k}: {v}" for k, v in self._style.items())
+            props["style"] = f"{props['style']}; {decls}" if props.get("style") else decls
+        if self._classes:
+            names = " ".join(self._classes)
+            props["class"] = f"{props['class']} {names}" if props.get("class") else names
+        return props
+
     def to_node(self) -> dict:
         """The node as the core's JSON-ready dict (empty fields omitted, like the Rust core)."""
         node: dict = {"tag": self.tag}
         if self._key is not None:
             node["key"] = self._key
-        if self._props:
-            node["props"] = {name: _tag(v) for name, v in self._props.items()}
+        props = self._final_props()
+        if props:
+            node["props"] = {name: _tag(v) for name, v in props.items()}
         if self._slots:
             node["slots"] = {slot: [_as_node(c) for c in children] for slot, children in self._slots.items()}
         if self._events:

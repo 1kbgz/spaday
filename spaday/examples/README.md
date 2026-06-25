@@ -87,3 +87,20 @@ the clustering API (`RelayBroadcaster` / `ZmqBackplane`). Set `SPADAY_CLUSTER_FR
 to run more than one independent cluster on a host (the default bus addresses are shared otherwise).
 
 Run: `uvicorn spaday.examples.cluster:app --workers 4 --port 8003` → http://127.0.0.1:8003
+
+## `ssr.py` — server-side rendering + hydration, with theming
+
+Phase 3.5/3.4. The server renders the tree to **light-DOM HTML** with `spaday.render_html` and ships it
+in the page body, so the structure and text paint immediately (view source — the markup is all there,
+not an empty `<div id="app">`). The browser then **hydrates** with `hydrate(container, tree, store)`: the
+web components upgrade and the runtime *adopts* the existing elements — attaching the button's action and
+the two-way input binding instead of rebuilding the tree. No flash, no double render. Theming is authored
+in Python: `App().css(spa_surface=…, spa_border=…)` re-themes the whole shell via its `--spa-*` tokens,
+and a component's own `.css(background_color=…)` / `.classes(…)` set its CSS custom properties and classes.
+
+This is light-DOM SSR: the elements' shadow-DOM internals render on upgrade in the browser (full
+Declarative-Shadow-DOM SSR would need the component library running server-side). `spa-show` subtrees stay
+client-mounted (structural reactivity is a runtime concern), so the element renders empty and its children
+mount during hydrate.
+
+Run: `python -m spaday.examples.ssr` → http://127.0.0.1:8005
