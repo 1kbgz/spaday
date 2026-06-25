@@ -66,6 +66,32 @@ test("two-way binding: a control writes its field, updating other props bound to
   expect(result.bChecked).toBe(true); // ...which flowed to the other bound control
 });
 
+test("two-way binding skips an invalid value (gated on the control's validity)", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ n: 5 });
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "input",
+        props: { type: { Str: "number" }, required: { Bool: true } },
+        bindings: { value: { field: "n", mode: "two-way" } },
+      },
+      store,
+    );
+    root.value = ""; // empty + required → checkValidity() is false: the field must NOT be overwritten
+    root.dispatchEvent(new Event("input"));
+    const afterInvalid = store.get("n");
+    root.value = "42"; // a valid number → written through
+    root.dispatchEvent(new Event("input"));
+    return { afterInvalid, afterValid: store.get("n") };
+  });
+  expect(result.afterInvalid).toBe(5); // the invalid value was not propagated (no doomed edit)
+  expect(result.afterValid).toBe("42"); // a valid value still writes
+});
+
 test("an incremental SetBinding patch wires a binding on a live element", async ({
   page,
 }) => {
