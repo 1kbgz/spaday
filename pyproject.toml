@@ -38,6 +38,7 @@ dependencies = []
 widget = ["anywidget"]
 examples = ["transports", "starlette", "uvicorn", "websockets"]
 cluster = ["transports", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
+perspective = ["transports", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6"]  # the omnibus Perspective panel (Mode B: a perspective.Server over its own ws)
 develop = [
     "anywidget",
     "build",

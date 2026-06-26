@@ -33,6 +33,13 @@ const BUNDLES = [
     outfile: "dist/cdn/wrappers/lightweight-chart.js",
   },
   {
+    // Self-contained Perspective workspace wrapper (perspective-dev client/viewer/workspace/datagrid +
+    // the viewer wasm inlined as bytes via the `binary` loader); importing it defines <spaday-perspective>.
+    entryPoints: ["src/ts/wrappers/perspective-workspace.ts"],
+    outfile: "dist/cdn/wrappers/perspective-workspace.js",
+    loader: { ".wasm": "binary" },
+  },
+  {
     // Self-contained WebAwesome controls for the dashboard example (esbuild resolves WA's chunks).
     entryPoints: ["src/ts/examples/webawesome.ts"],
     outfile: "dist/cdn/examples/webawesome.js",

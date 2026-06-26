@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from spaday import apply, diff, generate
-from spaday.components import LightweightChart
+from spaday.components import LightweightChart, PerspectivePanel
 
 COMPONENTS = Path(__file__).parent.parent / "components"
 
@@ -29,4 +29,24 @@ def test_lightweight_charts_codegen_is_current():
         "spaday/components/lightweight_charts.py is stale — regenerate:\n"
         "  python -m spaday.cem spaday/components/lightweight_charts.cem.json "
         "-o spaday/components/lightweight_charts.py && ruff format spaday/components/lightweight_charts.py"
+    )
+
+
+def test_perspective_panel_builds_a_node():
+    node = PerspectivePanel(config={"ws_url": "/perspective", "tables": ["trades"], "layout": {"viewers": {}}}).to_node()
+    assert node["tag"] == "perspective-panel"
+    # the whole config rides as one structurally-tagged prop (the runtime sets it via the element's setter)
+    assert node["props"]["config"]["Map"]["ws_url"] == {"Str": "/perspective"}
+    assert node["props"]["config"]["Map"]["tables"]["List"][0] == {"Str": "trades"}
+    tree = PerspectivePanel().to_json()  # unset config is omitted; the node round-trips through the core
+    assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
+
+
+def test_perspective_codegen_is_current():
+    fresh = generate(str(COMPONENTS / "perspective.cem.json"))
+    committed = (COMPONENTS / "perspective.py").read_text(encoding="utf-8")
+    assert ast.dump(ast.parse(fresh)) == ast.dump(ast.parse(committed)), (
+        "spaday/components/perspective.py is stale — regenerate:\n"
+        "  python -m spaday.cem spaday/components/perspective.cem.json "
+        "-o spaday/components/perspective.py && ruff format spaday/components/perspective.py"
     )

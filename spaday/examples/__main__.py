@@ -35,6 +35,8 @@ from typing import Annotated
 
 import transports
 import uvicorn
+from perspective import Server as PerspectiveServer
+from perspective.handlers.starlette import PerspectiveStarletteHandler
 from pydantic import BaseModel, Field
 from starlette.applications import Starlette
 from starlette.responses import FileResponse, JSONResponse
@@ -43,9 +45,10 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from spaday import element
-from spaday.actions import SendPatch, Sequence, SetProp, Toggle, bind, by_id, event_value, lit, not_
+from spaday.actions import CallEndpoint, SendPatch, Sequence, SetProp, Toggle, bind, by_id, event_value, lit, not_
 from spaday.components.form import FormField, form
 from spaday.components.lightweight_charts import LightweightChart
+from spaday.components.perspective import PerspectivePanel
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Show, Stack, Toolbar
 from spaday.components.webawesome import WaButton, WaCallout, WaCard, WaOption, WaSelect, WaSwitch
 
@@ -138,6 +141,62 @@ class Device(BaseModel):
 form_session = transports.Session()
 form_session.host(Device())
 form_server = transports.Server(form_session)
+
+
+# Perspective (Mode B): the table DATA rides Perspective's own websocket (served at /perspective below);
+# spaday/transports carry only a small CONFIG (which server, which tables, and the workspace layout +
+# per-viewer views) that the server can PUSH at any time. A live trades blotter capped to a ring buffer.
+psp_server = PerspectiveServer()
+psp_client = psp_server.new_local_client()
+TRADES_SCHEMA = {"id": "integer", "symbol": "string", "price": "float", "size": "integer"}
+psp_table = psp_client.table(TRADES_SCHEMA, limit=2000, name="trades")  # ring buffer (append; drop oldest)
+_PSP_SYMBOLS = ["AAPL", "MSFT", "GOOG", "AMZN", "NVDA"]
+_psp_rng = random.Random(11)
+_psp_px = {s: round(_psp_rng.uniform(80, 400), 2) for s in _PSP_SYMBOLS}
+_psp_id = 0
+
+
+def psp_tick() -> None:
+    """Append a few random trades; they stream to every connected browser over Perspective's own websocket."""
+    global _psp_id
+    rows = []
+    for _ in range(6):
+        _psp_id += 1
+        sym = _psp_rng.choice(_PSP_SYMBOLS)
+        _psp_px[sym] = round(max(1.0, _psp_px[sym] + _psp_rng.uniform(-2, 2)), 2)
+        rows.append({"id": _psp_id, "symbol": sym, "price": _psp_px[sym], "size": _psp_rng.randint(1, 1000)})
+    psp_table.update(rows)
+
+
+def _psp_layout(viewer: dict) -> dict:
+    """A single-viewer perspective-workspace layout (the shape <perspective-workspace>.restore wants)."""
+    return {
+        "sizes": [1],
+        "detail": {"main": {"type": "tab-area", "widgets": ["view"], "currentIndex": 0}},
+        "master": {"sizes": [], "widgets": []},
+        "mode": "globalFilters",
+        "viewers": {"view": {"table": "trades", "plugin": "Datagrid", "theme": "Pro Light", **viewer}},
+    }
+
+
+# Two pushable presets: a flat live blotter and a by-symbol aggregation. The button below flips between
+# them server-side; every connected workspace re-restores — the "push a new view at any time" demo.
+PSP_BLOTTER = _psp_layout({"title": "Trades (live)", "sort": [["id", "desc"]]})
+PSP_BY_SYMBOL = _psp_layout(
+    {"title": "By symbol", "group_by": ["symbol"], "columns": ["price", "size"], "aggregates": {"price": "avg", "size": "sum"}}
+)
+
+
+class PerspectiveConfig(BaseModel):
+    ws_url: str = "/perspective"  # the Perspective data websocket (this app serves it)
+    tables: list = Field(default_factory=lambda: ["trades"])  # informational; discovered over the socket
+    layout: dict = Field(default_factory=lambda: dict(PSP_BLOTTER))  # the pushable workspace layout + views
+
+
+psp_config = PerspectiveConfig()
+psp_config_session = transports.Session()
+psp_config_session.host(psp_config)
+psp_config_server = transports.Server(psp_config_session)
 
 
 def callout(id: str, text: str, *, hidden: bool = False) -> object:
@@ -267,6 +326,28 @@ def form_card() -> object:
     )
 
 
+def perspective_card() -> object:
+    """A live Perspective table whose CONFIG (server, tables, layout + per-viewer views) is synced — and
+    pushed — over transports, while the table DATA streams over Perspective's own websocket (Mode B)."""
+    return WaCard(appearance="outlined").child(
+        Stack()
+        .child(element("strong").text("Perspective — live table, config pushed over transports"))
+        .child(
+            element("p").text(
+                "Mode B: the table data streams over Perspective's own websocket; spaday/transports sync "
+                "only a small config (server, tables, layout + views). The server can push a new view at "
+                "any time — click below and the layout flips for every connected tab, not a one-time call."
+            )
+        )
+        .child(
+            Row().child(
+                WaButton(variant="brand").text("Push a new view (server → all tabs)").on("click", CallEndpoint("POST", "/perspective/relayout"))
+            )
+        )
+        .child(PerspectivePanel().prop("id", "psp").prop("style", "height:360px;display:block"))
+    )
+
+
 def page() -> dict:
     """The whole page, authored from shell components (no layout divs; raw elements only for text)."""
     return (
@@ -291,9 +372,10 @@ def page() -> dict:
                     .child(element("span").text("transports live + edits"))
                     .child(element("span").text("global vs per-session"))
                     .child(element("span").text("form from schema (+ nested)"))
+                    .child(element("span").text("Perspective (config pushed)"))
                 )
             )
-            .child(Main().child(dsl_card()).child(structure_card()).child(transports_card()).child(form_card()))
+            .child(Main().child(dsl_card()).child(structure_card()).child(transports_card()).child(form_card()).child(perspective_card()))
         )
         .child(
             Footer()
@@ -310,6 +392,21 @@ async def homepage(request):
 
 async def tree(request):
     return JSONResponse(page())
+
+
+async def psp_data_endpoint(ws: WebSocket) -> None:
+    """Perspective's own data websocket — the bulk table data, not transports. The handler accepts the
+    socket and bridges it to the Perspective server (table updates fan to every connected browser)."""
+    handler = PerspectiveStarletteHandler(perspective_server=psp_server, websocket=ws)
+    await handler.run()
+
+
+async def psp_relayout(request):
+    """Push a different workspace layout/view to EVERY connected browser by mutating the shared config
+    model — transports fans the change and each perspective-panel re-restores. Flips between two presets."""
+    grouped = psp_config.layout.get("viewers", {}).get("view", {}).get("group_by")
+    psp_config.layout = dict(PSP_BLOTTER) if grouped else dict(PSP_BY_SYMBOL)
+    return JSONResponse({"view": psp_config.layout["viewers"]["view"]["title"]})
 
 
 async def _send(ws: WebSocket, msg) -> None:
@@ -353,6 +450,7 @@ async def ticker() -> None:
         global_src.tick()
         for src in list(session_srcs.values()):
             src.tick()
+        psp_tick()  # stream new trades into the Perspective table (over its own websocket)
 
 
 @asynccontextmanager
@@ -361,6 +459,7 @@ async def lifespan(app):
         asyncio.create_task(transports.autosync(global_server)),
         asyncio.create_task(transports.autosync(session_hub)),
         asyncio.create_task(transports.autosync(form_server)),
+        asyncio.create_task(transports.autosync(psp_config_server)),
         asyncio.create_task(ticker()),
     ]
     try:
@@ -374,9 +473,12 @@ app = Starlette(
     routes=[
         Route("/", homepage),
         Route("/tree.json", tree),
+        Route("/perspective/relayout", psp_relayout, methods=["POST"]),
         WebSocketRoute("/ws", transports.ws_endpoint(global_server)),
         WebSocketRoute("/ws/session", session_endpoint),
         WebSocketRoute("/ws/form", transports.ws_endpoint(form_server)),
+        WebSocketRoute("/ws/perspective-config", transports.ws_endpoint(psp_config_server)),
+        WebSocketRoute("/perspective", psp_data_endpoint),  # Perspective's own data socket (Mode B)
         Mount("/js", StaticFiles(directory=JS)),
     ],
     lifespan=lifespan,
