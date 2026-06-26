@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en" class="wa-theme-default">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spaday × csp-gateway pattern</title>
+    <link
+      rel="stylesheet"
+      href="/js/node_modules/@awesome.me/webawesome/dist/styles/webawesome.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/js/node_modules/@awesome.me/webawesome/dist/styles/themes/default.css"
+    />
+    <script type="module" src="/js/dist/cdn/examples/webawesome.js"></script>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: var(--wa-color-surface-lowered, #fafafa);
+        color: var(--wa-color-text-normal, #222);
+      }
+      p {
+        margin: 0 0 4px;
+        color: var(--wa-color-text-quiet, #555);
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      // The csp-gateway frontend pattern, no transports: a generated Form POSTs to a REST channel, and a
+      // live Perspective blotter streams the data back over Perspective's own websocket (Mode B).
+      import {
+        mount,
+        init,
+        Store,
+        registerHandler,
+      } from "/js/dist/esm/index.js";
+      import "/js/dist/cdn/wrappers/perspective-workspace.js"; // defines <perspective-panel>
+
+      await init({ module_or_path: "/js/dist/pkg/spaday_bg.wasm" }); // the action interpreter (CallEndpoint / NamedJs)
+
+      const node = await (await fetch("/tree.json")).json();
+      // the form's controls two-way bind to this store; the Send handler reads it to POST the order
+      const store = new Store({
+        symbol: "AAPL",
+        side: "buy",
+        qty: 100,
+        price: 100.0,
+      });
+      mount(document.body, node, store);
+      const byId = (id) => document.getElementById(id);
+
+      // "Send order" — the one bit of glue: compose the form's fields and POST them to the channel. This is
+      // what `CallEndpoint(body=form.value)` will make declarative once the DSL can compose an object.
+      registerHandler("send-order", async () => {
+        const order = {
+          symbol: store.get("symbol"),
+          side: store.get("side"),
+          qty: store.get("qty"),
+          price: store.get("price"),
+        };
+        const res = await fetch("/api/send/orders", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(order),
+        });
+        byId("status").textContent = res.ok
+          ? `sent #${(await res.json()).id}`
+          : "rejected (invalid)";
+      });
+
+      // the blotter: connect to the gateway's Perspective websocket and show the orders table
+      byId("blotter").config = {
+        ws_url: "/perspective",
+        tables: ["orders"],
+        layout: {
+          sizes: [1],
+          detail: {
+            main: { type: "tab-area", widgets: ["orders"], currentIndex: 0 },
+          },
+          master: { sizes: [], widgets: [] },
+          mode: "globalFilters",
+          viewers: {
+            orders: {
+              table: "orders",
+              plugin: "Datagrid",
+              title: "Orders",
+              sort: [["id", "desc"]],
+              theme: "Pro Light",
+            },
+          },
+        },
+      };
+    </script>
+  </body>
+</html>
