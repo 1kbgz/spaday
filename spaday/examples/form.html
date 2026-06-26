@@ -5,14 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>spaday — form from a pydantic model</title>
     <!-- WebAwesome: base styles + theme, and spaday's self-contained catalog bundle registers <wa-*>. -->
-    <link rel="stylesheet" href="/js/node_modules/@awesome.me/webawesome/dist/styles/webawesome.css" />
-    <link rel="stylesheet" href="/js/node_modules/@awesome.me/webawesome/dist/styles/themes/default.css" />
+    <link
+      rel="stylesheet"
+      href="/js/node_modules/@awesome.me/webawesome/dist/styles/webawesome.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/js/node_modules/@awesome.me/webawesome/dist/styles/themes/default.css"
+    />
     <script type="module" src="/js/dist/cdn/widget.webawesome.js"></script>
     <style>
       body {
         font-family: system-ui, sans-serif;
         margin: 2rem;
         max-width: 22rem;
+      }
+      /* WebAwesome renders a control's `base`/`combobox` part as content-box, so its padding can overflow
+         this narrow body; border-box folds it in. (Examples loading examples/webawesome.js get this from
+         that bundle; this page uses the widget bundle, so it sets it here.) */
+      wa-input::part(base),
+      wa-select::part(combobox) {
+        box-sizing: border-box;
       }
     </style>
   </head>

@@ -9,6 +9,7 @@ Run: ``python -m spaday.examples.form`` then open http://127.0.0.1:8002/.
 
 import asyncio
 import enum
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import transports
@@ -57,8 +58,11 @@ async def tree_json(_request):
     return JSONResponse(tree())
 
 
-async def startup():
-    asyncio.create_task(transports.autosync(server))
+@asynccontextmanager
+async def lifespan(app):
+    task = asyncio.create_task(transports.autosync(server))
+    yield
+    task.cancel()
 
 
 app = Starlette(
@@ -68,7 +72,7 @@ app = Starlette(
         WebSocketRoute("/ws", transports.ws_endpoint(server)),
         Mount("/js", StaticFiles(directory=JS)),
     ],
-    on_startup=[startup],
+    lifespan=lifespan,
 )
 
 
