@@ -49,11 +49,13 @@ develop = [
     "hatch-js",
     "hatch-rs",
     "hatchling",
+    "httpx",  # starlette TestClient backend (for test_serve)
     "mdformat",
     "mdformat-tables>=1",
     "pytest",
     "pytest-cov",
     "ruff",
+    "starlette",  # serve() host — covered by test_serve in CI (import spaday stays starlette-free)
     "twine",
     "ty",
     "uv",
