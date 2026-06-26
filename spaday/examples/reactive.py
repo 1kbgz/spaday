@@ -16,6 +16,7 @@ Run: ``python -m spaday.examples.reactive`` then open http://127.0.0.1:8001/.
 
 import asyncio
 import json
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import transports
@@ -27,8 +28,8 @@ from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 
 import spaday
-from spaday import element
-from spaday.components.shell import Main, Row, Stack
+from spaday import Strong, element
+from spaday.components.shell import Column, Main, Row
 
 HERE = Path(__file__).parent
 JS = HERE.parent.parent / "js"
@@ -47,17 +48,14 @@ server = transports.Server(session)
 
 def tree() -> dict:
     """The UI: controls two-way-bound to model fields, plus a one-way echo — no event wiring."""
-    return (
-        Main()
-        .child(element("strong").text("Reactive controls over transports — bindings, no glue"))
-        .child(
-            Stack()
-            .child(Row().child(element("label").text("Label")).child(element("input").prop("type", "text").bind("value", "label", mode="two-way")))
-            .child(Row().child(element("label").text("On")).child(element("input").prop("type", "checkbox").bind("checked", "on", mode="two-way")))
-            .child(Row().child(element("span").text("Echo: ")).child(element("span").bind("textContent", "label")))
-        )
-        .to_node()
-    )
+    return Main(
+        Strong("Reactive controls over transports — bindings, no glue"),
+        Column(
+            Row(element("label", "Label"), element("input", type="text").bind("value", "label", mode="two-way")),
+            Row(element("label", "On"), element("input", type="checkbox").bind("checked", "on", mode="two-way")),
+            Row("Echo: ", element("span").bind("textContent", "label")),
+        ),
+    ).to_node()
 
 
 async def homepage(_request):
@@ -71,8 +69,13 @@ async def tree_frame(_request):
     return Response(frame, media_type="application/octet-stream")
 
 
-async def startup():
-    asyncio.create_task(transports.autosync(server))
+@asynccontextmanager
+async def lifespan(_app):
+    task = asyncio.create_task(transports.autosync(server))
+    try:
+        yield
+    finally:
+        task.cancel()
 
 
 app = Starlette(
@@ -82,7 +85,7 @@ app = Starlette(
         WebSocketRoute("/ws", transports.ws_endpoint(server)),
         Mount("/js", StaticFiles(directory=JS)),
     ],
-    on_startup=[startup],
+    lifespan=lifespan,
 )
 
 

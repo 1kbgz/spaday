@@ -21,8 +21,9 @@ from .actions import (
     this,
 )
 from .cem import classes, generate
-from .component import Component, element
+from .component import Component, Paragraph, Strong, Text, element
 from .render import render_html
+from .serve import serve
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
 from .theme import SHELL_TOKENS
 from .validate import ValidationError, validate
@@ -43,6 +44,11 @@ __all__ = [
     "classes",
     "Component",
     "element",
+    "Text",
+    "Strong",
+    "Paragraph",
+    # one-call Starlette host for a page (serves the tree as JSON + the js bundles)
+    "serve",
     # server-side rendering (light-DOM HTML for first paint; client hydrates)
     "render_html",
     # theming token reference (css custom properties are set via Component.css)

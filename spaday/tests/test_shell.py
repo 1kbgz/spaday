@@ -4,7 +4,7 @@ import pytest
 
 from spaday import apply, diff, element
 from spaday.actions import field, not_
-from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Show, Stack, Toolbar
+from spaday.components.shell import App, Body, Column, Footer, Gutter, Main, Nav, Row, Show, Stack, Toolbar
 
 
 def test_shell_classes_emit_spa_tags():
@@ -45,6 +45,24 @@ def test_shell_layout_props_become_attributes():
     assert Row(justify="space-between").to_node()["props"] == {"justify": {"Str": "space-between"}}
     # unset kwargs are omitted, so an unstyled primitive stays prop-free
     assert "props" not in Stack().to_node()
+
+
+def test_column_is_canonical_and_stack_is_an_alias():
+    # `Column` pairs with `Row`; `Stack` is kept as a back-compat alias for the same class
+    assert Stack is Column
+    assert Column(gap="8px").to_node()["tag"] == "spa-stack"
+
+
+def test_constructor_children_and_string_text_and_generic_props():
+    # children nest positionally; a string child becomes a <span> text node
+    node = App(Nav("Title"), Body(Main())).to_node()
+    assert [c["tag"] for c in node["slots"]["default"]] == ["spa-nav", "spa-body"]
+    nav = node["slots"]["default"][0]
+    assert nav["slots"]["default"][0] == {"tag": "span", "props": {"textContent": {"Str": "Title"}}}
+    # a non-typed keyword passes through as a generic prop alongside the typed ones
+    assert Gutter(width="320px", id="side").to_node()["props"]["id"] == {"Str": "side"}
+    # the fluent .child() API composes the same tree as a constructor string child (back-compat)
+    assert Nav().child("Title").to_node() == nav
 
 
 def test_show_field_authors_a_when_binding():

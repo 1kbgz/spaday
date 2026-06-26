@@ -4,7 +4,7 @@ One omnibus app showing the whole stack — authored in typed Python, rendered b
 with **transports** as the live wire.
 
 - **Shell layout** — the page is composed from `spa-*` shell components (`spaday.components.shell`:
-  `App` / `Nav` / `Body` / `Gutter` / `Main` / `Footer`, with `Stack` / `Row` / `Toolbar`), not raw divs.
+  `App` / `Nav` / `Body` / `Gutter` / `Main` / `Footer`, with `Column` / `Row` / `Toolbar`), not raw divs.
 - **Action DSL (client-side)** — controls carry declarative actions (`Component.on` + `spaday.actions`)
   interpreted in the browser: Toggle, SetProp bound to the event value, Sequence, and buttons that
   switch a chart's series type. No event listeners are written, and the server is never called for these.
