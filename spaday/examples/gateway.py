@@ -9,15 +9,16 @@ data path is REST + Perspective's own websocket (Mode B), exactly as a real gate
   the gateway's REST channel, which validates it again server-side (the authority) and streams it into…
 - **A live Perspective blotter.** ``PerspectivePanel`` shows the ``orders`` table; the bulk data rides
   Perspective's own websocket, so a sent order appears in the blotter immediately.
-- **A channel control.** "Clear blotter" is a declarative ``CallEndpoint`` POST; the header's **view
-  selector** re-pushes the blotter layout (a flat blotter or a by-symbol roll-up).
+- **Controls.** "Clear" empties the channel; the header has a dark/light toggle and a **view selector**
+  that re-pushes the blotter layout (a flat blotter or a by-symbol roll-up).
 
-It is laid out like a gateway dashboard — a dark header, a full-bleed Perspective workspace, a right
-control gutter, a footer.
+It is laid out like a gateway dashboard — a header (title + dark/light + view), a full-bleed Perspective
+workspace, a right control gutter, a footer.
 
-The one bit of glue: "Send order" reads the form's store and POSTs it via a ``NamedJs`` handler, because
-composing a whole object as a ``CallEndpoint`` body isn't expressible in the action DSL yet — that is the
-roadmap's ``CallEndpoint(body=form.value)``. Everything else is declarative.
+The glue (in ``gateway.html``): both buttons use ``NamedJs`` handlers — "Send" composes the form's fields
+into the POST body (the action DSL can't compose an object yet — the roadmap's
+``CallEndpoint(body=form.value)``), and "Clear" POSTs then forces the viewer to repaint (a Perspective
+datagrid doesn't repaint when its view is emptied). The rest of the behavior is declarative.
 
 Run: ``python -m spaday.examples.gateway`` then open http://127.0.0.1:8006/.
 """
@@ -37,11 +38,11 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
 
 from spaday import element
-from spaday.actions import CallEndpoint, NamedJs
+from spaday.actions import NamedJs
 from spaday.components.form import form
 from spaday.components.perspective import PerspectivePanel
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack
-from spaday.components.webawesome import WaButton, WaOption, WaSelect
+from spaday.components.webawesome import WaButton, WaOption, WaSelect, WaSwitch
 
 HERE = Path(__file__).parent
 JS = HERE.parent.parent / "js"
@@ -93,15 +94,17 @@ async def psp_data(ws: WebSocket) -> None:
 
 
 def header() -> object:
-    """A gateway-style top bar: a marked title + channel name on the left, a layout/view selector right."""
-    view = WaSelect(value="blotter", size="small").prop("id", "view").prop("style", "margin-left:auto;width:200px")
+    """A gateway-style top bar: a marked title + channel left, a dark/light toggle + view selector right."""
+    view = WaSelect(value="blotter", size="small").prop("id", "view").prop("style", "width:200px")
     for value, label in (("blotter", "Blotter"), ("symbol", "By symbol")):
         view = view.child(WaOption(value=value).text(label))
+    dark = WaSwitch(checked=True).prop("id", "theme").prop("style", "margin-left:auto").text("Dark")
     return (
         Nav()
         .child(element("span").text("◆").style(color="#88c0d0", font_size="1.3rem"))
         .child(element("strong").text("spaday gateway").style(letter_spacing=".02em"))
         .child(element("span").text("· orders").style(color="#81a1c1"))
+        .child(dark)  # margin-left:auto pushes the toggle + the view selector to the right
         .child(view)
     )
 
@@ -122,7 +125,7 @@ def controls() -> object:
         .child(WaButton(variant="brand").prop("id", "send").prop("style", "width:100%").text("Send order").on("click", NamedJs("send-order")))
         .child(
             Row()
-            .child(WaButton(appearance="outlined").prop("id", "clear").text("Clear").on("click", CallEndpoint("POST", "/api/clear")))
+            .child(WaButton(appearance="outlined").prop("id", "clear").text("Clear").on("click", NamedJs("clear-blotter")))
             .child(element("span").prop("id", "status").prop("style", "margin-left:auto;color:#88c0d0;align-self:center"))
         )
     )
