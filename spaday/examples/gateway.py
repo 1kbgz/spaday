@@ -133,12 +133,12 @@ def page() -> dict:
     return (
         App()
         .css(spa_surface="#222b39", spa_surface_2="#2a3445", spa_border="#3b4860", spa_muted="#8fa3c0", spa_gap="0.85rem")
-        .style(color="#e6eefb", min_height="100vh", background="#1b222e")
+        .style(color="#e6eefb", height="100vh", background="#1b222e")  # cap to the viewport; inner regions scroll
         .child(header())
         .child(
             Body()
             .child(Main().style(padding="0").child(PerspectivePanel().prop("id", "blotter").prop("style", "height:100%;display:block")))
-            .child(Gutter(width="340px").child(controls()))
+            .child(Gutter(width="340px").style(overflow_y="auto").child(controls()))  # a tall form scrolls in the gutter
         )
         .child(Footer().child(element("span").text("spaday × csp-gateway pattern — form → REST · live Perspective (Mode B) · no transports")))
         .to_node()

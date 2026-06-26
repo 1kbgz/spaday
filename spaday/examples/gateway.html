@@ -24,6 +24,12 @@
         background: #1b222e;
         color: #e6eefb;
       }
+      /* WebAwesome renders an input's `base` part as content-box, so its 16px padding spills past the
+         host and overflows the tight right gutter (a horizontal scrollbar). border-box folds it in. */
+      wa-input::part(base),
+      wa-select::part(combobox) {
+        box-sizing: border-box;
+      }
       p {
         margin: 0 0 4px;
         color: var(--wa-color-text-quiet, #8fa3c0);
