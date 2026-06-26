@@ -27,6 +27,7 @@ export interface PerspectiveConfig {
 }
 
 const ready = perspective_viewer.init_client(CLIENT_WASM); // one-time wasm init for the viewer/workspace
+const THEMES: Record<string, string> = { light: "Pro Light", dark: "Pro Dark" }; // host theme → Perspective theme
 let stylesInjected = false;
 
 function injectStyles(): void {
@@ -55,6 +56,7 @@ class PerspectivePanel extends HTMLElement {
   #config: PerspectiveConfig = {};
   #connectedUrl: string | null = null;
   #lastLayout: string | null = null; // last restored layout (JSON), to skip redundant restores
+  #theme = "Pro Light"; // current Perspective theme (the viewers/workspace don't follow a wa-dark class)
   #queue: Promise<unknown> = Promise.resolve(); // serialize applies so rapid pushes don't race restore()
 
   connectedCallback(): void {
@@ -65,8 +67,32 @@ class PerspectivePanel extends HTMLElement {
         "perspective-workspace",
       ) as never;
       this.appendChild(this.#workspace as HTMLElement);
+      // a viewer added later (a layout push, or the user dragging in a table) must pick up the theme too
+      this.#workspace.addEventListener("workspace-new-view", () =>
+        this.#applyTheme(),
+      );
     }
     this.#apply();
+  }
+
+  /** The Perspective theme, set by the host's light/dark toggle. Accepts ``"light"``/``"dark"`` (mapped to
+   * ``"Pro Light"``/``"Pro Dark"``) or a literal Perspective theme name; applied to the workspace + every
+   * viewer, since Perspective has its own theme system and won't follow a page ``wa-dark`` class. */
+  set theme(name: string) {
+    this.#theme = THEMES[name] ?? name;
+    this.#applyTheme();
+  }
+  get theme(): string {
+    return this.#theme;
+  }
+
+  #applyTheme(): void {
+    const ws = this.#workspace;
+    if (!ws) return;
+    ws.setAttribute("theme", this.#theme); // the workspace chrome (tabs/dock)
+    for (const v of ws.querySelectorAll("perspective-viewer")) {
+      v.setAttribute("theme", this.#theme);
+    }
   }
 
   /** The transports-synced config. Re-setting it (a server push) re-applies — a new layout re-`restore`s. */
@@ -98,6 +124,7 @@ class PerspectivePanel extends HTMLElement {
             await ws.restore(config.layout); // wipe a user's manual arrangement; a pushed new layout applies
           }
         }
+        this.#applyTheme(); // re-assert the current theme over any theme baked into the (re)stored layout
       });
   }
 

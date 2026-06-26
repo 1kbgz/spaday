@@ -69,14 +69,18 @@
           .sort((a, b) => (a.time < b.time ? -1 : 1));
 
       // Light/dark toggle: flip the `wa-dark` class on <html> (WebAwesome + the shell follow it), and
-      // recolor the charts, which are canvases that can't read CSS. (Class/root toggling and the chart
-      // theme are page chrome the action DSL doesn't model yet, so they're wired here.)
+      // recolor the charts + Perspective, which have their own theme systems and can't read the class.
+      // (Class/root toggling and these element themes are page chrome the action DSL doesn't model yet.)
       byId("theme-toggle").addEventListener("change", (e) => {
         const dark = e.target.checked;
+        const theme = dark ? "dark" : "light";
         document.documentElement.classList.toggle("wa-dark", dark);
         document
           .querySelectorAll("lightweight-chart")
-          .forEach((c) => (c.theme = dark ? "dark" : "light"));
+          .forEach((c) => (c.theme = theme));
+        document
+          .querySelectorAll("perspective-panel")
+          .forEach((p) => (p.theme = theme));
       });
 
       // The controls' edits are now declarative `SendPatch` actions; each fires a `spaday:patch`
