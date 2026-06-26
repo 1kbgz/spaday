@@ -12,17 +12,18 @@ its own wiring (a transports ``Client``, ``connectStore``) passes ``html=`` to s
 file instead.
 """
 
+from __future__ import annotations
+
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Awaitable, Callable, Optional, Sequence, Union
-
-from starlette.applications import Starlette
-from starlette.responses import FileResponse, HTMLResponse, JSONResponse
-from starlette.routing import BaseRoute, Mount, Route
-from starlette.staticfiles import StaticFiles
+from typing import TYPE_CHECKING, Awaitable, Callable, Optional, Sequence, Union
 
 from .component import Component
+
+if TYPE_CHECKING:  # annotations only — the runtime starlette imports live inside serve(), since starlette
+    from starlette.applications import Starlette  # is the optional `examples` extra (import spaday stays light)
+    from starlette.routing import BaseRoute
 
 #: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called
 #: per ``/tree.json`` request, so the tree can reflect current state).
@@ -70,6 +71,11 @@ def serve(
     directory (defaults to the repo's ``js/``). ``background`` coroutines are run as tasks for the app's
     lifetime and cancelled on shutdown.
     """
+    from starlette.applications import Starlette
+    from starlette.responses import FileResponse, HTMLResponse, JSONResponse
+    from starlette.routing import Mount, Route
+    from starlette.staticfiles import StaticFiles
+
     js_dir = Path(js) if js is not None else _DEV_JS
 
     async def homepage(_request):

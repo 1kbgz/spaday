@@ -1,11 +1,15 @@
 import asyncio
 
-from starlette.responses import PlainTextResponse
-from starlette.routing import Route
-from starlette.testclient import TestClient
+import pytest
 
-from spaday import serve
-from spaday.components.shell import Main
+pytest.importorskip("starlette")  # serve() needs starlette — the optional `examples` extra
+
+from starlette.responses import PlainTextResponse  # noqa: E402
+from starlette.routing import Route  # noqa: E402
+from starlette.testclient import TestClient  # noqa: E402
+
+from spaday import serve  # noqa: E402
+from spaday.components.shell import Main  # noqa: E402
 
 
 def test_serve_hosts_the_tree_as_json(tmp_path):
