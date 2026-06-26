@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" class="wa-theme-default">
+<html lang="en" class="wa-theme-default wa-dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>spaday × csp-gateway pattern</title>
+    <title>spaday gateway</title>
     <link
       rel="stylesheet"
       href="/js/node_modules/@awesome.me/webawesome/dist/styles/webawesome.css"
@@ -14,16 +14,21 @@
     />
     <script type="module" src="/js/dist/cdn/examples/webawesome.js"></script>
     <style>
+      html,
+      body {
+        height: 100%;
+      }
       body {
         margin: 0;
         font-family: system-ui, sans-serif;
-        background: var(--wa-color-surface-lowered, #fafafa);
-        color: var(--wa-color-text-normal, #222);
+        background: #1b222e;
+        color: #e6eefb;
       }
       p {
         margin: 0 0 4px;
-        color: var(--wa-color-text-quiet, #555);
+        color: var(--wa-color-text-quiet, #8fa3c0);
         line-height: 1.5;
+        font-size: 0.85rem;
       }
     </style>
   </head>
@@ -71,28 +76,38 @@
           : "rejected (invalid)";
       });
 
-      // the blotter: connect to the gateway's Perspective websocket and show the orders table
-      byId("blotter").config = {
-        ws_url: "/perspective",
-        tables: ["orders"],
-        layout: {
-          sizes: [1],
-          detail: {
-            main: { type: "tab-area", widgets: ["orders"], currentIndex: 0 },
-          },
-          master: { sizes: [], widgets: [] },
-          mode: "globalFilters",
-          viewers: {
-            orders: {
-              table: "orders",
-              plugin: "Datagrid",
-              title: "Orders",
-              sort: [["id", "desc"]],
-              theme: "Pro Light",
-            },
-          },
+      // Two saved layouts the header's view selector switches between — a flat blotter and a by-symbol roll-up.
+      const viewer = (extra) => ({
+        sizes: [1],
+        detail: {
+          main: { type: "tab-area", widgets: ["orders"], currentIndex: 0 },
         },
+        master: { sizes: [], widgets: [] },
+        mode: "globalFilters",
+        viewers: {
+          orders: { table: "orders", plugin: "Datagrid", ...extra },
+        },
+      });
+      const VIEWS = {
+        blotter: viewer({ title: "Orders", sort: [["id", "desc"]] }),
+        symbol: viewer({
+          title: "By symbol",
+          group_by: ["symbol"],
+          columns: ["qty", "price"],
+          aggregates: { qty: "sum", price: "avg" },
+        }),
       };
+
+      // the blotter connects to the gateway's Perspective websocket; the view selector re-pushes its layout
+      const setView = (name) =>
+        (byId("blotter").config = {
+          ws_url: "/perspective",
+          tables: ["orders"],
+          layout: VIEWS[name],
+        });
+      byId("blotter").theme = "dark"; // the panel's own theme setter drives Pro Dark across its viewers
+      setView("blotter");
+      byId("view").addEventListener("change", (e) => setView(e.target.value));
     </script>
   </body>
 </html>

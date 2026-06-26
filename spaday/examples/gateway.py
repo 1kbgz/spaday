@@ -9,7 +9,11 @@ data path is REST + Perspective's own websocket (Mode B), exactly as a real gate
   the gateway's REST channel, which validates it again server-side (the authority) and streams it into…
 - **A live Perspective blotter.** ``PerspectivePanel`` shows the ``orders`` table; the bulk data rides
   Perspective's own websocket, so a sent order appears in the blotter immediately.
-- **A channel control.** "Clear blotter" is a declarative ``CallEndpoint`` POST (no round-trip code).
+- **A channel control.** "Clear blotter" is a declarative ``CallEndpoint`` POST; the header's **view
+  selector** re-pushes the blotter layout (a flat blotter or a by-symbol roll-up).
+
+It is laid out like a gateway dashboard — a dark header, a full-bleed Perspective workspace, a right
+control gutter, a footer.
 
 The one bit of glue: "Send order" reads the form's store and POSTs it via a ``NamedJs`` handler, because
 composing a whole object as a ``CallEndpoint`` body isn't expressible in the action DSL yet — that is the
@@ -36,8 +40,8 @@ from spaday import element
 from spaday.actions import CallEndpoint, NamedJs
 from spaday.components.form import form
 from spaday.components.perspective import PerspectivePanel
-from spaday.components.shell import App, Body, Main, Nav, Row, Stack
-from spaday.components.webawesome import WaButton, WaCard
+from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack
+from spaday.components.webawesome import WaButton, WaOption, WaSelect
 
 HERE = Path(__file__).parent
 JS = HERE.parent.parent / "js"
@@ -79,7 +83,7 @@ async def send_order(request):
 
 
 async def clear_orders(_request):
-    orders.clear()
+    orders.replace([])  # replace-all (not clear()) so the empty state pushes to connected blotters at once
     return JSONResponse({"ok": True})
 
 
@@ -88,44 +92,55 @@ async def psp_data(ws: WebSocket) -> None:
     await PerspectiveStarletteHandler(perspective_server=psp_server, websocket=ws).run()
 
 
-def send_card() -> object:
-    return WaCard(appearance="outlined").child(
-        Stack()
-        .child(element("strong").text("Send an order — a Form generated from the schema, POSTed to a channel"))
-        .child(
-            element("p").text(
-                "form(Order) builds a validated control per field (ge/le → min/max; a non-Optional number "
-                "can't be empty). Send POSTs the order to the gateway's REST channel — validated again "
-                "server-side — and it streams into the blotter below."
-            )
-        )
-        .child(form(Order))
-        .child(
-            Row()
-            .child(WaButton(variant="brand").prop("id", "send").text("Send order").on("click", NamedJs("send-order")))
-            .child(WaButton(appearance="outlined").text("Clear blotter").on("click", CallEndpoint("POST", "/api/clear")))
-            .child(element("span").prop("id", "status").prop("style", "margin-left:auto;color:#2962ff;align-self:center"))
-        )
+def header() -> object:
+    """A gateway-style top bar: a marked title + channel name on the left, a layout/view selector right."""
+    view = WaSelect(value="blotter", size="small").prop("id", "view").prop("style", "margin-left:auto;width:200px")
+    for value, label in (("blotter", "Blotter"), ("symbol", "By symbol")):
+        view = view.child(WaOption(value=value).text(label))
+    return (
+        Nav()
+        .child(element("span").text("◆").style(color="#88c0d0", font_size="1.3rem"))
+        .child(element("strong").text("spaday gateway").style(letter_spacing=".02em"))
+        .child(element("span").text("· orders").style(color="#81a1c1"))
+        .child(view)
     )
 
 
-def blotter_card() -> object:
-    return WaCard(appearance="outlined").child(
+def controls() -> object:
+    """The right settings gutter: the order form (a channel send) + the actions + a status line."""
+    return (
         Stack()
-        .child(element("strong").text("Orders blotter — a live Perspective table (Mode B: data over Perspective's own ws)"))
-        .child(PerspectivePanel().prop("id", "blotter").prop("style", "height:340px;display:block"))
+        .child(element("strong").text("Send to a channel"))
+        .child(
+            element("p")
+            .text(
+                "A form generated from the Order schema; Send POSTs it to the gateway's REST channel — validated server-side — and it streams into the blotter."
+            )
+            .style(margin="0 0 .25rem")
+        )
+        .child(form(Order))
+        .child(WaButton(variant="brand").prop("id", "send").prop("style", "width:100%").text("Send order").on("click", NamedJs("send-order")))
+        .child(
+            Row()
+            .child(WaButton(appearance="outlined").prop("id", "clear").text("Clear").on("click", CallEndpoint("POST", "/api/clear")))
+            .child(element("span").prop("id", "status").prop("style", "margin-left:auto;color:#88c0d0;align-self:center"))
+        )
     )
 
 
 def page() -> dict:
+    """A gateway dashboard: header, a full-bleed live Perspective workspace, a right control gutter, footer."""
     return (
         App()
+        .css(spa_surface="#222b39", spa_surface_2="#2a3445", spa_border="#3b4860", spa_muted="#8fa3c0", spa_gap="0.85rem")
+        .style(color="#e6eefb", min_height="100vh", background="#1b222e")
+        .child(header())
         .child(
-            Nav()
-            .child(element("strong").text("spaday × csp-gateway pattern"))
-            .child(element("span").text("· form → REST · live Perspective · no transports"))
+            Body()
+            .child(Main().style(padding="0").child(PerspectivePanel().prop("id", "blotter").prop("style", "height:100%;display:block")))
+            .child(Gutter(width="340px").child(controls()))
         )
-        .child(Body().child(Main().child(send_card()).child(blotter_card())))
+        .child(Footer().child(element("span").text("spaday × csp-gateway pattern — form → REST · live Perspective (Mode B) · no transports")))
         .to_node()
     )
 

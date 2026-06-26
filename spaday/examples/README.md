@@ -114,14 +114,18 @@ Run: `python -m spaday.examples.ssr` → http://127.0.0.1:8005
 ## `gateway.py` — the csp-gateway frontend pattern (mock backend, no transports)
 
 The shape of the csp-gateway capstone (Phase 5.3), built against a tiny stand-in gateway so it runs
-anywhere. It's the **REST + Perspective** path a real gateway uses — so, deliberately, **no transports**:
+anywhere. Laid out like a gateway dashboard — a dark header, a full-bleed **Perspective workspace**, a
+right control gutter, a footer — it's the **REST + Perspective** path a real gateway uses, so deliberately
+**no transports**:
 
 - **Form → REST** — `form(Order)` generates a validated control per field (`ge`/`le` → `min`/`max`; a
   non-Optional number can't be left empty). "Send order" POSTs the order to the gateway's REST channel,
   which **validates it again server-side** (the authority — a bad order is a 422) and appends it to…
-- **A live Perspective blotter** — `PerspectivePanel` showing the `orders` table; the bulk data rides
-  Perspective's *own* websocket (Mode B), so a sent order appears in the blotter immediately.
-- **A channel control** — "Clear blotter" is a declarative `CallEndpoint` POST.
+- **A live Perspective blotter** — `PerspectivePanel` (themed via its `theme` setter) showing the
+  `orders` table; the bulk data rides Perspective's *own* websocket (Mode B), so a sent order appears at
+  once. The header's **view selector** re-pushes the blotter layout (flat blotter ↔ by-symbol roll-up).
+- **A channel control** — "Clear blotter" is a declarative `CallEndpoint` POST (clears with `replace([])`
+  so the empty state pushes to the blotter immediately).
 
 The only glue: "Send order" reads the form's store and POSTs it via a `NamedJs` handler, because composing
 a whole object as a `CallEndpoint` body isn't expressible in the action DSL yet — that's the roadmap's
