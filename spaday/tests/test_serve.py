@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
@@ -37,6 +38,33 @@ def test_serve_serves_custom_html_and_splices_routes(tmp_path):
     client = TestClient(serve(Main(), html=html, routes=routes, js=tmp_path))
     assert client.get("/").text == "<!doctype html><title>custom</title>"  # custom bootstrap, not the default
     assert client.get("/api/ping").text == "pong"  # extra route spliced in
+
+
+def test_serve_generates_a_bundle_and_transports_wire(tmp_path):
+    html = TestClient(serve(Main(), js=tmp_path, bundles=["webawesome"], wire="transports", ws="/sock")).get("/").text
+    # the named bundle's styles + catalog are pulled into <head> (no hand-written tags)
+    assert "@awesome.me/webawesome/dist/styles/webawesome.css" in html
+    assert '<script type="module" src="/js/dist/cdn/examples/webawesome.js">' in html
+    # the transports bootstrap is generated: Client + connectStore + the socket at the given path
+    assert "connectStore(" in html and "transports_bg.wasm" in html
+    assert "new WebSocket(`ws://${location.host}/sock`)" in html
+    assert "mount(document.body, node, store)" in html
+
+
+def test_serve_static_page_has_no_transports_wire(tmp_path):
+    html = TestClient(serve(Main(), js=tmp_path)).get("/").text
+    assert "connectStore" not in html and "new Client()" not in html
+    assert "mount(document.body, node);" in html  # a plain static mount
+
+
+def test_serve_injects_extra_script_modules(tmp_path):
+    html = TestClient(serve(Main(), js=tmp_path, scripts=["/static/handlers.js"])).get("/").text
+    assert 'import "/static/handlers.js";' in html
+
+
+def test_serve_rejects_an_unknown_bundle(tmp_path):
+    with pytest.raises(ValueError):
+        serve(Main(), js=tmp_path, bundles=["nope"])
 
 
 def test_serve_runs_background_for_app_lifetime(tmp_path):

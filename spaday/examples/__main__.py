@@ -45,7 +45,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from spaday import element
-from spaday.actions import CallEndpoint, SendPatch, Sequence, SetProp, Toggle, bind, by_id, event_value, lit, not_
+from spaday.actions import CallEndpoint, SendPatch, Sequence, SetProp, Toggle, bind, by_id, cond, event_value, field, lit, not_
 from spaday.components.form import FormField, form
 from spaday.components.lightweight_charts import LightweightChart
 from spaday.components.perspective import PerspectivePanel
@@ -54,6 +54,10 @@ from spaday.components.webawesome import WaButton, WaCallout, WaCard, WaOption, 
 
 HERE = Path(__file__).parent
 JS = HERE.parent.parent / "js"
+# The light/dark switch is two-way bound to a `dark` field; the shell + WebAwesome follow the `wa-dark`
+# class (App.bind_root_class), but canvas widgets (charts, Perspective) read their own `theme` prop —
+# so each computes it from the same field. One reusable field-expression, no per-element JS.
+DARK_THEME = cond(field("dark"), "dark", "light")
 # value-shaped series only — the ticker emits {time, value}; candlestick/bar need OHLC points
 TYPES = ["line", "area", "histogram"]
 # A live series is a time-keyed map capped at WINDOW points. The per-tick patch is already a granular
@@ -241,7 +245,7 @@ def dsl_card() -> object:
         .child(
             Stack()
             .child(Toolbar().child(type_button("Line", "line")).child(type_button("Area", "area")).child(type_button("Histogram", "histogram")))
-            .child(LightweightChart(type="area", data=random_walk(120)).prop("id", "dsl-chart"))
+            .child(LightweightChart(type="area", data=random_walk(120)).prop("id", "dsl-chart").compute("theme", DARK_THEME))
         )
     )
 
@@ -264,7 +268,11 @@ def structure_card() -> object:
             )
         )
         .child(WaSwitch().prop("id", "chart-toggle").bind("checked", "show_chart", mode="two-way").text("Show chart"))
-        .child(Show(field="show_chart").child(LightweightChart(type="area", data=random_walk(120)).prop("style", "height:260px;display:block")))
+        .child(
+            Show(field="show_chart").child(
+                LightweightChart(type="area", data=random_walk(120)).prop("style", "height:260px;display:block").compute("theme", DARK_THEME)
+            )
+        )
     )
 
 
@@ -284,7 +292,7 @@ def transports_panel(prefix: str, title: str, chart_type: str) -> object:
             .child(WaSwitch(checked=True).prop("id", f"{prefix}-live").text("Live").on("change", SendPatch(prefix, "live", event_value())))
             .child(WaButton(variant="neutral").prop("id", f"{prefix}-clear").text("Clear").on("click", SendPatch(prefix, "data", lit({}))))
         )
-        .child(LightweightChart(type=chart_type).prop("id", f"{prefix}-chart"))
+        .child(LightweightChart(type=chart_type).prop("id", f"{prefix}-chart").compute("theme", DARK_THEME))
     )
 
 
@@ -344,7 +352,7 @@ def perspective_card() -> object:
                 WaButton(variant="brand").text("Push a new view (server → all tabs)").on("click", CallEndpoint("POST", "/perspective/relayout"))
             )
         )
-        .child(PerspectivePanel().prop("id", "psp").prop("style", "height:360px;display:block"))
+        .child(PerspectivePanel().prop("id", "psp").prop("style", "height:360px;display:block").compute("theme", DARK_THEME))
     )
 
 
@@ -352,13 +360,14 @@ def page() -> dict:
     """The whole page, authored from shell components (no layout divs; raw elements only for text)."""
     return (
         App()
+        .bind_root_class("wa-dark", "dark")  # the switch's `dark` field toggles wa-dark on <html>
         .child(
             Nav()
             .child(element("strong").text("spaday"))
             .child(element("span").text("· shell + action DSL + transports"))
-            # right-aligned; wired to a `wa-dark` class toggle in index.html (class/root toggling
-            # is page chrome the action DSL doesn't model yet, like the transports edits below)
-            .child(WaSwitch().prop("id", "theme-toggle").prop("style", "margin-left:auto").text("Dark"))
+            # right-aligned; two-way bound to a `dark` signal that re-themes the page (root class above)
+            # and the canvas widgets (their `theme` prop, via DARK_THEME) — entirely client-side, no JS
+            .child(WaSwitch().prop("id", "theme-toggle").prop("style", "margin-left:auto").bind("checked", "dark", mode="two-way").text("Dark"))
         )
         .child(
             Body()
