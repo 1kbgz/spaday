@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en" class="wa-theme-default wa-dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spaday gateway</title>
+    <link
+      rel="stylesheet"
+      href="/js/node_modules/@awesome.me/webawesome/dist/styles/webawesome.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/js/node_modules/@awesome.me/webawesome/dist/styles/themes/default.css"
+    />
+    <script type="module" src="/js/dist/cdn/examples/webawesome.js"></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #1b222e;
+        color: #e6eefb;
+      }
+      p {
+        margin: 0 0 4px;
+        color: var(--wa-color-text-quiet, #8fa3c0);
+        line-height: 1.5;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      // The csp-gateway frontend pattern, no transports: a generated Form POSTs to a REST channel, and a
+      // live Perspective blotter streams the data back over Perspective's own websocket (Mode B).
+      import {
+        mount,
+        init,
+        Store,
+        registerHandler,
+      } from "/js/dist/esm/index.js";
+      import "/js/dist/cdn/wrappers/perspective-workspace.js"; // defines <perspective-panel>
+
+      await init({ module_or_path: "/js/dist/pkg/spaday_bg.wasm" }); // the action interpreter (CallEndpoint / NamedJs)
+
+      const node = await (await fetch("/tree.json")).json();
+      // the form's controls two-way bind to this store; the Send handler reads it to POST the order
+      const store = new Store({
+        symbol: "AAPL",
+        side: "buy",
+        qty: 100,
+        price: 100.0,
+      });
+      mount(document.body, node, store);
+      const byId = (id) => document.getElementById(id);
+
+      // "Send order" — the one bit of glue: compose the form's fields and POST them to the channel. This is
+      // what `CallEndpoint(body=form.value)` will make declarative once the DSL can compose an object.
+      registerHandler("send-order", async () => {
+        const order = {
+          symbol: store.get("symbol"),
+          side: store.get("side"),
+          qty: store.get("qty"),
+          price: store.get("price"),
+        };
+        const res = await fetch("/api/send/orders", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(order),
+        });
+        byId("status").textContent = res.ok
+          ? `sent #${(await res.json()).id}`
+          : "rejected (invalid)";
+      });
+
+      // "Clear" — POST the channel clear, then force each viewer to repaint: a Perspective datagrid does
+      // not repaint when its view is emptied (the rows are gone from the data, but linger on screen).
+      registerHandler("clear-blotter", async () => {
+        await fetch("/api/clear", { method: "POST" });
+        const ws = document.querySelector(
+          "perspective-panel perspective-workspace",
+        );
+        for (const v of ws.querySelectorAll("perspective-viewer")) {
+          for (
+            let i = 0;
+            i < 60 && (await (await v.getView()).num_rows()) > 0;
+            i++
+          )
+            await new Promise((r) => setTimeout(r, 50)); // wait for the clear to reach this view
+          await v.restore(await v.save()); // re-render from the now-empty view
+        }
+        byId("status").textContent = "cleared";
+      });
+
+      // Two saved layouts the header's view selector switches between — a flat blotter and a by-symbol roll-up.
+      const viewer = (extra) => ({
+        sizes: [1],
+        detail: {
+          main: { type: "tab-area", widgets: ["orders"], currentIndex: 0 },
+        },
+        master: { sizes: [], widgets: [] },
+        mode: "globalFilters",
+        viewers: {
+          orders: { table: "orders", plugin: "Datagrid", ...extra },
+        },
+      });
+      const VIEWS = {
+        blotter: viewer({ title: "Orders", sort: [["id", "desc"]] }),
+        symbol: viewer({
+          title: "By symbol",
+          group_by: ["symbol"],
+          columns: ["qty", "price"],
+          aggregates: { qty: "sum", price: "avg" },
+        }),
+      };
+
+      // the blotter connects to the gateway's Perspective websocket; the view selector re-pushes its layout
+      const setView = (name) =>
+        (byId("blotter").config = {
+          ws_url: "/perspective",
+          tables: ["orders"],
+          layout: VIEWS[name],
+        });
+      // Dark/light: the shell (its --spa-* tokens), the page background, the wa-* controls (the wa-dark
+      // class), and the Perspective viewers each theme themselves, so the header toggle drives them together.
+      const PALETTES = {
+        dark: {
+          "--spa-surface": "#222b39",
+          "--spa-surface-2": "#2a3445",
+          "--spa-border": "#3b4860",
+          "--spa-muted": "#8fa3c0",
+          color: "#e6eefb",
+          bg: "#1b222e",
+          wa: true,
+          psp: "dark",
+        },
+        light: {
+          "--spa-surface": "#ffffff",
+          "--spa-surface-2": "#f3f5f8",
+          "--spa-border": "#dde3ec",
+          "--spa-muted": "#5a6a80",
+          color: "#1a2230",
+          bg: "#eef1f5",
+          wa: false,
+          psp: "light",
+        },
+      };
+      const applyTheme = (name) => {
+        const p = PALETTES[name];
+        const app = document.querySelector("spa-app");
+        for (const k of [
+          "--spa-surface",
+          "--spa-surface-2",
+          "--spa-border",
+          "--spa-muted",
+        ])
+          app.style.setProperty(k, p[k]);
+        app.style.color = p.color;
+        app.style.background = document.body.style.background = p.bg;
+        document.documentElement.classList.toggle("wa-dark", p.wa);
+        byId("blotter").theme = p.psp;
+      };
+      applyTheme("dark"); // default; the toggle starts checked (Dark)
+      byId("theme").addEventListener("change", (e) =>
+        applyTheme(e.target.checked ? "dark" : "light"),
+      );
+
+      setView("blotter");
+      byId("view").addEventListener("change", (e) => setView(e.target.value));
+    </script>
+  </body>
+</html>
