@@ -344,6 +344,17 @@ field it reads changes, e.g. <code class="docutils literal notranslate"><span cl
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.bind_root_class">
+<span class="sig-name descname"><span class="pre">bind_root_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.bind_root_class"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.bind_root_class" title="Link to this definition">¶</a></dt>
+<dd><p>Toggle a CSS class on the document root (<code class="docutils literal notranslate"><span class="pre">&lt;html&gt;</span></code>) from a boolean reactive state <code class="docutils literal notranslate"><span class="pre">field</span></code>.</p>
+<p>The escape hatch for <em>page-level</em> theming that lives outside the component tree — most notably
+WebAwesome’s <code class="docutils literal notranslate"><span class="pre">wa-dark</span></code>: <code class="docutils literal notranslate"><span class="pre">App(...).bind_root_class(&quot;wa-dark&quot;,</span> <span class="pre">&quot;dark&quot;)</span></code> makes a switch bound to
+a <code class="docutils literal notranslate"><span class="pre">dark</span></code> field re-theme the whole page (the rest follows via CSS tokens; canvas widgets that
+can’t read a class take a <code class="docutils literal notranslate"><span class="pre">.compute(&quot;theme&quot;,</span> <span class="pre">cond(field(&quot;dark&quot;),</span> <span class="pre">&quot;dark&quot;,</span> <span class="pre">&quot;light&quot;))</span></code> instead).
+One-way (the field drives the class); active only when mounted with a signal <code class="docutils literal notranslate"><span class="pre">Store</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="spaday.Component.to_node">
 <span class="sig-name descname"><span class="pre">to_node</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.to_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.to_node" title="Link to this definition">¶</a></dt>
 <dd><p>The node as the core’s JSON-ready dict (empty fields omitted, like the Rust core).</p>
@@ -656,6 +667,7 @@ signatures — though they still validate keyword names at call time. Reach for 
 <li><a class="reference internal" href="#spaday.Component.on"><code class="docutils literal notranslate"><span class="pre">Component.on()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.bind"><code class="docutils literal notranslate"><span class="pre">Component.bind()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.compute"><code class="docutils literal notranslate"><span class="pre">Component.compute()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.bind_root_class"><code class="docutils literal notranslate"><span class="pre">Component.bind_root_class()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.to_node"><code class="docutils literal notranslate"><span class="pre">Component.to_node()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.to_json"><code class="docutils literal notranslate"><span class="pre">Component.to_json()</span></code></a></li>
 </ul>
