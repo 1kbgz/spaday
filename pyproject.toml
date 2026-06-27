@@ -47,6 +47,7 @@ develop = [
     "check-dist",
     "cibuildwheel",
     "codespell",
+    "flask",  # the Flask backend — covered by test_backend_flask
     "hatch-js",
     "hatch-rs",
     "hatchling",
@@ -57,6 +58,7 @@ develop = [
     "pytest-cov",
     "ruff",
     "starlette",  # the Starlette backend — covered by test_backend_starlette (import spaday stays starlette-free)
+    "tornado",  # the Tornado backend — covered by test_backend_tornado
     "twine",
     "ty",
     "uv",
