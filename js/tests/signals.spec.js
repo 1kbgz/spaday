@@ -172,6 +172,63 @@ test("a computed binding derives a prop from fields and recomputes reactively", 
   expect(result.after).toEqual({ disabled: true, hidden: true }); // recomputed when the fields changed
 });
 
+test("a cond expr selects between two values by a field, reactively", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ dark: false });
+    // textContent = cond(dark, "dark", "light")
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "span",
+        bindings: {
+          textContent: {
+            compute: {
+              expr: "cond",
+              test: { expr: "field", name: "dark" },
+              then: { expr: "lit", value: "dark" },
+              else: { expr: "lit", value: "light" },
+            },
+            mode: "one-way",
+          },
+        },
+      },
+      store,
+    );
+    const initial = root.textContent; // cond(false, …) → "light"
+    store.set("dark", true); // → "dark"
+    return { initial, after: root.textContent };
+  });
+  expect(result.initial).toBe("light");
+  expect(result.after).toBe("dark");
+});
+
+test("a root-class binding toggles a class on <html> from a field", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ dark: false });
+    mount(
+      document.createElement("div"),
+      {
+        tag: "div",
+        bindings: { "root-class:wa-dark": { field: "dark", mode: "one-way" } },
+      },
+      store,
+    );
+    const initial = document.documentElement.classList.contains("wa-dark");
+    store.set("dark", true); // field drives the class on the document root
+    const on = document.documentElement.classList.contains("wa-dark");
+    store.set("dark", false);
+    const off = document.documentElement.classList.contains("wa-dark");
+    return { initial, on, off };
+  });
+  expect(result).toEqual({ initial: false, on: true, off: false });
+});
+
 test("nested-path fields: set/get a dotted path; notify the leaf and its ancestor, not a sibling", async ({
   page,
 }) => {

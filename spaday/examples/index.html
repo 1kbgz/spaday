@@ -55,9 +55,10 @@
       });
 
       const node = await (await fetch("/tree.json")).json();
-      // a signal store backs the reactive-structure card: the "Show chart" switch is two-way bound to
-      // `show_chart`, and a Show wrapper mounts/removes the chart from it — client-side, no server.
-      const store = new Store({ show_chart: false });
+      // a signal store backs the reactive cards: `show_chart` drives the Show wrapper, and `dark` drives
+      // the light/dark theme — the switch is two-way bound to it, App toggles `wa-dark` on <html> from it
+      // (bind_root_class), and each canvas widget computes its `theme` prop from it. No theme JS here.
+      const store = new Store({ show_chart: false, dark: false });
       mount(document.body, node, store); // shell + cards; the action DSL + bindings are wired automatically
 
       const byId = (id) => document.getElementById(id);
@@ -67,21 +68,6 @@
         Object.entries(d || {})
           .map(([time, value]) => ({ time, value }))
           .sort((a, b) => (a.time < b.time ? -1 : 1));
-
-      // Light/dark toggle: flip the `wa-dark` class on <html> (WebAwesome + the shell follow it), and
-      // recolor the charts + Perspective, which have their own theme systems and can't read the class.
-      // (Class/root toggling and these element themes are page chrome the action DSL doesn't model yet.)
-      byId("theme-toggle").addEventListener("change", (e) => {
-        const dark = e.target.checked;
-        const theme = dark ? "dark" : "light";
-        document.documentElement.classList.toggle("wa-dark", dark);
-        document
-          .querySelectorAll("lightweight-chart")
-          .forEach((c) => (c.theme = theme));
-        document
-          .querySelectorAll("perspective-panel")
-          .forEach((p) => (p.theme = theme));
-      });
 
       // The controls' edits are now declarative `SendPatch` actions; each fires a `spaday:patch`
       // intent that this single sink routes to the right transports model. (Previously each control

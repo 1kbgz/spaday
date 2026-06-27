@@ -166,6 +166,18 @@ class Component:
         self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
         return self
 
+    def bind_root_class(self, name: str, field: str) -> "Component":
+        """Toggle a CSS class on the document root (``<html>``) from a boolean reactive state ``field``.
+
+        The escape hatch for *page-level* theming that lives outside the component tree — most notably
+        WebAwesome's ``wa-dark``: ``App(...).bind_root_class("wa-dark", "dark")`` makes a switch bound to
+        a ``dark`` field re-theme the whole page (the rest follows via CSS tokens; canvas widgets that
+        can't read a class take a ``.compute("theme", cond(field("dark"), "dark", "light"))`` instead).
+        One-way (the field drives the class); active only when mounted with a signal ``Store``.
+        """
+        self._bindings[f"root-class:{name}"] = {"field": field, "mode": "one-way"}
+        return self
+
     def _final_props(self) -> Dict[str, Any]:
         """Props with theming folded in: ``style``/``class`` merged from :meth:`style`/:meth:`css`/
         :meth:`classes` (after any literal ``style``/``class`` prop)."""

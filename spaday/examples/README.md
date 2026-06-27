@@ -48,10 +48,11 @@ is independent per tab.
   mounts the tree — which wires the action DSL automatically. The transports controls are now declarative
   `SendPatch` actions; each fires a `spaday:patch` intent that **one** generic sink routes to the right
   transports model (the per-control listeners are gone — only that model→wire bridge remains). The light/
-  dark toggle (`wa-dark` on `<html>`) + chart theming stay hand-written, since class/root toggling isn't
-  in the DSL yet. The form card binds its generated controls to the hosted `Device` model through
-  `connectStore` (the same seam as `reactive.py`), so even the nested `schedule` fields edit
-  server-authoritatively.
+  dark toggle is declarative too: the switch is two-way bound to a `dark` signal that toggles `wa-dark`
+  on `<html>` (`App.bind_root_class`) and drives each canvas widget's `theme` prop
+  (`.compute("theme", cond(field("dark"), "dark", "light"))`) — no theme JS in the page. The form card
+  binds its generated controls to the hosted `Device` model through `connectStore` (the same seam as
+  `reactive.py`), so even the nested `schedule` fields edit server-authoritatively.
 
 ## Notes
 
