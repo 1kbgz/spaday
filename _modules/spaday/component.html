@@ -441,21 +441,6 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
-<div class="viewcode-block" id="Component.bind_root_class">
-<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.bind_root_class">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">bind_root_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Component&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Toggle a CSS class on the document root (``&lt;html&gt;``) from a boolean reactive state ``field``.</span>
-
-<span class="sd">        The escape hatch for *page-level* theming that lives outside the component tree — most notably</span>
-<span class="sd">        WebAwesome&#39;s ``wa-dark``: ``App(...).bind_root_class(&quot;wa-dark&quot;, &quot;dark&quot;)`` makes a switch bound to</span>
-<span class="sd">        a ``dark`` field re-theme the whole page (the rest follows via CSS tokens; canvas widgets that</span>
-<span class="sd">        can&#39;t read a class take a ``.compute(&quot;theme&quot;, cond(field(&quot;dark&quot;), &quot;dark&quot;, &quot;light&quot;))`` instead).</span>
-<span class="sd">        One-way (the field drives the class); active only when mounted with a signal ``Store``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;root-class:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span> <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="s2">&quot;one-way&quot;</span><span class="p">}</span>
-        <span class="k">return</span> <span class="bp">self</span></div>
-
-
     <span class="k">def</span><span class="w"> </span><span class="nf">_final_props</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Props with theming folded in: ``style``/``class`` merged from :meth:`style`/:meth:`css`/</span>
 <span class="sd">        :meth:`classes` (after any literal ``style``/``class`` prop).&quot;&quot;&quot;</span>

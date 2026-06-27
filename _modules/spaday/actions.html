@@ -404,29 +404,6 @@
 
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">_Cond</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">then</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">then</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">otherwise</span> <span class="o">=</span> <span class="n">test</span><span class="p">,</span> <span class="n">then</span><span class="p">,</span> <span class="n">otherwise</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;cond&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-            <span class="s2">&quot;then&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">then</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-            <span class="s2">&quot;else&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">otherwise</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-        <span class="p">}</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">cond</span><span class="p">(</span><span class="n">test</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">then</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A ternary for a *computed* binding (:meth:`~spaday.component.Component.compute`): ``then`` when</span>
-<span class="sd">    ``test`` is truthy, else ``otherwise`` (each a plain value or an :class:`Expr`). Evaluated against the</span>
-<span class="sd">    signal store in the browser — e.g. a boolean ``dark`` field driving a string theme prop::</span>
-
-<span class="sd">        chart.compute(&quot;theme&quot;, cond(field(&quot;dark&quot;), &quot;dark&quot;, &quot;light&quot;))</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_Cond</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">then</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">)</span>
-
-
 <span class="k">class</span><span class="w"> </span><span class="nc">Ref</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A reference to a DOM element an action targets.&quot;&quot;&quot;</span>
 
