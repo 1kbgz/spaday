@@ -4,8 +4,10 @@ The framework-agnostic generation (the page HTML, the tree JSON/frame, the bundl
 :mod:`spaday.bootstrap`; each module here wires it into one webserver's routing/static/lifecycle and
 adds the few backend-specific conveniences that make sense. Pick your backend explicitly::
 
-    from spaday.backends.starlette import serve   # Starlette / FastAPI
-    from spaday.backends.aiohttp import serve      # aiohttp
+    from spaday.backends.starlette import serve   # Starlette / FastAPI (async; full transports wire)
+    from spaday.backends.aiohttp import serve      # aiohttp (async)
+    from spaday.backends.tornado import serve      # Tornado (async)
+    from spaday.backends.flask import serve        # Flask (WSGI; static-focused — no async wire)
 
 There is deliberately no opaque top-level ``spaday.serve`` catch-all: the backend is part of the app's
 choice, and a clear seam (a little more code) beats hidden framework coupling. A backend not covered here
