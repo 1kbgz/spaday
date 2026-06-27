@@ -67,6 +67,13 @@ def test_serve_frame_tree_ships_the_tree_as_a_transports_frame(tmp_path):
     assert client.get("/tree.json").status_code == 404  # json route not mounted in frame mode
 
 
+def test_serve_reconnect_wires_a_reconnecting_socket(tmp_path):
+    html = TestClient(serve(Main(), js=tmp_path, wire="transports", reconnect=True)).get("/").text
+    # the websocket is re-opened on close (durable to a worker/server restart)
+    assert "function connect()" in html and "setTimeout(connect, 1000)" in html
+    assert "mount(document.body, node, store)" in html
+
+
 def test_serve_static_page_has_no_transports_wire(tmp_path):
     html = TestClient(serve(Main(), js=tmp_path)).get("/").text
     assert "connectStore" not in html and "new Client()" not in html

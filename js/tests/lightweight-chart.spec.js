@@ -53,6 +53,23 @@ test("renders a chart from Python-shaped props", async ({ page }) => {
   expect(result.dataLen).toBe(3);
 });
 
+test("accepts a time-keyed map and sorts it into a series (what a bound model field holds)", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const el = document.createElement("lightweight-chart");
+    el.type = "area";
+    document.body.appendChild(el);
+    // an unsorted { time: value } map — the shape a transports `Chart.data` field holds; a bound `data`
+    // prop flows it straight through, and the wrapper sorts it into the ascending series the chart wants
+    el.data = { "2019-01-03": 9, "2019-01-01": 10, "2019-01-02": 12 };
+    return { len: el.data.length, first: el.data[0], last: el.data[2] };
+  });
+  expect(result.len).toBe(3);
+  expect(result.first).toEqual({ time: "2019-01-01", value: 10 });
+  expect(result.last).toEqual({ time: "2019-01-03", value: 9 });
+});
+
 test("a SetProp patch updates the chart's data", async ({ page }) => {
   await page.evaluate(
     (n) => {

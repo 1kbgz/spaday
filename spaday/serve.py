@@ -25,7 +25,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Awaitable, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Awaitable, Callable, Optional, Sequence, Union
 
 from .component import Component
 from .spaday import encode_frame  # compiled core (always available); used by the tree="frame" wire
@@ -67,10 +67,11 @@ def _bundle_head(bundles: Sequence[str]) -> str:
     return "\n    ".join(tags)
 
 
-def _script(wire: Optional[str], scripts: Sequence[str], ws: str, tree: str) -> str:
+def _script(wire: Optional[str], scripts: Sequence[str], ws: str, tree: str, reconnect: bool) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
     to a transports model (Store + Client + connectStore) when ``wire="transports"``. ``tree="frame"``
-    fetches the tree as a transports Snapshot frame (``/tree``) and decodes it, instead of JSON."""
+    fetches the tree as a transports Snapshot frame (``/tree``) and decodes it, instead of JSON.
+    ``reconnect`` re-opens the websocket on drop (each reconnect re-syncs from the server's snapshot)."""
     transports = wire == "transports"
     frame = tree == "frame"
     runtime_names = ["mount", "init"] + (["Store", "connectStore"] if transports else []) + (["decodeFrame"] if frame else [])
@@ -86,7 +87,26 @@ def _script(wire: Optional[str], scripts: Sequence[str], ws: str, tree: str) -> 
         lines.append("const node = JSON.parse(decodeFrame(framed)).payload;")
     else:
         lines.append('const node = await (await fetch("/tree.json")).json();')
-    if transports:
+    if transports and reconnect:
+        lines.extend(
+            [
+                "const store = new Store();",
+                "const client = new Client();",
+                "let socket = null;",
+                "const link = connectStore(store, client, (frame) => socket && socket.send(frame), { fromValue, toValue });",
+                "function connect() {",
+                f"  socket = new WebSocket(`ws://${{location.host}}{ws}`);",
+                '  socket.binaryType = "arraybuffer";',
+                '  socket.addEventListener("message", (event) =>',
+                '    link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),',
+                "  );",
+                "  socket.addEventListener('close', () => setTimeout(connect, 1000));",
+                "}",
+                "connect();",
+                "mount(document.body, node, store);",
+            ]
+        )
+    elif transports:
         lines.extend(
             [
                 "const store = new Store();",
@@ -134,9 +154,11 @@ def serve(
     wire: Optional[str] = None,
     ws: str = "/ws",
     tree: str = "json",
+    reconnect: bool = False,
     scripts: Sequence[str] = (),
     head: str = "",
     background: Sequence[Awaitable] = (),
+    lifespan: Optional[Callable] = None,
 ) -> Starlette:
     """Build a Starlette app that serves ``page`` (see the module docstring).
 
@@ -144,10 +166,12 @@ def serve(
     generated page's ``<head>``; ``wire="transports"`` generates the transports bootstrap (``ws`` sets the
     socket path, default ``/ws``); ``tree="frame"`` ships the tree as a transports Snapshot frame at
     ``/tree`` (so the UI tree and the model data ride one wire) instead of JSON at ``/tree.json``;
-    ``scripts`` adds module URLs to load. ``html`` instead serves a hand-authored bootstrap file
+    ``reconnect=True`` re-opens the websocket on drop and re-syncs from the server snapshot (multi-worker /
+    restart-durable apps); ``scripts`` adds module URLs to load. ``html`` instead serves a hand-authored bootstrap file
     (``bundles``/``wire``/``head``/``title`` are then unused). ``js`` overrides the served bundle directory
     (defaults to the repo's ``js/``); ``background`` coroutines run as tasks for the app's lifetime and are
-    cancelled on shutdown.
+    cancelled on shutdown. ``lifespan`` overrides that with a custom Starlette lifespan (for startup that
+    must order/await its own setup, e.g. a clustering relay) — ``background`` is then unused.
     """
     from starlette.applications import Starlette
     from starlette.responses import FileResponse, HTMLResponse, JSONResponse, Response
@@ -156,7 +180,7 @@ def serve(
 
     js_dir = Path(js) if js is not None else _DEV_JS
     head_markup = "\n    ".join(p for p in (_bundle_head(bundles), head) if p)
-    body = _page_html(title, head_markup, _script(wire, scripts, ws, tree))
+    body = _page_html(title, head_markup, _script(wire, scripts, ws, tree, reconnect))
 
     async def homepage(_request):
         return FileResponse(html) if html is not None else HTMLResponse(body)
@@ -174,7 +198,7 @@ def serve(
     tree_route = Route("/tree", tree_frame) if tree == "frame" else Route("/tree.json", tree_json)
 
     @asynccontextmanager
-    async def lifespan(_app):
+    async def _background_lifespan(_app):
         tasks = [asyncio.ensure_future(c) for c in background]
         try:
             yield
@@ -183,4 +207,4 @@ def serve(
                 task.cancel()
 
     app_routes = [Route("/", homepage), tree_route, *routes, Mount("/js", StaticFiles(directory=js_dir))]
-    return Starlette(routes=app_routes, lifespan=lifespan)
+    return Starlette(routes=app_routes, lifespan=lifespan if lifespan is not None else _background_lifespan)
