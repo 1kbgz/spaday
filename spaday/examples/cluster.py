@@ -7,6 +7,10 @@ replica and fans it to *its own* clients. So a client on **any** worker sees the
 re-fetches the current authoritative snapshot — they always match (unlike a naive multi-worker setup where
 each worker would tick its own diverging series).
 
+No hand-authored HTML: `spaday.serve` generates the bootstrap. The chart's `data` prop is *bound* to the
+model's data field (a time-keyed map the wrapper sorts internally), and `reconnect=True` makes the wire
+durable to a worker/server restart — each reconnect re-syncs from the authoritative snapshot.
+
     # one process:
     python -m spaday.examples.cluster                       # -> http://127.0.0.1:8003
     # the cluster (the point of this example):
@@ -20,19 +24,17 @@ import os
 import random
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
-from pathlib import Path
 
 import transports
 import uvicorn
 from pydantic import BaseModel, Field
-from starlette.applications import Starlette
-from starlette.responses import FileResponse
-from starlette.routing import Mount, Route, WebSocketRoute
-from starlette.staticfiles import StaticFiles
+from starlette.routing import WebSocketRoute
 from transports import Hub, LastWriteWins, RelayBroadcaster, ZmqBackplane
 
-HERE = Path(__file__).parent
-JS = HERE.parent.parent / "js"
+from spaday import Paragraph, serve
+from spaday.components import LightweightChart
+from spaday.components.shell import Column
+
 WINDOW = 120
 
 
@@ -81,12 +83,22 @@ async def ticker() -> None:
             del data[next(iter(data))]
 
 
-async def homepage(_request):
-    return FileResponse(HERE / "cluster.html")
+def page():
+    """The UI: one chart whose data binds to the shared model — the wrapper sorts the time-keyed map."""
+    return Column(
+        Paragraph(
+            "One shared, windowed chart fanned across uvicorn --workers N by a RelayBroadcaster: only one "
+            "worker ticks; every worker keeps a replica and fans it to its own clients. Open two tabs "
+            "(balanced across workers) or refresh — the chart is identical everywhere, because each "
+            "(re)connect re-fetches the current authoritative snapshot."
+        ),
+        LightweightChart(type="area").bind("data", "data").prop("style", "height:320px;display:block"),
+        gap="1rem",
+    )
 
 
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(_app):
     await relay.start()  # joins the cluster + catches up to the current chart before serving
     tasks = [asyncio.create_task(transports.autosync(relay))]
     if relay.is_leader:  # exactly one worker drives the ticker
@@ -97,13 +109,15 @@ async def lifespan(app):
     await relay.stop()
 
 
-app = Starlette(
-    routes=[
-        Route("/", homepage),
-        WebSocketRoute("/ws", transports.ws_endpoint(relay)),  # the relay satisfies the Broadcaster contract
-        Mount("/js", StaticFiles(directory=JS)),
-    ],
-    lifespan=lifespan,
+app = serve(
+    page,
+    wire="transports",  # generate the Client + connectStore + websocket bootstrap
+    reconnect=True,  # durable to a worker/server restart; each reconnect re-fetches the snapshot
+    bundles=["lightweight-charts"],
+    routes=[WebSocketRoute("/ws", transports.ws_endpoint(relay))],  # the relay satisfies the Broadcaster contract
+    lifespan=lifespan,  # relay.start() before serving; the elected worker runs the ticker
+    title="spaday — multi-worker clustered chart",
+    head="<style>body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 60rem; }</style>",
 )
 
 

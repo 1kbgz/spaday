@@ -30,6 +30,19 @@ const SERIES = {
 
 type ChartType = keyof typeof SERIES;
 
+// Accept either a ready array of points, or a **time-keyed map** `{ time: value }` — which is the shape a
+// transports `Chart` model field holds, so a bound `data` prop can flow straight from the model to the
+// chart with no per-app transform. A map is sorted into the time-ordered array lightweight-charts wants.
+function toSeries(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([time, v]) => ({ time, value: v }))
+      .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+  }
+  return [];
+}
+
 /** A lightweight-charts chart as a custom element; set `type` and `data` to render. */
 export class LightweightChart extends HTMLElement {
   private chart?: IChartApi;
@@ -84,8 +97,8 @@ export class LightweightChart extends HTMLElement {
   get data(): unknown[] {
     return this._data;
   }
-  set data(value: unknown[]) {
-    this._data = (value as unknown[]) ?? [];
+  set data(value: unknown) {
+    this._data = toSeries(value);
     this.draw();
   }
 
