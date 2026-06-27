@@ -22,7 +22,8 @@ import uvicorn
 from pydantic import BaseModel
 from starlette.routing import WebSocketRoute
 
-from spaday import Strong, element, serve
+from spaday import Strong, element
+from spaday.backends.starlette import serve
 from spaday.components.shell import Column, Main, Row
 
 
