@@ -135,6 +135,18 @@ function readProp(el: Element, name: string): unknown {
   return el.hasAttribute(name) ? el.getAttribute(name) : null;
 }
 
+// The setter a binding drives. Normally a prop on the bound element; a `root-class:NAME` binding instead
+// toggles a class on the document root (`<html>`) — page-level theming (e.g. WebAwesome's `wa-dark`) that
+// lives outside the component tree. Authored via `Component.bind_root_class`.
+function bindingApply(el: Element, prop: string): (value: unknown) => void {
+  const ROOT_CLASS = "root-class:";
+  if (prop.startsWith(ROOT_CLASS)) {
+    const name = prop.slice(ROOT_CLASS.length);
+    return (v) => document.documentElement.classList.toggle(name, !!v);
+  }
+  return (v) => setProp(el, prop, v);
+}
+
 function wireBinding(
   el: Element,
   prop: string,
@@ -143,17 +155,18 @@ function wireBinding(
 ): void {
   unwireBinding(el, prop); // replace any prior wiring for this prop
   const teardowns: Array<() => void> = [];
+  const apply = bindingApply(el, prop);
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads
     // changes. One-way by nature — there is nothing to write back.
-    const recompute = () => setProp(el, prop, evalExpr(spec.compute, store));
+    const recompute = () => apply(evalExpr(spec.compute, store));
     recompute(); // initial value
     for (const field of exprFields(spec.compute)) {
       teardowns.push(store.subscribe(field, recompute));
     }
   } else if (spec.field !== undefined) {
-    if (store.has(spec.field)) setProp(el, prop, store.get(spec.field)); // initial field → prop
-    teardowns.push(store.subscribe(spec.field, (v) => setProp(el, prop, v)));
+    if (store.has(spec.field)) apply(store.get(spec.field)); // initial field → prop
+    teardowns.push(store.subscribe(spec.field, (v) => apply(v)));
     if (spec.mode === "two-way") {
       const onChange = () => {
         // Don't propagate an invalid value (e.g. a non-numeric or out-of-range entry in a constrained

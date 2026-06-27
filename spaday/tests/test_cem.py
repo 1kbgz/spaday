@@ -91,9 +91,12 @@ def test_classes_builds_components_at_runtime():
     assert node["props"]["checked"] == {"Bool": True}
     # keyword-named attribute is reachable as `for_` and maps back to the `for` prop
     assert klasses["WaButton"](for_="field").to_node()["props"]["for"] == {"Str": "field"}
-    # unknown keywords are rejected (the runtime classes validate kwarg names)
-    with pytest.raises(TypeError):
-        klasses["WaSwitch"](nope=1)
+    # a non-typed keyword passes through as a generic prop, so id=/slot=/style= work on typed components
+    generic = klasses["WaSwitch"]("Wi-Fi", id="wifi", slot="footer").to_node()
+    assert generic["props"]["id"] == {"Str": "wifi"}
+    assert generic["props"]["slot"] == {"Str": "footer"}
+    # a string child becomes a text node in the default slot
+    assert generic["slots"]["default"][0]["props"]["textContent"] == {"Str": "Wi-Fi"}
 
 
 def test_classes_single_name_returns_one_class():

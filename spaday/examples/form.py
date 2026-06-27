@@ -4,26 +4,23 @@
 with the hosted model. Edit a field in the browser and the server-side model updates (and fans to other
 tabs) — the same reactive seam as ``examples/reactive.py``, but the controls come from the schema.
 
+The serving is one ``spaday.serve`` call and **no hand-authored HTML**: it hosts the generated tree at
+``/tree.json`` (so the page is a Component, not a hand-built dict), generates the bootstrap page —
+pulling in WebAwesome (``bundles``) and the transports ``Client`` + ``connectStore`` wiring
+(``wire="transports"``) — splices in the ``/ws`` endpoint, and runs ``autosync`` for the app's lifetime.
+
 Run: ``python -m spaday.examples.form`` then open http://127.0.0.1:8002/.
 """
 
-import asyncio
 import enum
-from contextlib import asynccontextmanager
-from pathlib import Path
 
 import transports
 import uvicorn
 from pydantic import BaseModel
-from starlette.applications import Starlette
-from starlette.responses import FileResponse, JSONResponse
-from starlette.routing import Mount, Route, WebSocketRoute
-from starlette.staticfiles import StaticFiles
+from starlette.routing import WebSocketRoute
 
+from spaday import serve
 from spaday.components import form
-
-HERE = Path(__file__).parent
-JS = HERE.parent.parent / "js"
 
 
 class Size(str, enum.Enum):
@@ -45,34 +42,14 @@ session.host(settings)
 server = transports.Server(session)
 
 
-def tree() -> dict:
-    """The form, generated from the model — no controls authored by hand."""
-    return form(Settings).to_node()
-
-
-async def homepage(_request):
-    return FileResponse(HERE / "form.html")
-
-
-async def tree_json(_request):
-    return JSONResponse(tree())
-
-
-@asynccontextmanager
-async def lifespan(app):
-    task = asyncio.create_task(transports.autosync(server))
-    yield
-    task.cancel()
-
-
-app = Starlette(
-    routes=[
-        Route("/", homepage),
-        Route("/tree.json", tree_json),
-        WebSocketRoute("/ws", transports.ws_endpoint(server)),
-        Mount("/js", StaticFiles(directory=JS)),
-    ],
-    lifespan=lifespan,
+app = serve(
+    lambda: form(Settings),  # the form, generated from the model — no controls authored by hand
+    bundles=["webawesome"],  # WebAwesome styles + catalog, instead of hand-written <link>/<script> tags
+    wire="transports",  # generate the Client + connectStore + websocket bootstrap (no glue HTML)
+    routes=[WebSocketRoute("/ws", transports.ws_endpoint(server))],
+    background=[transports.autosync(server)],
+    title="spaday — form from a pydantic model",
+    head="<style>body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 22rem; }</style>",
 )
 
 

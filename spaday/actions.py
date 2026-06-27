@@ -140,6 +140,29 @@ def any_(*exprs: Any) -> Expr:
     return _Any(*exprs)
 
 
+class _Cond(Expr):
+    def __init__(self, test: Any, then: Any, otherwise: Any) -> None:
+        self.test, self.then, self.otherwise = test, then, otherwise
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "expr": "cond",
+            "test": _expr(self.test).to_dict(),
+            "then": _expr(self.then).to_dict(),
+            "else": _expr(self.otherwise).to_dict(),
+        }
+
+
+def cond(test: Any, then: Any, otherwise: Any) -> Expr:
+    """A ternary for a *computed* binding (:meth:`~spaday.component.Component.compute`): ``then`` when
+    ``test`` is truthy, else ``otherwise`` (each a plain value or an :class:`Expr`). Evaluated against the
+    signal store in the browser — e.g. a boolean ``dark`` field driving a string theme prop::
+
+        chart.compute("theme", cond(field("dark"), "dark", "light"))
+    """
+    return _Cond(test, then, otherwise)
+
+
 class Ref:
     """A reference to a DOM element an action targets."""
 

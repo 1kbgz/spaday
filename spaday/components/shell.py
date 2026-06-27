@@ -3,23 +3,24 @@
 spaday's "higher altitude" authoring surface: compose pages from these ``spa-*`` web components instead
 of building layout out of raw ``div``s. Each wraps a shadow-DOM layout primitive defined by the spaday
 runtime (``js/src/ts/shell.ts``); structure comes from nesting them and spacing from
-:class:`Stack` / :class:`Row` / :class:`Toolbar`::
+:class:`Column` / :class:`Row` / :class:`Toolbar`::
 
-    App(...).child(Nav(...)).child(
-        Body(...).child(Gutter(...)).child(Main(...))
-    ).child(Footer(...))
+    App(
+        Nav("My app"),
+        Body(Gutter(...), Main(...)),
+        Footer("…"),
+    )
 
-First cut — pure structural containers (no typed props yet). :class:`Main` is the page's content region;
-a single :class:`Gutter` becomes a left or right gutter by where it sits in a
-:class:`Body`. Tune spacing/surfaces with CSS custom properties (``--spa-gap``, ``--spa-gutter-width``)
-via ``.prop("style", ...)``.
+Children nest positionally (a string child is a text node); spacing comes from :class:`Column` /
+:class:`Row` / :class:`Toolbar`. :class:`Main` is the page's content region; a single :class:`Gutter`
+becomes a left or right gutter by where it sits in a :class:`Body`.
 """
 
 from typing import Any, Optional
 
-from ..component import Component
+from ..component import Child, Component
 
-__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Stack", "Row", "Toolbar", "Show"]
+__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Column", "Stack", "Row", "Toolbar", "Show"]
 
 
 class App(Component):
@@ -48,8 +49,8 @@ class Gutter(Component):
 
     tag = "spa-gutter"
 
-    def __init__(self, *, width: Optional[str] = None, gap: Optional[str] = None, key: Optional[str] = None) -> None:
-        super().__init__(key=key, props={"width": width, "gap": gap})
+    def __init__(self, *children: Child, width: Optional[str] = None, gap: Optional[str] = None, key: Optional[str] = None, **props: Any) -> None:
+        super().__init__(*children, key=key, props={"width": width, "gap": gap}, **props)
 
 
 class Main(Component):
@@ -64,13 +65,17 @@ class Footer(Component):
     tag = "spa-footer"
 
 
-class Stack(Component):
-    """A vertical group. ``gap`` sets the space between children; ``align`` the cross-axis alignment."""
+class Column(Component):
+    """A vertical group — children stacked top to bottom. ``gap`` sets the space between them; ``align``
+    the cross-axis alignment. Pairs with :class:`Row`. (``Stack`` is a back-compat alias.)"""
 
     tag = "spa-stack"
 
-    def __init__(self, *, gap: Optional[str] = None, align: Optional[str] = None, key: Optional[str] = None) -> None:
-        super().__init__(key=key, props={"gap": gap, "align": align})
+    def __init__(self, *children: Child, gap: Optional[str] = None, align: Optional[str] = None, key: Optional[str] = None, **props: Any) -> None:
+        super().__init__(*children, key=key, props={"gap": gap, "align": align}, **props)
+
+
+Stack = Column  # alias: `Column` pairs naturally with `Row`; `Stack` kept so existing code keeps working
 
 
 class Row(Component):
@@ -79,8 +84,16 @@ class Row(Component):
 
     tag = "spa-row"
 
-    def __init__(self, *, gap: Optional[str] = None, align: Optional[str] = None, justify: Optional[str] = None, key: Optional[str] = None) -> None:
-        super().__init__(key=key, props={"gap": gap, "align": align, "justify": justify})
+    def __init__(
+        self,
+        *children: Child,
+        gap: Optional[str] = None,
+        align: Optional[str] = None,
+        justify: Optional[str] = None,
+        key: Optional[str] = None,
+        **props: Any,
+    ) -> None:
+        super().__init__(*children, key=key, props={"gap": gap, "align": align, "justify": justify}, **props)
 
 
 class Toolbar(Component):
@@ -88,8 +101,16 @@ class Toolbar(Component):
 
     tag = "spa-toolbar"
 
-    def __init__(self, *, gap: Optional[str] = None, align: Optional[str] = None, justify: Optional[str] = None, key: Optional[str] = None) -> None:
-        super().__init__(key=key, props={"gap": gap, "align": align, "justify": justify})
+    def __init__(
+        self,
+        *children: Child,
+        gap: Optional[str] = None,
+        align: Optional[str] = None,
+        justify: Optional[str] = None,
+        key: Optional[str] = None,
+        **props: Any,
+    ) -> None:
+        super().__init__(*children, key=key, props={"gap": gap, "align": align, "justify": justify}, **props)
 
 
 class Show(Component):
@@ -102,15 +123,15 @@ class Show(Component):
     Pass ``field`` for a plain store field, or ``when`` for a field-expression
     (:func:`~spaday.actions.field` / ``not_`` / ``eq`` / ``all_`` / ``any_``)::
 
-        Show(field="show_chart").child(LightweightChart(...))
+        Show(LightweightChart(...), field="show_chart")
 
     Active only when the tree is mounted with a signal ``Store`` (``mount(body, tree, store)``).
     """
 
     tag = "spa-show"
 
-    def __init__(self, *, field: Optional[str] = None, when: Optional[Any] = None, key: Optional[str] = None) -> None:
-        super().__init__(key=key, props={"style": "display:contents"})
+    def __init__(self, *children: Child, field: Optional[str] = None, when: Optional[Any] = None, key: Optional[str] = None, **props: Any) -> None:
+        super().__init__(*children, key=key, props={"style": "display:contents"}, **props)
         if field is not None:
             self._bindings["when"] = {"field": field, "mode": "one-way"}
         elif when is not None:

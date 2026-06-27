@@ -116,6 +116,10 @@ export function evalExpr(expr: unknown, store: Store): unknown {
       return (e.of as unknown[]).every((x) => !!evalExpr(x, store));
     case "any":
       return (e.of as unknown[]).some((x) => !!evalExpr(x, store));
+    case "cond":
+      return evalExpr(e.test, store)
+        ? evalExpr(e.then, store)
+        : evalExpr(e["else"], store);
     default:
       return undefined;
   }

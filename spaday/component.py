@@ -16,8 +16,14 @@ from typing import Any, Dict, List, Optional, Union
 #: The conventional name of a component's unnamed (default) slot (matches the Rust core).
 DEFAULT_SLOT = "default"
 
-#: A child is either another Component or an already-built node dict.
-Child = Union["Component", dict]
+#: A child is a Component, an already-built node dict, or a string (which becomes a text node).
+Child = Union["Component", dict, str]
+
+
+def _attr_name(name: str) -> str:
+    """A Python kwarg → its attribute name: drop one trailing underscore so reserved words work
+    (``class_`` → ``class``, ``for_`` → ``for``)."""
+    return name[:-1] if name.endswith("_") else name
 
 
 def _tag(value: Any) -> Any:
@@ -53,34 +59,41 @@ def _css_name(name: str) -> str:
 class Component:
     """Base for a node in the spaday component tree.
 
-    Subclasses set the class attribute ``tag`` and pass props (only the ones the author set —
-    ``None`` means "leave the element's own default") to ``super().__init__``. Compose children with
-    ``child`` / ``child_in`` and set a reconciliation key with ``key``.
+    Author it two equivalent ways: nest children **positionally** in the constructor and set generic
+    props as keywords — ``App(Nav("title"), Body(...), id="root")`` — or build it up fluently with
+    ``.child()`` / ``.prop()``. A string child becomes a text node. Subclasses set the class attribute
+    ``tag`` and forward their typed props via ``props=`` (only the ones the author set — ``None`` means
+    "leave the element's own default").
     """
 
     tag: str = ""
 
-    def __init__(self, *, key: Optional[str] = None, props: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, *children: Child, key: Optional[str] = None, props: Optional[Dict[str, Any]] = None, **attrs: Any) -> None:
         self._key = key
-        self._props: Dict[str, Any] = {k: v for k, v in (props or {}).items() if v is not None}
+        merged = dict(props or {})  # typed props (from a subclass) + generic keyword props (id, style, …)
+        merged.update({_attr_name(k): v for k, v in attrs.items()})
+        self._props: Dict[str, Any] = {k: v for k, v in merged.items() if v is not None}
         self._slots: Dict[str, List[Child]] = {}
         self._events: Dict[str, dict] = {}
         self._bindings: Dict[str, dict] = {}
         self._style: Dict[str, str] = {}  # inline CSS declarations + custom properties (theming)
         self._classes: List[str] = []  # CSS classes (variants / states)
+        self.child(*children)
 
     def key(self, key: str) -> "Component":
         """Set the reconciliation key (for keyed child diffing)."""
         self._key = key
         return self
 
-    def child(self, node: Child) -> "Component":
-        """Append a child to the default slot."""
-        return self.child_in(DEFAULT_SLOT, node)
+    def child(self, *nodes: Child) -> "Component":
+        """Append one or more children to the default slot (a string child becomes a text node)."""
+        for node in nodes:
+            self.child_in(DEFAULT_SLOT, node)
+        return self
 
     def child_in(self, slot: str, node: Child) -> "Component":
-        """Append a child to a named slot."""
-        self._slots.setdefault(slot, []).append(node)
+        """Append a child to a named slot (a string becomes a ``<span>`` text node)."""
+        self._slots.setdefault(slot, []).append(element("span", textContent=node) if isinstance(node, str) else node)
         return self
 
     def text(self, value: str) -> "Component":
@@ -153,6 +166,18 @@ class Component:
         self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
         return self
 
+    def bind_root_class(self, name: str, field: str) -> "Component":
+        """Toggle a CSS class on the document root (``<html>``) from a boolean reactive state ``field``.
+
+        The escape hatch for *page-level* theming that lives outside the component tree — most notably
+        WebAwesome's ``wa-dark``: ``App(...).bind_root_class("wa-dark", "dark")`` makes a switch bound to
+        a ``dark`` field re-theme the whole page (the rest follows via CSS tokens; canvas widgets that
+        can't read a class take a ``.compute("theme", cond(field("dark"), "dark", "light"))`` instead).
+        One-way (the field drives the class); active only when mounted with a signal ``Store``.
+        """
+        self._bindings[f"root-class:{name}"] = {"field": field, "mode": "one-way"}
+        return self
+
     def _final_props(self) -> Dict[str, Any]:
         """Props with theming folded in: ``style``/``class`` merged from :meth:`style`/:meth:`css`/
         :meth:`classes` (after any literal ``style``/``class`` prop)."""
@@ -187,12 +212,27 @@ class Component:
         return json.dumps(self.to_node())
 
 
-def element(tag: str, *, key: Optional[str] = None, **props: Any) -> Component:
+def element(tag: str, *children: Child, key: Optional[str] = None, **props: Any) -> Component:
     """Build a plain element (e.g. a ``div`` container) for structure a typed component doesn't cover.
 
-    A prop name with a trailing underscore is de-escaped, so reserved words work: ``class_`` → ``class``.
+    Children nest positionally; a prop name with a trailing underscore is de-escaped so reserved words
+    work (``class_`` → ``class``). e.g. ``element("div", Strong("hi"), id="root", class_="card")``.
     """
-    clean = {(k[:-1] if k.endswith("_") else k): v for k, v in props.items()}
-    node = Component(key=key, props=clean)
+    node = Component(*children, key=key, props={_attr_name(k): v for k, v in props.items()})
     node.tag = tag
     return node
+
+
+def Text(text: str, **props: Any) -> Component:
+    """An inline text node — a ``<span>``. ``Row("Echo: ", echo)`` does the same via a bare string child."""
+    return element("span", textContent=text, **props)
+
+
+def Strong(text: str, **props: Any) -> Component:
+    """Bold inline text — a ``<strong>``."""
+    return element("strong", textContent=text, **props)
+
+
+def Paragraph(text: str, **props: Any) -> Component:
+    """A paragraph — a ``<p>``."""
+    return element("p", textContent=text, **props)

@@ -4,7 +4,7 @@ One omnibus app showing the whole stack — authored in typed Python, rendered b
 with **transports** as the live wire.
 
 - **Shell layout** — the page is composed from `spa-*` shell components (`spaday.components.shell`:
-  `App` / `Nav` / `Body` / `Gutter` / `Main` / `Footer`, with `Stack` / `Row` / `Toolbar`), not raw divs.
+  `App` / `Nav` / `Body` / `Gutter` / `Main` / `Footer`, with `Column` / `Row` / `Toolbar`), not raw divs.
 - **Action DSL (client-side)** — controls carry declarative actions (`Component.on` + `spaday.actions`)
   interpreted in the browser: Toggle, SetProp bound to the event value, Sequence, and buttons that
   switch a chart's series type. No event listeners are written, and the server is never called for these.
@@ -48,10 +48,11 @@ is independent per tab.
   mounts the tree — which wires the action DSL automatically. The transports controls are now declarative
   `SendPatch` actions; each fires a `spaday:patch` intent that **one** generic sink routes to the right
   transports model (the per-control listeners are gone — only that model→wire bridge remains). The light/
-  dark toggle (`wa-dark` on `<html>`) + chart theming stay hand-written, since class/root toggling isn't
-  in the DSL yet. The form card binds its generated controls to the hosted `Device` model through
-  `connectStore` (the same seam as `reactive.py`), so even the nested `schedule` fields edit
-  server-authoritatively.
+  dark toggle is declarative too: the switch is two-way bound to a `dark` signal that toggles `wa-dark`
+  on `<html>` (`App.bind_root_class`) and drives each canvas widget's `theme` prop
+  (`.compute("theme", cond(field("dark"), "dark", "light"))`) — no theme JS in the page. The form card
+  binds its generated controls to the hosted `Device` model through `connectStore` (the same seam as
+  `reactive.py`), so even the nested `schedule` fields edit server-authoritatively.
 
 ## Notes
 

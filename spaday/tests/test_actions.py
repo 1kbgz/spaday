@@ -12,7 +12,9 @@ from spaday.actions import (
     Toggle,
     bind,
     by_id,
+    cond,
     event_value,
+    field,
     lit,
     not_,
     prop,
@@ -50,6 +52,16 @@ def test_action_to_dict_wire_shapes():
         "body": {"expr": "event"},
     }
     assert NamedJs("confetti").to_dict() == {"kind": "js", "handler": "confetti"}
+
+
+def test_cond_wire_shape_coerces_branches_to_literals():
+    # a ternary field-expression (for a computed binding); plain branch values become literals
+    assert cond(field("dark"), "dark", "light").to_dict() == {
+        "expr": "cond",
+        "test": {"expr": "field", "name": "dark"},
+        "then": {"expr": "lit", "value": "dark"},
+        "else": {"expr": "lit", "value": "light"},
+    }
 
 
 def test_setprop_coerces_a_plain_value_to_a_literal():
