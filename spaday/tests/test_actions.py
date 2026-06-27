@@ -17,6 +17,7 @@ from spaday.actions import (
     field,
     lit,
     not_,
+    obj,
     prop,
     this,
 )
@@ -62,6 +63,26 @@ def test_cond_wire_shape_coerces_branches_to_literals():
         "then": {"expr": "lit", "value": "dark"},
         "else": {"expr": "lit", "value": "light"},
     }
+
+
+def test_obj_composes_an_object_body_for_call_endpoint():
+    # an object-composing expr — POST a whole model declaratively (no NamedJs handler)
+    action = CallEndpoint("POST", "/api/order", obj({"symbol": prop(by_id("sym"), "value"), "qty": lit(10)}))
+    assert action.to_dict() == {
+        "kind": "call",
+        "method": "POST",
+        "url": "/api/order",
+        "body": {
+            "expr": "obj",
+            "fields": {
+                "symbol": {"expr": "prop", "target": {"ref": "id", "id": "sym"}, "name": "value"},
+                "qty": {"expr": "lit", "value": 10},
+            },
+        },
+    }
+    # rides the core diff/apply on a node like any other action
+    node = element("button").on("click", action).to_json()
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)
 
 
 def test_setprop_coerces_a_plain_value_to_a_literal():

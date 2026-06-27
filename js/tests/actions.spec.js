@@ -269,6 +269,46 @@ test("CallEndpoint makes the REST call with the templated JSON body", async ({
   expect(seen).toEqual([{ method: "POST", body: '{"x":1}' }]);
 });
 
+test("CallEndpoint composes a JSON body from live control values via an obj expr", async ({
+  page,
+}) => {
+  const seen = [];
+  await page.route("**/api/order", (route) => {
+    seen.push(route.request().postData());
+    return route.fulfill({ status: 200, body: "ok" });
+  });
+  await page.evaluate(() => {
+    const root = window.__spaday.mount(document.body, {
+      tag: "div",
+      slots: {
+        default: [
+          { tag: "input", props: { id: { Str: "symbol" }, value: { Str: "AAPL" } } },
+          {
+            tag: "button",
+            events: {
+              click: {
+                kind: "call",
+                method: "POST",
+                url: "/api/order",
+                body: {
+                  expr: "obj",
+                  fields: {
+                    symbol: { expr: "prop", target: { ref: "id", id: "symbol" }, name: "value" },
+                    qty: { expr: "lit", value: 10 },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+    root.querySelector("button").click();
+  });
+  await page.waitForTimeout(150); // let the fetch reach the route handler
+  expect(JSON.parse(seen[0])).toEqual({ symbol: "AAPL", qty: 10 }); // obj read the live input value
+});
+
 test("NamedJs invokes a pre-registered handler (the no-eval escape hatch)", async ({
   page,
 }) => {

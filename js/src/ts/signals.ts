@@ -120,6 +120,11 @@ export function evalExpr(expr: unknown, store: Store): unknown {
       return evalExpr(e.test, store)
         ? evalExpr(e.then, store)
         : evalExpr(e["else"], store);
+    case "obj": {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(e.fields as Record<string, unknown>)) out[k] = evalExpr(v, store);
+      return out;
+    }
     default:
       return undefined;
   }

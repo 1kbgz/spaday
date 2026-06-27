@@ -163,6 +163,27 @@ def cond(test: Any, then: Any, otherwise: Any) -> Expr:
     return _Cond(test, then, otherwise)
 
 
+class _Obj(Expr):
+    def __init__(self, fields: Dict[str, Any]) -> None:
+        self.fields = fields
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "obj", "fields": {k: _expr(v).to_dict() for k, v in self.fields.items()}}
+
+
+def obj(fields: Dict[str, Any]) -> Expr:
+    """Compose a JSON object from named sub-expressions (each value a plain value or an :class:`Expr`).
+    Lets a whole model be POSTed declaratively as a :class:`CallEndpoint` body — composing live control
+    values without a hand-written handler::
+
+        CallEndpoint("POST", "/api/order", obj({
+            "symbol": prop(by_id("symbol"), "value"),
+            "qty": prop(by_id("qty"), "value"),
+        }))
+    """
+    return _Obj(fields)
+
+
 class Ref:
     """A reference to a DOM element an action targets."""
 
