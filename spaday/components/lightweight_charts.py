@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from spaday.component import Component
+from spaday.component import Child, Component
 
 __all__ = ["LightweightChart"]
 
@@ -15,15 +15,18 @@ class LightweightChart(Component):
 
     def __init__(
         self,
-        *,
+        *children: Child,
         key: Optional[str] = None,
         type: Optional[Literal["line", "area", "candlestick", "bar", "histogram"]] = None,
         data: Any = None,
+        **props: Any,
     ) -> None:
         super().__init__(
+            *children,
             key=key,
             props={
                 "type": type,
                 "data": data,
             },
+            **props,
         )

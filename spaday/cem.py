@@ -17,7 +17,7 @@ import keyword
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union, overload
 
-from .component import Component
+from .component import Child, Component
 from .spaday import parse_cem as _parse_cem
 
 _RESERVED = {"key", "self"}  # params Component owns / Python self
@@ -60,11 +60,9 @@ def _make_class(schema: dict) -> Type[Component]:
         seen.add(param)
         attr_of[param] = prop["name"]
 
-    def __init__(self, *, key: Optional[str] = None, **props: Any) -> None:
-        unknown = set(props) - attr_of.keys()
-        if unknown:
-            raise TypeError(f"{name}() got unexpected keyword argument(s): {', '.join(sorted(unknown))}")
-        Component.__init__(self, key=key, props={attr_of[p]: v for p, v in props.items()})
+    def __init__(self, *children: Child, key: Optional[str] = None, **props: Any) -> None:
+        typed = {attr_of[p]: props.pop(p) for p in list(props) if p in attr_of}
+        Component.__init__(self, *children, key=key, props=typed, **props)
 
     return type(name, (Component,), {"tag": tag, "__doc__": schema.get("summary"), "__init__": __init__})
 
@@ -91,7 +89,7 @@ def render(component_schemas: List[dict], *, source: str = "a manifest") -> str:
     if typing_imports:
         lines.append(f"from typing import {', '.join(typing_imports)}")
         lines.append("")
-    lines.append("from spaday.component import Component")
+    lines.append("from spaday.component import Child, Component")
     lines.append("")
     names = ", ".join(repr(b.name) for b in bodies)
     lines.append(f"__all__ = [{names}]")
@@ -111,9 +109,8 @@ class _ClassBody:
 
 def _render_class(schema: dict) -> _ClassBody:
     name = schema["class_name"]
-    imports: set = set()
-    params = ["self", "*", "key: Optional[str] = None"]
-    imports.add("Optional")
+    imports: set = {"Any", "Optional"}  # **props: Any and key: Optional are always present
+    params = ["self", "*children: Child", "key: Optional[str] = None"]
     assigns = []
     seen = set()
     for prop in schema["props"]:
@@ -133,17 +130,20 @@ def _render_class(schema: dict) -> _ClassBody:
         head.append(f'    """{doc}"""')
     head.append(f"    tag = {json.dumps(schema['tag_name'])}")
     head.append("")
+    params.append("**props: Any")
     sig = ",\n        ".join(params)
     body = [f"    def __init__(\n        {sig},\n    ) -> None:"]
     if assigns:
         body.append("        super().__init__(")
+        body.append("            *children,")
         body.append("            key=key,")
         body.append("            props={")
         body.extend(assigns)
         body.append("            },")
+        body.append("            **props,")
         body.append("        )")
     else:
-        body.append("        super().__init__(key=key)")
+        body.append("        super().__init__(*children, key=key, **props)")
     return _ClassBody(name, "\n".join(head + body), imports)
 
 

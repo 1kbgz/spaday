@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from spaday.component import Component
+from spaday.component import Child, Component
 
 __all__ = ["PerspectivePanel"]
 
@@ -15,13 +15,16 @@ class PerspectivePanel(Component):
 
     def __init__(
         self,
-        *,
+        *children: Child,
         key: Optional[str] = None,
         config: Any = None,
+        **props: Any,
     ) -> None:
         super().__init__(
+            *children,
             key=key,
             props={
                 "config": config,
             },
+            **props,
         )
