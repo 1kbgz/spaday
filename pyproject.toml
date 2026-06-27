@@ -40,6 +40,7 @@ examples = ["transports", "starlette", "uvicorn", "websockets"]
 cluster = ["transports", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
 perspective = ["transports", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6"]  # the omnibus Perspective panel (Mode B: a perspective.Server over its own ws)
 develop = [
+    "aiohttp",  # the aiohttp backend — covered by test_backend_aiohttp
     "anywidget",
     "build",
     "bump-my-version",
@@ -49,13 +50,13 @@ develop = [
     "hatch-js",
     "hatch-rs",
     "hatchling",
-    "httpx",  # starlette TestClient backend (for test_serve)
+    "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
     "mdformat-tables>=1",
     "pytest",
     "pytest-cov",
     "ruff",
-    "starlette",  # serve() host — covered by test_serve in CI (import spaday stays starlette-free)
+    "starlette",  # the Starlette backend — covered by test_backend_starlette (import spaday stays starlette-free)
     "twine",
     "ty",
     "uv",

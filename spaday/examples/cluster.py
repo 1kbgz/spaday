@@ -31,7 +31,8 @@ from pydantic import BaseModel, Field
 from starlette.routing import WebSocketRoute
 from transports import Hub, LastWriteWins, RelayBroadcaster, ZmqBackplane
 
-from spaday import Paragraph, serve
+from spaday import Paragraph
+from spaday.backends.starlette import serve
 from spaday.components import LightweightChart
 from spaday.components.shell import Column
 

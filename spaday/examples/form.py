@@ -19,7 +19,7 @@ import uvicorn
 from pydantic import BaseModel
 from starlette.routing import WebSocketRoute
 
-from spaday import serve
+from spaday.backends.starlette import serve
 from spaday.components import form
 
 
