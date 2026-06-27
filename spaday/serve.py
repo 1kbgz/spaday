@@ -10,6 +10,8 @@ HTML is declared in Python instead:
   (see :data:`BUNDLES`), instead of copy-pasting its ``<link>``/``<script>`` tags.
 - ``wire="transports"`` — generate the transports ``Client`` + ``connectStore`` + websocket bootstrap
   (what every transports example's HTML repeats); without it the page just mounts a static tree.
+- ``tree="frame"`` — ship the tree as a transports Snapshot frame at ``/tree`` (UI tree + model data on
+  one wire), decoded in the browser, instead of JSON at ``/tree.json``.
 - ``scripts=[…]`` — extra ES-module URLs to load for app-specific behavior (e.g. ``NamedJs`` handlers).
 
 ``routes=`` splices in extra endpoints (the transports websocket, REST), ``background=`` runs coroutines
@@ -20,11 +22,13 @@ still passes ``html=`` to serve a hand-authored file.
 from __future__ import annotations
 
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Optional, Sequence, Union
 
 from .component import Component
+from .spaday import encode_frame  # compiled core (always available); used by the tree="frame" wire
 
 if TYPE_CHECKING:  # annotations only — the runtime starlette imports live inside serve(), since starlette
     from starlette.applications import Starlette  # is the optional `examples` extra (import spaday stays light)
@@ -63,19 +67,25 @@ def _bundle_head(bundles: Sequence[str]) -> str:
     return "\n    ".join(tags)
 
 
-def _script(wire: Optional[str], scripts: Sequence[str], ws: str) -> str:
+def _script(wire: Optional[str], scripts: Sequence[str], ws: str, tree: str) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
-    to a transports model (Store + Client + connectStore) when ``wire="transports"``."""
+    to a transports model (Store + Client + connectStore) when ``wire="transports"``. ``tree="frame"``
+    fetches the tree as a transports Snapshot frame (``/tree``) and decodes it, instead of JSON."""
     transports = wire == "transports"
-    head = f'import {{ mount, init, Store, connectStore }} from "{_RUNTIME}";' if transports else f'import {{ mount, init }} from "{_RUNTIME}";'
-    lines = [head]
+    frame = tree == "frame"
+    runtime_names = ["mount", "init"] + (["Store", "connectStore"] if transports else []) + (["decodeFrame"] if frame else [])
+    lines = [f'import {{ {", ".join(runtime_names)} }} from "{_RUNTIME}";']
     if transports:
         lines.append(f'import {{ Client, fromValue, toValue, wasm }} from "{_TRANSPORTS}";')
     lines.extend(f'import "{s}";' for s in scripts)
     lines.append(f'await init({{ module_or_path: "{_WASM}" }});')
     if transports:
         lines.append(f'await wasm.default({{ module_or_path: "{_TRANSPORTS_WASM}" }});')
-    lines.append('const node = await (await fetch("/tree.json")).json();')
+    if frame:
+        lines.append('const framed = new Uint8Array(await (await fetch("/tree")).arrayBuffer());')
+        lines.append("const node = JSON.parse(decodeFrame(framed)).payload;")
+    else:
+        lines.append('const node = await (await fetch("/tree.json")).json();')
     if transports:
         lines.extend(
             [
@@ -123,6 +133,7 @@ def serve(
     bundles: Sequence[str] = (),
     wire: Optional[str] = None,
     ws: str = "/ws",
+    tree: str = "json",
     scripts: Sequence[str] = (),
     head: str = "",
     background: Sequence[Awaitable] = (),
@@ -131,19 +142,21 @@ def serve(
 
     ``page`` is a Component or a callable returning one. ``bundles`` pulls component libraries into the
     generated page's ``<head>``; ``wire="transports"`` generates the transports bootstrap (``ws`` sets the
-    socket path, default ``/ws``); ``scripts`` adds module URLs to load. ``html`` instead serves a
-    hand-authored bootstrap file (``bundles``/``wire``/``head``/``title`` are then unused). ``js``
-    overrides the served bundle directory (defaults to the repo's ``js/``); ``background`` coroutines run
-    as tasks for the app's lifetime and are cancelled on shutdown.
+    socket path, default ``/ws``); ``tree="frame"`` ships the tree as a transports Snapshot frame at
+    ``/tree`` (so the UI tree and the model data ride one wire) instead of JSON at ``/tree.json``;
+    ``scripts`` adds module URLs to load. ``html`` instead serves a hand-authored bootstrap file
+    (``bundles``/``wire``/``head``/``title`` are then unused). ``js`` overrides the served bundle directory
+    (defaults to the repo's ``js/``); ``background`` coroutines run as tasks for the app's lifetime and are
+    cancelled on shutdown.
     """
     from starlette.applications import Starlette
-    from starlette.responses import FileResponse, HTMLResponse, JSONResponse
+    from starlette.responses import FileResponse, HTMLResponse, JSONResponse, Response
     from starlette.routing import Mount, Route
     from starlette.staticfiles import StaticFiles
 
     js_dir = Path(js) if js is not None else _DEV_JS
     head_markup = "\n    ".join(p for p in (_bundle_head(bundles), head) if p)
-    body = _page_html(title, head_markup, _script(wire, scripts, ws))
+    body = _page_html(title, head_markup, _script(wire, scripts, ws, tree))
 
     async def homepage(_request):
         return FileResponse(html) if html is not None else HTMLResponse(body)
@@ -151,6 +164,14 @@ def serve(
     async def tree_json(_request):
         node = page() if callable(page) else page
         return JSONResponse(node.to_node())
+
+    async def tree_frame(_request):
+        # the tree rides the same length-prefixed, codec-tagged transports envelope the model data uses
+        node = page() if callable(page) else page
+        frame = encode_frame(json.dumps(node.to_node()), "spa-tree", "snapshot", 0, "application/json")
+        return Response(frame, media_type="application/octet-stream")
+
+    tree_route = Route("/tree", tree_frame) if tree == "frame" else Route("/tree.json", tree_json)
 
     @asynccontextmanager
     async def lifespan(_app):
@@ -161,5 +182,5 @@ def serve(
             for task in tasks:
                 task.cancel()
 
-    app_routes = [Route("/", homepage), Route("/tree.json", tree_json), *routes, Mount("/js", StaticFiles(directory=js_dir))]
+    app_routes = [Route("/", homepage), tree_route, *routes, Mount("/js", StaticFiles(directory=js_dir))]
     return Starlette(routes=app_routes, lifespan=lifespan)

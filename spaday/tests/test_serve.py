@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import pytest
 
@@ -8,7 +9,7 @@ from starlette.responses import PlainTextResponse  # noqa: E402
 from starlette.routing import Route  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
-from spaday import serve  # noqa: E402
+from spaday import decode_frame, serve  # noqa: E402
 from spaday.components.shell import Main  # noqa: E402
 
 
@@ -52,6 +53,18 @@ def test_serve_generates_a_bundle_and_transports_wire(tmp_path):
     assert "connectStore(" in html and "transports_bg.wasm" in html
     assert "new WebSocket(`ws://${location.host}/sock`)" in html
     assert "mount(document.body, node, store)" in html
+
+
+def test_serve_frame_tree_ships_the_tree_as_a_transports_frame(tmp_path):
+    page = Main("hi")
+    client = TestClient(serve(page, js=tmp_path, wire="transports", tree="frame"))
+    html = client.get("/").text
+    # the bootstrap decodes a frame from /tree instead of fetching /tree.json
+    assert "decodeFrame" in html and 'fetch("/tree")' in html and "/tree.json" not in html
+    # the /tree route returns a Snapshot frame that decodes back to the authored tree
+    frame = client.get("/tree").content
+    assert json.loads(decode_frame(frame))["payload"] == page.to_node()
+    assert client.get("/tree.json").status_code == 404  # json route not mounted in frame mode
 
 
 def test_serve_static_page_has_no_transports_wire(tmp_path):
