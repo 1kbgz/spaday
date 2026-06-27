@@ -256,8 +256,14 @@
 <span class="c1">#: The conventional name of a component&#39;s unnamed (default) slot (matches the Rust core).</span>
 <span class="n">DEFAULT_SLOT</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
 
-<span class="c1">#: A child is either another Component or an already-built node dict.</span>
-<span class="n">Child</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;Component&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span>
+<span class="c1">#: A child is a Component, an already-built node dict, or a string (which becomes a text node).</span>
+<span class="n">Child</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;Component&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_attr_name</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A Python kwarg → its attribute name: drop one trailing underscore so reserved words work</span>
+<span class="sd">    (``class_`` → ``class``, ``for_`` → ``for``).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">name</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_tag</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
@@ -295,21 +301,26 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">Component</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base for a node in the spaday component tree.</span>
 
-<span class="sd">    Subclasses set the class attribute ``tag`` and pass props (only the ones the author set —</span>
-<span class="sd">    ``None`` means &quot;leave the element&#39;s own default&quot;) to ``super().__init__``. Compose children with</span>
-<span class="sd">    ``child`` / ``child_in`` and set a reconciliation key with ``key``.</span>
+<span class="sd">    Author it two equivalent ways: nest children **positionally** in the constructor and set generic</span>
+<span class="sd">    props as keywords — ``App(Nav(&quot;title&quot;), Body(...), id=&quot;root&quot;)`` — or build it up fluently with</span>
+<span class="sd">    ``.child()`` / ``.prop()``. A string child becomes a text node. Subclasses set the class attribute</span>
+<span class="sd">    ``tag`` and forward their typed props via ``props=`` (only the ones the author set — ``None`` means</span>
+<span class="sd">    &quot;leave the element&#39;s own default&quot;).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">props</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="n">Child</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">props</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="o">=</span> <span class="n">key</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">props</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">props</span> <span class="ow">or</span> <span class="p">{})</span>  <span class="c1"># typed props (from a subclass) + generic keyword props (id, style, …)</span>
+        <span class="n">merged</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">_attr_name</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">merged</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_slots</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Child</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_style</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># inline CSS declarations + custom properties (theming)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_classes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># CSS classes (variants / states)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Component.key">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.key">[docs]</a>
@@ -321,16 +332,18 @@
 
 <div class="viewcode-block" id="Component.child">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.child">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Child</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Component&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append a child to the default slot.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="n">DEFAULT_SLOT</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">nodes</span><span class="p">:</span> <span class="n">Child</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Component&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append one or more children to the default slot (a string child becomes a text node).&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="n">DEFAULT_SLOT</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
 
 
 <div class="viewcode-block" id="Component.child_in">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.child_in">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">child_in</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Child</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Component&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append a child to a named slot.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_slots</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">slot</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append a child to a named slot (a string becomes a ``&lt;span&gt;`` text node).&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slots</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">slot</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;span&quot;</span><span class="p">,</span> <span class="n">textContent</span><span class="o">=</span><span class="n">node</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">node</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
@@ -428,6 +441,21 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
+<div class="viewcode-block" id="Component.bind_root_class">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.bind_root_class">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_root_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Component&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Toggle a CSS class on the document root (``&lt;html&gt;``) from a boolean reactive state ``field``.</span>
+
+<span class="sd">        The escape hatch for *page-level* theming that lives outside the component tree — most notably</span>
+<span class="sd">        WebAwesome&#39;s ``wa-dark``: ``App(...).bind_root_class(&quot;wa-dark&quot;, &quot;dark&quot;)`` makes a switch bound to</span>
+<span class="sd">        a ``dark`` field re-theme the whole page (the rest follows via CSS tokens; canvas widgets that</span>
+<span class="sd">        can&#39;t read a class take a ``.compute(&quot;theme&quot;, cond(field(&quot;dark&quot;), &quot;dark&quot;, &quot;light&quot;))`` instead).</span>
+<span class="sd">        One-way (the field drives the class); active only when mounted with a signal ``Store``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;root-class:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span> <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="s2">&quot;one-way&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_final_props</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Props with theming folded in: ``style``/``class`` merged from :meth:`style`/:meth:`css`/</span>
 <span class="sd">        :meth:`classes` (after any literal ``style``/``class`` prop).&quot;&quot;&quot;</span>
@@ -471,16 +499,31 @@
 
 <div class="viewcode-block" id="element">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.element">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">element</span><span class="p">(</span><span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">element</span><span class="p">(</span><span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="n">Child</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a plain element (e.g. a ``div`` container) for structure a typed component doesn&#39;t cover.</span>
 
-<span class="sd">    A prop name with a trailing underscore is de-escaped, so reserved words work: ``class_`` → ``class``.</span>
+<span class="sd">    Children nest positionally; a prop name with a trailing underscore is de-escaped so reserved words</span>
+<span class="sd">    work (``class_`` → ``class``). e.g. ``element(&quot;div&quot;, Strong(&quot;hi&quot;), id=&quot;root&quot;, class_=&quot;card&quot;)``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">clean</span> <span class="o">=</span> <span class="p">{(</span><span class="n">k</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">props</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-    <span class="n">node</span> <span class="o">=</span> <span class="n">Component</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="n">clean</span><span class="p">)</span>
+    <span class="n">node</span> <span class="o">=</span> <span class="n">Component</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="p">{</span><span class="n">_attr_name</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">props</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
     <span class="n">node</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span>
     <span class="k">return</span> <span class="n">node</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">Text</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An inline text node — a ``&lt;span&gt;``. ``Row(&quot;Echo: &quot;, echo)`` does the same via a bare string child.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;span&quot;</span><span class="p">,</span> <span class="n">textContent</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">Strong</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Bold inline text — a ``&lt;strong&gt;``.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">,</span> <span class="n">textContent</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">Paragraph</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A paragraph — a ``&lt;p&gt;``.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="n">textContent</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
 </pre></div>
         </article>
       </div>
