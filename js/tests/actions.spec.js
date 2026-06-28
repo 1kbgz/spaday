@@ -282,7 +282,10 @@ test("CallEndpoint composes a JSON body from live control values via an obj expr
       tag: "div",
       slots: {
         default: [
-          { tag: "input", props: { id: { Str: "symbol" }, value: { Str: "AAPL" } } },
+          {
+            tag: "input",
+            props: { id: { Str: "symbol" }, value: { Str: "AAPL" } },
+          },
           {
             tag: "button",
             events: {
@@ -293,7 +296,11 @@ test("CallEndpoint composes a JSON body from live control values via an obj expr
                 body: {
                   expr: "obj",
                   fields: {
-                    symbol: { expr: "prop", target: { ref: "id", id: "symbol" }, name: "value" },
+                    symbol: {
+                      expr: "prop",
+                      target: { ref: "id", id: "symbol" },
+                      name: "value",
+                    },
                     qty: { expr: "lit", value: 10 },
                   },
                 },
