@@ -65,6 +65,22 @@ is independent per tab.
   list diff is positional, so dropping the front re-`Set`s every shifted element.
 - **TradingView logo** is disabled in the chart wrapper; attribution is in the page footer.
 
+## Integration ladder — how much of the app spaday owns
+
+spaday attaches at whatever level you need; the examples form a ladder from "spaday is the app" to "spaday
+is one node on a page you own". Each rung is fully customizable — start at the top, drop down for control.
+
+| Rung | What spaday owns | Seam | Examples |
+| ---- | ---------------- | ---- | -------- |
+| **No HTML** | the whole app (its routes, assets, bootstrap) | `serve(page, …)` | `form.py`, `reactive.py`, `cluster.py`, `gateway.py`, `__main__.py` |
+| **Some HTML** | a sub-path of *your* app | `mount(app, page, prefix=…)` | `embed.py` |
+| **Full custom HTML** | one node in *your* page (you own markup + assets) | `bootstrap(page, fragment=True, target=…)` | `fragment.py`; `ssr.py` (server-render + hydrate) |
+| **Notebook** | a cell's widget (no server) | `Widget(component)` | `widget.py`, `devices.py` |
+
+`serve` is just `mount` onto a fresh app, and `mount` is just route-wiring around `bootstrap` — the same
+generation options (`wire=`, `store=`, `bundles=`, `head=`, `scripts=`) flow through every rung. The
+multi-model `wire=[Wire("/ws", namespace=…), …]` (see `__main__.py`) works at any rung.
+
 ## `reactive.py` — declarative two-way binding over transports
 
 A second, focused app showing the spaday ↔ transports boundary at its cleanest. A `Controls` model lives

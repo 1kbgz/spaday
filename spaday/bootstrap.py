@@ -30,6 +30,7 @@ What an app would otherwise hand-write in HTML is declared in Python:
 from __future__ import annotations
 
 import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional, Sequence, Union
 
@@ -39,6 +40,30 @@ from .spaday import encode_frame  # compiled core (always available); used by tr
 #: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called
 #: per request, so the tree can reflect current state).
 Page = Union[Component, "object"]
+
+
+@dataclass(frozen=True)
+class Wire:
+    """One transports model wire for a multi-model page — a typed, discoverable alternative to a raw dict
+    in ``serve``/``bootstrap`` ``wire=[…]`` (both forms are accepted, mix freely):
+
+    - ``url`` — the websocket endpoint the model is mirrored over (matches a backend ``routes=`` entry).
+    - ``namespace`` — mirror the model's fields under ``<namespace>.`` so several models share one signal
+      store without colliding (two ``Chart`` models on ``global.*`` / ``session.*``); omit for bare fields.
+    - ``session`` — append ``?session=<uuid>`` so the model is a fresh per-page-load tenant (a ``Hub``).
+    - ``flatten`` — recurse nested sub-models to dotted ``parent.child`` fields (the default, what a form
+      binds); set ``False`` for an opaque map/dict field (a chart's time-keyed ``data``, a Perspective
+      ``layout``) so it's mirrored whole.
+
+    ``Wire("/ws", namespace="global", flatten=False)`` reads better than ``{"url": "/ws", …}`` and gives
+    editor help; it serializes to exactly that dict.
+    """
+
+    url: str
+    namespace: Optional[str] = None
+    session: bool = False
+    flatten: bool = True
+
 
 # Paths under the served ``/js`` mount — prefixed with ``{base}/js`` at build time (see ``_js``).
 _RUNTIME = "/dist/esm/index.js"
@@ -137,7 +162,7 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
 
 def _script(
     base: str,
-    wire: Optional[Union[str, Sequence[dict]]],
+    wire: Optional[Union[str, Sequence[Union[dict, Wire]]]],
     scripts: Sequence[str],
     ws: str,
     tree: str,
@@ -155,7 +180,8 @@ def _script(
     js = _js(base)
     into = f'document.querySelector("{target}")' if target else "document.body"
     transports = wire == "transports"
-    wires = wire if isinstance(wire, (list, tuple)) else None
+    # a wire LIST may mix Wire instances and raw dicts — normalize each to the dict the codegen consumes
+    wires = [asdict(w) if isinstance(w, Wire) else w for w in wire] if isinstance(wire, (list, tuple)) else None
     wired = transports or bool(wires)  # any transports wiring — a single string model or a list of specs
     frame = tree == "frame"
     store_init = f"new Store({json.dumps(store)})" if store else "new Store()"
@@ -230,7 +256,7 @@ def bootstrap(
     *,
     base: str = "",
     bundles: Sequence[str] = (),
-    wire: Optional[Union[str, Sequence[dict]]] = None,
+    wire: Optional[Union[str, Sequence[Union[dict, Wire]]]] = None,
     ws: str = "/ws",
     tree: str = "json",
     reconnect: bool = False,

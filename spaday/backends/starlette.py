@@ -17,7 +17,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Callable, Optional, Sequence, Union
 
-from ..bootstrap import Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import Page, Wire, bootstrap, bundles_dir, tree_frame, tree_json
 
 if TYPE_CHECKING:  # annotations only — starlette is imported inside the functions (optional extra)
     from starlette.applications import Starlette
@@ -33,7 +33,7 @@ def mount(
     js: Optional[Union[str, Path]] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
-    wire: Optional[Union[str, Sequence[dict]]] = None,
+    wire: Optional[Union[str, Sequence[Union[dict, Wire]]]] = None,
     ws: str = "/ws",
     tree: str = "json",
     reconnect: bool = False,
