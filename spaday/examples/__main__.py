@@ -46,7 +46,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from spaday import element
+from spaday import Wire, element
 from spaday.actions import CallEndpoint, SendPatch, Sequence, SetProp, Toggle, bind, by_id, cond, field, lit, not_, obj
 from spaday.backends.starlette import serve
 from spaday.components.form import FormField, form
@@ -494,10 +494,10 @@ app = serve(
     wire=[
         # flatten=False on the charts/config: their `data` map + `layout` dict are opaque whole-value fields
         # (mirror them as one field each), unlike the form whose nested `schedule` should flatten to dotted.
-        {"url": "/ws", "namespace": "global", "flatten": False},  # shared global chart
-        {"url": "/ws/session", "namespace": "session", "session": True, "flatten": False},  # per-tab chart
-        {"url": "/ws/perspective-config", "namespace": "psp", "flatten": False},  # the Perspective config
-        {"url": "/ws/form"},  # the Device form — bare fields, nested schedule flattens (default)
+        Wire("/ws", namespace="global", flatten=False),  # shared global chart
+        Wire("/ws/session", namespace="session", session=True, flatten=False),  # per-tab private chart
+        Wire("/ws/perspective-config", namespace="psp", flatten=False),  # the Perspective config (Mode B)
+        Wire("/ws/form"),  # the Device form — bare fields, nested schedule flattens (default)
     ],
     store={"show_chart": False, "dark": False},  # local reactive state (the structure + theme cards)
     background=[

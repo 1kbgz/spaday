@@ -152,6 +152,15 @@ def test_string_wire_still_generates_a_single_unnamespaced_model():
     assert "client0" not in html and "spaday:patch" not in html  # not the multi-wire codegen
 
 
+def test_wire_typed_helper_matches_the_raw_dict_form():
+    from spaday.bootstrap import Wire
+
+    typed = bootstrap(wire=[Wire("/ws", namespace="g", flatten=False), Wire("/ws/form")])
+    raw = bootstrap(wire=[{"url": "/ws", "namespace": "g", "flatten": False}, {"url": "/ws/form"}])
+    assert typed == raw  # Wire(...) serializes to exactly the dict form — same generated page
+    assert 'connectStore(store, client0, (frame) => ws0.send(frame), { fromValue, toValue }, "g", false)' in typed
+
+
 def test_wire_list_flatten_false_passes_the_flatten_arg():
     # an opaque-map model (a chart's `data`) mirrors whole: connectStore gets `, "g", false`
     html = bootstrap(wire=[{"url": "/ws", "namespace": "g", "flatten": False}])

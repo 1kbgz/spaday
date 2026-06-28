@@ -22,6 +22,7 @@ from .actions import (
     prop,
     this,
 )
+from .bootstrap import Wire
 from .cem import classes, generate
 from .component import Component, Paragraph, Strong, Text, element
 from .render import render_html
@@ -50,6 +51,8 @@ __all__ = [
     "Paragraph",
     # server-side rendering (light-DOM HTML for first paint; client hydrates)
     "render_html",
+    # a typed transports wire spec for a multi-model page (serve/bootstrap wire=[…])
+    "Wire",
     # theming token reference (css custom properties are set via Component.css)
     "SHELL_TOKENS",
     # build-time validation
