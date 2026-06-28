@@ -40,19 +40,20 @@ is independent per tab.
 ## How it maps to the architecture
 
 - `__main__.py` authors the page (shell + controls + actions), hosts two `Chart` models on transports
-  (`Session`/`Server`, plus a `Hub` for per-session), and a `Device` model whose form is generated. It
-  serves the page, the authored tree (`/tree.json`), the websockets (`/ws`, `/ws/session`, `/ws/form`),
-  and the `js/` bundles.
-- `index.html` first `await init("…/spaday_bg.wasm")` (the action interpreter runs in spaday's wasm
-  core, so it must be initialized before interactions — otherwise an action fires a clear error), then
-  mounts the tree — which wires the action DSL automatically. The transports controls are now declarative
-  `SendPatch` actions; each fires a `spaday:patch` intent that **one** generic sink routes to the right
-  transports model (the per-control listeners are gone — only that model→wire bridge remains). The light/
-  dark toggle is declarative too: the switch is two-way bound to a `dark` signal that toggles `wa-dark`
-  on `<html>` (`App.bind_root_class`) and drives each canvas widget's `theme` prop
-  (`.compute("theme", cond(field("dark"), "dark", "light"))`) — no theme JS in the page. The form card
-  binds its generated controls to the hosted `Device` model through `connectStore` (the same seam as
-  `reactive.py`), so even the nested `schedule` fields edit server-authoritatively.
+  (`Session`/`Server`, plus a `Hub` for per-session), a `Device` model whose form is generated, and a
+  `PerspectiveConfig`. It self-serves with **no hand-written HTML**: `serve(page, wire=[…], store=…,
+  background=[…], routes=[…])` generates the whole bootstrap and mounts the Python-authored tree.
+- **The generated page** initializes spaday's wasm core (the action interpreter) and transports' wasm,
+  then opens the four wires and mounts. The two `Chart` models would collide (both have
+  `type`/`data`/`live`), so each is mirrored under its own **namespace** (`global.*` / `session.*`) into
+  one signal store via `connectStore(…, namespace)`; the chart props and controls are plain
+  `compute`/two-way `bind` against those fields (the chart wrapper sorts the time-keyed map — no
+  transform), and "Clear" is a `SendPatch` the generated `spaday:patch` sink routes into the store. The
+  light/dark toggle is declarative: the switch is two-way bound to a `dark` signal that toggles `wa-dark`
+  on `<html>` (`App.bind_root_class`) and drives each canvas widget's `theme`
+  (`.compute("theme", cond(field("dark"), "dark", "light"))`). The form binds its generated controls to
+  the hosted `Device` model through a fourth, un-namespaced wire, so even the nested `schedule` fields
+  edit server-authoritatively; the Perspective card computes its `config` from the `psp.*` fields.
 
 ## Notes
 

@@ -68,12 +68,23 @@ function setPath(
  * fields — and a nested sub-model flattens to dotted `parent.child` fields: inbound frames pull them
  * into the store; a store field change (e.g. from a two-way control) is pushed back as a `client.edit`,
  * sent via `send`. Edits are server-authoritative — it takes effect when the server echoes it back.
+ *
+ * Pass a `namespace` to mirror under `${namespace}.<field>` so several models can share one `Store`
+ * without their field names colliding (e.g. two `Chart` models on one page); the outbound edit still
+ * carries the bare model field. Call it once per model, each with its own `client` and namespace.
+ *
+ * `flatten` (default true) recurses nested sub-models into dotted `parent.child` fields — what a generated
+ * form binds to. Set it false when a top-level field is an **opaque map/dict** (a chart's time-keyed
+ * `data`, a Perspective layout): the field is mirrored whole, so replacing it is one store set + one edit
+ * (not one per key), and `compute`/`bind` read the whole value.
  */
 export function connectStore(
   store: Store,
   client: ModelClient,
   send: (frame: string) => void,
   codec: ValueCodec,
+  namespace?: string, // prefix every store field with `${namespace}.` — lets several models share one Store
+  flatten = true, // recurse nested sub-models to dotted fields; set false to keep an opaque map/dict whole
 ): StoreLink {
   let id: number | undefined;
   let inbound = false; // true while applying a received frame, so we don't echo it straight back out
@@ -88,12 +99,18 @@ export function connectStore(
       const model = codec.fromValue(client.value(id));
       if (!model) return;
       inbound = true;
-      for (const [field, value] of leaves(model)) {
-        store.set(field, value); // model → store (→ any bound props); nested → a dotted field
-        if (!wired.has(field)) {
-          wired.add(field);
+      // flatten=true recurses sub-models to dotted leaves (a form's `schedule.start`); flatten=false
+      // keeps each top-level field whole, so an opaque map (a chart's time-keyed `data`) is one field.
+      const entries = flatten ? leaves(model) : Object.entries(model);
+      for (const [field, value] of entries) {
+        // store under the namespace (so models on one Store don't collide), but the outbound edit must
+        // carry the BARE model field — keep the loop-local `field` for it, never slice the namespaced key.
+        const key = namespace ? `${namespace}.${field}` : field;
+        store.set(key, value); // model → store (→ any bound props); nested → a dotted field
+        if (!wired.has(key)) {
+          wired.add(key);
           unsubs.push(
-            store.subscribe(field, (v) => {
+            store.subscribe(key, (v) => {
               if (inbound || id === undefined) return; // ignore echoes of an inbound update
               const current = codec.fromValue(client.value(id)) ?? {};
               send(

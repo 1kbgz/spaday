@@ -160,3 +160,118 @@ test("outbound: editing a nested control sends a deep-set edit preserving siblin
     address: { street: "Oak", city: "NYC" },
   });
 });
+
+test("namespace: inbound mirrors under the prefix, leaving the bare field untouched", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { mount, Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "span",
+        bindings: { textContent: { field: "g.type", mode: "one-way" } },
+      },
+      store,
+    );
+    const link = connectStore(store, client, () => {}, codec, "g");
+    link.receive(JSON.stringify({ type: "area" }));
+    return {
+      text: root.textContent,
+      ns: store.get("g.type"),
+      bare: store.get("type"),
+    };
+  }, FAKE.toString());
+  expect(result.text).toBe("area"); // the namespaced field reached the bound prop
+  expect(result.ns).toBe("area"); // mirrored under the prefix
+  expect(result.bare).toBeUndefined(); // the bare model field name is never written
+});
+
+test("namespace: the outbound edit carries the bare model field, not the prefixed key", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { mount, Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const input = mount(
+      document.createElement("div"),
+      {
+        tag: "input",
+        props: { type: { Str: "checkbox" } },
+        bindings: { checked: { field: "g.live", mode: "two-way" } },
+      },
+      store,
+    );
+    const sent = [];
+    const link = connectStore(store, client, (f) => sent.push(f), codec, "g");
+    link.receive(JSON.stringify({ live: false }));
+    input.checked = true;
+    input.dispatchEvent(new Event("change")); // two-way: g.live → edit
+    return { sent: sent.map((f) => JSON.parse(f)) };
+  }, FAKE.toString());
+  expect(result.sent).toContainEqual({ live: true }); // bare field — the "g." prefix is stripped
+});
+
+test("namespace: two models on one Store don't echo across namespaces", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const a = eval(`(${makeFake})()`);
+    const b = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const sentA = [];
+    const sentB = [];
+    const linkA = connectStore(
+      store,
+      a.client,
+      (f) => sentA.push(f),
+      a.codec,
+      "g",
+    );
+    const linkB = connectStore(
+      store,
+      b.client,
+      (f) => sentB.push(f),
+      b.codec,
+      "s",
+    );
+    linkA.receive(JSON.stringify({ type: "line" })); // each model seeds its own namespace
+    linkB.receive(JSON.stringify({ type: "area" }));
+    sentA.length = 0;
+    sentB.length = 0;
+    store.set("g.type", "histogram"); // a change in the "g" namespace only
+    return { a: sentA.length, b: sentB.length };
+  }, FAKE.toString());
+  expect(result.a).toBe(1); // only the "g" model's connectStore sent an edit
+  expect(result.b).toBe(0); // the "s" model is untouched — no cross-namespace echo
+});
+
+test("flatten=false keeps an opaque map field whole — one field, one edit", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const sent = [];
+    // a chart-shaped model: `data` is a time-keyed map that must stay opaque, not flatten to data.<key>
+    const link = connectStore(
+      store,
+      client,
+      (f) => sent.push(f),
+      codec,
+      "g",
+      false,
+    );
+    link.receive(JSON.stringify({ data: { a: 1, b: 2 } }));
+    const whole = store.get("g.data"); // mirrored whole (not split into g.data.a / g.data.b leaves)
+    store.set("g.data", {}); // replacing the whole field (e.g. a chart "Clear")
+    return { whole, sent: sent.map((f) => JSON.parse(f)) };
+  }, FAKE.toString());
+  expect(result.whole).toEqual({ a: 1, b: 2 }); // the map is one field
+  expect(result.sent).toContainEqual({ data: {} }); // ONE edit replacing the whole field (not per-key)
+});

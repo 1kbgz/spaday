@@ -33,7 +33,7 @@ def mount(
     js: Optional[Union[str, Path]] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
-    wire: Optional[str] = None,
+    wire: Optional[Union[str, Sequence[dict]]] = None,
     ws: str = "/ws",
     tree: str = "json",
     reconnect: bool = False,
