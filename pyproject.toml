@@ -169,6 +169,11 @@ packages = [
     "Cargo.lock",
 ]
 exclude = [
+    "spaday/*.dll",
+    "spaday/*.dylib",
+    "spaday/*.so",
+    "spaday/extension",
+    "js/dist",
     "js/node_modules",
     "rust/Makefile",
     "target",
@@ -177,6 +182,9 @@ exclude = [
 [tool.hatch.build.targets.wheel]
 packages = [
     "spaday",
+]
+artifacts = [
+    "spaday/extension/**/*",
 ]
 exclude = [
     "js",
