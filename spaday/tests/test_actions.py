@@ -85,6 +85,15 @@ def test_obj_composes_an_object_body_for_call_endpoint():
     assert json.loads(apply(node, diff(node, node))) == json.loads(node)
 
 
+def test_field_composes_an_action_body_from_store_state():
+    # `field` now also works in an action expr (read the mounted signal store) — the csp-gateway pattern:
+    # POST a form's two-way-bound state without a hand-written handler
+    action = CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol"), "qty": field("qty")}))
+    assert action.to_dict()["body"]["fields"]["qty"] == {"expr": "field", "name": "qty"}
+    node = element("button").on("click", action).to_json()
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)  # the core accepts field in an action
+
+
 def test_setprop_coerces_a_plain_value_to_a_literal():
     # a bare Python value is wrapped as a literal expression — no need to write lit(...) explicitly
     assert SetProp(this(), "label", "Go").to_dict()["value"] == {"expr": "lit", "value": "Go"}

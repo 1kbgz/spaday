@@ -9,7 +9,8 @@
 //! The wire form (matched by `spaday.actions` in Python and the runtime in JS):
 //! - `Ref`:  `{"ref":"this"}` · `{"ref":"id","id":"panel"}`
 //! - `Expr`: `{"expr":"lit","value":<json>}` · `{"expr":"event"}` · `{"expr":"not","of":<Expr>}` ·
-//!   `{"expr":"prop","target":<Ref>,"name":"checked"}` · `{"expr":"obj","fields":{<name>:<Expr>}}`
+//!   `{"expr":"prop","target":<Ref>,"name":"checked"}` · `{"expr":"field","name":"qty"}` ·
+//!   `{"expr":"obj","fields":{<name>:<Expr>}}`
 //! - `Action`: `{"kind":"set",target,prop,value}` · `{"kind":"toggle",target,prop}` ·
 //!   `{"kind":"seq","actions":[..]}` · `{"kind":"emit","event","detail":<Expr>|null}` ·
 //!   `{"kind":"patch","model","field","value":<Expr>}` ·
@@ -46,6 +47,9 @@ pub enum Expr {
     Not { of: Box<Expr> },
     /// The current value of a `name` prop on `target` (reads live element state).
     Prop { target: Ref, name: String },
+    /// The current value of a reactive state `field` from the signal store the tree was mounted with —
+    /// e.g. compose `CallEndpoint`'s body from a form's two-way-bound fields. (Also a binding expr.)
+    Field { name: String },
     /// Compose a JSON object from named sub-expressions — e.g. a whole model as a `CallEndpoint` body:
     /// `{"expr":"obj","fields":{"symbol":{"expr":"prop","target":{"ref":"id","id":"sym"},"name":"value"}}}`.
     Obj {
@@ -323,6 +327,30 @@ mod tests {
                 "body": {"expr": "obj", "fields": {
                     "qty": {"expr": "lit", "value": 10},
                     "symbol": {"expr": "prop", "target": {"ref": "id", "id": "sym"}, "name": "value"},
+                }},
+            }),
+        );
+    }
+
+    #[test]
+    fn obj_body_from_store_fields() {
+        // the csp-gateway pattern: POST a whole model composed from the form's two-way-bound store fields
+        let mut fields = std::collections::BTreeMap::new();
+        fields.insert("qty".to_string(), Expr::Field { name: "qty".into() });
+        fields.insert("symbol".to_string(), Expr::Field { name: "symbol".into() });
+        round(
+            &Action::CallEndpoint {
+                method: "POST".into(),
+                url: "/api/order".into(),
+                body: Some(Expr::Obj { fields }),
+            },
+            json!({
+                "kind": "call",
+                "method": "POST",
+                "url": "/api/order",
+                "body": {"expr": "obj", "fields": {
+                    "qty": {"expr": "field", "name": "qty"},
+                    "symbol": {"expr": "field", "name": "symbol"},
                 }},
             }),
         );

@@ -47,7 +47,7 @@
       await init({ module_or_path: "/js/dist/pkg/spaday_bg.wasm" }); // the action interpreter (CallEndpoint / NamedJs)
 
       const node = await (await fetch("/tree.json")).json();
-      // the form's controls two-way bind to this store; the Send handler reads it to POST the order
+      // the form's controls two-way bind to this store; the Send action's `field` exprs read it for the POST
       const store = new Store({
         symbol: "AAPL",
         side: "buy",
@@ -57,24 +57,8 @@
       mount(document.body, node, store);
       const byId = (id) => document.getElementById(id);
 
-      // "Send order" — the one bit of glue: compose the form's fields and POST them to the channel. This is
-      // what `CallEndpoint(body=form.value)` will make declarative once the DSL can compose an object.
-      registerHandler("send-order", async () => {
-        const order = {
-          symbol: store.get("symbol"),
-          side: store.get("side"),
-          qty: store.get("qty"),
-          price: store.get("price"),
-        };
-        const res = await fetch("/api/send/orders", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(order),
-        });
-        byId("status").textContent = res.ok
-          ? `sent #${(await res.json()).id}`
-          : "rejected (invalid)";
-      });
+      // "Send order" is fully declarative now (a CallEndpoint(obj({field…})) in the tree): the action
+      // interpreter composes the form's two-way-bound store fields into the POST body — no handler here.
 
       // "Clear" — POST the channel clear, then force each viewer to repaint: a Perspective datagrid does
       // not repaint when its view is emptied (the rows are gone from the data, but linger on screen).

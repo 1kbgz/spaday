@@ -91,7 +91,7 @@ function hydrateNode(el: Element, node: Node, store?: Store): void {
     }
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
-    bindEvent(el, name, action);
+    bindEvent(el, name, action, store); // actions ride the wire as the core's DSL form (plain JSON)
   }
   if (store) {
     for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
@@ -105,13 +105,18 @@ function hydrateNode(el: Element, node: Node, store?: Store): void {
 // `SetEvent` when an action is added/changed and `RemoveEvent` when one is removed on an existing node.
 const listeners = new WeakMap<Element, Map<string, EventListener>>();
 
-function bindEvent(el: Element, name: string, action: unknown): void {
+function bindEvent(
+  el: Element,
+  name: string,
+  action: unknown,
+  store?: Store,
+): void {
   let map = listeners.get(el);
   if (!map) listeners.set(el, (map = new Map()));
   const existing = map.get(name);
   if (existing) el.removeEventListener(name, existing); // replace, don't stack
   const handler: EventListener = (event) =>
-    interpret(action, { event, currentTarget: el });
+    interpret(action, { event, currentTarget: el, store }); // store lets an action's `field` expr read state
   el.addEventListener(name, handler);
   map.set(name, handler);
 }
@@ -265,7 +270,7 @@ function build(node: Node, store?: Store): Element {
     }
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
-    bindEvent(el, name, action); // actions ride the wire as the core's DSL form (plain JSON)
+    bindEvent(el, name, action, store); // actions ride the wire as the core's DSL form (plain JSON)
   }
   if (store) {
     for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
@@ -357,7 +362,7 @@ function applyOp(root: Element, op: Op, store?: Store): Element {
     removeProp(resolve(root, op.RemoveProp.path), op.RemoveProp.name);
   } else if ("SetEvent" in op) {
     const { path, name, action } = op.SetEvent;
-    bindEvent(resolve(root, path), name, action);
+    bindEvent(resolve(root, path), name, action, store);
   } else if ("RemoveEvent" in op) {
     const { path, name } = op.RemoveEvent;
     unbindEvent(resolve(root, path), name);
