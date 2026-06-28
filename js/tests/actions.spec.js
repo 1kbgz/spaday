@@ -316,6 +316,47 @@ test("CallEndpoint composes a JSON body from live control values via an obj expr
   expect(JSON.parse(seen[0])).toEqual({ symbol: "AAPL", qty: 10 }); // obj read the live input value
 });
 
+test("CallEndpoint composes a body from the signal store via field exprs", async ({
+  page,
+}) => {
+  // the csp-gateway pattern: a form's two-way-bound state is POSTed via obj({field}) — an action's
+  // `field` expr reads the store the tree was mounted with (no DOM ids, no handler)
+  const seen = [];
+  await page.route("**/api/order", (route) => {
+    seen.push(route.request().postData());
+    return route.fulfill({ status: 200, body: "ok" });
+  });
+  await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ symbol: "AAPL", qty: 100 });
+    const btn = mount(
+      document.body,
+      {
+        tag: "button",
+        events: {
+          click: {
+            kind: "call",
+            method: "POST",
+            url: "/api/order",
+            body: {
+              expr: "obj",
+              fields: {
+                symbol: { expr: "field", name: "symbol" },
+                qty: { expr: "field", name: "qty" },
+              },
+            },
+          },
+        },
+      },
+      store,
+    );
+    store.set("qty", 250); // the live store value, read at click time
+    btn.click();
+  });
+  await page.waitForTimeout(150);
+  expect(JSON.parse(seen[0])).toEqual({ symbol: "AAPL", qty: 250 });
+});
+
 test("NamedJs invokes a pre-registered handler (the no-eval escape hatch)", async ({
   page,
 }) => {

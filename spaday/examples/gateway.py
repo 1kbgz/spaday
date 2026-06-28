@@ -15,10 +15,10 @@ data path is REST + Perspective's own websocket (Mode B), exactly as a real gate
 It is laid out like a gateway dashboard — a header (title + dark/light + view), a full-bleed Perspective
 workspace, a right control gutter, a footer.
 
-The glue (in ``gateway.html``): both buttons use ``NamedJs`` handlers — "Send" composes the form's fields
-into the POST body (the action DSL can't compose an object yet — the roadmap's
-``CallEndpoint(body=form.value)``), and "Clear" POSTs then forces the viewer to repaint (a Perspective
-datagrid doesn't repaint when its view is emptied). The rest of the behavior is declarative.
+"Send" is fully declarative: ``CallEndpoint("POST", …, obj({f: field(f) …}))`` composes the form's
+two-way-bound store fields into the POST body — no handler. The only remaining glue (in ``gateway.html``)
+is "Clear": a ``NamedJs`` handler that POSTs the clear, then forces each viewer to repaint (a Perspective
+datagrid doesn't repaint when its view is emptied).
 
 Run: ``python -m spaday.examples.gateway`` then open http://127.0.0.1:8006/.
 """
@@ -38,7 +38,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
 
 from spaday import element
-from spaday.actions import NamedJs
+from spaday.actions import CallEndpoint, NamedJs, field, obj
 from spaday.components.form import form
 from spaday.components.perspective import PerspectivePanel
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack
@@ -122,7 +122,15 @@ def controls() -> object:
             .style(margin="0 0 .25rem")
         )
         .child(form(Order))
-        .child(WaButton(variant="brand").prop("id", "send").prop("style", "width:100%").text("Send order").on("click", NamedJs("send-order")))
+        # Send is fully declarative now: compose the form's two-way-bound store fields into the POST body
+        # (obj + field), no hand-written handler. The blotter streaming the new row back is the feedback.
+        .child(
+            WaButton(variant="brand")
+            .prop("id", "send")
+            .prop("style", "width:100%")
+            .text("Send order")
+            .on("click", CallEndpoint("POST", "/api/send/orders", obj({name: field(name) for name in Order.model_fields})))
+        )
         .child(
             Row()
             .child(WaButton(appearance="outlined").prop("id", "clear").text("Clear").on("click", NamedJs("clear-blotter")))

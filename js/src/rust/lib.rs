@@ -16,6 +16,8 @@ extern "C" {
     fn set_prop(this: &Host, el: &JsValue, name: &str, value: JsValue);
     #[wasm_bindgen(method, js_name = eventValue)]
     fn event_value(this: &Host) -> JsValue;
+    #[wasm_bindgen(method, js_name = getField)]
+    fn get_field(this: &Host, name: &str) -> JsValue;
     #[wasm_bindgen(method)]
     fn emit(this: &Host, event: &str, detail: JsValue);
     #[wasm_bindgen(method, js_name = sendPatch)]
@@ -89,7 +91,7 @@ fn run(action: &spaday::Action, host: &Host) {
 }
 
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
-    use spaday::Expr::{Event, Lit, Not, Obj, Prop};
+    use spaday::Expr::{Event, Field, Lit, Not, Obj, Prop};
     match expr {
         // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
         // `JSON.stringify` (e.g. a CallEndpoint body) and set cleanly as props.
@@ -97,6 +99,7 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
             .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
             .unwrap_or(JsValue::UNDEFINED),
         Event => host.event_value(),
+        Field { name } => host.get_field(name),
         Not { of } => JsValue::from_bool(!truthy(&eval(of, host))),
         Prop { target, name } => {
             resolve(target, host).map_or(JsValue::NULL, |el| host.get_prop(&el, name))

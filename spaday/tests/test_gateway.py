@@ -13,7 +13,9 @@ def test_page_has_the_form_and_the_blotter():
     s = json.dumps(gateway.page())
     assert "wa-select" in s  # the Side enum → a select (the form is generated from the schema)
     assert "perspective-panel" in s  # the live blotter
-    assert "send-order" in s  # the Send button's NamedJs handler
+    # Send is declarative now: a CallEndpoint composing the form's two-way-bound store fields (obj + field)
+    assert "/api/send/orders" in s and '"expr": "field"' in s
+    assert "clear-blotter" in s  # Clear still uses a NamedJs handler (the Perspective repaint)
 
 
 def test_send_validates_appends_and_clears():
