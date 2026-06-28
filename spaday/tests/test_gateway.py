@@ -10,12 +10,15 @@ gateway = pytest.importorskip("spaday.examples.gateway", reason="needs the [pers
 
 
 def test_page_has_the_form_and_the_blotter():
-    s = json.dumps(gateway.page())
+    s = json.dumps(gateway.page().to_node())
     assert "wa-select" in s  # the Side enum → a select (the form is generated from the schema)
     assert "perspective-panel" in s  # the live blotter
     # Send is declarative now: a CallEndpoint composing the form's two-way-bound store fields (obj + field)
     assert "/api/send/orders" in s and '"expr": "field"' in s
     assert "clear-blotter" in s  # Clear still uses a NamedJs handler (the Perspective repaint)
+    # Theme + view are declarative: a root-class binding (wa-dark) and a computed Perspective config/theme
+    assert "root-class:wa-dark" in s  # the dark/light toggle re-themes the page via the wa-dark class
+    assert '"compute"' in s and '"expr": "cond"' in s  # the blotter's theme/config recompute from state
 
 
 def test_send_validates_appends_and_clears():

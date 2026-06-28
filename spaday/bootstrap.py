@@ -100,15 +100,31 @@ def _bundle_head(bundles: Sequence[str], base: str) -> str:
     return "\n    ".join(tags)
 
 
-def _script(base: str, wire: Optional[str], scripts: Sequence[str], ws: str, tree: str, reconnect: bool, target: Optional[str] = None) -> str:
+def _script(
+    base: str,
+    wire: Optional[str],
+    scripts: Sequence[str],
+    ws: str,
+    tree: str,
+    reconnect: bool,
+    store: Optional[dict] = None,
+    target: Optional[str] = None,
+) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
-    to a transports model (Store + Client + connectStore) when ``wire="transports"``. Mounts into
+    to a transports model (Store + Client + connectStore) when ``wire="transports"``. ``store`` seeds a
+    local signal ``Store`` (reactive UI state for bindings/actions) even without a wire. Mounts into
     ``target`` (a CSS selector) when given, else ``document.body``."""
     js = _js(base)
     into = f'document.querySelector("{target}")' if target else "document.body"
     transports = wire == "transports"
     frame = tree == "frame"
-    runtime_names = ["mount", "init"] + (["Store", "connectStore"] if transports else []) + (["decodeFrame"] if frame else [])
+    store_init = f"new Store({json.dumps(store)})" if store else "new Store()"
+    runtime_names = (
+        ["mount", "init"]
+        + (["Store"] if (transports or store) else [])
+        + (["connectStore"] if transports else [])
+        + (["decodeFrame"] if frame else [])
+    )
     lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{_RUNTIME}";']
     if transports:
         lines.append(f'import {{ Client, fromValue, toValue, wasm }} from "{js}{_TRANSPORTS}";')
@@ -124,7 +140,7 @@ def _script(base: str, wire: Optional[str], scripts: Sequence[str], ws: str, tre
     if transports and reconnect:
         lines.extend(
             [
-                "const store = new Store();",
+                f"const store = {store_init};",
                 "const client = new Client();",
                 "let socket = null;",
                 "const link = connectStore(store, client, (frame) => socket && socket.send(frame), { fromValue, toValue });",
@@ -143,7 +159,7 @@ def _script(base: str, wire: Optional[str], scripts: Sequence[str], ws: str, tre
     elif transports:
         lines.extend(
             [
-                "const store = new Store();",
+                f"const store = {store_init};",
                 "const client = new Client();",
                 f"const ws = new WebSocket(`ws://${{location.host}}{base}{ws}`);",
                 'ws.binaryType = "arraybuffer";',
@@ -154,6 +170,8 @@ def _script(base: str, wire: Optional[str], scripts: Sequence[str], ws: str, tre
                 f"mount({into}, node, store);",
             ]
         )
+    elif store:  # local reactive state (bindings/actions read it), no server wire
+        lines.extend([f"const store = {store_init};", f"mount({into}, node, store);"])
     else:
         lines.append(f"mount({into}, node);")
     return "\n      ".join(lines)
@@ -170,11 +188,13 @@ def bootstrap(
     scripts: Sequence[str] = (),
     head: str = "",
     title: str = "spaday",
+    store: Optional[dict] = None,
     fragment: bool = False,
     target: Optional[str] = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
-    ``/js`` / ws URLs so the page can be mounted under a sub-path.
+    ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
+    (reactive UI state for two-way bindings + ``field`` actions) even without a ``wire``.
 
     By default returns a whole HTML document. With ``fragment=True`` it returns just the bundle tags + the
     module ``<script>`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is
@@ -182,7 +202,7 @@ def bootstrap(
     specific element (e.g. ``"#widget"``) instead of ``document.body``; the host provides that element.
     See the module docstring for the rest of the options and the route contract."""
     head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base), head) if p)
-    script = _script(base, wire, scripts, ws, tree, reconnect, target)
+    script = _script(base, wire, scripts, ws, tree, reconnect, store, target)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
         return f'{head_block}<script type="module">\n  {script}\n</script>\n'

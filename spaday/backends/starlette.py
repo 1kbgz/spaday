@@ -39,15 +39,19 @@ def mount(
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     head: str = "",
+    store: Optional[dict] = None,
 ) -> Starlette:
     """Add spaday's routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under
-    ``prefix``. Generation options are passed to :func:`spaday.bootstrap.bootstrap`; ``html`` serves a
-    hand-authored bootstrap instead; ``js`` overrides the bundle dir. Returns ``app`` for chaining."""
+    ``prefix``. Generation options are passed to :func:`spaday.bootstrap.bootstrap` (incl. ``store``, a
+    local signal-store seed); ``html`` serves a hand-authored bootstrap instead; ``js`` overrides the
+    bundle dir. Returns ``app`` for chaining."""
     from starlette.responses import FileResponse, HTMLResponse, Response
     from starlette.routing import Mount, Route
     from starlette.staticfiles import StaticFiles
 
-    body = bootstrap(base=prefix, bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
+    body = bootstrap(
+        base=prefix, bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title, store=store
+    )
     js_dir = Path(js) if js is not None else bundles_dir()
 
     async def homepage(_request):
