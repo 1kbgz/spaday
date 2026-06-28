@@ -131,9 +131,8 @@ interactions run in the browser *and* report back to Python.
 
 ## Next steps
 
+- [How spaday works](concepts.md) — why behavior is data and how one Rust core drives both Python and the browser.
 - [Add behavior and reactivity](behavior.md) — the full action DSL and binding kinds (including
   *computed* props derived from state).
 - [Author a component tree](components.md) — props, slots, keys, and the shell components in depth.
 - [Sync a UI to a server over transports](transports.md) — the same panel, multi-tenant, on a webserver.
-- [How spaday works](concepts.md) — why behavior is data and how one Rust core drives both Python and
-  the browser.
