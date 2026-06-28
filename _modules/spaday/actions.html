@@ -427,6 +427,27 @@
     <span class="k">return</span> <span class="n">_Cond</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">then</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">)</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_Obj</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;obj&quot;</span><span class="p">,</span> <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">obj</span><span class="p">(</span><span class="n">fields</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compose a JSON object from named sub-expressions (each value a plain value or an :class:`Expr`).</span>
+<span class="sd">    Lets a whole model be POSTed declaratively as a :class:`CallEndpoint` body — composing live control</span>
+<span class="sd">    values without a hand-written handler::</span>
+
+<span class="sd">        CallEndpoint(&quot;POST&quot;, &quot;/api/order&quot;, obj({</span>
+<span class="sd">            &quot;symbol&quot;: prop(by_id(&quot;symbol&quot;), &quot;value&quot;),</span>
+<span class="sd">            &quot;qty&quot;: prop(by_id(&quot;qty&quot;), &quot;value&quot;),</span>
+<span class="sd">        }))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_Obj</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+
+
 <span class="k">class</span><span class="w"> </span><span class="nc">Ref</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A reference to a DOM element an action targets.&quot;&quot;&quot;</span>
 
