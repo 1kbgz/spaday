@@ -78,3 +78,15 @@ def test_base_prefixes_the_tree_js_and_ws_urls():
     assert "/dash/js/node_modules/@awesome.me" in html  # bundle
     assert "${location.host}/dash/ws" in html  # websocket
     assert 'fetch("/tree.json")' in bootstrap()  # default base="" is unprefixed (served at root)
+
+
+def test_fragment_emits_a_snippet_not_a_document():
+    f = bootstrap(fragment=True, target="#widget", wire="transports", bundles=["webawesome"])
+    assert "<!doctype html>" not in f and "<html" not in f  # a snippet to drop into a host template
+    assert '<script type="module">' in f and "webawesome.css" in f  # bundle tags + the module script
+    assert 'mount(document.querySelector("#widget"), node, store)' in f  # mounts into the target element
+
+
+def test_target_selects_the_mount_point():
+    assert 'mount(document.querySelector("#app"), node)' in bootstrap(target="#app")
+    assert "mount(document.body, node)" in bootstrap()  # default mounts the body
