@@ -1,9 +1,13 @@
-"""Starlette (and FastAPI, which is Starlette) backend: ``serve(page, …) -> Starlette``.
+"""Starlette (and FastAPI, which is Starlette) backend.
 
-Wires :mod:`spaday.bootstrap` into a Starlette app — ``/`` (the page), ``/tree.json`` or ``/tree`` (the
-tree), ``/js`` (the bundles), plus any ``routes`` you splice in (a transports websocket, REST) and a
-lifespan for ``background`` coroutines. Starlette is the optional ``examples`` extra; it is imported
-inside ``serve()`` so ``import spaday`` stays light.
+- ``mount(app, page, *, prefix="", …)`` — add spaday's routes to an **existing** app, at ``{prefix}/`` ·
+  ``{prefix}/tree[.json]`` · ``{prefix}/js`` (so spaday drops into a bigger app, optionally under a
+  sub-path). This is the primitive.
+- ``serve(page, …) -> Starlette`` — create an app (with a lifespan for ``background`` coroutines) and
+  ``mount`` onto it.
+
+Starlette is the optional ``examples`` extra; it is imported inside the functions so ``import spaday``
+stays light.
 """
 
 from __future__ import annotations
@@ -15,15 +19,16 @@ from typing import TYPE_CHECKING, Awaitable, Callable, Optional, Sequence, Union
 
 from ..bootstrap import Page, bootstrap, bundles_dir, tree_frame, tree_json
 
-if TYPE_CHECKING:  # annotations only — the runtime starlette import lives inside serve() (optional extra)
+if TYPE_CHECKING:  # annotations only — starlette is imported inside the functions (optional extra)
     from starlette.applications import Starlette
-    from starlette.routing import BaseRoute
 
 
-def serve(
+def mount(
+    app: Starlette,
     page: Page,
     *,
-    routes: Sequence[BaseRoute] = (),
+    prefix: str = "",
+    routes: Sequence = (),
     html: Optional[Union[str, Path]] = None,
     js: Optional[Union[str, Path]] = None,
     title: str = "spaday",
@@ -34,26 +39,16 @@ def serve(
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     head: str = "",
-    background: Sequence[Awaitable] = (),
-    lifespan: Optional[Callable] = None,
 ) -> Starlette:
-    """Build a Starlette app serving ``page`` (a Component or a callable returning one).
-
-    Generation options (``bundles``/``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``title``)
-    are passed through to :func:`spaday.bootstrap.bootstrap`. ``routes`` splices in extra endpoints (the
-    transports websocket via ``transports.ws_endpoint``, REST); ``html`` serves a hand-authored bootstrap
-    file instead of the generated one; ``js`` overrides the served bundle dir (defaults to
-    :func:`~spaday.bootstrap.bundles_dir`). ``background`` coroutines run for the app's lifetime;
-    ``lifespan`` overrides that with a custom Starlette lifespan (for startup that must order its own
-    setup, e.g. a clustering relay) — ``background`` is then unused.
-    """
-    from starlette.applications import Starlette
+    """Add spaday's routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under
+    ``prefix``. Generation options are passed to :func:`spaday.bootstrap.bootstrap`; ``html`` serves a
+    hand-authored bootstrap instead; ``js`` overrides the bundle dir. Returns ``app`` for chaining."""
     from starlette.responses import FileResponse, HTMLResponse, Response
     from starlette.routing import Mount, Route
     from starlette.staticfiles import StaticFiles
 
+    body = bootstrap(base=prefix, bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
     js_dir = Path(js) if js is not None else bundles_dir()
-    body = bootstrap(bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
 
     async def homepage(_request):
         return FileResponse(html) if html is not None else HTMLResponse(body)
@@ -64,7 +59,17 @@ def serve(
     async def tree_route_frame(_request):
         return Response(tree_frame(page), media_type="application/octet-stream")
 
-    tree_route = Route("/tree", tree_route_frame) if tree == "frame" else Route("/tree.json", tree_route_json)
+    tree_route = Route(f"{prefix}/tree", tree_route_frame) if tree == "frame" else Route(f"{prefix}/tree.json", tree_route_json)
+    app.routes.extend([Route(f"{prefix}/", homepage), tree_route, *routes, Mount(f"{prefix}/js", StaticFiles(directory=js_dir))])
+    return app
+
+
+def serve(page: Page, *, background: Sequence[Awaitable] = (), lifespan: Optional[Callable] = None, **opts) -> Starlette:
+    """Create a Starlette app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the
+    app's lifetime (or pass a custom ``lifespan`` for ordered startup, e.g. a clustering relay); all other
+    keyword options are :func:`mount`'s (``prefix``/``routes``/``html``/``js``/``title``/``bundles``/
+    ``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``)."""
+    from starlette.applications import Starlette
 
     @asynccontextmanager
     async def _background_lifespan(_app):
@@ -75,5 +80,5 @@ def serve(
             for task in tasks:
                 task.cancel()
 
-    app_routes = [Route("/", homepage), tree_route, *routes, Mount("/js", StaticFiles(directory=js_dir))]
-    return Starlette(routes=app_routes, lifespan=lifespan if lifespan is not None else _background_lifespan)
+    app = Starlette(lifespan=lifespan if lifespan is not None else _background_lifespan)
+    return mount(app, page, **opts)
