@@ -134,6 +134,7 @@ skip = "*win32 *arm_64"
 branch = true
 omit = [
     "spaday/tests/integration/*",
+    "spaday/tests/test_examples.py",  # integration-style example smokes; they skip without the optional [examples]/[perspective]/[widget] extras (not in [develop]), so don't gate coverage on them
     "spaday/examples/*",
 ]
 
