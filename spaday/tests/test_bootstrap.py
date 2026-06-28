@@ -90,3 +90,17 @@ def test_fragment_emits_a_snippet_not_a_document():
 def test_target_selects_the_mount_point():
     assert 'mount(document.querySelector("#app"), node)' in bootstrap(target="#app")
     assert "mount(document.body, node)" in bootstrap()  # default mounts the body
+
+
+def test_store_seeds_a_local_signal_store_without_a_wire():
+    html = bootstrap(store={"dark": True, "view": "blotter"})
+    assert "import { mount, init, Store }" in html  # Store imported even with no transports wire
+    assert 'new Store({"dark": true, "view": "blotter"})' in html  # seeded from the dict
+    assert "mount(document.body, node, store)" in html  # mounted with the store
+    assert "connectStore" not in html  # local reactive state only, no server wire
+
+
+def test_store_and_fragment_compose():
+    f = bootstrap(store={"n": 1}, fragment=True, target="#widget")
+    assert "<!doctype html>" not in f  # still a snippet
+    assert 'mount(document.querySelector("#widget"), node, store)' in f  # seeded store, into the target

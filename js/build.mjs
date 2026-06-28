@@ -45,6 +45,13 @@ const BUNDLES = [
     outfile: "dist/cdn/examples/webawesome.js",
   },
   {
+    // The gateway example's clear-blotter NamedJs handler (Perspective repaint glue), loaded via
+    // serve(scripts=[…]). The runtime is external so it shares the page's handler registry, not a copy.
+    entryPoints: ["src/ts/examples/gateway.ts"],
+    outfile: "dist/cdn/examples/gateway.js",
+    external: ["/js/dist/esm/index.js"],
+  },
+  {
     // spaday as an anywidget ESM (self-contained runtime + inlined wasm); the Python Widget loads it
     // as `_esm`. The `binary` loader inlines the wasm core into the bundle (see widget.ts), so the
     // widget is one self-contained file with no separately-synced `_wasm`.
