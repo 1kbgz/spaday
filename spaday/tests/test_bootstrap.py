@@ -104,3 +104,59 @@ def test_store_and_fragment_compose():
     f = bootstrap(store={"n": 1}, fragment=True, target="#widget")
     assert "<!doctype html>" not in f  # still a snippet
     assert 'mount(document.querySelector("#widget"), node, store)' in f  # seeded store, into the target
+
+
+# A wire LIST mirrors several transports models into ONE store, each namespaced (the multi-model page).
+
+
+def test_wire_list_shares_one_store_with_namespaced_connectstores():
+    html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}, {"url": "/ws/b", "namespace": "b"}], store={"x": 1})
+    assert html.count("const store = new Store(") == 1  # ONE shared store for every model
+    assert 'new Store({"x": 1})' in html
+    assert 'connectStore(store, client0, (frame) => ws0.send(frame), { fromValue, toValue }, "a")' in html
+    assert 'connectStore(store, client1, (frame) => ws1.send(frame), { fromValue, toValue }, "b")' in html
+    assert "new WebSocket(`ws://${location.host}/ws`)" in html and "new WebSocket(`ws://${location.host}/ws/b`)" in html
+    assert "transports_bg.wasm" in html and "await wasm.default(" in html  # the transports prologue
+    assert html.count("mount(document.body, node, store)") == 1  # one mount of the shared store
+
+
+def test_wire_list_session_appends_a_uuid():
+    html = bootstrap(wire=[{"url": "/ws/s", "namespace": "s", "session": True}])
+    assert "new WebSocket(`ws://${location.host}/ws/s?session=${crypto.randomUUID()}`)" in html  # fresh tenant
+
+
+def test_wire_list_namespaced_wire_sets_a_connected_flag_bare_wire_does_not():
+    html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}, {"url": "/ws/form"}])
+    assert 'store.set("a.connected", true)' in html and 'store.set("a.connected", false)' in html
+    # the bare (form) wire has no namespace: no connected flag, and a 4-arg connectStore (no namespace arg)
+    assert "connectStore(store, client1, (frame) => ws1.send(frame), { fromValue, toValue });" in html
+    assert "connected" not in html.split("client1")[1]  # nothing after the form client sets a connected flag
+
+
+def test_wire_list_generates_the_patch_sink():
+    html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}])
+    # a SendPatch (spaday:patch) routes into the namespaced store; connectStore then sends the edit
+    assert 'document.addEventListener("spaday:patch"' in html
+    assert 'event.detail.model ? event.detail.model + "." + event.detail.field : event.detail.field' in html
+
+
+def test_wire_list_respects_base_prefix():
+    html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}], base="/dash")
+    assert "new WebSocket(`ws://${location.host}/dash/ws`)" in html  # the base prefixes each wire url
+    assert 'fetch("/dash/tree.json")' in html
+
+
+def test_string_wire_still_generates_a_single_unnamespaced_model():
+    html = bootstrap(wire="transports")  # the single-model string form is unchanged
+    assert "connectStore(store, client, (frame) => ws.send(frame), { fromValue, toValue });" in html  # no namespace arg
+    assert "client0" not in html and "spaday:patch" not in html  # not the multi-wire codegen
+
+
+def test_wire_list_flatten_false_passes_the_flatten_arg():
+    # an opaque-map model (a chart's `data`) mirrors whole: connectStore gets `, "g", false`
+    html = bootstrap(wire=[{"url": "/ws", "namespace": "g", "flatten": False}])
+    assert 'connectStore(store, client0, (frame) => ws0.send(frame), { fromValue, toValue }, "g", false)' in html
+    # default (flatten omitted) recurses sub-models — no flatten arg
+    assert '{ fromValue, toValue }, "a")' in bootstrap(wire=[{"url": "/ws", "namespace": "a"}])
+    # flatten=False with no namespace still positions the arg (undefined, false)
+    assert "{ fromValue, toValue }, undefined, false)" in bootstrap(wire=[{"url": "/ws", "flatten": False}])

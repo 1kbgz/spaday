@@ -100,9 +100,44 @@ def _bundle_head(bundles: Sequence[str], base: str) -> str:
     return "\n    ".join(tags)
 
 
+def _wire_block(spec: dict, base: str, idx: int) -> list:
+    """The generated JS for ONE wire spec in a multi-model page: a transports ``Client``, a namespaced
+    ``connectStore`` into the shared ``store``, the ``WebSocket`` feeding it, and a ``<namespace>.connected``
+    flag set on open/close (so a status element can ``compute`` from it). The shared ``const store`` must
+    already be declared. A spec is ``{"url": …, "namespace"?: …, "session"?: bool}``: ``namespace`` keeps
+    several models from colliding in the one store (omit it to mirror bare fields, e.g. a form); ``session``
+    appends ``?session=<uuid>`` so the model is a fresh per-load tenant (a transports ``Hub``)."""
+    url = spec["url"]
+    ns = spec.get("namespace")
+    client, sock, link = f"client{idx}", f"ws{idx}", f"link{idx}"
+    # connectStore's optional (namespace, flatten) args — positional, so emit only what's needed. flatten
+    # defaults true (recurse sub-models, e.g. a form's nested schedule); a model with an opaque map/dict
+    # field (a chart's `data`, a Perspective layout) sets "flatten": False so it's mirrored whole.
+    if spec.get("flatten", True):
+        extra = f", {json.dumps(ns)}" if ns else ""
+    else:
+        extra = f", {json.dumps(ns) if ns else 'undefined'}, false"
+    session = "?session=${crypto.randomUUID()}" if spec.get("session") else ""  # a fresh tenant per page load
+    lines = [
+        f"const {client} = new Client();",
+        f"const {sock} = new WebSocket(`ws://${{location.host}}{base}{url}{session}`);",
+        f'{sock}.binaryType = "arraybuffer";',
+        f"const {link} = connectStore(store, {client}, (frame) => {sock}.send(frame), {{ fromValue, toValue }}{extra});",
+        f'{sock}.addEventListener("message", (event) =>',
+        f'  {link}.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),',
+        ");",
+    ]
+    if ns:  # a status element can compute from `<ns>.connected`; a bare (form) wire has no status
+        lines += [
+            f'{sock}.addEventListener("open", () => store.set({json.dumps(ns + ".connected")}, true));',
+            f'{sock}.addEventListener("close", () => store.set({json.dumps(ns + ".connected")}, false));',
+        ]
+    return lines
+
+
 def _script(
     base: str,
-    wire: Optional[str],
+    wire: Optional[Union[str, Sequence[dict]]],
     scripts: Sequence[str],
     ws: str,
     tree: str,
@@ -111,26 +146,28 @@ def _script(
     target: Optional[str] = None,
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
-    to a transports model (Store + Client + connectStore) when ``wire="transports"``. ``store`` seeds a
-    local signal ``Store`` (reactive UI state for bindings/actions) even without a wire. Mounts into
-    ``target`` (a CSS selector) when given, else ``document.body``."""
+    to transports. ``wire="transports"`` mirrors ONE model into the store (Store + Client + connectStore);
+    a ``wire=[{…}, …]`` LIST mirrors SEVERAL models into one store, each under its own namespace (see
+    :func:`_wire_block`), with one ``spaday:patch`` sink routing :class:`~spaday.actions.SendPatch` intents
+    into the store. ``store`` seeds local signal state even without a wire. Mounts into ``target`` (a CSS
+    selector) when given, else ``document.body``. (``ws``/``reconnect``/``tree="frame"`` apply to the
+    single-model string form only; a wire list carries each spec's own url and uses a snapshot per socket.)"""
     js = _js(base)
     into = f'document.querySelector("{target}")' if target else "document.body"
     transports = wire == "transports"
+    wires = wire if isinstance(wire, (list, tuple)) else None
+    wired = transports or bool(wires)  # any transports wiring — a single string model or a list of specs
     frame = tree == "frame"
     store_init = f"new Store({json.dumps(store)})" if store else "new Store()"
     runtime_names = (
-        ["mount", "init"]
-        + (["Store"] if (transports or store) else [])
-        + (["connectStore"] if transports else [])
-        + (["decodeFrame"] if frame else [])
+        ["mount", "init"] + (["Store"] if (wired or store) else []) + (["connectStore"] if wired else []) + (["decodeFrame"] if frame else [])
     )
     lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{_RUNTIME}";']
-    if transports:
+    if wired:
         lines.append(f'import {{ Client, fromValue, toValue, wasm }} from "{js}{_TRANSPORTS}";')
     lines.extend(f'import "{s}";' for s in scripts)
     lines.append(f'await init({{ module_or_path: "{js}{_WASM}" }});')
-    if transports:
+    if wired:
         lines.append(f'await wasm.default({{ module_or_path: "{js}{_TRANSPORTS_WASM}" }});')
     if frame:
         lines.append(f'const framed = new Uint8Array(await (await fetch("{base}/tree")).arrayBuffer());')
@@ -170,6 +207,18 @@ def _script(
                 f"mount({into}, node, store);",
             ]
         )
+    elif wires:  # several models share ONE store, each mirrored under its own namespace (see _wire_block)
+        lines.append(f"const store = {store_init};")
+        for i, spec in enumerate(wires):
+            lines.extend(_wire_block(spec, base, i))
+        # a SendPatch fires `spaday:patch {model, field, value}`; route it into the namespaced store so the
+        # matching connectStore subscriber sends the edit (an empty model writes the bare field).
+        lines.append(
+            'document.addEventListener("spaday:patch", (event) => store.set('
+            'event.detail.model ? event.detail.model + "." + event.detail.field : event.detail.field, '
+            "event.detail.value));"
+        )
+        lines.append(f"mount({into}, node, store);")
     elif store:  # local reactive state (bindings/actions read it), no server wire
         lines.extend([f"const store = {store_init};", f"mount({into}, node, store);"])
     else:
@@ -181,7 +230,7 @@ def bootstrap(
     *,
     base: str = "",
     bundles: Sequence[str] = (),
-    wire: Optional[str] = None,
+    wire: Optional[Union[str, Sequence[dict]]] = None,
     ws: str = "/ws",
     tree: str = "json",
     reconnect: bool = False,
@@ -195,6 +244,10 @@ def bootstrap(
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
     (reactive UI state for two-way bindings + ``field`` actions) even without a ``wire``.
+
+    ``wire="transports"`` mirrors one model into the store over a websocket; ``wire=[{"url": …,
+    "namespace": …, "session": …}, …]`` mirrors **several** models into one store, each namespaced so their
+    fields don't collide (a chart on ``global.*`` next to one on ``session.*``) — the multi-model page.
 
     By default returns a whole HTML document. With ``fragment=True`` it returns just the bundle tags + the
     module ``<script>`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is
