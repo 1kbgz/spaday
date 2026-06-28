@@ -14,6 +14,9 @@ What an app would otherwise hand-write in HTML is declared in Python:
 - ``scripts=[…]`` — extra ES-module URLs to load (e.g. ``NamedJs`` handlers).
 - ``base="/dashboard"`` — mount the app under a path prefix, so it coexists with the host's other routes
   (the tree / ``/js`` / ws URLs are all prefixed). Default ``""`` = served at the root.
+- ``fragment=True`` + ``target="#widget"`` — return just the bundle tags + the module ``<script>`` (not a
+  whole document), mounting into ``target`` — a snippet to drop into a host page's template, so spaday is
+  one component among many (several roots can share a page).
 
 **The contract a backend must satisfy** — the generated HTML expects the host to serve, at these paths
 (``{base}`` is the prefix, default empty)::
@@ -97,10 +100,12 @@ def _bundle_head(bundles: Sequence[str], base: str) -> str:
     return "\n    ".join(tags)
 
 
-def _script(base: str, wire: Optional[str], scripts: Sequence[str], ws: str, tree: str, reconnect: bool) -> str:
+def _script(base: str, wire: Optional[str], scripts: Sequence[str], ws: str, tree: str, reconnect: bool, target: Optional[str] = None) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
-    to a transports model (Store + Client + connectStore) when ``wire="transports"``."""
+    to a transports model (Store + Client + connectStore) when ``wire="transports"``. Mounts into
+    ``target`` (a CSS selector) when given, else ``document.body``."""
     js = _js(base)
+    into = f'document.querySelector("{target}")' if target else "document.body"
     transports = wire == "transports"
     frame = tree == "frame"
     runtime_names = ["mount", "init"] + (["Store", "connectStore"] if transports else []) + (["decodeFrame"] if frame else [])
@@ -132,7 +137,7 @@ def _script(base: str, wire: Optional[str], scripts: Sequence[str], ws: str, tre
                 "  socket.addEventListener('close', () => setTimeout(connect, 1000));",
                 "}",
                 "connect();",
-                "mount(document.body, node, store);",
+                f"mount({into}, node, store);",
             ]
         )
     elif transports:
@@ -146,11 +151,11 @@ def _script(base: str, wire: Optional[str], scripts: Sequence[str], ws: str, tre
                 'ws.addEventListener("message", (event) =>',
                 '  link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),',
                 ");",
-                "mount(document.body, node, store);",
+                f"mount({into}, node, store);",
             ]
         )
     else:
-        lines.append("mount(document.body, node);")
+        lines.append(f"mount({into}, node);")
     return "\n      ".join(lines)
 
 
@@ -165,12 +170,22 @@ def bootstrap(
     scripts: Sequence[str] = (),
     head: str = "",
     title: str = "spaday",
+    fragment: bool = False,
+    target: Optional[str] = None,
 ) -> str:
-    """The bootstrap page HTML (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
-    ``/js`` / ws URLs so the page can be mounted under a sub-path. See the module docstring for the options
-    and the route contract a backend must satisfy."""
+    """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
+    ``/js`` / ws URLs so the page can be mounted under a sub-path.
+
+    By default returns a whole HTML document. With ``fragment=True`` it returns just the bundle tags + the
+    module ``<script>`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is
+    one component among many rather than the whole page. Pass ``target`` (a CSS selector) to mount into a
+    specific element (e.g. ``"#widget"``) instead of ``document.body``; the host provides that element.
+    See the module docstring for the rest of the options and the route contract."""
     head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base), head) if p)
-    script = _script(base, wire, scripts, ws, tree, reconnect)
+    script = _script(base, wire, scripts, ws, tree, reconnect, target)
+    if fragment:
+        head_block = f"{head_markup}\n" if head_markup else ""
+        return f'{head_block}<script type="module">\n  {script}\n</script>\n'
     return f"""<!doctype html>
 <html lang="en">
   <head>
