@@ -18,6 +18,7 @@ from .actions import (
     field,
     lit,
     not_,
+    obj,
     prop,
     this,
 )
@@ -73,6 +74,7 @@ __all__ = [
     "all_",
     "any_",
     "cond",
+    "obj",
     "this",
     "by_id",
     "bind",

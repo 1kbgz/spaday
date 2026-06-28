@@ -9,7 +9,7 @@
 //! The wire form (matched by `spaday.actions` in Python and the runtime in JS):
 //! - `Ref`:  `{"ref":"this"}` · `{"ref":"id","id":"panel"}`
 //! - `Expr`: `{"expr":"lit","value":<json>}` · `{"expr":"event"}` · `{"expr":"not","of":<Expr>}` ·
-//!   `{"expr":"prop","target":<Ref>,"name":"checked"}`
+//!   `{"expr":"prop","target":<Ref>,"name":"checked"}` · `{"expr":"obj","fields":{<name>:<Expr>}}`
 //! - `Action`: `{"kind":"set",target,prop,value}` · `{"kind":"toggle",target,prop}` ·
 //!   `{"kind":"seq","actions":[..]}` · `{"kind":"emit","event","detail":<Expr>|null}` ·
 //!   `{"kind":"patch","model","field","value":<Expr>}` ·
@@ -46,6 +46,11 @@ pub enum Expr {
     Not { of: Box<Expr> },
     /// The current value of a `name` prop on `target` (reads live element state).
     Prop { target: Ref, name: String },
+    /// Compose a JSON object from named sub-expressions — e.g. a whole model as a `CallEndpoint` body:
+    /// `{"expr":"obj","fields":{"symbol":{"expr":"prop","target":{"ref":"id","id":"sym"},"name":"value"}}}`.
+    Obj {
+        fields: std::collections::BTreeMap<String, Expr>,
+    },
 }
 
 /// A declarative event handler, interpreted in the browser.
@@ -291,6 +296,35 @@ mod tests {
                 event: "ping".into(),
                 detail: None
             }
+        );
+    }
+
+    #[test]
+    fn call_endpoint_with_obj_body() {
+        let mut fields = std::collections::BTreeMap::new();
+        fields.insert(
+            "symbol".to_string(),
+            Expr::Prop {
+                target: Ref::Id { id: "sym".into() },
+                name: "value".into(),
+            },
+        );
+        fields.insert("qty".to_string(), Expr::Lit { value: json!(10) });
+        round(
+            &Action::CallEndpoint {
+                method: "POST".into(),
+                url: "/api/order".into(),
+                body: Some(Expr::Obj { fields }),
+            },
+            json!({
+                "kind": "call",
+                "method": "POST",
+                "url": "/api/order",
+                "body": {"expr": "obj", "fields": {
+                    "qty": {"expr": "lit", "value": 10},
+                    "symbol": {"expr": "prop", "target": {"ref": "id", "id": "sym"}, "name": "value"},
+                }},
+            }),
         );
     }
 }

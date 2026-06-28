@@ -89,7 +89,7 @@ fn run(action: &spaday::Action, host: &Host) {
 }
 
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
-    use spaday::Expr::{Event, Lit, Not, Prop};
+    use spaday::Expr::{Event, Lit, Not, Obj, Prop};
     match expr {
         // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
         // `JSON.stringify` (e.g. a CallEndpoint body) and set cleanly as props.
@@ -100,6 +100,15 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
         Not { of } => JsValue::from_bool(!truthy(&eval(of, host))),
         Prop { target, name } => {
             resolve(target, host).map_or(JsValue::NULL, |el| host.get_prop(&el, name))
+        }
+        // Compose a plain JS object from each field's evaluated value — e.g. a whole model assembled from
+        // live control values for a CallEndpoint body. Plain object => round-trips through JSON.stringify.
+        Obj { fields } => {
+            let obj = js_sys::Object::new();
+            for (name, sub) in fields {
+                let _ = js_sys::Reflect::set(&obj, &JsValue::from_str(name), &eval(sub, host));
+            }
+            obj.into()
         }
     }
 }
