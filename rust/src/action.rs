@@ -337,7 +337,12 @@ mod tests {
         // the csp-gateway pattern: POST a whole model composed from the form's two-way-bound store fields
         let mut fields = std::collections::BTreeMap::new();
         fields.insert("qty".to_string(), Expr::Field { name: "qty".into() });
-        fields.insert("symbol".to_string(), Expr::Field { name: "symbol".into() });
+        fields.insert(
+            "symbol".to_string(),
+            Expr::Field {
+                name: "symbol".into(),
+            },
+        );
         round(
             &Action::CallEndpoint {
                 method: "POST".into(),
