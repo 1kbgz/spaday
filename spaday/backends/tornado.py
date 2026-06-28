@@ -1,33 +1,33 @@
-"""Tornado backend: ``serve(page, …) -> tornado.web.Application``.
+"""Tornado backend.
 
-Wires :mod:`spaday.bootstrap` into a Tornado application — ``GET /`` (the page), ``GET /tree.json`` or
-``GET /tree`` (the tree), ``GET /js/(.*)`` (the bundles via ``StaticFileHandler``), plus any ``routes``
-you splice in. ``background`` coroutines are scheduled on the IOLoop (they start when you run it). Run the
-returned app the usual way::
+- ``mount(app, page, *, prefix="", …)`` — add spaday's handlers to an **existing** ``tornado.web.Application``.
+- ``serve(page, …) -> tornado.web.Application`` — create an app, ``mount`` onto it, and schedule
+  ``background`` coroutines on the IOLoop. Run it the usual way::
 
-    app = serve(page, ...)
-    app.listen(8000)
-    tornado.ioloop.IOLoop.current().start()
+      app = serve(page, ...); app.listen(8000); tornado.ioloop.IOLoop.current().start()
 
-As with aiohttp, the transports ``/ws`` endpoint (when ``wire="transports"``) is yours to add via
-``routes`` (Tornado has its own ``WebSocketHandler``); static pages need no websocket.
+tornado is imported inside the functions so importing spaday never requires it. The transports ``{prefix}/ws``
+endpoint (with ``wire="transports"``) is yours to add via ``routes`` (Tornado has its own ``WebSocketHandler``).
 """
 
 from __future__ import annotations
 
 import asyncio
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Optional, Sequence, Union
 
 from ..bootstrap import Page, bootstrap, bundles_dir, tree_frame, tree_json
 
-if TYPE_CHECKING:  # annotations only — tornado is imported inside serve() (not a spaday dependency)
+if TYPE_CHECKING:  # annotations only — tornado is imported inside the functions (not a spaday dependency)
     from tornado.web import Application
 
 
-def serve(
+def mount(
+    app: Application,
     page: Page,
     *,
+    prefix: str = "",
     routes: Sequence = (),
     js: Optional[Union[str, Path]] = None,
     title: str = "spaday",
@@ -38,21 +38,15 @@ def serve(
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     head: str = "",
-    background: Sequence[Awaitable] = (),
 ) -> Application:
-    """Build a Tornado application serving ``page`` (a Component or a callable returning one).
+    """Add spaday's handlers to an existing Tornado ``app`` under ``prefix``. ``routes`` is a list of
+    Tornado handler tuples (``(pattern, Handler[, kwargs])`` — including your ``{prefix}/ws`` handler when
+    wiring transports). Returns ``app`` for chaining."""
+    from tornado.web import RequestHandler, StaticFileHandler
 
-    Generation options (``bundles``/``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``title``)
-    are passed through to :func:`spaday.bootstrap.bootstrap`. ``routes`` is a list of Tornado handler
-    tuples (``(pattern, Handler[, kwargs])`` — including your ``/ws`` handler when wiring transports);
-    ``js`` overrides the served bundle dir (defaults to :func:`~spaday.bootstrap.bundles_dir`);
-    ``background`` coroutines are scheduled on the IOLoop and run once it starts.
-    """
-    from tornado.ioloop import IOLoop
-    from tornado.web import Application, RequestHandler, StaticFileHandler
-
-    body = bootstrap(bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
+    body = bootstrap(base=prefix, bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
     js_dir = str(js) if js is not None else str(bundles_dir())
+    pre = re.escape(prefix)
 
     class _Index(RequestHandler):
         def get(self):
@@ -66,7 +60,7 @@ def serve(
                 self.set_header("Content-Type", "application/octet-stream")
                 self.write(tree_frame(page))
 
-        tree_rule = (r"/tree", _Tree)
+        tree_rule = (rf"{pre}/tree", _Tree)
     else:
 
         class _Tree(RequestHandler):
@@ -74,10 +68,21 @@ def serve(
                 self.set_header("Content-Type", "application/json")
                 self.write(tree_json(page))
 
-        tree_rule = (r"/tree\.json", _Tree)
+        tree_rule = (rf"{pre}/tree\.json", _Tree)
 
-    handlers = [(r"/", _Index), tree_rule, *routes, (r"/js/(.*)", StaticFileHandler, {"path": js_dir})]
-    app = Application(handlers)
+    handlers = [(rf"{pre}/", _Index), tree_rule, *routes, (rf"{pre}/js/(.*)", StaticFileHandler, {"path": js_dir})]
+    app.add_handlers(r".*", handlers)
+    return app
+
+
+def serve(page: Page, *, background: Sequence[Awaitable] = (), **opts) -> Application:
+    """Create a Tornado application and :func:`mount` ``page`` onto it. ``background`` coroutines are
+    scheduled on the IOLoop and run once it starts; all other keyword options are :func:`mount`'s."""
+    from tornado.ioloop import IOLoop
+    from tornado.web import Application
+
+    app = Application()
+    mount(app, page, **opts)
     for coro in background:  # scheduled now, spawned when the IOLoop runs
         IOLoop.current().add_callback(asyncio.ensure_future, coro)
     return app

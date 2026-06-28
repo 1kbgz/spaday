@@ -1,13 +1,13 @@
-"""aiohttp backend: ``serve(page, …) -> aiohttp.web.Application``.
+"""aiohttp backend.
 
-Wires :mod:`spaday.bootstrap` into an aiohttp app — ``GET /`` (the page), ``GET /tree.json`` or
-``GET /tree`` (the tree), a ``/js`` static route (the bundles), plus any ``routes`` you splice in and
-``background`` coroutines run for the app's lifetime. aiohttp is imported inside ``serve()`` so importing
-spaday never requires it.
+- ``mount(app, page, *, prefix="", …)`` — add spaday's routes to an **existing** ``aiohttp.web.Application``
+  (call before the app runs; the router freezes on startup).
+- ``serve(page, …) -> aiohttp.web.Application`` — create an app, ``mount`` onto it, and run ``background``
+  coroutines for its lifetime.
 
-The transports websocket is **not** generated here: aiohttp has its own websocket API, so the ``/ws``
-endpoint (when ``wire="transports"``) is yours to add via ``routes`` (e.g. a transports aiohttp adapter).
-Static pages (``wire=None``) need no websocket and run as-is.
+aiohttp is imported inside the functions so importing spaday never requires it. The transports websocket
+is **not** generated here (aiohttp owns its websocket API): add the ``{prefix}/ws`` handler via ``routes``
+when ``wire="transports"``. Static pages (``wire=None``) run as-is.
 """
 
 from __future__ import annotations
@@ -18,13 +18,15 @@ from typing import TYPE_CHECKING, Awaitable, Optional, Sequence, Union
 
 from ..bootstrap import Page, bootstrap, bundles_dir, tree_frame, tree_json
 
-if TYPE_CHECKING:  # annotations only — aiohttp is imported inside serve() (it is not a spaday dependency)
+if TYPE_CHECKING:  # annotations only — aiohttp is imported inside the functions (not a spaday dependency)
     from aiohttp import web
 
 
-def serve(
+def mount(
+    app: web.Application,
     page: Page,
     *,
+    prefix: str = "",
     routes: Sequence = (),
     js: Optional[Union[str, Path]] = None,
     title: str = "spaday",
@@ -35,20 +37,14 @@ def serve(
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     head: str = "",
-    background: Sequence[Awaitable] = (),
 ) -> web.Application:
-    """Build an aiohttp application serving ``page`` (a Component or a callable returning one).
-
-    Generation options (``bundles``/``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``title``)
-    are passed through to :func:`spaday.bootstrap.bootstrap`. ``routes`` is a list of ``aiohttp.web``
-    route defs (``web.get(...)`` / ``web.post(...)`` — including your ``/ws`` handler when wiring
-    transports); ``js`` overrides the served bundle dir (defaults to
-    :func:`~spaday.bootstrap.bundles_dir`); ``background`` coroutines run as tasks for the app's lifetime
-    and are cancelled on cleanup.
-    """
+    """Add spaday's routes to an existing aiohttp ``app`` under ``prefix``. ``routes`` is a list of
+    ``aiohttp.web`` route defs (``web.get(...)`` — including your ``{prefix}/ws`` handler when wiring
+    transports). Returns ``app`` for chaining."""
     from aiohttp import web
 
-    body = bootstrap(bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
+    body = bootstrap(base=prefix, bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
+    js_dir = str(js) if js is not None else str(bundles_dir())
 
     async def homepage(_request):
         return web.Response(text=body, content_type="text/html")
@@ -58,13 +54,26 @@ def serve(
         async def tree_handler(_request):
             return web.Response(body=tree_frame(page), content_type="application/octet-stream")
 
-        tree_route = web.get("/tree", tree_handler)
+        tree_route = web.get(f"{prefix}/tree", tree_handler)
     else:
 
         async def tree_handler(_request):
             return web.Response(text=tree_json(page), content_type="application/json")
 
-        tree_route = web.get("/tree.json", tree_handler)
+        tree_route = web.get(f"{prefix}/tree.json", tree_handler)
+
+    app.add_routes([web.get(f"{prefix}/", homepage), tree_route, *routes])
+    app.router.add_static(f"{prefix}/js", js_dir)
+    return app
+
+
+def serve(page: Page, *, background: Sequence[Awaitable] = (), **opts) -> web.Application:
+    """Create an aiohttp app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the
+    app's lifetime; all other keyword options are :func:`mount`'s."""
+    from aiohttp import web
+
+    app = web.Application()
+    mount(app, page, **opts)
 
     tasks = []  # closed over by the startup/cleanup hooks (avoids an aiohttp app-key)
 
@@ -75,9 +84,6 @@ def serve(
         for task in tasks:
             task.cancel()
 
-    app = web.Application()
-    app.add_routes([web.get("/", homepage), tree_route, *routes])
-    app.router.add_static("/js", str(js) if js is not None else str(bundles_dir()))
     app.on_startup.append(_start_bg)
     app.on_cleanup.append(_stop_bg)
     return app

@@ -69,3 +69,12 @@ def test_tree_frame_round_trips_to_the_authored_tree():
 
 def test_bundles_dir_points_at_the_js_bundles():
     assert bundles_dir().name == "js"
+
+
+def test_base_prefixes_the_tree_js_and_ws_urls():
+    html = bootstrap(base="/dash", wire="transports", bundles=["webawesome"])
+    assert 'fetch("/dash/tree.json")' in html  # tree
+    assert "/dash/js/dist/esm/index.js" in html  # runtime
+    assert "/dash/js/node_modules/@awesome.me" in html  # bundle
+    assert "${location.host}/dash/ws" in html  # websocket
+    assert 'fetch("/tree.json")' in bootstrap()  # default base="" is unprefixed (served at root)
