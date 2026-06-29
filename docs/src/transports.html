@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Use spaday in a Jupyter notebook" href="notebook.html"><link rel="prev" title="Author a component tree" href="components.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Use spaday in a Jupyter notebook" href="notebook.html"><link rel="prev" title="Serve and embed a spaday app" href="serving.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
         <title>Sync a UI to a server over transports - spaday v0.1.0</title>
@@ -201,6 +201,7 @@
 <li class="toctree-l1"><a class="reference internal" href="concepts.html">How spaday works</a></li>
 <li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serving.html">Serve and embed a spaday app</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
@@ -246,31 +247,27 @@
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="sync-a-ui-to-a-server-over-transports">
 <h1>Sync a UI to a server over transports<a class="headerlink" href="#sync-a-ui-to-a-server-over-transports" title="Link to this heading">¶</a></h1>
-<p>This guide shows you how to serve a spaday UI from a webserver and keep it in sync with a server-side
-state model using <a class="reference external" href="https://github.com/1kbgz/transports">transports</a> — so a two-way control’s change is
-applied on the server and fanned to every connected browser. This is the multi-tenant, no-notebook path;
-for the zero-setup version see the <a class="reference internal" href="notebook.html"><span class="std std-doc">notebook guide</span></a>.</p>
+<p>This guide shows you how to keep a served spaday UI in sync with a server-side state model using
+<a class="reference external" href="https://github.com/1kbgz/transports">transports</a> — so a two-way control’s change is applied on the
+server and fanned to every connected browser. For delivering the page itself (the integration ladder),
+see <a class="reference internal" href="serving.html"><span class="std std-doc">Serve and embed</span></a>; for the zero-server version, the <a class="reference internal" href="notebook.html"><span class="std std-doc">notebook guide</span></a>.</p>
 <p>The split to keep in mind: <strong>spaday</strong> owns the UI (the tree and its reactive <code class="docutils literal notranslate"><span class="pre">Store</span></code>); <strong>transports</strong>
-owns the wire (a <code class="docutils literal notranslate"><span class="pre">Client</span></code> that mirrors a model and sends edits); a single adapter, <code class="docutils literal notranslate"><span class="pre">connectStore</span></code>, is
-the only place they meet.</p>
-<p>Install both:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>spaday<span class="w"> </span>transports<span class="w"> </span>uvicorn
-<span class="nb">cd</span><span class="w"> </span>js<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pnpm<span class="w"> </span>install<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pnpm<span class="w"> </span>build<span class="w">   </span><span class="c1"># builds the runtime + bundles served to the browser</span>
+owns the wire (a <code class="docutils literal notranslate"><span class="pre">Client</span></code> that mirrors a model and sends edits); a single adapter, <code class="docutils literal notranslate"><span class="pre">connectStore</span></code>, is the
+only place they meet — and <code class="docutils literal notranslate"><span class="pre">serve(wire=&quot;transports&quot;,</span> <span class="pre">…)</span></code> <strong>generates that adapter for you</strong>, so there is
+no hand-written browser glue.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;spaday[examples]&quot;</span><span class="w">   </span><span class="c1"># spaday + transports + starlette + uvicorn</span>
 </pre></div>
 </div>
-<section id="host-a-model-and-author-the-ui-python">
-<h2>Host a model and author the UI (Python)<a class="headerlink" href="#host-a-model-and-author-the-ui-python" title="Link to this heading">¶</a></h2>
-<p>Host a model in a transports <code class="docutils literal notranslate"><span class="pre">Session</span></code>, author a tree whose controls are <strong>two-way bound</strong> to its
-fields, and serve the page, the tree, and a WebSocket:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">transports</span>
+<section id="host-a-model-and-wire-the-page">
+<h2>Host a model and wire the page<a class="headerlink" href="#host-a-model-and-wire-the-page" title="Link to this heading">¶</a></h2>
+<p>Host a model in a transports <code class="docutils literal notranslate"><span class="pre">Session</span></code>, author a tree whose controls <strong>two-way bind</strong> to its fields, and
+serve it with <code class="docutils literal notranslate"><span class="pre">wire=&quot;transports&quot;</span></code> — supply the websocket route and run <code class="docutils literal notranslate"><span class="pre">autosync</span></code> as a background task:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">transports</span><span class="o">,</span><span class="w"> </span><span class="nn">uvicorn</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocketRoute</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">serve</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaInput</span><span class="p">,</span> <span class="n">WaSwitch</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">starlette.applications</span><span class="w"> </span><span class="kn">import</span> <span class="n">Starlette</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">starlette.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileResponse</span><span class="p">,</span> <span class="n">JSONResponse</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Route</span><span class="p">,</span> <span class="n">WebSocketRoute</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Controls</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;hello&quot;</span>
@@ -280,63 +277,85 @@ fields, and serve the page, the tree, and a WebSocket:</p>
 <span class="n">session</span><span class="o">.</span><span class="n">host</span><span class="p">(</span><span class="n">Controls</span><span class="p">())</span>
 <span class="n">server</span> <span class="o">=</span> <span class="n">transports</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">tree</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">page</span><span class="p">():</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaInput</span><span class="p">()</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">))</span>
         <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;on&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">to_node</span><span class="p">()</span>
     <span class="p">)</span>
 
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">startup</span><span class="p">():</span>
-    <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">transports</span><span class="o">.</span><span class="n">autosync</span><span class="p">(</span><span class="n">server</span><span class="p">))</span>  <span class="c1"># broadcast host-side changes to all clients</span>
-
-<span class="n">app</span> <span class="o">=</span> <span class="n">Starlette</span><span class="p">(</span>
-    <span class="n">routes</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">Route</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">FileResponse</span><span class="p">(</span><span class="s2">&quot;index.html&quot;</span><span class="p">)),</span>
-        <span class="n">Route</span><span class="p">(</span><span class="s2">&quot;/tree.json&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">JSONResponse</span><span class="p">(</span><span class="n">tree</span><span class="p">())),</span>
-        <span class="n">WebSocketRoute</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">,</span> <span class="n">transports</span><span class="o">.</span><span class="n">ws_endpoint</span><span class="p">(</span><span class="n">server</span><span class="p">)),</span>
-    <span class="p">],</span>
-    <span class="n">on_startup</span><span class="o">=</span><span class="p">[</span><span class="n">startup</span><span class="p">],</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span>
+    <span class="n">page</span><span class="p">,</span>
+    <span class="n">bundles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">],</span>
+    <span class="n">wire</span><span class="o">=</span><span class="s2">&quot;transports&quot;</span><span class="p">,</span>
+    <span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">WebSocketRoute</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">,</span> <span class="n">transports</span><span class="o">.</span><span class="n">ws_endpoint</span><span class="p">(</span><span class="n">server</span><span class="p">))],</span>
+    <span class="n">background</span><span class="o">=</span><span class="p">[</span><span class="n">transports</span><span class="o">.</span><span class="n">autosync</span><span class="p">(</span><span class="n">server</span><span class="p">)],</span>   <span class="c1"># fan host-side changes to every client</span>
 <span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">uvicorn</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>There are <strong>no event handlers</strong> in the tree — the two-way bindings carry every control→model edit.</p>
-</section>
-<section id="wire-the-store-to-the-client-browser">
-<h2>Wire the store to the client (browser)<a class="headerlink" href="#wire-the-store-to-the-client-browser" title="Link to this heading">¶</a></h2>
-<p>In the page, create a spaday <code class="docutils literal notranslate"><span class="pre">Store</span></code>, a transports <code class="docutils literal notranslate"><span class="pre">Client</span></code>, and link them with <code class="docutils literal notranslate"><span class="pre">connectStore</span></code>. Then
-mount the tree with that store:</p>
-<div class="highlight-ts notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">mount</span><span class="p">,</span><span class="w"> </span><span class="nx">init</span><span class="p">,</span><span class="w"> </span><span class="nx">Store</span><span class="p">,</span><span class="w"> </span><span class="nx">connectStore</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;spaday&quot;</span><span class="p">;</span>
-<span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Client</span><span class="p">,</span><span class="w"> </span><span class="nx">fromValue</span><span class="p">,</span><span class="w"> </span><span class="nx">toValue</span><span class="p">,</span><span class="w"> </span><span class="nx">wasm</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;@1kbgz/transports&quot;</span><span class="p">;</span>
-
-<span class="k">await</span><span class="w"> </span><span class="nx">init</span><span class="p">();</span><span class="w">                 </span><span class="c1">// spaday wasm (action interpreter)</span>
-<span class="k">await</span><span class="w"> </span><span class="nx">wasm</span><span class="p">.</span><span class="k">default</span><span class="p">();</span><span class="w">         </span><span class="c1">// transports wasm</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="nx">store</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Store</span><span class="p">();</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Client</span><span class="p">();</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">ws</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">WebSocket</span><span class="p">(</span><span class="sb">`ws://</span><span class="si">${</span><span class="nx">location</span><span class="p">.</span><span class="nx">host</span><span class="si">}</span><span class="sb">/ws`</span><span class="p">);</span>
-<span class="nx">ws</span><span class="p">.</span><span class="nx">binaryType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;arraybuffer&quot;</span><span class="p">;</span>
-
-<span class="c1">// the seam: model fields &lt;-&gt; store fields; a two-way control&#39;s change becomes a server edit</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">link</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">connectStore</span><span class="p">(</span><span class="nx">store</span><span class="p">,</span><span class="w"> </span><span class="nx">client</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">frame</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">ws</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="nx">frame</span><span class="p">),</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">fromValue</span><span class="p">,</span><span class="w"> </span><span class="nx">toValue</span><span class="w"> </span><span class="p">});</span>
-<span class="nx">ws</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s2">&quot;message&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span>
-<span class="w">  </span><span class="nx">link</span><span class="p">.</span><span class="nx">receive</span><span class="p">(</span><span class="ow">typeof</span><span class="w"> </span><span class="nx">e</span><span class="p">.</span><span class="nx">data</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">e.data</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">new</span><span class="w"> </span><span class="nb">Uint8Array</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">data</span><span class="p">)),</span>
-<span class="p">);</span>
-
-<span class="nx">mount</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">body</span><span class="p">,</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="p">(</span><span class="k">await</span><span class="w"> </span><span class="nx">fetch</span><span class="p">(</span><span class="s2">&quot;/tree.json&quot;</span><span class="p">)).</span><span class="nx">json</span><span class="p">(),</span><span class="w"> </span><span class="nx">store</span><span class="p">);</span>
-</pre></div>
-</div>
-<p>Inbound model patches flow <code class="docutils literal notranslate"><span class="pre">model</span> <span class="pre">→</span> <span class="pre">store</span> <span class="pre">→</span> <span class="pre">bound</span> <span class="pre">props</span></code>; a two-way control’s change becomes a
-server-authoritative <code class="docutils literal notranslate"><span class="pre">client.edit</span></code>. Edits take effect when the server echoes them back, so <strong>two browser
-tabs stay in sync</strong>.</p>
-<p>A complete, runnable version of this is <code class="docutils literal notranslate"><span class="pre">spaday/examples/reactive.py</span></code> in the repository.</p>
+<p>There are <strong>no event handlers</strong> in the tree — the two-way bindings carry every control→model edit.
+Inbound model patches flow <code class="docutils literal notranslate"><span class="pre">model</span> <span class="pre">→</span> <span class="pre">store</span> <span class="pre">→</span> <span class="pre">bound</span> <span class="pre">props</span></code>; a two-way control’s change becomes a
+server-authoritative <code class="docutils literal notranslate"><span class="pre">client.edit</span></code>, which takes effect when the server echoes it back, so <strong>two browser
+tabs stay in sync</strong>. A complete, runnable version is <code class="docutils literal notranslate"><span class="pre">spaday/examples/reactive.py</span></code>.</p>
 </section>
 <section id="go-multi-tenant">
 <h2>Go multi-tenant<a class="headerlink" href="#go-multi-tenant" title="Link to this heading">¶</a></h2>
-<p>Swap the <code class="docutils literal notranslate"><span class="pre">Session</span></code> for a <a class="reference external" href="https://github.com/1kbgz/transports"><code class="docutils literal notranslate"><span class="pre">Hub</span></code></a>, which routes each connection to
-its own tenant session (and can share models across tenants). The UI code is unchanged — <code class="docutils literal notranslate"><span class="pre">connectStore</span></code>
-and the bindings don’t know or care whether the model is private or shared.</p>
+<p>Swap the <code class="docutils literal notranslate"><span class="pre">Session</span></code> for a <a class="reference external" href="https://github.com/1kbgz/transports"><code class="docutils literal notranslate"><span class="pre">Hub</span></code></a>, which routes each connection to its
+own tenant session (and can share models across tenants). The UI code is unchanged — <code class="docutils literal notranslate"><span class="pre">connectStore</span></code> and
+the bindings don’t know whether the model is private or shared.</p>
+</section>
+<section id="several-models-on-one-page">
+<h2>Several models on one page<a class="headerlink" href="#several-models-on-one-page" title="Link to this heading">¶</a></h2>
+<p>Pass a <strong>list</strong> of <code class="docutils literal notranslate"><span class="pre">Wire</span></code> specs to mirror several models into one store at once, each under its own
+<strong>namespace</strong> so their fields don’t collide (two <code class="docutils literal notranslate"><span class="pre">Chart</span></code> models would both have <code class="docutils literal notranslate"><span class="pre">data</span></code>/<code class="docutils literal notranslate"><span class="pre">type</span></code>):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">serve</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span>
+    <span class="n">page</span><span class="p">,</span>
+    <span class="n">wire</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">Wire</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;global&quot;</span><span class="p">),</span>                      <span class="c1"># a shared model</span>
+        <span class="n">Wire</span><span class="p">(</span><span class="s2">&quot;/ws/session&quot;</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># a fresh per-tab tenant (a Hub)</span>
+        <span class="n">Wire</span><span class="p">(</span><span class="s2">&quot;/ws/cfg&quot;</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;cfg&quot;</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>      <span class="c1"># an opaque map/dict field, mirrored whole</span>
+    <span class="p">],</span>
+    <span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="o">...</span><span class="p">],</span>        <span class="c1"># one WebSocketRoute per wire</span>
+    <span class="n">background</span><span class="o">=</span><span class="p">[</span><span class="o">...</span><span class="p">],</span>    <span class="c1"># one autosync per Server/Hub</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The tree then binds against namespaced fields — <code class="docutils literal notranslate"><span class="pre">bind(&quot;value&quot;,</span> <span class="pre">&quot;global.type&quot;)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">compute(&quot;data&quot;,</span> <span class="pre">field(&quot;global.data&quot;))</span></code>. A <code class="docutils literal notranslate"><span class="pre">Wire</span></code>:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">namespace</span></code></strong> — mirror the model’s fields under <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.</span></code> (omit for bare fields, e.g. a form).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">session</span></code></strong> — append <code class="docutils literal notranslate"><span class="pre">?session=&lt;uuid&gt;</span></code>, making the model a fresh per-page-load tenant.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">flatten</span></code></strong> — recurse nested sub-models into dotted <code class="docutils literal notranslate"><span class="pre">parent.child</span></code> fields (the default, what a form
+binds); set <code class="docutils literal notranslate"><span class="pre">False</span></code> for an <strong>opaque map/dict</strong> field (a chart’s time-keyed <code class="docutils literal notranslate"><span class="pre">data</span></code>, a Perspective
+layout) so it’s mirrored whole instead of one store field per key.</p></li>
+</ul>
+<p>A raw <code class="docutils literal notranslate"><span class="pre">{&quot;url&quot;:</span> <span class="pre">…,</span> <span class="pre">&quot;namespace&quot;:</span> <span class="pre">…}</span></code> dict works anywhere a <code class="docutils literal notranslate"><span class="pre">Wire</span></code> does. The omnibus
+(<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.examples</span></code>) wires four models this way.</p>
+</section>
+<section id="perspective-mode-b">
+<h2>Perspective (Mode B)<a class="headerlink" href="#perspective-mode-b" title="Link to this heading">¶</a></h2>
+<p>A live Perspective table streams its <strong>data</strong> over Perspective’s own websocket; spaday/transports sync
+only a small <strong>config</strong> model (server, tables, layout). Mirror the config with <code class="docutils literal notranslate"><span class="pre">flatten=False</span></code> and feed it
+to the panel with a computed <code class="docutils literal notranslate"><span class="pre">config</span></code> prop, so a server push re-restores the workspace for every tab:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">field</span><span class="p">,</span> <span class="n">obj</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.perspective</span><span class="w"> </span><span class="kn">import</span> <span class="n">PerspectivePanel</span>
+
+<span class="n">PerspectivePanel</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span>
+    <span class="s2">&quot;ws_url&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;cfg.ws_url&quot;</span><span class="p">),</span> <span class="s2">&quot;tables&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;cfg.tables&quot;</span><span class="p">),</span> <span class="s2">&quot;layout&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;cfg.layout&quot;</span><span class="p">),</span>
+<span class="p">}))</span>
+</pre></div>
+</div>
+<p>See <code class="docutils literal notranslate"><span class="pre">spaday/examples/gateway.py</span></code> (no transports — REST + Perspective’s own ws) and the omnibus for the
+full pattern.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -354,14 +373,14 @@ and the bindings don’t know or care whether the model is private or shared.</p
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="components.html">
+          <a class="prev-page" href="serving.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Author a component tree</div>
+                <div class="title">Serve and embed a spaday app</div>
                 
               </div>
             </a>
@@ -396,9 +415,10 @@ and the bindings don’t know or care whether the model is private or shared.</p
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Sync a UI to a server over transports</a><ul>
-<li><a class="reference internal" href="#host-a-model-and-author-the-ui-python">Host a model and author the UI (Python)</a></li>
-<li><a class="reference internal" href="#wire-the-store-to-the-client-browser">Wire the store to the client (browser)</a></li>
+<li><a class="reference internal" href="#host-a-model-and-wire-the-page">Host a model and wire the page</a></li>
 <li><a class="reference internal" href="#go-multi-tenant">Go multi-tenant</a></li>
+<li><a class="reference internal" href="#several-models-on-one-page">Several models on one page</a></li>
+<li><a class="reference internal" href="#perspective-mode-b">Perspective (Mode B)</a></li>
 </ul>
 </li>
 </ul>

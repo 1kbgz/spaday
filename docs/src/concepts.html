@@ -201,6 +201,7 @@
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">How spaday works</a></li>
 <li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serving.html">Serve and embed a spaday app</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
@@ -323,6 +324,19 @@ sends edits) and knows nothing about UI. A single small adapter marries them —
 through a four-method interface. So you can back the same reactive store with a transports session on a
 webserver, or with the synced state of a Jupyter widget, and the UI code is identical.</p>
 </section>
+<section id="the-page-generates-itself">
+<h2>The page generates itself<a class="headerlink" href="#the-page-generates-itself" title="Link to this heading">¶</a></h2>
+<p>A spaday web page is not hand-written — it is a <strong>function of the Python description</strong>. <code class="docutils literal notranslate"><span class="pre">serve(page,</span> <span class="pre">…)</span></code>
+(and the lower-level <code class="docutils literal notranslate"><span class="pre">bootstrap</span></code>) generate the bootstrap HTML: the <code class="docutils literal notranslate"><span class="pre">&lt;head&gt;</span></code> bundles, the wasm init, the
+fetch of the tree, the websocket wiring, and the mount. Because the page is generated rather than authored,
+there is a single <strong>integration ladder</strong> — <code class="docutils literal notranslate"><span class="pre">serve</span></code> (spaday runs the whole app) → <code class="docutils literal notranslate"><span class="pre">mount</span></code> (spaday under a
+sub-path of your app) → a <code class="docutils literal notranslate"><span class="pre">fragment</span></code> (spaday in one node of a page you own) → an anywidget (a notebook
+cell). It is the same generated bootstrap handing progressively more of the page to a host; nothing is
+re-implemented per rung. (See <a class="reference internal" href="serving.html"><span class="std std-doc">Serve and embed</span></a>.)</p>
+<p>And because the wire is just data, <strong>several models can share one page</strong>: each is mirrored into the signal
+store under its own <em>namespace</em>, so a page can compose a global model, a per-tenant model, and a form
+without their fields colliding — the multi-model dashboard, still with no hand-written glue.</p>
+</section>
 <section id="two-hosts-one-ui">
 <h2>Two hosts, one UI<a class="headerlink" href="#two-hosts-one-ui" title="Link to this heading">¶</a></h2>
 <p>Because spaday is <em>a web-component runtime driven by a serialized model over a connection</em>, it slots into
@@ -401,6 +415,7 @@ can teach the whole model with no server at all.</p>
 <li><a class="reference internal" href="#the-reactive-engine">The reactive engine</a></li>
 <li><a class="reference internal" href="#one-core-two-bindings">One core, two bindings</a></li>
 <li><a class="reference internal" href="#the-wire-transports">The wire: transports</a></li>
+<li><a class="reference internal" href="#the-page-generates-itself">The page generates itself</a></li>
 <li><a class="reference internal" href="#two-hosts-one-ui">Two hosts, one UI</a></li>
 </ul>
 </li>

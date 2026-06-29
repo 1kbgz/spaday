@@ -201,6 +201,7 @@
 <li class="toctree-l1"><a class="reference internal" href="concepts.html">How spaday works</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serving.html">Serve and embed a spaday app</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
@@ -320,7 +321,7 @@ expression. It recomputes whenever any field it reads changes (one-way by nature
 </pre></div>
 </div>
 <p>The field-expression helpers: <code class="docutils literal notranslate"><span class="pre">field(name)</span></code>, <code class="docutils literal notranslate"><span class="pre">lit(value)</span></code>, <code class="docutils literal notranslate"><span class="pre">not_(e)</span></code>, <code class="docutils literal notranslate"><span class="pre">eq(a,</span> <span class="pre">b)</span></code>, <code class="docutils literal notranslate"><span class="pre">all_(*es)</span></code> (AND),
-<code class="docutils literal notranslate"><span class="pre">any_(*es)</span></code> (OR). They compose.</p>
+<code class="docutils literal notranslate"><span class="pre">any_(*es)</span></code> (OR), <code class="docutils literal notranslate"><span class="pre">cond(test,</span> <span class="pre">then,</span> <span class="pre">else)</span></code> (a ternary — <code class="docutils literal notranslate"><span class="pre">compute(&quot;theme&quot;,</span> <span class="pre">cond(field(&quot;dark&quot;),</span> <span class="pre">&quot;dark&quot;,</span> <span class="pre">&quot;light&quot;))</span></code>), and <code class="docutils literal notranslate"><span class="pre">obj({name:</span> <span class="pre">expr})</span></code> (compose an object from sub-expressions). They compose.</p>
 </section>
 <section id="send-a-model-edit-or-call-an-endpoint">
 <h2>Send a model edit or call an endpoint<a class="headerlink" href="#send-a-model-edit-or-call-an-endpoint" title="Link to this heading">¶</a></h2>
@@ -335,9 +336,17 @@ expression. It recomputes whenever any field it reads changes (one-way by nature
 <span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Save&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/save&quot;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">event_value</span><span class="p">()))</span>
 </pre></div>
 </div>
+<p>The body can be any expression — use <code class="docutils literal notranslate"><span class="pre">obj({name:</span> <span class="pre">field(name)})</span></code> to compose a whole request from state
+fields, so a generated <a class="reference internal" href="components.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">form</span></code></span></a> POSTs declaratively with no handler:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallEndpoint</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">obj</span>
+
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Send&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/api/order&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;symbol&quot;</span><span class="p">),</span> <span class="s2">&quot;qty&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;qty&quot;</span><span class="p">)})))</span>
+</pre></div>
+</div>
 <p><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> is usually unnecessary once you use a two-way binding (above) — the binding carries the
 control→model edit declaratively. Reach for <code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> for an imperative edit that
-isn’t a simple control value.</p>
+isn’t a simple control value. When several models share a page, a <code class="docutils literal notranslate"><span class="pre">SendPatch(&quot;ns&quot;,</span> <span class="pre">field,</span> <span class="pre">value)</span></code> is
+routed into the <code class="docutils literal notranslate"><span class="pre">ns</span></code>-namespaced store (see <a class="reference internal" href="transports.html"><span class="std std-doc">transports</span></a>).</p>
 </section>
 <section id="the-escape-hatch">
 <h2>The escape hatch<a class="headerlink" href="#the-escape-hatch" title="Link to this heading">¶</a></h2>

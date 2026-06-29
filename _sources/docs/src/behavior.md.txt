@@ -79,7 +79,8 @@ WaButton().compute("disabled", not_(all_(field("a"), field("b"))))
 ```
 
 The field-expression helpers: `field(name)`, `lit(value)`, `not_(e)`, `eq(a, b)`, `all_(*es)` (AND),
-`any_(*es)` (OR). They compose.
+`any_(*es)` (OR), `cond(test, then, else)` (a ternary — `compute("theme", cond(field("dark"), "dark",
+"light"))`), and `obj({name: expr})` (compose an object from sub-expressions). They compose.
 
 ## Send a model edit or call an endpoint
 
@@ -96,9 +97,19 @@ WaSelect().on("change", SendPatch("chart", "type", event_value()))
 WaButton().text("Save").on("click", CallEndpoint("POST", "/save", body=event_value()))
 ```
 
+The body can be any expression — use `obj({name: field(name)})` to compose a whole request from state
+fields, so a generated [`form`](components.md) POSTs declaratively with no handler:
+
+```python
+from spaday import CallEndpoint, field, obj
+
+WaButton().text("Send").on("click", CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol"), "qty": field("qty")})))
+```
+
 `SendPatch` is usually unnecessary once you use a two-way binding (above) — the binding carries the
 control→model edit declaratively. Reach for `SendPatch` for an imperative edit that
-isn't a simple control value.
+isn't a simple control value. When several models share a page, a `SendPatch("ns", field, value)` is
+routed into the `ns`-namespaced store (see [transports](transports.md)).
 
 ## The escape hatch
 

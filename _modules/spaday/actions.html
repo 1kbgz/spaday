@@ -200,6 +200,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/concepts.html">How spaday works</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/components.html">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/serving.html">Serve and embed a spaday app</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/wrappers.html">Wrap an imperative JS library</a></li>
@@ -417,6 +418,8 @@
         <span class="p">}</span>
 
 
+<div class="viewcode-block" id="cond">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.cond">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">cond</span><span class="p">(</span><span class="n">test</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">then</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A ternary for a *computed* binding (:meth:`~spaday.component.Component.compute`): ``then`` when</span>
 <span class="sd">    ``test`` is truthy, else ``otherwise`` (each a plain value or an :class:`Expr`). Evaluated against the</span>
@@ -424,7 +427,8 @@
 
 <span class="sd">        chart.compute(&quot;theme&quot;, cond(field(&quot;dark&quot;), &quot;dark&quot;, &quot;light&quot;))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_Cond</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">then</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_Cond</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">then</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">)</span></div>
+
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_Obj</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
@@ -435,6 +439,8 @@
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;obj&quot;</span><span class="p">,</span> <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
 
 
+<div class="viewcode-block" id="obj">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.obj">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">obj</span><span class="p">(</span><span class="n">fields</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compose a JSON object from named sub-expressions (each value a plain value or an :class:`Expr`).</span>
 <span class="sd">    Lets a whole model be POSTed declaratively as a :class:`CallEndpoint` body — composing live control</span>
@@ -445,7 +451,8 @@
 <span class="sd">            &quot;qty&quot;: prop(by_id(&quot;qty&quot;), &quot;value&quot;),</span>
 <span class="sd">        }))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_Obj</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_Obj</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span></div>
+
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Ref</span><span class="p">:</span>

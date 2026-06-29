@@ -55,6 +55,35 @@ App().child(Nav().child(...)).child(Body().child(Gutter().child(...)).child(Main
 `Stack` stacks children vertically, `Row` lays them horizontally, `Toolbar` is a control strip; `App` /
 `Nav` / `Body` / `Gutter` / `Main` / `Footer` are the page shell.
 
+## Generate a form from a model
+
+`form(Model)` turns a pydantic model into a `Stack` of labelled `wa-*` controls — one per field, typed
+from the schema and each **two-way bound** to a field of the same name. An `Enum` field becomes a
+`wa-select` of its members; a nested sub-model becomes an expand/collapse `wa-details` whose controls bind
+to dotted `parent.child` paths:
+
+```python
+import enum
+from pydantic import BaseModel
+from spaday.components.form import FormField, form
+
+class Size(str, enum.Enum):
+    small = "small"
+    large = "large"
+
+class Settings(BaseModel):
+    name: str = "lamp"
+    enabled: bool = True
+    size: Size = Size.small
+
+form(Settings)   # a Stack of bound controls — none authored by hand
+```
+
+The controls bind to fields named `name` / `enabled` / `size`, so back them with a seeded
+[`store=`](serving.md) or a hosted model over [transports](transports.md). Relabel a field with
+`FormField` (as `Annotated[int, FormField(label="…")]` metadata or via `overrides=`), and drop fields with
+`exclude=`.
+
 ## Reach for a raw element
 
 For text or a structural tag a typed class doesn't cover, use `element`:

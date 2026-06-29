@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Add behavior and reactivity" href="behavior.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Serve and embed a spaday app" href="serving.html"><link rel="prev" title="Add behavior and reactivity" href="behavior.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
         <title>Author a component tree - spaday v0.1.0</title>
@@ -201,6 +201,7 @@
 <li class="toctree-l1"><a class="reference internal" href="concepts.html">How spaday works</a></li>
 <li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Author a component tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serving.html">Serve and embed a spaday app</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
@@ -292,6 +293,33 @@ encapsulated layout:</p>
 <p><code class="docutils literal notranslate"><span class="pre">Stack</span></code> stacks children vertically, <code class="docutils literal notranslate"><span class="pre">Row</span></code> lays them horizontally, <code class="docutils literal notranslate"><span class="pre">Toolbar</span></code> is a control strip; <code class="docutils literal notranslate"><span class="pre">App</span></code> /
 <code class="docutils literal notranslate"><span class="pre">Nav</span></code> / <code class="docutils literal notranslate"><span class="pre">Body</span></code> / <code class="docutils literal notranslate"><span class="pre">Gutter</span></code> / <code class="docutils literal notranslate"><span class="pre">Main</span></code> / <code class="docutils literal notranslate"><span class="pre">Footer</span></code> are the page shell.</p>
 </section>
+<section id="generate-a-form-from-a-model">
+<h2>Generate a form from a model<a class="headerlink" href="#generate-a-form-from-a-model" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">form(Model)</span></code> turns a pydantic model into a <code class="docutils literal notranslate"><span class="pre">Stack</span></code> of labelled <code class="docutils literal notranslate"><span class="pre">wa-*</span></code> controls — one per field, typed
+from the schema and each <strong>two-way bound</strong> to a field of the same name. An <code class="docutils literal notranslate"><span class="pre">Enum</span></code> field becomes a
+<code class="docutils literal notranslate"><span class="pre">wa-select</span></code> of its members; a nested sub-model becomes an expand/collapse <code class="docutils literal notranslate"><span class="pre">wa-details</span></code> whose controls bind
+to dotted <code class="docutils literal notranslate"><span class="pre">parent.child</span></code> paths:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.form</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormField</span><span class="p">,</span> <span class="n">form</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Size</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">small</span> <span class="o">=</span> <span class="s2">&quot;small&quot;</span>
+    <span class="n">large</span> <span class="o">=</span> <span class="s2">&quot;large&quot;</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Settings</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lamp&quot;</span>
+    <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">size</span><span class="p">:</span> <span class="n">Size</span> <span class="o">=</span> <span class="n">Size</span><span class="o">.</span><span class="n">small</span>
+
+<span class="n">form</span><span class="p">(</span><span class="n">Settings</span><span class="p">)</span>   <span class="c1"># a Stack of bound controls — none authored by hand</span>
+</pre></div>
+</div>
+<p>The controls bind to fields named <code class="docutils literal notranslate"><span class="pre">name</span></code> / <code class="docutils literal notranslate"><span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">size</span></code>, so back them with a seeded
+<a class="reference internal" href="serving.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">store=</span></code></span></a> or a hosted model over <a class="reference internal" href="transports.html"><span class="std std-doc">transports</span></a>. Relabel a field with
+<code class="docutils literal notranslate"><span class="pre">FormField</span></code> (as <code class="docutils literal notranslate"><span class="pre">Annotated[int,</span> <span class="pre">FormField(label=&quot;…&quot;)]</span></code> metadata or via <code class="docutils literal notranslate"><span class="pre">overrides=</span></code>), and drop fields with
+<code class="docutils literal notranslate"><span class="pre">exclude=</span></code>.</p>
+</section>
 <section id="reach-for-a-raw-element">
 <h2>Reach for a raw element<a class="headerlink" href="#reach-for-a-raw-element" title="Link to this heading">¶</a></h2>
 <p>For text or a structural tag a typed class doesn’t cover, use <code class="docutils literal notranslate"><span class="pre">element</span></code>:</p>
@@ -336,12 +364,12 @@ they are served as the tree the browser mounts.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="transports.html">
+          <a class="next-page" href="serving.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Sync a UI to a server over transports</div>
+                <div class="title">Serve and embed a spaday app</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -391,6 +419,7 @@ they are served as the tree the browser mounts.</p>
 <li><a class="reference internal" href="#nest-children-into-slots">Nest children into slots</a></li>
 <li><a class="reference internal" href="#set-text">Set text</a></li>
 <li><a class="reference internal" href="#lay-out-with-shell-components">Lay out with shell components</a></li>
+<li><a class="reference internal" href="#generate-a-form-from-a-model">Generate a form from a model</a></li>
 <li><a class="reference internal" href="#reach-for-a-raw-element">Reach for a raw element</a></li>
 <li><a class="reference internal" href="#set-a-prop-a-typed-class-doesn-t-expose">Set a prop a typed class doesn’t expose</a></li>
 <li><a class="reference internal" href="#key-for-stable-updates">Key for stable updates</a></li>

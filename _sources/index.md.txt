@@ -14,6 +14,8 @@ docs/src/behavior.md
 
 docs/src/components.md
 
+docs/src/serving.md
+
 docs/src/transports.md
 
 docs/src/notebook.md
@@ -75,6 +77,7 @@ pip install "spaday[widget]"  # + the Jupyter / anywidget host
 - **[Tutorial](docs/src/tutorial.md)** — build your first interactive UI, step by step (in a notebook).
 - **How-to guides** — [author a component tree](docs/src/components.md),
   [add behavior and reactivity](docs/src/behavior.md),
+  [serve and embed an app](docs/src/serving.md),
   [use it in a notebook](docs/src/notebook.md),
   [sync to a server over transports](docs/src/transports.md),
   [wrap an imperative JS library](docs/src/wrappers.md),
