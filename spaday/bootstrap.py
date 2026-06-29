@@ -114,14 +114,15 @@ def tree_frame(page: Page, *, id: str = "spa-tree") -> bytes:
     return encode_frame(json.dumps(_resolve(page).to_node()), id, "snapshot", 0, "application/json")
 
 
-def _bundle_head(bundles: Sequence[str], base: str) -> str:
+def _bundle_head(bundles: Sequence[str], base: str, nonce: Optional[str] = None) -> str:
+    n = f' nonce="{nonce}"' if nonce else ""  # CSP nonce on the generated script/style tags
     tags = []
     for name in bundles:
         if name not in BUNDLES:
             raise ValueError(f"unknown bundle {name!r}; known: {', '.join(sorted(BUNDLES))}")
         for kind, path in BUNDLES[name]:
             url = f"{_js(base)}{path}"
-            tags.append(f'<link rel="stylesheet" href="{url}" />' if kind == "css" else f'<script type="module" src="{url}"></script>')
+            tags.append(f'<link rel="stylesheet"{n} href="{url}" />' if kind == "css" else f'<script type="module"{n} src="{url}"></script>')
     return "\n    ".join(tags)
 
 
@@ -266,6 +267,7 @@ def bootstrap(
     store: Optional[dict] = None,
     fragment: bool = False,
     target: Optional[str] = None,
+    nonce: Optional[str] = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
@@ -279,12 +281,15 @@ def bootstrap(
     module ``<script>`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is
     one component among many rather than the whole page. Pass ``target`` (a CSS selector) to mount into a
     specific element (e.g. ``"#widget"``) instead of ``document.body``; the host provides that element.
-    See the module docstring for the rest of the options and the route contract."""
-    head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base), head) if p)
+    ``nonce`` stamps the generated ``<script>``/``<link>`` tags with a CSP nonce, so a host with a strict
+    ``script-src``/``style-src`` policy can allow the snippet. See the module docstring for the rest of the
+    options and the route contract."""
+    n = f' nonce="{nonce}"' if nonce else ""
+    head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base, nonce), head) if p)
     script = _script(base, wire, scripts, ws, tree, reconnect, store, target)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
-        return f'{head_block}<script type="module">\n  {script}\n</script>\n'
+        return f'{head_block}<script type="module"{n}>\n  {script}\n</script>\n'
     return f"""<!doctype html>
 <html lang="en">
   <head>
@@ -294,7 +299,7 @@ def bootstrap(
     {head_markup}
   </head>
   <body>
-    <script type="module">
+    <script type="module"{n}>
       {script}
     </script>
   </body>
