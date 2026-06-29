@@ -234,6 +234,7 @@ pages = [
     "docs/src/concepts.md",
     "docs/src/behavior.md",
     "docs/src/components.md",
+    "docs/src/serving.md",
     "docs/src/transports.md",
     "docs/src/notebook.md",
     "docs/src/wrappers.md",

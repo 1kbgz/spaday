@@ -83,6 +83,20 @@ sends edits) and knows nothing about UI. A single small adapter marries them —
 through a four-method interface. So you can back the same reactive store with a transports session on a
 webserver, or with the synced state of a Jupyter widget, and the UI code is identical.
 
+## The page generates itself
+
+A spaday web page is not hand-written — it is a **function of the Python description**. `serve(page, …)`
+(and the lower-level `bootstrap`) generate the bootstrap HTML: the `<head>` bundles, the wasm init, the
+fetch of the tree, the websocket wiring, and the mount. Because the page is generated rather than authored,
+there is a single **integration ladder** — `serve` (spaday runs the whole app) → `mount` (spaday under a
+sub-path of your app) → a `fragment` (spaday in one node of a page you own) → an anywidget (a notebook
+cell). It is the same generated bootstrap handing progressively more of the page to a host; nothing is
+re-implemented per rung. (See [Serve and embed](serving.md).)
+
+And because the wire is just data, **several models can share one page**: each is mirrored into the signal
+store under its own *namespace*, so a page can compose a global model, a per-tenant model, and a form
+without their fields colliding — the multi-model dashboard, still with no hand-written glue.
+
 ## Two hosts, one UI
 
 Because spaday is *a web-component runtime driven by a serialized model over a connection*, it slots into
