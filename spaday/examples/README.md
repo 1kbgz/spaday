@@ -74,7 +74,7 @@ is one node on a page you own". Each rung is fully customizable — start at the
 | ---- | ---------------- | ---- | -------- |
 | **No HTML** | the whole app (its routes, assets, bootstrap) | `serve(page, …)` | `form.py`, `reactive.py`, `cluster.py`, `gateway.py`, `__main__.py` |
 | **Some HTML** | a sub-path of *your* app | `mount(app, page, prefix=…)` | `embed.py` |
-| **Full custom HTML** | one node in *your* page (you own markup + assets) | `bootstrap(page, fragment=True, target=…)` | `fragment.py`; `ssr.py` (server-render + hydrate) |
+| **Full custom HTML** | one node in *your* page (you own markup + assets) | `bootstrap(fragment=True, target=…)` + `tree_json(page)` | `fragment.py`; `ssr.py` (server-render + hydrate) |
 | **Notebook** | a cell's widget (no server) | `Widget(component)` | `widget.py`, `devices.py` |
 
 `serve` is just `mount` onto a fresh app, and `mount` is just route-wiring around `bootstrap` — the same

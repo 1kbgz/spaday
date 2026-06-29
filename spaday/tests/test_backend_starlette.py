@@ -42,6 +42,31 @@ def test_mount_adds_routes_to_an_existing_app_under_a_prefix(tmp_path):
     assert client.get("/dash/tree.json").json() == Main("hi").to_node()
 
 
+def test_mount_prefixes_supplied_routes_to_match_the_generated_wire(tmp_path):
+    from starlette.applications import Starlette
+    from starlette.routing import WebSocketRoute
+
+    async def ws_ep(websocket):  # a stand-in wire endpoint
+        await websocket.accept()
+        await websocket.close()
+
+    app = Starlette()
+    mount(app, Main("hi"), prefix="/dash", wire="transports", routes=[WebSocketRoute("/ws", ws_ep)], js=tmp_path)
+    # the supplied /ws is prefixed to /dash/ws, so it lines up with the wire URL bootstrap generated
+    assert any(getattr(r, "path", None) == "/dash/ws" for r in app.routes)
+    assert "ws://${location.host}/dash/ws" in TestClient(app).get("/dash/").text
+
+
+def test_mount_stamps_a_csp_nonce_on_generated_tags(tmp_path):
+    from starlette.applications import Starlette
+
+    app = Starlette()
+    mount(app, Main("hi"), prefix="/dash", bundles=["webawesome"], js=tmp_path, nonce="abc123")
+    page = TestClient(app).get("/dash/").text
+    assert '<script type="module" nonce="abc123">' in page  # the inline mount script
+    assert 'nonce="abc123"' in page and "webawesome.css" in page  # ...and the bundle tags
+
+
 def test_serve_custom_html_and_background(tmp_path):
     html_file = tmp_path / "page.html"
     html_file.write_text("<!doctype html><title>custom</title>", encoding="utf-8")

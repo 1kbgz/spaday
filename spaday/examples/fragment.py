@@ -1,17 +1,20 @@
 """Drop spaday into a host-owned HTML page — the "full custom HTML" tier.
 
-The host writes the WHOLE page (its own doctype, head, layout, assets) and embeds spaday as a *fragment*:
-``bootstrap(fragment=True, target="#spaday-root")`` returns just the bundle tags + the mounting
-``<script>`` (not a document), which the host splices into a node it provides. spaday touches only that
-node; the host owns everything else — markup, CSS, CSP, its own bundler. The host serves spaday's tree and
-``/js`` itself (host-managed assets), so spaday isn't running the app at all — it just emits a component
-tree and the code to mount it.
+The host writes the WHOLE page (its own doctype, head, layout, markup, CSS) and embeds spaday as a
+*fragment*: ``bootstrap(fragment=True, target="#spaday-root")`` returns the bundle tags + an **inline**
+module ``<script>`` (not a document) that imports the spaday runtime/wasm from the served ``/js`` tree and
+mounts into a node the host provides. spaday touches only that node; the host owns the rest of the page and
+serves spaday's tree + ``/js`` itself (host-managed assets) — spaday isn't running the app, just emitting a
+tree and the code to mount it. (The script is inline, so a host with a strict ``script-src`` CSP passes
+``bootstrap(…, nonce=<per-request-nonce>)`` to stamp the generated tags — demonstrated below.)
 
 This is the bottom of the ladder: ``serve`` (whole app) → ``mount`` (existing app) → ``fragment`` (existing
 page). Each step hands more control to the host.
 
 Run: ``python -m spaday.examples.fragment`` then open http://127.0.0.1:8008/.
 """
+
+import secrets
 
 import uvicorn
 from starlette.applications import Starlette
@@ -64,9 +67,13 @@ HOST_PAGE = """<!doctype html>
 
 
 async def home(_request):
-    # just the bundle tags + the module <script> that fetches the tree and mounts into the host's node
-    fragment = bootstrap(fragment=True, target="#spaday-root", bundles=["webawesome"])
-    return HTMLResponse(HOST_PAGE.format(fragment=fragment))
+    # A strict-CSP host: a fresh per-request nonce stamps the generated tags (bootstrap(nonce=…)) and goes
+    # in the host's CSP header, so the inline module script is allowed without 'unsafe-inline'. ('self'
+    # covers the imported /js modules; 'wasm-unsafe-eval' lets spaday compile its wasm core.)
+    nonce = secrets.token_urlsafe(16)
+    fragment = bootstrap(fragment=True, target="#spaday-root", bundles=["webawesome"], nonce=nonce)
+    csp = f"script-src 'self' 'nonce-{nonce}' 'wasm-unsafe-eval'"
+    return HTMLResponse(HOST_PAGE.format(fragment=fragment), headers={"Content-Security-Policy": csp})
 
 
 async def tree(_request):
