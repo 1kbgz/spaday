@@ -79,8 +79,9 @@ class Settings(BaseModel):
 form(Settings)   # a Stack of bound controls — none authored by hand
 ```
 
-The controls bind to fields named `name` / `enabled` / `size`, so back them with a seeded
-[`store=`](serving.md) or a hosted model over [transports](transports.md). Relabel a field with
+`form` needs pydantic — install it with the `form` extra (`pip install "spaday[form]"`); it's also pulled
+in by `spaday[examples]`. The controls bind to fields named `name` / `enabled` / `size`, so back them with
+a seeded [`store=`](serving.md) or a hosted model over [transports](transports.md). Relabel a field with
 `FormField` (as `Annotated[int, FormField(label="…")]` metadata or via `overrides=`), and drop fields with
 `exclude=`.
 

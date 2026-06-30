@@ -11,7 +11,7 @@ name = "spaday"
 authors = [
     {name = "1kbgz", email = "dev@1kbgz.com"},
 ]
-description = ""
+description = "Build reactive web-component UIs configured in Python, executed in the browser"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 version = "0.1.0"
@@ -35,10 +35,14 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+form = ["pydantic>=2"]  # schema-generated forms: spaday.components.form turns a pydantic model into bound wa-* controls
 widget = ["anywidget"]
-examples = ["transports", "starlette", "uvicorn", "websockets"]
-cluster = ["transports", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
-perspective = ["transports", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6"]  # the omnibus Perspective panel (Mode B: a perspective.Server over its own ws)
+examples = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets"]  # pydantic: the example models + form()
+cluster = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
+perspective = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6"]  # the omnibus Perspective panel (Mode B: a perspective.Server over its own ws)
+aiohttp = ["aiohttp"]  # the aiohttp backend (spaday.backends.aiohttp)
+flask = ["flask"]  # the Flask backend (spaday.backends.flask)
+tornado = ["tornado"]  # the Tornado backend (spaday.backends.tornado)
 develop = [
     "aiohttp",  # the aiohttp backend — covered by test_backend_aiohttp
     "anywidget",
@@ -54,6 +58,7 @@ develop = [
     "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
     "mdformat-tables>=1",
+    "pydantic>=2",  # form() + the example/test models (was only present transitively, via bump-my-version)
     "pytest",
     "pytest-cov",
     "ruff",
