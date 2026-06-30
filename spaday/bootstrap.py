@@ -71,6 +71,11 @@ _WASM = "/dist/pkg/spaday_bg.wasm"
 _TRANSPORTS = "/node_modules/@1kbgz/transports/dist/cdn/index.js"
 _TRANSPORTS_WASM = "/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm"
 
+# A fresh per-page-load id for a ``session=True`` wire's tenant key. ``crypto.randomUUID()`` is
+# secure-context-only (https / localhost), so it's undefined over plain http from another host — fall back
+# to a non-crypto id so the page still loads. It's only a transports ``Hub`` key, not a secret.
+_SESSION_ID = "globalThis.crypto?.randomUUID?.() ?? (Date.now().toString(36) + Math.random().toString(36).slice(2))"
+
 #: Named component-library bundles a page can pull into ``<head>`` via ``bundles=[…]``. Each entry is a
 #: ``(kind, path)`` pair — ``kind`` is ``"css"`` or ``"js"``, ``path`` is under the served ``/js`` mount —
 #: the markup (styles + the catalog/wrapper script that registers the elements) an example would otherwise
@@ -143,7 +148,7 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
         extra = f", {json.dumps(ns)}" if ns else ""
     else:
         extra = f", {json.dumps(ns) if ns else 'undefined'}, false"
-    session = "?session=${crypto.randomUUID()}" if spec.get("session") else ""  # a fresh tenant per page load
+    session = "?session=${" + _SESSION_ID + "}" if spec.get("session") else ""  # a fresh tenant per page load
     lines = [
         f"const {client} = new Client();",
         f"const {sock} = new WebSocket(`ws://${{location.host}}{base}{url}{session}`);",

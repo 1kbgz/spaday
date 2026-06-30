@@ -120,9 +120,12 @@ def test_wire_list_shares_one_store_with_namespaced_connectstores():
     assert html.count("mount(document.body, node, store)") == 1  # one mount of the shared store
 
 
-def test_wire_list_session_appends_a_uuid():
+def test_wire_list_session_appends_a_per_load_id():
     html = bootstrap(wire=[{"url": "/ws/s", "namespace": "s", "session": True}])
-    assert "new WebSocket(`ws://${location.host}/ws/s?session=${crypto.randomUUID()}`)" in html  # fresh tenant
+    # a fresh per-load tenant id appended to the ws url; crypto.randomUUID is secure-context-only, so it
+    # must degrade gracefully (plain http from another host has no secure context)
+    assert "/ws/s?session=${globalThis.crypto?.randomUUID?.() ?? " in html
+    assert "Math.random()" in html  # the insecure-context (http) fallback
 
 
 def test_wire_list_namespaced_wire_sets_a_connected_flag_bare_wire_does_not():
