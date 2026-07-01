@@ -58,7 +58,7 @@
     "@perspective-dev/viewer": "^4.5.1",
     "@perspective-dev/viewer-datagrid": "^4.5.1",
     "@perspective-dev/workspace": "^4.5.1",
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.1",
     "cpy": "^13.2.2",
     "esbuild": "^0.28.0",
     "http-server": "^14.1.1",
