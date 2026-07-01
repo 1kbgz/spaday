@@ -66,6 +66,35 @@ test("two-way binding: a control writes its field, updating other props bound to
   expect(result.bChecked).toBe(true); // ...which flowed to the other bound control
 });
 
+test("two-way binding writes on wa-tab-show (routing-aware Tabs.active)", async ({
+  page,
+}) => {
+  const view = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ view: "a" });
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "div",
+        slots: {
+          default: [
+            {
+              tag: "wa-tab-group",
+              bindings: { active: { field: "view", mode: "two-way" } },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    const group = root.querySelector("wa-tab-group");
+    group.setAttribute("active", "b"); // WebAwesome reflects the newly active tab...
+    group.dispatchEvent(new CustomEvent("wa-tab-show", { bubbles: true })); // ...and fires this
+    return store.get("view");
+  });
+  expect(view).toBe("b"); // the user's tab selection flowed back into the bound field
+});
+
 test("two-way binding skips an invalid value (gated on the control's validity)", async ({
   page,
 }) => {
