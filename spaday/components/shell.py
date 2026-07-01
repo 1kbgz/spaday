@@ -21,7 +21,7 @@ from typing import Any, Optional
 from ..component import Child, Component
 from .webawesome import WaTab, WaTabPanel
 
-__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Column", "Stack", "Row", "Toolbar", "Show", "Tabs"]
+__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Column", "Stack", "Row", "Toolbar", "Show", "Tabs", "Table"]
 
 
 class App(Component):
@@ -172,3 +172,20 @@ class Tabs(Component):
         self.child_in("nav", WaTab(panel=name).text(label))  # tab headers live in the group's "nav" slot
         self.child(WaTabPanel(name=name).child(*content))  # panels in the default slot
         return self
+
+
+class Table(Component):
+    """A lightweight data table — a ``spa-table`` that renders ``rows`` (a list of dicts) under
+    ``columns``. Both are reactive: bind or compute ``rows`` to a state field and the table re-renders::
+
+        Table(columns=["symbol", "qty", "price"]).compute("rows", field("orders"))
+
+    ``columns`` may be plain keys (``["symbol"]`` — the label is the key) or ``{"key": …, "label": …}``
+    dicts; omit it to infer the columns from the first row. Pass ``rows`` for a static table. (For virtual
+    scrolling / very large datasets, wrap regular-table — Phase 7.)
+    """
+
+    tag = "spa-table"
+
+    def __init__(self, *, columns: Optional[list] = None, rows: Optional[list] = None, key: Optional[str] = None, **props: Any) -> None:
+        super().__init__(key=key, props={"columns": columns, "rows": rows}, **props)

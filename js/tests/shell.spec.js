@@ -68,3 +68,45 @@ test("shell containers carry the slotted wa-button display fix", async ({
   });
   expect(hasFix).toBe(true);
 });
+
+test("spa-table renders rows under columns and re-renders when the bound field changes", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ orders: [{ symbol: "AAPL", qty: 10 }] });
+    // columns are static; rows are computed from a store field (the reactive case)
+    const el = mount(
+      document.body,
+      {
+        tag: "spa-table",
+        props: { columns: { List: [{ Str: "symbol" }, { Str: "qty" }] } },
+        bindings: {
+          rows: { compute: { expr: "field", name: "orders" }, mode: "one-way" },
+        },
+      },
+      store,
+    );
+    const read = () => {
+      const t = el.shadowRoot.querySelector("table");
+      return {
+        headers: [...t.tHead.rows[0].cells].map((c) => c.textContent),
+        cells: [...t.tBodies[0].rows].map((row) =>
+          [...row.cells].map((c) => c.textContent),
+        ),
+      };
+    };
+    const before = read();
+    store.set("orders", [
+      { symbol: "MSFT", qty: 5 },
+      { symbol: "GOOG", qty: 7 },
+    ]); // a field change re-renders the table
+    return { before, after: read() };
+  });
+  expect(r.before.headers).toEqual(["symbol", "qty"]); // columns → header cells
+  expect(r.before.cells).toEqual([["AAPL", "10"]]); // seeded row
+  expect(r.after.cells).toEqual([
+    ["MSFT", "5"],
+    ["GOOG", "7"],
+  ]); // reactively re-rendered from the changed field
+});
