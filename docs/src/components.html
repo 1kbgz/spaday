@@ -293,6 +293,24 @@ encapsulated layout:</p>
 <p><code class="docutils literal notranslate"><span class="pre">Stack</span></code> stacks children vertically, <code class="docutils literal notranslate"><span class="pre">Row</span></code> lays them horizontally, <code class="docutils literal notranslate"><span class="pre">Toolbar</span></code> is a control strip; <code class="docutils literal notranslate"><span class="pre">App</span></code> /
 <code class="docutils literal notranslate"><span class="pre">Nav</span></code> / <code class="docutils literal notranslate"><span class="pre">Body</span></code> / <code class="docutils literal notranslate"><span class="pre">Gutter</span></code> / <code class="docutils literal notranslate"><span class="pre">Main</span></code> / <code class="docutils literal notranslate"><span class="pre">Footer</span></code> are the page shell.</p>
 </section>
+<section id="tabs-and-navigation">
+<h2>Tabs and navigation<a class="headerlink" href="#tabs-and-navigation" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Tabs</span></code> builds a WebAwesome <code class="docutils literal notranslate"><span class="pre">wa-tab-group</span></code> from <code class="docutils literal notranslate"><span class="pre">(label,</span> <span class="pre">content)</span></code> pairs — no hand-pairing of tab headers
+with panels. Bind its <code class="docutils literal notranslate"><span class="pre">active</span></code> prop to a state field for <strong>routing-aware</strong> navigation: the field drives
+which tab shows, and the user’s selection is written back (<code class="docutils literal notranslate"><span class="pre">serve(bundles=[&quot;webawesome&quot;])</span></code> registers the
+nav components):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tabs</span>
+
+<span class="n">Tabs</span><span class="p">()</span>
+<span class="o">.</span><span class="n">tab</span><span class="p">(</span><span class="s2">&quot;Overview&quot;</span><span class="p">,</span> <span class="n">overview_panel</span><span class="p">)</span>
+<span class="o">.</span><span class="n">tab</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">,</span> <span class="n">settings_panel</span><span class="p">)</span>
+<span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;active&quot;</span><span class="p">,</span> <span class="s2">&quot;view&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">)</span>   <span class="c1"># state &lt;-&gt; active tab; seed/read &quot;view&quot; via a store or a wire</span>
+</pre></div>
+</div>
+<p>Each panel’s <code class="docutils literal notranslate"><span class="pre">name</span></code> defaults to a slug of its label; pass <code class="docutils literal notranslate"><span class="pre">name=</span></code> to bind against a stable value. The other
+navigation primitives are generated typed classes you compose directly — <code class="docutils literal notranslate"><span class="pre">WaDropdown</span></code> (+ <code class="docutils literal notranslate"><span class="pre">WaDropdownItem</span></code>),
+<code class="docutils literal notranslate"><span class="pre">WaBreadcrumb</span></code> (+ <code class="docutils literal notranslate"><span class="pre">WaBreadcrumbItem</span></code>), and <code class="docutils literal notranslate"><span class="pre">WaTree</span></code> (+ <code class="docutils literal notranslate"><span class="pre">WaTreeItem</span></code>).</p>
+</section>
 <section id="generate-a-form-from-a-model">
 <h2>Generate a form from a model<a class="headerlink" href="#generate-a-form-from-a-model" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">form(Model)</span></code> turns a pydantic model into a <code class="docutils literal notranslate"><span class="pre">Stack</span></code> of labelled <code class="docutils literal notranslate"><span class="pre">wa-*</span></code> controls — one per field, typed
@@ -315,8 +333,9 @@ to dotted <code class="docutils literal notranslate"><span class="pre">parent.ch
 <span class="n">form</span><span class="p">(</span><span class="n">Settings</span><span class="p">)</span>   <span class="c1"># a Stack of bound controls — none authored by hand</span>
 </pre></div>
 </div>
-<p>The controls bind to fields named <code class="docutils literal notranslate"><span class="pre">name</span></code> / <code class="docutils literal notranslate"><span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">size</span></code>, so back them with a seeded
-<a class="reference internal" href="serving.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">store=</span></code></span></a> or a hosted model over <a class="reference internal" href="transports.html"><span class="std std-doc">transports</span></a>. Relabel a field with
+<p><code class="docutils literal notranslate"><span class="pre">form</span></code> needs pydantic — install it with the <code class="docutils literal notranslate"><span class="pre">form</span></code> extra (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;spaday[form]&quot;</span></code>); it’s also pulled
+in by <code class="docutils literal notranslate"><span class="pre">spaday[examples]</span></code>. The controls bind to fields named <code class="docutils literal notranslate"><span class="pre">name</span></code> / <code class="docutils literal notranslate"><span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">size</span></code>, so back them with
+a seeded <a class="reference internal" href="serving.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">store=</span></code></span></a> or a hosted model over <a class="reference internal" href="transports.html"><span class="std std-doc">transports</span></a>. Relabel a field with
 <code class="docutils literal notranslate"><span class="pre">FormField</span></code> (as <code class="docutils literal notranslate"><span class="pre">Annotated[int,</span> <span class="pre">FormField(label=&quot;…&quot;)]</span></code> metadata or via <code class="docutils literal notranslate"><span class="pre">overrides=</span></code>), and drop fields with
 <code class="docutils literal notranslate"><span class="pre">exclude=</span></code>.</p>
 </section>
@@ -419,6 +438,7 @@ they are served as the tree the browser mounts.</p>
 <li><a class="reference internal" href="#nest-children-into-slots">Nest children into slots</a></li>
 <li><a class="reference internal" href="#set-text">Set text</a></li>
 <li><a class="reference internal" href="#lay-out-with-shell-components">Lay out with shell components</a></li>
+<li><a class="reference internal" href="#tabs-and-navigation">Tabs and navigation</a></li>
 <li><a class="reference internal" href="#generate-a-form-from-a-model">Generate a form from a model</a></li>
 <li><a class="reference internal" href="#reach-for-a-raw-element">Reach for a raw element</a></li>
 <li><a class="reference internal" href="#set-a-prop-a-typed-class-doesn-t-expose">Set a prop a typed class doesn’t expose</a></li>
