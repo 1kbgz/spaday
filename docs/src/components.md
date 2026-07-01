@@ -55,6 +55,26 @@ App().child(Nav().child(...)).child(Body().child(Gutter().child(...)).child(Main
 `Stack` stacks children vertically, `Row` lays them horizontally, `Toolbar` is a control strip; `App` /
 `Nav` / `Body` / `Gutter` / `Main` / `Footer` are the page shell.
 
+## Tabs and navigation
+
+`Tabs` builds a WebAwesome `wa-tab-group` from `(label, content)` pairs — no hand-pairing of tab headers
+with panels. Bind its `active` prop to a state field for **routing-aware** navigation: the field drives
+which tab shows, and the user's selection is written back (`serve(bundles=["webawesome"])` registers the
+nav components):
+
+```python
+from spaday.components.shell import Tabs
+
+Tabs()
+.tab("Overview", overview_panel)
+.tab("Settings", settings_panel)
+.bind("active", "view", mode="two-way")   # state <-> active tab; seed/read "view" via a store or a wire
+```
+
+Each panel's `name` defaults to a slug of its label; pass `name=` to bind against a stable value. The other
+navigation primitives are generated typed classes you compose directly — `WaDropdown` (+ `WaDropdownItem`),
+`WaBreadcrumb` (+ `WaBreadcrumbItem`), and `WaTree` (+ `WaTreeItem`).
+
 ## Generate a form from a model
 
 `form(Model)` turns a pydantic model into a `Stack` of labelled `wa-*` controls — one per field, typed

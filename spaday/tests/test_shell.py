@@ -4,7 +4,7 @@ import pytest
 
 from spaday import apply, diff, element
 from spaday.actions import field, not_
-from spaday.components.shell import App, Body, Column, Footer, Gutter, Main, Nav, Row, Show, Stack, Toolbar
+from spaday.components.shell import App, Body, Column, Footer, Gutter, Main, Nav, Row, Show, Stack, Tabs, Toolbar
 
 
 def test_shell_classes_emit_spa_tags():
@@ -83,3 +83,24 @@ def test_show_when_authors_a_compute_binding():
 def test_show_requires_a_condition():
     with pytest.raises(ValueError):
         Show()
+
+
+def test_tabs_builds_a_wa_tab_group_from_pairs():
+    node = Tabs().tab("Overview", element("p")).tab("By symbol", element("span")).to_node()
+    assert node["tag"] == "wa-tab-group"
+    nav, panels = node["slots"]["nav"], node["slots"]["default"]  # headers in "nav", panels default
+    assert [c["tag"] for c in nav] == ["wa-tab", "wa-tab"]
+    assert [c["tag"] for c in panels] == ["wa-tab-panel", "wa-tab-panel"]
+    # each wa-tab's `panel` matches its wa-tab-panel's `name`, slugged from the label
+    assert nav[0]["props"]["panel"] == {"Str": "overview"} and panels[0]["props"]["name"] == {"Str": "overview"}
+    assert nav[1]["props"]["panel"] == {"Str": "by-symbol"} and panels[1]["props"]["name"] == {"Str": "by-symbol"}
+    assert nav[0]["props"]["textContent"] == {"Str": "Overview"}  # the header label
+    assert panels[0]["slots"]["default"][0]["tag"] == "p"  # the panel body
+
+
+def test_tabs_active_binds_for_routing():
+    node = Tabs(active="overview").tab("Overview", element("p")).bind("active", "view", mode="two-way").to_node()
+    assert node["props"]["active"] == {"Str": "overview"}  # initial active panel
+    assert node["bindings"]["active"] == {"field": "view", "mode": "two-way"}  # state <-> active tab
+    # an explicit name overrides the slug (bind against a stable value)
+    assert Tabs().tab("A B", name="tab1").to_node()["slots"]["nav"][0]["props"]["panel"] == {"Str": "tab1"}

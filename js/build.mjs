@@ -5,17 +5,25 @@ import { node_modules_external } from "./tools/externals.mjs";
 import fs from "fs";
 import cpy from "cpy";
 
-// Statically register the whole WebAwesome catalog by importing each installed component module, so the
-// widget bundle is self-contained (no runtime chunk loading — WebAwesome's own `webawesome.js` entry is
-// a lazy bootstrap that can't resolve under anywidget's single-file ESM). Generated from node_modules,
-// so it tracks the installed version with no committed list.
+// Statically register the whole WebAwesome catalog by importing each installed component module, so a
+// bundle is self-contained (no runtime chunk loading — WebAwesome's own `webawesome.js` entry is a lazy
+// bootstrap that can't resolve under anywidget's single-file ESM). Generated from node_modules, so it
+// tracks the installed version with no committed list; shared by the widget bundle and the served-examples
+// bundle so every `wa-*` (nav included) is available.
 const WA_COMPONENTS = "node_modules/@awesome.me/webawesome/dist/components";
+const WA_CATALOG = fs
+  .readdirSync(WA_COMPONENTS)
+  .filter((n) => fs.existsSync(`${WA_COMPONENTS}/${n}/${n}.js`))
+  .map((n) => `import "@awesome.me/webawesome/dist/components/${n}/${n}.js";`)
+  .join("\n");
 const WA_WIDGET_ENTRY =
-  fs
-    .readdirSync(WA_COMPONENTS)
-    .filter((n) => fs.existsSync(`${WA_COMPONENTS}/${n}/${n}.js`))
-    .map((n) => `import "@awesome.me/webawesome/dist/components/${n}/${n}.js";`)
-    .join("\n") + '\nexport { default } from "./src/ts/widget";\n';
+  WA_CATALOG + '\nexport { default } from "./src/ts/widget";\n';
+// The served-example WebAwesome bundle (`serve(bundles=["webawesome"])`): the full catalog + a box-sizing
+// part-fix (WA renders a control's `base`/`combobox` part content-box, which can overflow a tight
+// container like a fixed-width gutter — see gateway.py; `::part` reaches the shadow DOM a page reset can't).
+const WA_EXAMPLES_ENTRY =
+  WA_CATALOG +
+  '\nif (typeof document !== "undefined") { const s = document.createElement("style"); s.textContent = "wa-input::part(base),wa-select::part(combobox){box-sizing:border-box}"; document.head.appendChild(s); }\n';
 
 const BUNDLES = [
   {
@@ -40,8 +48,9 @@ const BUNDLES = [
     loader: { ".wasm": "binary" },
   },
   {
-    // Self-contained WebAwesome controls for the dashboard example (esbuild resolves WA's chunks).
-    entryPoints: ["src/ts/examples/webawesome.ts"],
+    // The full WebAwesome catalog for served examples (serve(bundles=["webawesome"])) — every wa-*
+    // registers (nav, etc.), plus the box-sizing part-fix. Generated, like the widget bundle.
+    stdin: { contents: WA_EXAMPLES_ENTRY, resolveDir: ".", loader: "js" },
     outfile: "dist/cdn/examples/webawesome.js",
   },
   {

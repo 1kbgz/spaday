@@ -133,7 +133,7 @@ function unbindEvent(el: Element, name: string): void {
 // Live binding teardowns per element/prop, so an incremental patch can rewire or detach them. A binding
 // subscribes the prop to its state field; a two-way binding also writes the field when the control changes.
 const bindings = new WeakMap<Element, Map<string, () => void>>();
-const VALUE_EVENTS = ["change", "input"]; // a control writes its bound field on these
+const VALUE_EVENTS = ["change", "input", "wa-tab-show"]; // a control writes its bound field on these (wa-tab-show: a wa-tab-group's active tab changed)
 
 function readProp(el: Element, name: string): unknown {
   if (name in el) return (el as unknown as Record<string, unknown>)[name];

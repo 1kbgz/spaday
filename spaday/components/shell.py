@@ -19,8 +19,9 @@ becomes a left or right gutter by where it sits in a :class:`Body`.
 from typing import Any, Optional
 
 from ..component import Child, Component
+from .webawesome import WaTab, WaTabPanel
 
-__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Column", "Stack", "Row", "Toolbar", "Show"]
+__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Column", "Stack", "Row", "Toolbar", "Show", "Tabs"]
 
 
 class App(Component):
@@ -138,3 +139,36 @@ class Show(Component):
             self._bindings["when"] = {"compute": when.to_dict(), "mode": "one-way"}
         else:
             raise ValueError("Show requires field= (a store field) or when= (a field-expression)")
+
+
+def _tab_name(label: str) -> str:
+    """A slug for a tab's panel name from its label (``"By symbol"`` → ``"by-symbol"``)."""
+    return "-".join("".join(c if c.isalnum() else " " for c in label.lower()).split()) or "tab"
+
+
+class Tabs(Component):
+    """A WebAwesome ``wa-tab-group`` built ergonomically from ``(label, content)`` pairs with :meth:`tab`,
+    instead of hand-pairing ``wa-tab`` headers with ``wa-tab-panel`` bodies.
+
+    The group shows one panel at a time (WebAwesome handles the switching); the active panel is the
+    ``active`` prop — a panel ``name``. **Bind it for routing-aware navigation** — a two-way binding drives
+    the active tab from a state field *and* writes the user's selection back (the runtime listens for the
+    group's ``wa-tab-show``)::
+
+        Tabs().tab("Overview", overview).tab("Settings", settings).bind("active", "view", mode="two-way")
+
+    ``name`` defaults to a slug of the label; pass it explicitly to bind against a stable value.
+    """
+
+    tag = "wa-tab-group"
+
+    def __init__(self, *, active: Optional[str] = None, placement: Optional[str] = None, key: Optional[str] = None, **props: Any) -> None:
+        super().__init__(key=key, props={"active": active, "placement": placement}, **props)
+
+    def tab(self, label: str, *content: Child, name: Optional[str] = None) -> "Tabs":
+        """Add a tab: a ``wa-tab`` header labelled ``label`` and a ``wa-tab-panel`` holding ``content``,
+        linked by ``name`` (a slug of ``label`` by default)."""
+        name = name or _tab_name(label)
+        self.child_in("nav", WaTab(panel=name).text(label))  # tab headers live in the group's "nav" slot
+        self.child(WaTabPanel(name=name).child(*content))  # panels in the default slot
+        return self
