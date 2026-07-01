@@ -33,7 +33,6 @@ signal store, and the ``spaday:patch`` sink — and mounts the Python-authored t
 
 import asyncio
 import enum
-import random
 from datetime import date, timedelta
 from typing import Annotated
 
@@ -45,6 +44,7 @@ from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from superstore import RandomWalk, superstore
 
 from spaday import Wire, element
 from spaday.actions import CallEndpoint, SendPatch, Sequence, SetProp, Toggle, bind, by_id, cond, field, lit, not_, obj
@@ -76,14 +76,11 @@ TYPES = ["line", "area", "histogram"]
 WINDOW = 120
 
 
-def random_walk(n: int, *, seed: int = 7, start: float = 100.0) -> list:
-    """A deterministic daily-value series, e.g. ``[{"time": "2023-01-01", "value": 99.54}, ...]``."""
-    rng = random.Random(seed)
-    value, day, points = start, date(2023, 1, 1), []
-    for i in range(n):
-        value += rng.uniform(-1.4, 1.5)
-        points.append({"time": (day + timedelta(days=i)).isoformat(), "value": round(value, 2)})
-    return points
+def daily_walk(n: int = WINDOW) -> list:
+    """A random-walk price series ``[{"time": "2023-01-01", "value": 99.54}, ...]`` for the client-only
+    charts, generated with superstore's ``RandomWalk``."""
+    day = date(2023, 1, 1)
+    return [{"time": (day + timedelta(days=i)).isoformat(), "value": round(v, 2)} for i, v in enumerate(RandomWalk(sigma=1.4, start=100.0).sample(n))]
 
 
 class Chart(BaseModel):
@@ -95,18 +92,17 @@ class Chart(BaseModel):
 
 
 class ChartSource:
-    """A `Chart` model plus the running state that windows points into it."""
+    """A `Chart` model plus the running superstore `RandomWalk` that windows points into it. Each instance
+    has its own walk, so the global and per-session charts diverge naturally."""
 
-    def __init__(self, type: str = "area", seed: int = 0) -> None:
-        self._rng = random.Random(seed)
-        self._value, self._day = 100.0, date(2023, 1, 1)
-        self.model = Chart(type=type, data=dict(self._point() for _ in range(WINDOW)))
+    def __init__(self, type: str = "area") -> None:
+        self._walk, self._day = RandomWalk(sigma=1.4, start=100.0), date(2023, 1, 1)
+        self.model = Chart(type=type, data=dict(self._point(v) for v in self._walk.sample(WINDOW)))
 
-    def _point(self) -> tuple[str, float]:
-        self._value += self._rng.uniform(-1.4, 1.5)
+    def _point(self, value: float) -> tuple[str, float]:
         t = self._day.isoformat()
         self._day += timedelta(days=1)
-        return t, round(self._value, 2)
+        return t, round(value, 2)
 
     def tick(self) -> None:
         if self.model.live:
@@ -114,14 +110,14 @@ class ChartSource:
             # a time-keyed map, the Session diffs this to Set(newest) + Remove(oldest) — a 2-op per-point
             # delta — and the snapshot every new client downloads stays bounded (not an ever-growing list).
             data = dict(self.model.data)
-            t, v = self._point()
+            t, v = self._point(self._walk.sample(1)[0])
             data[t] = v
             while len(data) > WINDOW:
                 del data[next(iter(data))]
             self.model.data = data
 
 
-global_src = ChartSource(type="area", seed=7)
+global_src = ChartSource(type="area")
 global_session = transports.Session()
 global_session.host(global_src.model)
 global_server = transports.Server(global_session)
@@ -158,27 +154,16 @@ form_server = transports.Server(form_session)
 
 # Perspective (Mode B): the table DATA rides Perspective's own websocket (served at /perspective below);
 # spaday/transports carry only a small CONFIG (which server, which tables, and the workspace layout +
-# per-viewer views) that the server can PUSH at any time. A live trades blotter capped to a ring buffer.
+# per-viewer views) that the server can PUSH at any time. A live Superstore orders blotter (a ring buffer);
+# the schema is inferred from the seed batch, so there is no hand-written column list to keep in sync.
 psp_server = PerspectiveServer()
 psp_client = psp_server.new_local_client()
-TRADES_SCHEMA = {"id": "integer", "symbol": "string", "price": "float", "size": "integer"}
-psp_table = psp_client.table(TRADES_SCHEMA, limit=2000, name="trades")  # ring buffer (append; drop oldest)
-_PSP_SYMBOLS = ["AAPL", "MSFT", "GOOG", "AMZN", "NVDA"]
-_psp_rng = random.Random(11)
-_psp_px = {s: round(_psp_rng.uniform(80, 400), 2) for s in _PSP_SYMBOLS}
-_psp_id = 0
+psp_table = psp_client.table(superstore(count=500, output="dict"), limit=5000, name="orders")  # ring buffer
 
 
 def psp_tick() -> None:
-    """Append a few random trades; they stream to every connected browser over Perspective's own websocket."""
-    global _psp_id
-    rows = []
-    for _ in range(6):
-        _psp_id += 1
-        sym = _psp_rng.choice(_PSP_SYMBOLS)
-        _psp_px[sym] = round(max(1.0, _psp_px[sym] + _psp_rng.uniform(-2, 2)), 2)
-        rows.append({"id": _psp_id, "symbol": sym, "price": _psp_px[sym], "size": _psp_rng.randint(1, 1000)})
-    psp_table.update(rows)
+    """Append a fresh batch of Superstore orders; they stream to every browser over Perspective's own socket."""
+    psp_table.update(superstore(count=8, output="dict"))
 
 
 def _psp_layout(viewer: dict) -> dict:
@@ -188,21 +173,26 @@ def _psp_layout(viewer: dict) -> dict:
         "detail": {"main": {"type": "tab-area", "widgets": ["view"], "currentIndex": 0}},
         "master": {"sizes": [], "widgets": []},
         "mode": "globalFilters",
-        "viewers": {"view": {"table": "trades", "plugin": "Datagrid", "theme": "Pro Light", **viewer}},
+        "viewers": {"view": {"table": "orders", "plugin": "Datagrid", "theme": "Pro Light", **viewer}},
     }
 
 
-# Two pushable presets: a flat live blotter and a by-symbol aggregation. The button below flips between
-# them server-side; every connected workspace re-restores — the "push a new view at any time" demo.
-PSP_BLOTTER = _psp_layout({"title": "Trades (live)", "sort": [["id", "desc"]]})
-PSP_BY_SYMBOL = _psp_layout(
-    {"title": "By symbol", "group_by": ["symbol"], "columns": ["price", "size"], "aggregates": {"price": "avg", "size": "sum"}}
+# Two pushable presets: a flat live blotter and a by-category rollup. The button below flips between them
+# server-side; every connected workspace re-restores — the "push a new view at any time" demo.
+PSP_BLOTTER = _psp_layout({"title": "Orders (live)", "sort": [["Order Date", "desc"]]})
+PSP_BY_CATEGORY = _psp_layout(
+    {
+        "title": "By category",
+        "group_by": ["Category", "Sub-Category"],
+        "columns": ["Sales", "Quantity", "Profit"],
+        "aggregates": {"Sales": "sum", "Quantity": "sum", "Profit": "sum"},
+    }
 )
 
 
 class PerspectiveConfig(BaseModel):
     ws_url: str = "/perspective"  # the Perspective data websocket (this app serves it)
-    tables: list = Field(default_factory=lambda: ["trades"])  # informational; discovered over the socket
+    tables: list = Field(default_factory=lambda: ["orders"])  # informational; discovered over the socket
     layout: dict = Field(default_factory=lambda: dict(PSP_BLOTTER))  # the pushable workspace layout + views
 
 
@@ -254,7 +244,7 @@ def dsl_card() -> object:
         .child(
             Stack()
             .child(Toolbar().child(type_button("Line", "line")).child(type_button("Area", "area")).child(type_button("Histogram", "histogram")))
-            .child(LightweightChart(type="area", data=random_walk(120)).prop("id", "dsl-chart").compute("theme", DARK_THEME))
+            .child(LightweightChart(type="area", data=daily_walk()).prop("id", "dsl-chart").compute("theme", DARK_THEME))
         )
     )
 
@@ -279,7 +269,7 @@ def structure_card() -> object:
         .child(WaSwitch().prop("id", "chart-toggle").bind("checked", "show_chart", mode="two-way").text("Show chart"))
         .child(
             Show(field="show_chart").child(
-                LightweightChart(type="area", data=random_walk(120)).prop("style", "height:260px;display:block").compute("theme", DARK_THEME)
+                LightweightChart(type="area", data=daily_walk()).prop("style", "height:260px;display:block").compute("theme", DARK_THEME)
             )
         )
     )
@@ -438,7 +428,7 @@ async def psp_relayout(request):
     """Push a different workspace layout/view to EVERY connected browser by mutating the shared config
     model — transports fans the change and each perspective-panel re-restores. Flips between two presets."""
     grouped = psp_config.layout.get("viewers", {}).get("view", {}).get("group_by")
-    psp_config.layout = dict(PSP_BLOTTER) if grouped else dict(PSP_BY_SYMBOL)
+    psp_config.layout = dict(PSP_BLOTTER) if grouped else dict(PSP_BY_CATEGORY)
     return JSONResponse({"view": psp_config.layout["viewers"]["view"]["title"]})
 
 
@@ -451,7 +441,7 @@ async def session_endpoint(ws: WebSocket) -> None:
     key = ws.query_params.get("session", "anon")
     sess = session_hub.tenant(key)
     if key not in session_srcs:
-        src = ChartSource(type="area", seed=hash(key) & 0xFFFF)
+        src = ChartSource(type="area")
         sess.host(src.model)
         session_srcs[key] = src
     await ws.accept()
@@ -483,7 +473,7 @@ async def ticker() -> None:
         global_src.tick()
         for src in list(session_srcs.values()):
             src.tick()
-        psp_tick()  # stream new trades into the Perspective table (over its own websocket)
+        psp_tick()  # stream new orders into the Perspective table (over its own websocket)
 
 
 # serve() generates the whole page (bootstrap, the four namespaced transports wires + the spaday:patch
