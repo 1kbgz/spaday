@@ -60,7 +60,7 @@
     "@perspective-dev/workspace": "^4.5.1",
     "@playwright/test": "^1.60.0",
     "cpy": "^13.2.2",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "http-server": "^14.1.1",
     "lightningcss": "^1.29.3",
     "lightweight-charts": "^5.2.0",
