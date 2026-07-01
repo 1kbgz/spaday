@@ -4,7 +4,7 @@ import pytest
 
 from spaday import apply, diff, element
 from spaday.actions import field, not_
-from spaday.components.shell import App, Body, Column, Footer, Gutter, Main, Nav, Row, Show, Stack, Tabs, Toolbar
+from spaday.components.shell import App, Body, Column, Footer, Gutter, Main, Nav, Row, Show, Stack, Table, Tabs, Toolbar
 
 
 def test_shell_classes_emit_spa_tags():
@@ -104,3 +104,16 @@ def test_tabs_active_binds_for_routing():
     assert node["bindings"]["active"] == {"field": "view", "mode": "two-way"}  # state <-> active tab
     # an explicit name overrides the slug (bind against a stable value)
     assert Tabs().tab("A B", name="tab1").to_node()["slots"]["nav"][0]["props"]["panel"] == {"Str": "tab1"}
+
+
+def test_table_authors_a_spa_table():
+    node = Table(columns=["symbol", "qty"], rows=[{"symbol": "AAPL", "qty": 10}]).to_node()
+    assert node["tag"] == "spa-table"
+    assert node["props"]["columns"] == {"List": [{"Str": "symbol"}, {"Str": "qty"}]}
+    assert node["props"]["rows"] == {"List": [{"Map": {"symbol": {"Str": "AAPL"}, "qty": {"Int": 10}}}]}
+
+
+def test_table_rows_are_reactive():
+    node = Table(columns=["a"]).compute("rows", field("orders")).to_node()
+    assert node["bindings"]["rows"] == {"compute": {"expr": "field", "name": "orders"}, "mode": "one-way"}
+    assert "rows" not in node.get("props", {})  # computed, not a static prop

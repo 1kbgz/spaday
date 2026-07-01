@@ -91,3 +91,90 @@ if (typeof customElements !== "undefined") {
     );
   }
 }
+
+// A lightweight data table (`spa-table`): renders `rows` (a list of objects) under `columns`, both set as
+// JS properties — so a bound / computed `rows` re-renders reactively. Cells are text (built with
+// createElement, never innerHTML). Not a virtual-scroll grid (that's regular-table); a themed `<table>`
+// for modest data.
+const TABLE_CSS = `:host{display:block;overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem;color:inherit}
+th,td{text-align:left;padding:.4rem .65rem;border-bottom:1px solid ${BORDER};white-space:nowrap}
+thead th{background:${SURFACE_2};font-weight:600;position:sticky;top:0}
+tbody tr:hover td{background:${SURFACE_2}}`;
+
+type TableCol = { key: string; label: string };
+function tableColumns(
+  cols: unknown,
+  rows: Record<string, unknown>[],
+): TableCol[] {
+  const raw =
+    Array.isArray(cols) && cols.length
+      ? cols
+      : rows[0]
+        ? Object.keys(rows[0])
+        : []; // infer from the first row
+  return raw.map((c) =>
+    typeof c === "string"
+      ? { key: c, label: c }
+      : {
+          key: String((c as Record<string, unknown>).key),
+          label: String(
+            (c as Record<string, unknown>).label ??
+              (c as Record<string, unknown>).key,
+          ),
+        },
+  );
+}
+
+if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
+  customElements.define(
+    "spa-table",
+    class extends HTMLElement {
+      private cols: unknown = null;
+      private data: Record<string, unknown>[] = [];
+      private root: ShadowRoot;
+      constructor() {
+        super();
+        this.root = this.attachShadow({ mode: "open" });
+        const style = document.createElement("style");
+        style.textContent = TABLE_CSS;
+        this.root.append(style);
+        this.render();
+      }
+      set columns(v: unknown) {
+        this.cols = v;
+        this.render();
+      }
+      get columns(): unknown {
+        return this.cols;
+      }
+      set rows(v: unknown) {
+        this.data = Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
+        this.render();
+      }
+      get rows(): unknown {
+        return this.data;
+      }
+      private render(): void {
+        const cols = tableColumns(this.cols, this.data);
+        const table = document.createElement("table");
+        const hr = table.createTHead().insertRow();
+        for (const c of cols) {
+          const th = document.createElement("th");
+          th.textContent = c.label;
+          hr.append(th);
+        }
+        const tbody = table.createTBody();
+        for (const row of this.data) {
+          const tr = tbody.insertRow();
+          for (const c of cols)
+            tr.insertCell().textContent =
+              row[c.key] == null ? "" : String(row[c.key]);
+        }
+        const old = this.root.querySelector("table");
+        if (old) old.replaceWith(table);
+        else this.root.append(table);
+      }
+    },
+  );
+}

@@ -105,6 +105,22 @@ a seeded [`store=`](serving.md) or a hosted model over [transports](transports.m
 `FormField` (as `Annotated[int, FormField(label="…")]` metadata or via `overrides=`), and drop fields with
 `exclude=`.
 
+## Show data in a table
+
+`Table` renders a lightweight data grid — a `spa-table` that lays out `rows` (a list of dicts) under
+`columns`. Both are reactive, so binding or computing `rows` re-renders the table live:
+
+```python
+from spaday import field
+from spaday.components.shell import Table
+
+Table(columns=["symbol", "qty", "price"]).compute("rows", field("orders"))
+```
+
+`columns` may be plain keys (`["symbol"]` — the label is the key) or `{"key": …, "label": …}` dicts; omit
+it to infer the columns from the first row. Pass `rows=[…]` for a static table. Cells are text; for virtual
+scrolling or very large datasets, wrap a grid library (regular-table) via the [wrapper recipe](wrappers.md).
+
 ## Reach for a raw element
 
 For text or a structural tag a typed class doesn't cover, use `element`:
