@@ -339,6 +339,20 @@ a seeded <a class="reference internal" href="serving.html"><span class="std std-
 <code class="docutils literal notranslate"><span class="pre">FormField</span></code> (as <code class="docutils literal notranslate"><span class="pre">Annotated[int,</span> <span class="pre">FormField(label=&quot;…&quot;)]</span></code> metadata or via <code class="docutils literal notranslate"><span class="pre">overrides=</span></code>), and drop fields with
 <code class="docutils literal notranslate"><span class="pre">exclude=</span></code>.</p>
 </section>
+<section id="show-data-in-a-table">
+<h2>Show data in a table<a class="headerlink" href="#show-data-in-a-table" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Table</span></code> renders a lightweight data grid — a <code class="docutils literal notranslate"><span class="pre">spa-table</span></code> that lays out <code class="docutils literal notranslate"><span class="pre">rows</span></code> (a list of dicts) under
+<code class="docutils literal notranslate"><span class="pre">columns</span></code>. Both are reactive, so binding or computing <code class="docutils literal notranslate"><span class="pre">rows</span></code> re-renders the table live:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+
+<span class="n">Table</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;symbol&quot;</span><span class="p">,</span> <span class="s2">&quot;qty&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;rows&quot;</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;orders&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">columns</span></code> may be plain keys (<code class="docutils literal notranslate"><span class="pre">[&quot;symbol&quot;]</span></code> — the label is the key) or <code class="docutils literal notranslate"><span class="pre">{&quot;key&quot;:</span> <span class="pre">…,</span> <span class="pre">&quot;label&quot;:</span> <span class="pre">…}</span></code> dicts; omit
+it to infer the columns from the first row. Pass <code class="docutils literal notranslate"><span class="pre">rows=[…]</span></code> for a static table. Cells are text; for virtual
+scrolling or very large datasets, wrap a grid library (regular-table) via the <a class="reference internal" href="wrappers.html"><span class="std std-doc">wrapper recipe</span></a>.</p>
+</section>
 <section id="reach-for-a-raw-element">
 <h2>Reach for a raw element<a class="headerlink" href="#reach-for-a-raw-element" title="Link to this heading">¶</a></h2>
 <p>For text or a structural tag a typed class doesn’t cover, use <code class="docutils literal notranslate"><span class="pre">element</span></code>:</p>
@@ -440,6 +454,7 @@ they are served as the tree the browser mounts.</p>
 <li><a class="reference internal" href="#lay-out-with-shell-components">Lay out with shell components</a></li>
 <li><a class="reference internal" href="#tabs-and-navigation">Tabs and navigation</a></li>
 <li><a class="reference internal" href="#generate-a-form-from-a-model">Generate a form from a model</a></li>
+<li><a class="reference internal" href="#show-data-in-a-table">Show data in a table</a></li>
 <li><a class="reference internal" href="#reach-for-a-raw-element">Reach for a raw element</a></li>
 <li><a class="reference internal" href="#set-a-prop-a-typed-class-doesn-t-expose">Set a prop a typed class doesn’t expose</a></li>
 <li><a class="reference internal" href="#key-for-stable-updates">Key for stable updates</a></li>
