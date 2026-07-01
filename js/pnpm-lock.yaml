@@ -13,8 +13,8 @@ importers:
         version: 3.9.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)
     devDependencies:
       '@1kbgz/transports':
-        specifier: ^0.3.0
-        version: 0.3.0
+        specifier: ^0.4.0
+        version: 0.4.0
       '@perspective-dev/client':
         specifier: ^4.5.1
         version: 4.5.1
@@ -60,8 +60,8 @@ importers:
 
 packages:
 
-  '@1kbgz/transports@0.3.0':
-    resolution: {integrity: sha512-YfYAF0r/9UnsXjHRRbchTWWMQa3vMe7qHfUrM37pAt9M0uq0NhPPHuUdzZwzurChjLYZZeD3f0e/zGHQtFDfmQ==}
+  '@1kbgz/transports@0.4.0':
+    resolution: {integrity: sha512-rvdp7yciQMEM8NoEl9HOL87W9kd3XMyzkAXoUNn1YPDnSZNK3bikRzpwllf+0yZAbDXegHhrdg9BYqWSB4yELA==}
 
   '@awesome.me/webawesome@3.9.0':
     resolution: {integrity: sha512-doKgUCglb/E1d/dYSzXQQthlYmyndFOtG/Vr5HyHjIFqNwn/tbutMsIMYJrYFEjq07vPwcOHKeAulbiqoslRoQ==}
@@ -1374,7 +1374,7 @@ packages:
 
 snapshots:
 
-  '@1kbgz/transports@0.3.0': {}
+  '@1kbgz/transports@0.4.0': {}
 
   '@awesome.me/webawesome@3.9.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)':
     dependencies:

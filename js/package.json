@@ -53,7 +53,7 @@
     "@awesome.me/webawesome": "^3.4.0"
   },
   "devDependencies": {
-    "@1kbgz/transports": "^0.3.0",
+    "@1kbgz/transports": "^0.4.0",
     "@perspective-dev/client": "^4.5.1",
     "@perspective-dev/viewer": "^4.5.1",
     "@perspective-dev/viewer-datagrid": "^4.5.1",
