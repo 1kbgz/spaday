@@ -13,7 +13,11 @@ crate-type = ["cdylib"]
 
 [dependencies]
 spaday = { path = "../rust", version = "*" }
+<<<<<<< before updating
 wasm-bindgen = "=0.2.121"
 js-sys = "0.3"
 serde = "1"
 serde-wasm-bindgen = "0.6"
+=======
+wasm-bindgen = "=0.2.126"
+>>>>>>> after updating
