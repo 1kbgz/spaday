@@ -32,6 +32,7 @@ remains the authority; this just avoids the doomed round-trip and shows the erro
 from __future__ import annotations
 
 import enum
+import math
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any, Literal, Union, get_args, get_origin
@@ -253,13 +254,20 @@ def _resolve(prop: dict, defs: dict) -> tuple[dict, bool]:
 
 
 def _schema_constraints(node: dict, is_int: bool) -> dict:
-    """Native validation attributes from a JSON Schema node: ``minimum``/``exclusiveMinimum`` → ``min``,
-    ``maximum``/``exclusiveMaximum`` → ``max``, ``minLength``/``maxLength`` → ``minlength``/``maxlength``,
-    ``pattern`` → ``pattern``; integers get ``step=1``."""
+    """Native validation attributes from a JSON Schema node: ``minimum`` → ``min``, ``maximum`` → ``max``,
+    ``minLength``/``maxLength`` → ``minlength``/``maxlength``, ``pattern`` → ``pattern``; integers get
+    ``step=1``. HTML ``min``/``max`` are *inclusive*, so an exclusive bound is only emitted for an integer
+    field (as the nearest valid integer); on a real-number field it is dropped rather than reported as
+    inclusive (server-side validation stays the authority)."""
     attrs: dict = {}
-    for key, attr in (("minimum", "min"), ("exclusiveMinimum", "min"), ("maximum", "max"), ("exclusiveMaximum", "max")):
-        if key in node:
-            attrs[attr] = node[key]
+    if "minimum" in node:
+        attrs["min"] = node["minimum"]
+    elif is_int and "exclusiveMinimum" in node:
+        attrs["min"] = math.floor(node["exclusiveMinimum"]) + 1
+    if "maximum" in node:
+        attrs["max"] = node["maximum"]
+    elif is_int and "exclusiveMaximum" in node:
+        attrs["max"] = math.ceil(node["exclusiveMaximum"]) - 1
     if "minLength" in node:
         attrs["minlength"] = node["minLength"]
     if "maxLength" in node:
@@ -279,7 +287,14 @@ def _schema_fields(schema: dict, defs: dict) -> Iterator[tuple[str, _FieldSpec]]
     for name, prop in schema.get("properties", {}).items():
         node, optional = _resolve(prop, defs)
         jtype = node.get("type")
+        if isinstance(jtype, list):  # JSON Schema 2020-12 nullable form, e.g. ["string", "null"]
+            if "null" in jtype:
+                optional = True
+            non_null = [t for t in jtype if t != "null"]
+            jtype = non_null[0] if non_null else None
         enum_vals = node.get("enum")
+        if enum_vals is None and "const" in node:  # a single-value Literal → a one-option choice
+            enum_vals = [node["const"]]
         is_object = jtype == "object" and "properties" in node
         yield (
             name,
@@ -312,7 +327,7 @@ def _source_fields(model: Any) -> Iterator[tuple[str, _FieldSpec]]:
     else:
         raise TypeError(f"form() source must be a pydantic BaseModel, TypeAdapter, or JSON Schema dict, not {type(model).__name__}")
     defs = {**schema.get("$defs", {}), **schema.get("definitions", {})}
-    return _schema_fields(schema, defs)
+    return _schema_fields(_deref(schema, defs), defs)  # deref a root ``$ref`` so its properties are walked
 
 
 def form(model: Any, *, exclude: tuple = (), overrides: dict[str, FormField] | None = None) -> Stack:

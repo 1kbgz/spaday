@@ -272,3 +272,58 @@ def test_unsupported_source_raises_type_error():
 
     with pytest.raises(TypeError):
         form(object())
+
+
+def test_json_schema_nullable_type_array_is_optional_and_typed():
+    # JSON Schema 2020-12 nullable form: {"type": ["integer", "null"]} — the non-null type is effective
+    # and the field is optional (may be left empty).
+    schema = {
+        "type": "object",
+        "properties": {"count": {"type": ["integer", "null"]}},
+        "required": ["count"],
+    }
+    c = _controls(schema)
+    assert c["count"]["props"]["type"] == {"Str": "number"}
+    assert "required" not in c["count"].get("props", {})  # null allowed → optional
+
+
+def test_json_schema_root_ref_is_dereferenced():
+    schema = {
+        "$ref": "#/$defs/Thing",
+        "$defs": {"Thing": {"type": "object", "properties": {"name": {"type": "string"}}}},
+    }
+    c = _controls(schema)
+    assert c["name"]["tag"] == "wa-input"
+
+
+def test_json_schema_exclusive_integer_bounds_map_to_nearest_valid_int():
+    schema = {
+        "type": "object",
+        "properties": {"n": {"type": "integer", "exclusiveMinimum": 0, "exclusiveMaximum": 10}},
+    }
+    c = _controls(schema)
+    assert c["n"]["props"]["min"] == {"Int": 1}  # exclusive 0 → smallest valid int is 1
+    assert c["n"]["props"]["max"] == {"Int": 9}  # exclusive 10 → largest valid int is 9
+
+
+def test_json_schema_exclusive_number_bounds_are_dropped_not_reported_inclusive():
+    schema = {
+        "type": "object",
+        "properties": {"r": {"type": "number", "exclusiveMinimum": 0.0, "exclusiveMaximum": 1.0}},
+    }
+    c = _controls(schema)
+    # HTML min/max are inclusive and can't express an exclusive real bound, so neither is emitted.
+    assert "min" not in c["r"].get("props", {})
+    assert "max" not in c["r"].get("props", {})
+
+
+def test_json_schema_const_becomes_a_single_option_choice():
+    from pydantic import BaseModel as _BM
+
+    class Tagged(_BM):
+        kind: Literal["only"] = "only"
+
+    c = _controls(Tagged.model_json_schema())
+    assert c["kind"]["tag"] == "wa-select"  # const → a one-option select, not a free text input
+    opts = c["kind"]["slots"]["default"]
+    assert [o["props"]["value"]["Str"] for o in opts] == ["only"]
