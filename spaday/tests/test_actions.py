@@ -8,8 +8,10 @@ from spaday.actions import (
     NamedJs,
     SendPatch,
     Sequence,
+    SetField,
     SetProp,
     Toggle,
+    ToggleField,
     bind,
     by_id,
     cond,
@@ -51,8 +53,15 @@ def test_action_to_dict_wire_shapes():
         "method": "POST",
         "url": "/api/order",
         "body": {"expr": "event"},
+        "result": None,
     }
     assert NamedJs("confetti").to_dict() == {"kind": "js", "handler": "confetti"}
+    assert SetField("symbol", "").to_dict() == {
+        "kind": "set-field",
+        "field": "symbol",
+        "value": {"expr": "lit", "value": ""},
+    }
+    assert ToggleField("dark").to_dict() == {"kind": "toggle-field", "field": "dark"}
 
 
 def test_cond_wire_shape_coerces_branches_to_literals():
@@ -79,6 +88,7 @@ def test_obj_composes_an_object_body_for_call_endpoint():
                 "qty": {"expr": "lit", "value": 10},
             },
         },
+        "result": None,
     }
     # rides the core diff/apply on a node like any other action
     node = element("button").on("click", action).to_json()
@@ -92,6 +102,23 @@ def test_field_composes_an_action_body_from_store_state():
     assert action.to_dict()["body"]["fields"]["qty"] == {"expr": "field", "name": "qty"}
     node = element("button").on("click", action).to_json()
     assert json.loads(apply(node, diff(node, node))) == json.loads(node)  # the core accepts field in an action
+
+
+def test_call_endpoint_result_routes_the_outcome_to_a_store_field():
+    # the "POST a form and show the outcome" case: the response {status, ok, body} lands in the store
+    action = CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol")}), result="order_result")
+    assert action.to_dict()["result"] == "order_result"
+    node = element("button").on("click", action).to_json()
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)  # the core accepts the result field
+
+
+def test_set_field_and_toggle_field_write_the_store():
+    # store-writing actions: a plain button drives reactive state declaratively (no two-way control)
+    clear = SetField("symbol", "")
+    theme = ToggleField("dark")
+    node = element("button").on("click", Sequence(clear, theme)).to_json()
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)  # rides the core like any action
+    assert SetField("qty", event_value()).to_dict()["value"] == {"expr": "event"}
 
 
 def test_setprop_coerces_a_plain_value_to_a_literal():
@@ -156,6 +183,9 @@ def test_every_action_kind_round_trips_through_core():
         .on("f", If(prop(by_id("sw"), "checked"), Toggle(this(), "hidden"), SetProp(this(), "x", lit(0))))
         .on("g", CallEndpoint("POST", "/u", lit({"k": 1})))
         .on("h", NamedJs("fn"))
+        .on("i", SetField("symbol", event_value()))
+        .on("j", ToggleField("dark"))
+        .on("k", CallEndpoint("POST", "/u", lit({"k": 1}), result="outcome"))
     )
     tree = node.to_json()
     assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)

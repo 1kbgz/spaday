@@ -12,10 +12,12 @@
 //!   `{"expr":"prop","target":<Ref>,"name":"checked"}` · `{"expr":"field","name":"qty"}` ·
 //!   `{"expr":"obj","fields":{<name>:<Expr>}}`
 //! - `Action`: `{"kind":"set",target,prop,value}` · `{"kind":"toggle",target,prop}` ·
+//!   `{"kind":"set-field","field","value":<Expr>}` · `{"kind":"toggle-field","field"}` ·
 //!   `{"kind":"seq","actions":[..]}` · `{"kind":"emit","event","detail":<Expr>|null}` ·
 //!   `{"kind":"patch","model","field","value":<Expr>}` ·
 //!   `{"kind":"if","cond":<Expr>,"then":<Action>,"else":<Action>|null}` ·
-//!   `{"kind":"call","method","url","body":<Expr>|null}` · `{"kind":"js","handler"}`
+//!   `{"kind":"call","method","url","body":<Expr>|null,"result":<string>|null}` ·
+//!   `{"kind":"js","handler"}`
 
 use serde::{Deserialize, Serialize};
 
@@ -71,6 +73,13 @@ pub enum Action {
     /// Flip a boolean `prop` on `target` (e.g. `hidden`, `checked`, `open`).
     #[serde(rename = "toggle")]
     Toggle { target: Ref, prop: String },
+    /// Write `value` to a reactive state `field` in the signal store the tree was mounted with —
+    /// the store-writing counterpart of the `field` expr, so a plain control can drive state.
+    #[serde(rename = "set-field")]
+    SetField { field: String, value: Expr },
+    /// Flip a boolean state `field` in the signal store (e.g. a `dark` theme flag).
+    #[serde(rename = "toggle-field")]
+    ToggleField { field: String },
     /// Run several actions in order.
     #[serde(rename = "seq")]
     Sequence { actions: Vec<Action> },
@@ -98,13 +107,17 @@ pub enum Action {
         els: Option<Box<Action>>,
     },
     /// A REST round-trip: `method` `url` with an optional JSON `body`. The one intentional server call
-    /// (the interpreter performs it via the host's `fetch`).
+    /// (the interpreter performs it via the host's `fetch`). With `result`, the host writes the
+    /// response as `{status, ok, body}` to that signal-store field on completion, so the outcome can
+    /// drive reactive UI (e.g. show a 422 validation error) — otherwise fire-and-forget.
     #[serde(rename = "call")]
     CallEndpoint {
         method: String,
         url: String,
         #[serde(default)]
         body: Option<Expr>,
+        #[serde(default)]
+        result: Option<String>,
     },
     /// The escape hatch: invoke a pre-registered named JS handler (no arbitrary `eval`). For the rare
     /// irreducible case the declarative actions can't express.
@@ -256,16 +269,70 @@ mod tests {
                 method: "POST".into(),
                 url: "/api/order".into(),
                 body: Some(Expr::Event),
+                result: None,
             },
-            json!({"kind": "call", "method": "POST", "url": "/api/order", "body": {"expr": "event"}}),
+            json!({"kind": "call", "method": "POST", "url": "/api/order", "body": {"expr": "event"}, "result": null}),
         );
         round(
             &Action::CallEndpoint {
                 method: "GET".into(),
                 url: "/ping".into(),
                 body: None,
+                result: None,
             },
-            json!({"kind": "call", "method": "GET", "url": "/ping", "body": null}),
+            json!({"kind": "call", "method": "GET", "url": "/ping", "body": null, "result": null}),
+        );
+    }
+
+    #[test]
+    fn call_endpoint_with_result_field() {
+        // the result field routes the response {status, ok, body} into the signal store
+        round(
+            &Action::CallEndpoint {
+                method: "POST".into(),
+                url: "/api/order".into(),
+                body: Some(Expr::Event),
+                result: Some("order_result".into()),
+            },
+            json!({"kind": "call", "method": "POST", "url": "/api/order", "body": {"expr": "event"}, "result": "order_result"}),
+        );
+    }
+
+    #[test]
+    fn call_endpoint_without_result_also_parses() {
+        // pre-`result` wire (no key at all) still parses — the field defaults to None
+        let a: Action =
+            serde_json::from_value(json!({"kind": "call", "method": "GET", "url": "/ping"}))
+                .unwrap();
+        assert_eq!(
+            a,
+            Action::CallEndpoint {
+                method: "GET".into(),
+                url: "/ping".into(),
+                body: None,
+                result: None,
+            }
+        );
+    }
+
+    #[test]
+    fn set_field_wire() {
+        round(
+            &Action::SetField {
+                field: "qty".into(),
+                value: Expr::Event,
+            },
+            json!({"kind": "set-field", "field": "qty", "value": {"expr": "event"}}),
+        );
+    }
+
+    #[test]
+    fn toggle_field_wire() {
+        round(
+            &Action::ToggleField {
+                field: "dark".into(),
+            },
+            json!({"kind": "toggle-field", "field": "dark"}),
         );
     }
 
@@ -319,6 +386,7 @@ mod tests {
                 method: "POST".into(),
                 url: "/api/order".into(),
                 body: Some(Expr::Obj { fields }),
+                result: None,
             },
             json!({
                 "kind": "call",
@@ -328,6 +396,7 @@ mod tests {
                     "qty": {"expr": "lit", "value": 10},
                     "symbol": {"expr": "prop", "target": {"ref": "id", "id": "sym"}, "name": "value"},
                 }},
+                "result": null,
             }),
         );
     }
@@ -348,6 +417,7 @@ mod tests {
                 method: "POST".into(),
                 url: "/api/order".into(),
                 body: Some(Expr::Obj { fields }),
+                result: None,
             },
             json!({
                 "kind": "call",
@@ -357,6 +427,7 @@ mod tests {
                     "qty": {"expr": "field", "name": "qty"},
                     "symbol": {"expr": "field", "name": "symbol"},
                 }},
+                "result": null,
             }),
         );
     }

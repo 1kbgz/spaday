@@ -18,12 +18,14 @@ extern "C" {
     fn event_value(this: &Host) -> JsValue;
     #[wasm_bindgen(method, js_name = getField)]
     fn get_field(this: &Host, name: &str) -> JsValue;
+    #[wasm_bindgen(method, js_name = setField)]
+    fn set_field(this: &Host, name: &str, value: JsValue);
     #[wasm_bindgen(method)]
     fn emit(this: &Host, event: &str, detail: JsValue);
     #[wasm_bindgen(method, js_name = sendPatch)]
     fn send_patch(this: &Host, model: &str, field: &str, value: JsValue);
     #[wasm_bindgen(method, js_name = callEndpoint)]
-    fn call_endpoint(this: &Host, method: &str, url: &str, body: JsValue);
+    fn call_endpoint(this: &Host, method: &str, url: &str, body: JsValue, result: Option<&str>);
     #[wasm_bindgen(method, js_name = callNamed)]
     fn call_named(this: &Host, handler: &str);
 }
@@ -40,7 +42,10 @@ pub fn interpret(action: &str, host: &Host) -> Result<(), JsError> {
 }
 
 fn run(action: &spaday::Action, host: &Host) {
-    use spaday::Action::{CallEndpoint, Emit, If, NamedJs, SendPatch, Sequence, SetProp, Toggle};
+    use spaday::Action::{
+        CallEndpoint, Emit, If, NamedJs, SendPatch, Sequence, SetField, SetProp, Toggle,
+        ToggleField,
+    };
     match action {
         SetProp {
             target,
@@ -56,6 +61,13 @@ fn run(action: &spaday::Action, host: &Host) {
                 let next = !truthy(&host.get_prop(&el, prop));
                 host.set_prop(&el, prop, JsValue::from_bool(next));
             }
+        }
+        SetField { field, value } => {
+            host.set_field(field, eval(value, host));
+        }
+        ToggleField { field } => {
+            let next = !truthy(&host.get_field(field));
+            host.set_field(field, JsValue::from_bool(next));
         }
         Sequence { actions } => {
             for a in actions {
@@ -82,9 +94,14 @@ fn run(action: &spaday::Action, host: &Host) {
                 run(e, host);
             }
         }
-        CallEndpoint { method, url, body } => {
+        CallEndpoint {
+            method,
+            url,
+            body,
+            result,
+        } => {
             let b = body.as_ref().map_or(JsValue::UNDEFINED, |e| eval(e, host));
-            host.call_endpoint(method, url, b);
+            host.call_endpoint(method, url, b, result.as_deref());
         }
         NamedJs { handler } => host.call_named(handler),
     }

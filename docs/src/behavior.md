@@ -19,6 +19,7 @@ WaButton().text("Details").on("click", Toggle(by_id("info"), "hidden"))
 `id` is `info`) or `this()` (the element the event fired on). The other actions:
 
 - `SetProp(target, prop, value)` — set a prop to a value or expression.
+- `SetField(field, value)` / `ToggleField(field)` — write / flip a reactive state field (see below).
 - `Sequence(a, b, …)` — run several actions in order.
 - `If(cond, then, els=None)` — branch on a live condition.
 - `Emit(event, detail=None)` — dispatch a custom DOM event.
@@ -58,6 +59,17 @@ Two controls bound to the same field stay in sync; a field changed anywhere upda
 it. **Where the field lives** depends on the host: in a notebook it is the widget's state
 ([notebook guide](notebook.md)); on a server it is a transports model
 ([transports guide](transports.md)).
+
+A two-way binding writes state from a control's own value. To write state from any event — e.g. a plain
+icon button flipping a theme flag, or "Clear" resetting a form's fields — use the store-writing actions:
+
+```python
+from spaday import SetField, Sequence, ToggleField
+from spaday.components.webawesome import WaButton
+
+WaButton().text("🌙").on("click", ToggleField("dark"))
+WaButton().text("Clear").on("click", Sequence(SetField("symbol", ""), SetField("qty", 0)))
+```
 
 ## Compute a prop from state
 
@@ -104,6 +116,19 @@ fields, so a generated [`form`](components.md) POSTs declaratively with no handl
 from spaday import CallEndpoint, field, obj
 
 WaButton().text("Send").on("click", CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol"), "qty": field("qty")})))
+```
+
+By default the call is fire-and-forget. To react to the response — show a success message, surface a
+422 validation error — pass `result=` (a state field name): on completion the runtime writes
+`{"status": <int>, "ok": <bool>, "body": <parsed JSON or text>}` to that field, so the outcome drives
+reactive UI like any other state:
+
+```python
+from spaday import CallEndpoint, field, not_
+from spaday.components.shell import Show
+
+WaButton().text("Send").on("click", CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol")}), result="sent"))
+Show(WaCallout().compute("textContent", field("sent.body")), when=not_(field("sent.ok")))
 ```
 
 `SendPatch` is usually unnecessary once you use a two-way binding (above) — the binding carries the

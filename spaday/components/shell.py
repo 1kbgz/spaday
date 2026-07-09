@@ -16,12 +16,13 @@ Children nest positionally (a string child is a text node); spacing comes from :
 becomes a left or right gutter by where it sits in a :class:`Body`.
 """
 
-from typing import Any, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-from ..component import Child, Component
+from ..component import Child, Component, element
 from .webawesome import WaTab, WaTabPanel
 
-__all__ = ["App", "Nav", "Body", "Gutter", "Main", "Footer", "Column", "Stack", "Row", "Toolbar", "Show", "Tabs", "Table"]
+__all__ = ["App", "AppShell", "Region", "Nav", "Body", "Gutter", "Main", "Footer", "Column", "Stack", "Row", "Toolbar", "Show", "Tabs", "Table"]
 
 
 class App(Component):
@@ -64,6 +65,74 @@ class Footer(Component):
     """The bottom bar."""
 
     tag = "spa-footer"
+
+
+class Region(str, Enum):
+    """A named insertion point in an :class:`AppShell`."""
+
+    HEADER_LEFT = "header-left"
+    HEADER_RIGHT = "header-right"
+    GUTTER_LEFT = "gutter-left"
+    MAIN = "main"
+    GUTTER_RIGHT = "gutter-right"
+    FOOTER_LEFT = "footer-left"
+    FOOTER_RIGHT = "footer-right"
+
+
+class AppShell:
+    """Compose the ``App(Nav / Body(Gutter, Main, Gutter) / Footer)`` shell from ordered, named-region
+    contributions — so independent pieces of an app (or plugins) inject into the frame without
+    re-implementing the compose/ordering logic::
+
+        shell = AppShell()
+        shell.add(Region.HEADER_LEFT, "My app")
+        shell.add(Region.MAIN, chart)
+        shell.add(Region.HEADER_RIGHT, theme_toggle, order=10)
+        app = shell.build()
+
+    Within a region, contributions sort by ``order`` (lower first; ties keep insertion order).
+    ``HEADER_RIGHT`` / ``FOOTER_RIGHT`` are right-aligned; a Nav / Gutter / Footer is only emitted when
+    its regions have contributions (``Main`` is always present).
+    """
+
+    def __init__(self) -> None:
+        self._items: Dict[Region, List[Tuple[float, int, Child]]] = {region: [] for region in Region}
+        self._count = 0  # insertion sequence, so equal orders keep add() order
+
+    def add(self, region: Region, *components: Child, order: float = 0) -> "AppShell":
+        """Contribute ``components`` to ``region`` at ``order``; returns ``self`` for chaining."""
+        for component in components:
+            self._items[Region(region)].append((order, self._count, component))
+            self._count += 1
+        return self
+
+    def _in(self, region: Region) -> List[Child]:
+        return [c for _, _, c in sorted(self._items[region], key=lambda item: (item[0], item[1]))]
+
+    @staticmethod
+    def _sides(left: List[Child], right: List[Child]) -> List[Child]:
+        """Left items, then right items pushed to the far edge (a flex spacer between)."""
+        return [*left, element("div", style="flex:1"), *right] if right else list(left)
+
+    def build(self) -> App:
+        """The composed ``App`` tree (call again after further ``add``\\s for an updated tree)."""
+        children: List[Component] = []
+        header = self._sides(self._in(Region.HEADER_LEFT), self._in(Region.HEADER_RIGHT))
+        if header:
+            children.append(Nav(*header))
+        body: List[Component] = []
+        gutter_left = self._in(Region.GUTTER_LEFT)
+        if gutter_left:
+            body.append(Gutter(*gutter_left))
+        body.append(Main(*self._in(Region.MAIN)))
+        gutter_right = self._in(Region.GUTTER_RIGHT)
+        if gutter_right:
+            body.append(Gutter(*gutter_right))
+        children.append(Body(*body))
+        footer = self._sides(self._in(Region.FOOTER_LEFT), self._in(Region.FOOTER_RIGHT))
+        if footer:
+            children.append(Footer(Row(*footer)))  # the footer itself isn't flex; Row lays the strip out
+        return App(*children)
 
 
 class Column(Component):

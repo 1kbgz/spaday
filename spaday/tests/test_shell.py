@@ -4,7 +4,7 @@ import pytest
 
 from spaday import apply, diff, element
 from spaday.actions import field, not_
-from spaday.components.shell import App, Body, Column, Footer, Gutter, Main, Nav, Row, Show, Stack, Table, Tabs, Toolbar
+from spaday.components.shell import App, AppShell, Body, Column, Footer, Gutter, Main, Nav, Region, Row, Show, Stack, Table, Tabs, Toolbar
 
 
 def test_shell_classes_emit_spa_tags():
@@ -63,6 +63,48 @@ def test_constructor_children_and_string_text_and_generic_props():
     assert Gutter(width="320px", id="side").to_node()["props"]["id"] == {"Str": "side"}
     # the fluent .child() API composes the same tree as a constructor string child (back-compat)
     assert Nav().child("Title").to_node() == nav
+
+
+def test_app_shell_composes_named_regions_into_the_frame():
+    shell = (
+        AppShell()
+        .add(Region.HEADER_LEFT, "My app")
+        .add(Region.HEADER_RIGHT, element("wa-button", id="theme"))
+        .add(Region.GUTTER_LEFT, element("nav-menu"))
+        .add(Region.MAIN, element("main-chart"))
+        .add(Region.FOOTER_LEFT, "status")
+    )
+    node = shell.build().to_node()
+    assert node["tag"] == "spa-app"
+    assert [c["tag"] for c in node["slots"]["default"]] == ["spa-nav", "spa-body", "spa-footer"]
+    nav, body, footer = node["slots"]["default"]
+    # header: left items, a flex spacer, then the right-aligned items
+    assert [c["tag"] for c in nav["slots"]["default"]] == ["span", "div", "wa-button"]
+    assert nav["slots"]["default"][1]["props"]["style"] == {"Str": "flex:1"}
+    # body: left gutter + main (no right gutter contributed)
+    assert [c["tag"] for c in body["slots"]["default"]] == ["spa-gutter", "spa-main"]
+    assert body["slots"]["default"][1]["slots"]["default"][0]["tag"] == "main-chart"
+    # footer contributions ride in a Row strip
+    assert footer["slots"]["default"][0]["tag"] == "spa-row"
+
+
+def test_app_shell_orders_contributions_within_a_region():
+    shell = AppShell()
+    shell.add(Region.MAIN, element("late"), order=10)
+    shell.add(Region.MAIN, element("early"), order=-1)
+    shell.add(Region.MAIN, element("mid-a"), element("mid-b"))  # default order 0, insertion order kept
+    main = shell.build().to_node()["slots"]["default"][0]["slots"]["default"][0]
+    assert [c["tag"] for c in main["slots"]["default"]] == ["early", "mid-a", "mid-b", "late"]
+
+
+def test_app_shell_omits_empty_frame_pieces():
+    # nothing contributed: just Body(Main) — no Nav, no gutters, no Footer
+    node = AppShell().build().to_node()
+    assert [c["tag"] for c in node["slots"]["default"]] == ["spa-body"]
+    assert [c["tag"] for c in node["slots"]["default"][0]["slots"]["default"]] == ["spa-main"]
+    # the composed tree is an ordinary component tree — it rides the core diff/apply
+    tree = AppShell().add(Region.MAIN, element("p")).build().to_json()
+    assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
 
 
 def test_show_field_authors_a_when_binding():

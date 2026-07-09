@@ -357,6 +357,157 @@ test("CallEndpoint composes a body from the signal store via field exprs", async
   expect(JSON.parse(seen[0])).toEqual({ symbol: "AAPL", qty: 250 });
 });
 
+test("SetField writes a store field (a plain button drives reactive state)", async ({
+  page,
+}) => {
+  const values = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ symbol: "AAPL" });
+    const btn = mount(
+      document.body,
+      {
+        tag: "button",
+        events: {
+          click: {
+            kind: "set-field",
+            field: "symbol",
+            value: { expr: "lit", value: "" },
+          },
+        },
+      },
+      store,
+    );
+    btn.click(); // the "Clear" case: reset a bound field without touching the DOM
+    return store.get("symbol");
+  });
+  expect(values).toBe("");
+});
+
+test("ToggleField flips a boolean store field (an icon button theme toggle)", async ({
+  page,
+}) => {
+  const states = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ dark: false });
+    const btn = mount(
+      document.body,
+      {
+        tag: "button",
+        events: { click: { kind: "toggle-field", field: "dark" } },
+      },
+      store,
+    );
+    const seen = [];
+    btn.click();
+    seen.push(store.get("dark"));
+    btn.click();
+    seen.push(store.get("dark"));
+    return seen;
+  });
+  expect(states).toEqual([true, false]);
+});
+
+test("SetField/ToggleField without a store are safe no-ops", async ({
+  page,
+}) => {
+  const ok = await page.evaluate(() => {
+    const btn = window.__spaday.mount(document.body, {
+      tag: "button",
+      events: {
+        click: {
+          kind: "seq",
+          actions: [
+            {
+              kind: "set-field",
+              field: "x",
+              value: { expr: "lit", value: 1 },
+            },
+            { kind: "toggle-field", field: "y" },
+          ],
+        },
+      },
+    });
+    btn.click(); // no store mounted — must not throw
+    return true;
+  });
+  expect(ok).toBe(true);
+});
+
+test("CallEndpoint result routes the response {status, ok, body} to a store field", async ({
+  page,
+}) => {
+  // the "POST a form and show the outcome" case: a 422 validation error lands in the store
+  await page.route("**/api/order", (route) =>
+    route.fulfill({
+      status: 422,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "bad qty" }),
+    }),
+  );
+  const outcome = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({});
+    const btn = mount(
+      document.body,
+      {
+        tag: "button",
+        events: {
+          click: {
+            kind: "call",
+            method: "POST",
+            url: "/api/order",
+            body: { expr: "lit", value: { qty: -1 } },
+            result: "order_result",
+          },
+        },
+      },
+      store,
+    );
+    return new Promise((resolve) => {
+      store.subscribe("order_result", (v) => resolve(v));
+      btn.click();
+    });
+  });
+  expect(outcome).toEqual({
+    status: 422,
+    ok: false,
+    body: { error: "bad qty" },
+  });
+});
+
+test("CallEndpoint result carries a non-JSON response as text", async ({
+  page,
+}) => {
+  await page.route("**/api/save", (route) =>
+    route.fulfill({ status: 200, body: "saved" }),
+  );
+  const outcome = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({});
+    const btn = mount(
+      document.body,
+      {
+        tag: "button",
+        events: {
+          click: {
+            kind: "call",
+            method: "POST",
+            url: "/api/save",
+            body: null,
+            result: "saved",
+          },
+        },
+      },
+      store,
+    );
+    return new Promise((resolve) => {
+      store.subscribe("saved", (v) => resolve(v));
+      btn.click();
+    });
+  });
+  expect(outcome).toEqual({ status: 200, ok: true, body: "saved" });
+});
+
 test("NamedJs invokes a pre-registered handler (the no-eval escape hatch)", async ({
   page,
 }) => {
