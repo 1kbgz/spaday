@@ -137,7 +137,7 @@ SYMBOL_LAYOUT = _layout({"title": "By symbol", "group_by": ["symbol"], "columns"
 
 def header() -> object:
     """A gateway-style top bar: a marked title + channel left, a dark/light toggle + view selector right."""
-    view = WaSelect(value="blotter", size="small").bind("value", "view", mode="two-way").prop("style", "width:200px")
+    view = WaSelect(value="blotter", size="s").bind("value", "view", mode="two-way").prop("style", "width:200px")
     for value, label in (("blotter", "Blotter"), ("symbol", "By symbol")):
         view = view.child(WaOption(value=value).text(label))
     # the toggle drives the `dark` field; bind_root_class on the App turns it into the page-wide wa-dark class

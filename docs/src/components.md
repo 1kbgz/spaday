@@ -55,6 +55,24 @@ App().child(Nav().child(...)).child(Body().child(Gutter().child(...)).child(Main
 `Stack` stacks children vertically, `Row` lays them horizontally, `Toolbar` is a control strip; `App` /
 `Nav` / `Body` / `Gutter` / `Main` / `Footer` are the page shell.
 
+When independent pieces of an app contribute to the same frame (a plugin adds a nav control, a page adds
+a sidebar), compose the shell from **named regions** with `AppShell` instead of hand-nesting:
+
+```python
+from spaday.components.shell import AppShell, Region
+
+shell = AppShell()
+shell.add(Region.HEADER_LEFT, "My app")
+shell.add(Region.HEADER_RIGHT, theme_toggle, order=10)   # lower order sorts earlier within a region
+shell.add(Region.GUTTER_LEFT, nav_menu)
+shell.add(Region.MAIN, chart)
+app = shell.build()   # -> App(Nav(...), Body(Gutter(...), Main(...)), ...)
+```
+
+Regions: `HEADER_LEFT` / `HEADER_RIGHT`, `GUTTER_LEFT` / `GUTTER_RIGHT`, `MAIN`, and `FOOTER_LEFT` /
+`FOOTER_RIGHT`. The `*_RIGHT` regions are right-aligned; a Nav / Gutter / Footer only appears when its
+regions have contributions.
+
 ## Tabs and navigation
 
 `Tabs` builds a WebAwesome `wa-tab-group` from `(label, content)` pairs — no hand-pairing of tab headers

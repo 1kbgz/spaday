@@ -51,6 +51,7 @@ class PerspectivePanel extends HTMLElement {
         load(c: unknown): Promise<void>;
         restore(l: unknown): Promise<void>;
         save(): Promise<unknown>;
+        resize(): Promise<void>;
       })
     | null = null;
   #config: PerspectiveConfig = {};
@@ -58,6 +59,8 @@ class PerspectivePanel extends HTMLElement {
   #lastLayout: string | null = null; // last restored layout (JSON), to skip redundant restores
   #theme = "Pro Light"; // current Perspective theme (the viewers/workspace don't follow a wa-dark class)
   #queue: Promise<unknown> = Promise.resolve(); // serialize applies so rapid pushes don't race restore()
+  #resizeObserver: ResizeObserver | null = null;
+  #resizeRaf = 0; // pending rAF id, so a burst of resize entries coalesces to one workspace.resize()
 
   connectedCallback(): void {
     injectStyles();
@@ -72,7 +75,29 @@ class PerspectivePanel extends HTMLElement {
         this.#applyTheme(),
       );
     }
+    // The workspace resizes its own box with the container, but its inner viewers don't reflow — on a
+    // window/container resize the grid overflows/clips until workspace.resize() is called. Observe the
+    // host and call it, coalesced via rAF so a scrollbar/resize feedback loop can't thrash.
+    if (!this.#resizeObserver && typeof ResizeObserver !== "undefined") {
+      this.#resizeObserver = new ResizeObserver(() => {
+        if (this.#resizeRaf) return;
+        this.#resizeRaf = requestAnimationFrame(() => {
+          this.#resizeRaf = 0;
+          void this.#workspace?.resize();
+        });
+      });
+      this.#resizeObserver.observe(this);
+    }
     this.#apply();
+  }
+
+  disconnectedCallback(): void {
+    this.#resizeObserver?.disconnect();
+    this.#resizeObserver = null;
+    if (this.#resizeRaf) {
+      cancelAnimationFrame(this.#resizeRaf);
+      this.#resizeRaf = 0;
+    }
   }
 
   /** The Perspective theme, set by the host's light/dark toggle. Accepts ``"light"``/``"dark"`` (mapped to

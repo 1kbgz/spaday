@@ -14,7 +14,8 @@ This is the "configure in Python, run in JS" core: the server holds session stat
 toggle or a prop binding runs client-side. The interpreter dispatches on each action's ``kind`` — there
 is no ``eval`` — so actions are safe to ship to untrusted, multi-tenant clients.
 
-Actions: ``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` (client-side); ``SendPatch`` (a model-edit
+Actions: ``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` (client-side); ``SetField`` / ``ToggleField``
+(write the mounted signal store, so a plain button can drive reactive state); ``SendPatch`` (a model-edit
 intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST
 round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:
 ``lit`` / ``event_value`` / ``not_`` / ``prop`` (read live element state); targets ``this`` / ``by_id``.
@@ -241,6 +242,35 @@ class Toggle(Action):
         return {"kind": "toggle", "target": self.target.to_dict(), "prop": self.prop}
 
 
+class SetField(Action):
+    """Write ``value`` (an :class:`Expr` or a plain literal) to reactive state ``field`` in the signal
+    store the tree was mounted with — the store-writing counterpart of :func:`field`. Lets a plain
+    control drive reactive state declaratively::
+
+        WaButton().text("Clear").on("click", SetField("symbol", ""))
+    """
+
+    def __init__(self, field: str, value: Any) -> None:
+        self.field, self.value = field, value
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "set-field", "field": self.field, "value": _expr(self.value).to_dict()}
+
+
+class ToggleField(Action):
+    """Flip a boolean reactive state ``field`` in the signal store — e.g. an icon button toggling a
+    ``dark`` theme flag::
+
+        WaButton(appearance="plain").text("🌙").on("click", ToggleField("dark"))
+    """
+
+    def __init__(self, field: str) -> None:
+        self.field = field
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "toggle-field", "field": self.field}
+
+
 class Sequence(Action):
     """Run several actions in order."""
 
@@ -295,14 +325,23 @@ class If(Action):
 
 class CallEndpoint(Action):
     """A REST round-trip: ``method`` ``url`` with an optional JSON ``body`` (an :class:`Expr` or a plain
-    value). The one intentional server call — the runtime performs it with ``fetch``."""
+    value). The one intentional server call — the runtime performs it with ``fetch``.
 
-    def __init__(self, method: str, url: str, body: Any = None) -> None:
-        self.method, self.url, self.body = method, url, body
+    Pass ``result`` (a signal-store field name) to capture the outcome: on completion the runtime writes
+    ``{"status": <int>, "ok": <bool>, "body": <parsed JSON or text>}`` to that field, so success/error
+    feedback stays declarative (bind or :class:`~spaday.components.shell.Show` on it)::
+
+        CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol")}), result="order_result")
+
+    Without ``result`` the call is fire-and-forget.
+    """
+
+    def __init__(self, method: str, url: str, body: Any = None, result: Optional[str] = None) -> None:
+        self.method, self.url, self.body, self.result = method, url, body, result
 
     def to_dict(self) -> Dict[str, Any]:
         body = _expr(self.body).to_dict() if self.body is not None else None
-        return {"kind": "call", "method": self.method, "url": self.url, "body": body}
+        return {"kind": "call", "method": self.method, "url": self.url, "body": body, "result": self.result}
 
 
 class NamedJs(Action):

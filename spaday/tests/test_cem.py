@@ -114,11 +114,11 @@ def test_committed_webawesome_is_not_stale():
     rewraps lines) doesn't cause a false mismatch — only a real change in the generator or the source
     manifest does.
     """
-    fresh = generate(str(FIXTURES / "webawesome.3.4.0.cem.json"))
+    fresh = generate(str(FIXTURES / "webawesome.3.9.0.cem.json"))
     committed = (Path(__file__).parent.parent / "components" / "webawesome.py").read_text(encoding="utf-8")
     assert ast.dump(ast.parse(fresh)) == ast.dump(ast.parse(committed)), (
         "spaday/components/webawesome.py is stale — regenerate it:\n"
-        "  python -m spaday.cem spaday/tests/fixtures/webawesome.3.4.0.cem.json "
+        "  python -m spaday.cem spaday/tests/fixtures/webawesome.3.9.0.cem.json "
         "-o spaday/components/webawesome.py && ruff format spaday/components/webawesome.py"
     )
 

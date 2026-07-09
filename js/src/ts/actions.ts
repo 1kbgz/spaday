@@ -49,6 +49,8 @@ function host(ctx: ActionContext) {
     },
     // a reactive state field from the mounted signal store (undefined if the tree has no store)
     getField: (name: string) => ctx.store?.get(name),
+    // write a reactive state field (SetField/ToggleField) — a no-op if the tree has no store
+    setField: (name: string, value: unknown) => ctx.store?.set(name, value),
     emit: (event: string, detail: unknown) =>
       ctx.currentTarget.dispatchEvent(
         new CustomEvent(event, { detail, bubbles: true }),
@@ -61,16 +63,39 @@ function host(ctx: ActionContext) {
           bubbles: true,
         }),
       ),
-    // CallEndpoint: the one intentional server round-trip (fire-and-forget JSON fetch).
-    callEndpoint: (method: string, url: string, body: unknown) =>
-      void fetch(url, {
+    // CallEndpoint: the one intentional server round-trip. With a result field, the response is
+    // written to the store as {status, ok, body} on completion (so the outcome can drive reactive
+    // UI, e.g. show a 422 validation error); without one it stays fire-and-forget.
+    callEndpoint: (
+      method: string,
+      url: string,
+      body: unknown,
+      result?: string,
+    ) => {
+      const request = fetch(url, {
         method,
         headers:
           body === undefined
             ? undefined
             : { "content-type": "application/json" },
         body: body === undefined ? undefined : JSON.stringify(body),
-      }),
+      });
+      if (!result || !ctx.store) return void request;
+      const store = ctx.store;
+      void request
+        .then(async (r) => {
+          const text = await r.text();
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(text); // a JSON response arrives as data …
+          } catch {
+            parsed = text; // … anything else as raw text
+          }
+          return { status: r.status, ok: r.ok, body: parsed };
+        })
+        .catch((err) => ({ status: 0, ok: false, body: String(err) })) // network failure
+        .then((outcome) => store.set(result, outcome));
+    },
     // NamedJs escape hatch: invoke a pre-registered handler by name (no eval).
     callNamed: (handler: string) =>
       getHandler(handler)?.(ctx.event, ctx.currentTarget),
