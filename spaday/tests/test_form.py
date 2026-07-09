@@ -175,3 +175,100 @@ def test_group_override_wraps_the_sub_model():
 
     top = _children(form(Person, overrides={"address": FormField(group=lambda label, inner: WaCard().child(inner))}).to_node())
     assert top[1]["tag"] == "wa-card"  # the custom group wrapper, instead of the default wa-details
+
+
+# --- non-pydantic sources: a JSON Schema dict or a TypeAdapter -----------------------------------
+
+
+def test_json_schema_dict_maps_fields_to_controls():
+    c = _controls(Settings.model_json_schema())
+    assert c["name"]["tag"] == "wa-input"
+    assert c["enabled"]["tag"] == "wa-switch"
+    assert c["count"]["props"]["type"] == {"Str": "number"}
+    assert c["ratio"]["props"]["type"] == {"Str": "number"}
+    assert c["color"]["tag"] == "wa-select"  # enum via $ref
+    assert c["mode"]["tag"] == "wa-select"  # inline enum (from a Literal)
+    assert c["note"]["tag"] == "wa-input"  # anyOf[str, null] unwrapped to a text input
+    for control in c.values():
+        assert next(iter(control["bindings"].values()))["mode"] == "two-way"
+
+
+def test_json_schema_required_matches_the_schema():
+    c = _controls(Settings.model_json_schema())
+    assert c["name"]["props"]["required"] == {"Bool": True}  # listed in required[]
+    assert c["count"]["props"]["required"] == {"Bool": True}  # number, not nullable → can't be empty
+    assert c["color"]["props"]["required"] == {"Bool": True}  # enum, not nullable → can't be empty
+    assert "required" not in c["note"].get("props", {})  # anyOf null → may be left empty
+
+
+def test_json_schema_enum_options_use_raw_values_as_labels():
+    # A JSON Schema drops Enum member names, so options are labeled by their raw value (unlike the
+    # pydantic-model path, which labels them "red"/"green").
+    opts = _controls(Settings.model_json_schema())["color"]["slots"]["default"]
+    assert [o["props"]["value"]["Str"] for o in opts] == ["r", "g"]
+    assert [o["props"]["textContent"]["Str"] for o in opts] == ["r", "g"]
+
+
+def test_json_schema_constraints_become_native_validation_attributes():
+    class Constrained(BaseModel):
+        level: Annotated[int, Field(ge=0, le=100)] = 50
+        short: Annotated[str, Field(min_length=2, max_length=8)] = "ab"
+        code: Annotated[str, Field(pattern="[A-Z]+")] = "AB"
+
+    c = _controls(Constrained.model_json_schema())
+    assert c["level"]["props"]["min"] == {"Int": 0}
+    assert c["level"]["props"]["max"] == {"Int": 100}
+    assert c["level"]["props"]["step"] == {"Int": 1}  # integer → integer steps only
+    assert c["short"]["props"]["minlength"] == {"Int": 2}
+    assert c["short"]["props"]["maxlength"] == {"Int": 8}
+    assert c["code"]["props"]["pattern"] == {"Str": "[A-Z]+"}
+
+
+def test_json_schema_nested_object_becomes_a_group_bound_to_dotted_paths():
+    top = _children(form(Person.model_json_schema()).to_node())
+    assert top[0]["tag"] == "wa-input"  # name
+    group = top[1]
+    assert group["tag"] == "wa-details"  # a nested object is a disclosure section
+    inner = _children(group["slots"]["default"][0])
+    assert [next(iter(c["bindings"].values()))["field"] for c in inner] == ["address.street", "address.city"]
+
+
+def test_json_schema_honors_exclude_and_call_site_overrides():
+    c = _controls(Settings.model_json_schema(), exclude=("note",), overrides={"name": FormField(label="NAME")})
+    assert "note" not in c  # excluded by name
+    assert c["name"]["props"]["label"] == {"Str": "NAME"}  # relabeled at the call site
+
+
+def test_json_schema_control_factory_receives_best_effort_python_type():
+    seen = {}
+
+    def factory(name, annotation, required):
+        seen["call"] = (name, annotation, required)
+        return WaInput(label="factory").bind("value", name, mode="two-way")
+
+    c = _controls(Settings.model_json_schema(), overrides={"note": FormField(control=factory)})["note"]
+    assert c["props"]["label"] == {"Str": "factory"}
+    assert seen["call"] == ("note", str, False)  # anyOf[str, null] → str, optional (not required)
+
+
+def test_type_adapter_dataclass_source():
+    from dataclasses import dataclass
+
+    from pydantic import TypeAdapter
+
+    @dataclass
+    class Point:
+        x: int
+        y: str = "hi"
+
+    c = _controls(TypeAdapter(Point))
+    assert c["x"]["props"]["type"] == {"Str": "number"}
+    assert c["x"]["props"]["required"] == {"Bool": True}  # no default, number → required
+    assert c["y"]["props"]["type"] == {"Str": "text"}
+
+
+def test_unsupported_source_raises_type_error():
+    import pytest
+
+    with pytest.raises(TypeError):
+        form(object())

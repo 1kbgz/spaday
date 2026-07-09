@@ -1,6 +1,7 @@
-"""Form-from-schema: generate a two-way-bound ``wa-*`` form from a pydantic model.
+"""Form-from-schema: generate a two-way-bound ``wa-*`` form from a validation schema — a pydantic model,
+a ``TypeAdapter`` (any type pydantic can validate), or a raw JSON Schema ``dict``.
 
-:func:`form` introspects a model's fields and emits a labeled control per field, each **two-way bound**
+:func:`form` introspects the schema's fields and emits a labeled control per field, each **two-way bound**
 to a signal-store field of the same name. Mount the result with a `Store` (seeded from the model) and
 ``connectStore`` to a hosted ``transports`` model and you have a server-authoritative form — the same
 reactive pattern as ``examples/reactive.py``, generated from the schema instead of hand-authored. The
@@ -14,7 +15,8 @@ field → control mapping:
   dotted path ``parent.child`` (the reactive `Store` and ``connectStore`` address nested state by path)
 
 Customize per field with `FormField` (drop, relabel, swap the control, or wrap a sub-model group) —
-co-located via ``Annotated[T, FormField(...)]`` or at the call site via ``form(model, overrides={...})``.
+co-located via ``Annotated[T, FormField(...)]`` (pydantic-model source only) or at the call site via
+``form(model, overrides={...})`` (which works for every source).
 
 The returned `Stack` is an ordinary component — add a submit `WaButton` with a ``CallEndpoint`` action,
 or wrap it in a card, as you like.
@@ -35,7 +37,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Union, get_args, get_origin
 
 import annotated_types as at
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 from ..component import Component
 from .shell import Stack
@@ -66,6 +68,24 @@ class FormField:
     group: Callable[[str, Stack], Component] | None = None
 
 
+@dataclass(frozen=True)
+class _FieldSpec:
+    """A source-agnostic description of one form field, produced from either a pydantic model
+    (:func:`_pydantic_fields`) or a JSON Schema (:func:`_schema_fields`) and consumed by
+    :func:`_control` / :func:`_controls_for`."""
+
+    name: str  # leaf name (the default label)
+    annotation: Any  # best-effort Python type handed to a control factory (bool/int/float/str) or None
+    choices: list[tuple[Any, str]] | None  # (value, label) options for a select, else None
+    is_bool: bool  # -> wa-switch
+    is_number: bool  # int or float -> number input
+    optional: bool  # None allowed -> the field may be left empty
+    plain_required: bool  # the source declares it required (no default / listed in ``required``)
+    constraints: dict  # native validation attributes (min/max/step/minlength/maxlength/pattern)
+    annotated_hint: FormField | None  # a co-located ``Annotated[..., FormField(...)]`` override
+    children: Callable[[], Iterator[tuple[str, "_FieldSpec"]]] | None  # sub-fields for a nested object
+
+
 def _unwrap_optional(ann: Any) -> Any:
     """`Optional[X]` / `X | None` → `X` (so the control matches the underlying type)."""
     if get_origin(ann) is Union:
@@ -80,15 +100,14 @@ def _is_optional(ann: Any) -> bool:
     return get_origin(ann) is Union and type(None) in get_args(ann)
 
 
-def _required(info: Any) -> bool:
+def _required(spec: _FieldSpec) -> bool:
     """Whether the control must not be left empty. A number or a select can't accept an empty value, so a
     non-``Optional`` one is required even when it has a default (the bug: clearing a defaulted ``int`` sent
     ``""``, which the model rejects). For other fields — notably ``str``, where ``""`` is a valid value —
-    keep pydantic's own required-ness (a ``min_length`` still adds a `minlength` constraint below)."""
-    ann = _unwrap_optional(info.annotation)
-    if ann in (int, float) or _choices(ann) is not None:
-        return not _is_optional(info.annotation)
-    return info.is_required()
+    keep the source's own required-ness (a ``min_length`` still adds a `minlength` constraint below)."""
+    if spec.is_number or spec.choices is not None:
+        return not spec.optional
+    return spec.plain_required
 
 
 def _constraints(annotation: Any, metadata: Any) -> dict:
@@ -125,80 +144,194 @@ def _choices(ann: Any):
     return None
 
 
-def _hint(info: Any, override: FormField | None) -> FormField | None:
+def _hint(spec: _FieldSpec, override: FormField | None) -> FormField | None:
     """The effective override for a field — a call-site one wins over an ``Annotated`` one."""
     if override is not None:
         return override
-    return next((m for m in info.metadata if isinstance(m, FormField)), None)
+    return spec.annotated_hint
 
 
 def _label(name: str, hint: FormField | None) -> str:
     return (hint.label if hint and hint.label else None) or name
 
 
-def _control(field: str, label: str, annotation: Any, required: bool, hint: FormField | None, metadata: Any = ()) -> Component:
+def _control(field: str, label: str, spec: _FieldSpec, required: bool, hint: FormField | None) -> Component:
     if hint is not None and hint.control is not None:
         control = hint.control
         if isinstance(control, Component):
             return control.bind("value", field, mode="two-way")
-        return control(field, annotation, required)
+        return control(field, spec.annotation, required)
 
-    ann = _unwrap_optional(annotation)
     req = required or None  # pass the prop only when True, so it's omitted otherwise
 
-    choices = _choices(ann)
-    if choices is not None:
+    if spec.choices is not None:
         select = WaSelect(label=label, required=req).bind("value", field, mode="two-way")
-        for value, opt_label in choices:
+        for value, opt_label in spec.choices:
             select = select.child(WaOption(value=str(value)).text(str(opt_label)))
         return select
-    if ann is bool:
+    if spec.is_bool:
         return WaSwitch().text(label).bind("checked", field, mode="two-way")
-    input_type = "number" if ann in (int, float) else "text"
+    input_type = "number" if spec.is_number else "text"
     inp = WaInput(label=label, type=input_type, required=req)
-    for name, value in _constraints(annotation, metadata).items():
+    for name, value in spec.constraints.items():
         inp = inp.prop(name, value)  # min / max / step / minlength / maxlength / pattern
     return inp.bind("value", field, mode="two-way")
 
 
-def _group(label: str, prefix: str, submodel: type[BaseModel], exclude, overrides, hint: FormField | None) -> Component:
-    """A nested sub-model → an expand/collapse `wa-details` (or a `FormField.group` wrapper) holding its
-    controls, each bound to the dotted path ``prefix.child``."""
-    inner = Stack()
-    for child in _controls_for(submodel, prefix, exclude, overrides):
-        inner = inner.child(child)
-    if hint is not None and hint.group is not None:
-        return hint.group(label, inner)
-    return WaDetails(summary=label, open=True).child(inner)
-
-
-def _controls_for(model_cls: type[BaseModel], prefix: str, exclude, overrides) -> Iterator[Component]:
-    """The controls for a model's fields, binding each to ``prefix + name`` (recursing sub-models)."""
-    for name, info in model_cls.model_fields.items():
+def _controls_for(fields: Iterator[tuple[str, _FieldSpec]], prefix: str, exclude, overrides) -> Iterator[Component]:
+    """The controls for a sequence of field specs, binding each to ``prefix + name`` (recursing into a
+    nested object's sub-fields). ``fields`` comes from either :func:`_pydantic_fields` or
+    :func:`_schema_fields`, so this is source-agnostic."""
+    for name, spec in fields:
         path = f"{prefix}{name}"
         if path in exclude:
             continue
-        hint = _hint(info, overrides.get(path))
+        hint = _hint(spec, overrides.get(path))
         if hint is not None and hint.exclude:
             continue
-        ann = _unwrap_optional(info.annotation)
-        if (hint is None or hint.control is None) and isinstance(ann, type) and issubclass(ann, BaseModel):
-            yield _group(_label(name, hint), f"{path}.", ann, exclude, overrides, hint)
+        if spec.children is not None and (hint is None or hint.control is None):
+            inner = Stack()
+            for child in _controls_for(spec.children(), f"{path}.", exclude, overrides):
+                inner = inner.child(child)
+            label = _label(name, hint)
+            if hint is not None and hint.group is not None:
+                yield hint.group(label, inner)  # a custom sub-model wrapper (wa-card, wa-drawer, …)
+            else:
+                yield WaDetails(summary=label, open=True).child(inner)  # default expand/collapse group
         else:
-            yield _control(path, _label(name, hint), info.annotation, _required(info), hint, info.metadata)
+            yield _control(path, _label(name, hint), spec, _required(spec), hint)
+
+
+def _pydantic_fields(model_cls: type[BaseModel]) -> Iterator[tuple[str, _FieldSpec]]:
+    """Field specs from a pydantic model — the native path, which keeps detail a JSON Schema loses (Enum
+    member names as option labels, the exact Python annotation handed to a control factory)."""
+    for name, info in model_cls.model_fields.items():
+        ann = _unwrap_optional(info.annotation)
+        is_sub = isinstance(ann, type) and issubclass(ann, BaseModel)
+        yield (
+            name,
+            _FieldSpec(
+                name=name,
+                annotation=info.annotation,
+                choices=_choices(ann),
+                is_bool=ann is bool,
+                is_number=ann in (int, float),
+                optional=_is_optional(info.annotation),
+                plain_required=info.is_required(),
+                constraints=_constraints(info.annotation, info.metadata),
+                annotated_hint=next((m for m in info.metadata if isinstance(m, FormField)), None),
+                children=(lambda sub=ann: _pydantic_fields(sub)) if is_sub else None,
+            ),
+        )
+
+
+_JSON_PY_TYPE = {"boolean": bool, "integer": int, "number": float, "string": str}
+
+
+def _deref(node: dict, defs: dict) -> dict:
+    """Follow a ``$ref`` into the schema's ``$defs`` (one hop, as pydantic emits)."""
+    ref = node.get("$ref")
+    if ref:
+        return defs.get(ref.rsplit("/", 1)[-1], {})
+    return node
+
+
+def _resolve(prop: dict, defs: dict) -> tuple[dict, bool]:
+    """A property schema reduced to its effective node + whether ``null`` is allowed. Unwraps a nullable
+    ``anyOf``/``oneOf`` (``[{…}, {"type": "null"}]``) to its single real branch and follows a ``$ref``."""
+    node = prop
+    optional = False
+    for key in ("anyOf", "oneOf"):
+        variants = prop.get(key)
+        if variants:
+            non_null = [v for v in variants if v.get("type") != "null"]
+            optional = len(non_null) != len(variants)
+            if len(non_null) == 1:
+                node = non_null[0]
+            break
+    return _deref(node, defs), optional
+
+
+def _schema_constraints(node: dict, is_int: bool) -> dict:
+    """Native validation attributes from a JSON Schema node: ``minimum``/``exclusiveMinimum`` → ``min``,
+    ``maximum``/``exclusiveMaximum`` → ``max``, ``minLength``/``maxLength`` → ``minlength``/``maxlength``,
+    ``pattern`` → ``pattern``; integers get ``step=1``."""
+    attrs: dict = {}
+    for key, attr in (("minimum", "min"), ("exclusiveMinimum", "min"), ("maximum", "max"), ("exclusiveMaximum", "max")):
+        if key in node:
+            attrs[attr] = node[key]
+    if "minLength" in node:
+        attrs["minlength"] = node["minLength"]
+    if "maxLength" in node:
+        attrs["maxlength"] = node["maxLength"]
+    if node.get("pattern"):
+        attrs["pattern"] = node["pattern"]
+    if is_int:
+        attrs["step"] = 1  # integers only — no decimals
+    return attrs
+
+
+def _schema_fields(schema: dict, defs: dict) -> Iterator[tuple[str, _FieldSpec]]:
+    """Field specs from a JSON Schema object (the ``TypeAdapter`` / raw-dict path). Enum labels are the
+    raw values and a control factory's ``annotation`` is a best-effort Python type — a JSON Schema carries
+    neither Enum member names nor the original Python type."""
+    required = set(schema.get("required", ()))
+    for name, prop in schema.get("properties", {}).items():
+        node, optional = _resolve(prop, defs)
+        jtype = node.get("type")
+        enum_vals = node.get("enum")
+        is_object = jtype == "object" and "properties" in node
+        yield (
+            name,
+            _FieldSpec(
+                name=name,
+                annotation=_JSON_PY_TYPE.get(jtype),
+                choices=[(v, str(v)) for v in enum_vals] if enum_vals is not None else None,
+                is_bool=jtype == "boolean",
+                is_number=jtype in ("integer", "number"),
+                optional=optional,
+                plain_required=name in required,
+                constraints=_schema_constraints(node, jtype == "integer"),
+                annotated_hint=None,
+                children=(lambda obj=node: _schema_fields(obj, defs)) if is_object else None,
+            ),
+        )
+
+
+def _source_fields(model: Any) -> Iterator[tuple[str, _FieldSpec]]:
+    """Field specs for any accepted source: a pydantic model (class or instance) uses the native path; a
+    `TypeAdapter` or a raw JSON Schema ``dict`` is walked as JSON Schema."""
+    if isinstance(model, TypeAdapter):
+        schema = model.json_schema()
+    elif isinstance(model, dict):
+        schema = model
+    elif isinstance(model, BaseModel):
+        return _pydantic_fields(type(model))
+    elif isinstance(model, type) and issubclass(model, BaseModel):
+        return _pydantic_fields(model)
+    else:
+        raise TypeError(f"form() source must be a pydantic BaseModel, TypeAdapter, or JSON Schema dict, not {type(model).__name__}")
+    defs = {**schema.get("$defs", {}), **schema.get("definitions", {})}
+    return _schema_fields(schema, defs)
 
 
 def form(model: Any, *, exclude: tuple = (), overrides: dict[str, FormField] | None = None) -> Stack:
-    """A two-way-bound form for a pydantic model (class or instance).
+    """A two-way-bound form for a validation schema.
 
-    Fields in ``exclude`` are skipped (by name, or dotted ``parent.child`` for a nested one). Per-field
-    tweaks come from `FormField` — either ``Annotated`` on the model, or supplied/overridden here via
-    ``overrides={path: FormField(...)}`` (which wins). A nested model field becomes an expand/collapse
+    ``model`` may be a pydantic model (class or instance), a `TypeAdapter` (so any type pydantic can
+    validate — dataclasses, ``TypedDict``, etc.), or a raw JSON Schema ``dict``. Fields in ``exclude``
+    are skipped (by name, or dotted ``parent.child`` for a nested one). Per-field tweaks come from
+    `FormField` — either ``Annotated`` on a pydantic model, or supplied/overridden here via
+    ``overrides={path: FormField(...)}`` (which wins). A nested object becomes an expand/collapse
     ``wa-details`` section whose controls bind to ``parent.child`` paths.
+
+    The pydantic-model path keeps detail a JSON Schema can't carry — Enum **member names** as option
+    labels, and the exact Python annotation passed to a control factory. Via a `TypeAdapter` or a raw
+    ``dict`` those degrade gracefully (enum options are labeled by their raw value; a factory's
+    ``annotation`` is a best-effort Python type — ``str``/``int``/``float``/``bool`` — or ``None``).
     """
     overrides = overrides or {}
-    model_cls = model if isinstance(model, type) else type(model)
     stack = Stack()
-    for child in _controls_for(model_cls, "", exclude, overrides):
+    for child in _controls_for(_source_fields(model), "", exclude, overrides):
         stack = stack.child(child)
     return stack
