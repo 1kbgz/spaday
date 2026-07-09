@@ -32,7 +32,7 @@ from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compil
 from .theme import SHELL_TOKENS
 from .validate import ValidationError, validate
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 __all__ = [
     "__version__",

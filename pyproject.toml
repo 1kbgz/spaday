@@ -14,7 +14,7 @@ authors = [
 description = "Build reactive web-component UIs configured in Python, executed in the browser"
 readme = "README.md"
 license = { text = "Apache-2.0" }
-version = "0.1.1"
+version = "0.2.0"
 requires-python = ">=3.10"
 keywords = []
 
@@ -79,7 +79,7 @@ Repository = "https://github.com/1kbgz/spaday"
 Homepage = "https://github.com/1kbgz/spaday"
 
 [tool.bumpversion]
-current_version = "0.1.1"
+current_version = "0.2.0"
 commit = true
 tag = false 
 commit_args = "-s"
