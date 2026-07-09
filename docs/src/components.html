@@ -292,6 +292,21 @@ encapsulated layout:</p>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">Stack</span></code> stacks children vertically, <code class="docutils literal notranslate"><span class="pre">Row</span></code> lays them horizontally, <code class="docutils literal notranslate"><span class="pre">Toolbar</span></code> is a control strip; <code class="docutils literal notranslate"><span class="pre">App</span></code> /
 <code class="docutils literal notranslate"><span class="pre">Nav</span></code> / <code class="docutils literal notranslate"><span class="pre">Body</span></code> / <code class="docutils literal notranslate"><span class="pre">Gutter</span></code> / <code class="docutils literal notranslate"><span class="pre">Main</span></code> / <code class="docutils literal notranslate"><span class="pre">Footer</span></code> are the page shell.</p>
+<p>When independent pieces of an app contribute to the same frame (a plugin adds a nav control, a page adds
+a sidebar), compose the shell from <strong>named regions</strong> with <code class="docutils literal notranslate"><span class="pre">AppShell</span></code> instead of hand-nesting:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppShell</span><span class="p">,</span> <span class="n">Region</span>
+
+<span class="n">shell</span> <span class="o">=</span> <span class="n">AppShell</span><span class="p">()</span>
+<span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">HEADER_LEFT</span><span class="p">,</span> <span class="s2">&quot;My app&quot;</span><span class="p">)</span>
+<span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">HEADER_RIGHT</span><span class="p">,</span> <span class="n">theme_toggle</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>   <span class="c1"># lower order sorts earlier within a region</span>
+<span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">GUTTER_LEFT</span><span class="p">,</span> <span class="n">nav_menu</span><span class="p">)</span>
+<span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">MAIN</span><span class="p">,</span> <span class="n">chart</span><span class="p">)</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">shell</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>   <span class="c1"># -&gt; App(Nav(...), Body(Gutter(...), Main(...)), ...)</span>
+</pre></div>
+</div>
+<p>Regions: <code class="docutils literal notranslate"><span class="pre">HEADER_LEFT</span></code> / <code class="docutils literal notranslate"><span class="pre">HEADER_RIGHT</span></code>, <code class="docutils literal notranslate"><span class="pre">GUTTER_LEFT</span></code> / <code class="docutils literal notranslate"><span class="pre">GUTTER_RIGHT</span></code>, <code class="docutils literal notranslate"><span class="pre">MAIN</span></code>, and <code class="docutils literal notranslate"><span class="pre">FOOTER_LEFT</span></code> /
+<code class="docutils literal notranslate"><span class="pre">FOOTER_RIGHT</span></code>. The <code class="docutils literal notranslate"><span class="pre">*_RIGHT</span></code> regions are right-aligned; a Nav / Gutter / Footer only appears when its
+regions have contributions.</p>
 </section>
 <section id="tabs-and-navigation">
 <h2>Tabs and navigation<a class="headerlink" href="#tabs-and-navigation" title="Link to this heading">¶</a></h2>
