@@ -357,6 +357,43 @@ test("CallEndpoint composes a body from the signal store via field exprs", async
   expect(JSON.parse(seen[0])).toEqual({ symbol: "AAPL", qty: 250 });
 });
 
+test("CallEndpoint composes its URL from signal-store fields", async ({
+  page,
+}) => {
+  const seen = [];
+  await page.route("**/send/basket/*", (route) => {
+    seen.push(new URL(route.request().url()).pathname);
+    return route.fulfill({ status: 200, body: "ok" });
+  });
+  await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ key: "B" });
+    const btn = mount(
+      document.body,
+      {
+        tag: "button",
+        events: {
+          click: {
+            kind: "call",
+            method: "POST",
+            url: {
+              expr: "concat",
+              parts: [
+                { expr: "lit", value: "/send/basket/" },
+                { expr: "field", name: "key" },
+              ],
+            },
+          },
+        },
+      },
+      store,
+    );
+    btn.click();
+  });
+  await page.waitForTimeout(150);
+  expect(seen).toEqual(["/send/basket/B"]);
+});
+
 test("SetField writes a store field (a plain button drives reactive state)", async ({
   page,
 }) => {

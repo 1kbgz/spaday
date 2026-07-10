@@ -126,6 +126,10 @@ export function evalExpr(expr: unknown, store: Store): unknown {
         out[k] = evalExpr(v, store);
       return out;
     }
+    case "concat":
+      return (e.parts as unknown[])
+        .map((part) => String(evalExpr(part, store)))
+        .join("");
     default:
       return undefined;
   }

@@ -97,6 +97,19 @@ def test_app_shell_orders_contributions_within_a_region():
     assert [c["tag"] for c in main["slots"]["default"]] == ["early", "mid-a", "mid-b", "late"]
 
 
+def test_app_shell_styles_main_and_gutters_through_container_props():
+    shell = AppShell(
+        containers={
+            Region.GUTTER_LEFT: {"style": "overflow-y:auto"},
+            Region.MAIN: {"style": "padding:0;overflow:hidden", "id": "workspace"},
+        }
+    )
+    shell.add(Region.GUTTER_LEFT, element("menu")).add(Region.MAIN, element("chart"))
+    gutter, main = shell.build().to_node()["slots"]["default"][0]["slots"]["default"]
+    assert gutter["props"]["style"] == {"Str": "overflow-y:auto"}
+    assert main["props"] == {"style": {"Str": "padding:0;overflow:hidden"}, "id": {"Str": "workspace"}}
+
+
 def test_app_shell_composes_centered_header_and_non_flow_regions():
     shell = (
         AppShell()

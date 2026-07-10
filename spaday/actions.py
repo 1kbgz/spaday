@@ -18,12 +18,13 @@ Actions: ``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` (client-side); ``Set
 (write the mounted signal store, so a plain button can drive reactive state); ``SendPatch`` (a model-edit
 intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST
 round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:
-``lit`` / ``event_value`` / ``not_`` / ``prop`` (read live element state); targets ``this`` / ``by_id``.
+``lit`` / ``event_value`` / ``field`` / ``not_`` / ``prop`` / ``obj`` / ``concat``; targets ``this`` /
+``by_id``.
 ``bind`` here is a one-way event-driven helper; reactive prop↔state bindings (one- or two-way) are
 authored with ``Component.bind`` and interpreted by the runtime's signal store.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 
 class Expr:
@@ -185,6 +186,22 @@ def obj(fields: Dict[str, Any]) -> Expr:
     return _Obj(fields)
 
 
+class _Concat(Expr):
+    def __init__(self, *parts: Any) -> None:
+        self.parts = parts
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"expr": "concat", "parts": [_expr(part).to_dict() for part in self.parts]}
+
+
+def concat(*parts: Any) -> Expr:
+    """Concatenate expressions as strings, e.g. a state-derived endpoint URL::
+
+    CallEndpoint("POST", concat("/send/basket/", field("key")), body)
+    """
+    return _Concat(*parts)
+
+
 class Ref:
     """A reference to a DOM element an action targets."""
 
@@ -324,8 +341,9 @@ class If(Action):
 
 
 class CallEndpoint(Action):
-    """A REST round-trip: ``method`` ``url`` with an optional JSON ``body`` (an :class:`Expr` or a plain
-    value). The one intentional server call — the runtime performs it with ``fetch``.
+    """A REST round-trip: ``method`` ``url`` with an optional JSON ``body``. ``url`` may be a static
+    string or an :class:`Expr`; ``body`` may be an expression or a plain value. The runtime performs the
+    call with ``fetch``.
 
     Pass ``result`` (a signal-store field name) to capture the outcome: on completion the runtime writes
     ``{"status": <int>, "ok": <bool>, "body": <parsed JSON or text>}`` to that field, so success/error
@@ -336,12 +354,13 @@ class CallEndpoint(Action):
     Without ``result`` the call is fire-and-forget.
     """
 
-    def __init__(self, method: str, url: str, body: Any = None, result: Optional[str] = None) -> None:
+    def __init__(self, method: str, url: Union[str, Expr], body: Any = None, result: Optional[str] = None) -> None:
         self.method, self.url, self.body, self.result = method, url, body, result
 
     def to_dict(self) -> Dict[str, Any]:
+        url = self.url.to_dict() if isinstance(self.url, Expr) else self.url
         body = _expr(self.body).to_dict() if self.body is not None else None
-        return {"kind": "call", "method": self.method, "url": self.url, "body": body, "result": self.result}
+        return {"kind": "call", "method": self.method, "url": url, "body": body, "result": self.result}
 
 
 class NamedJs(Action):

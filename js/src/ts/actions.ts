@@ -68,11 +68,11 @@ function host(ctx: ActionContext) {
     // UI, e.g. show a 422 validation error); without one it stays fire-and-forget.
     callEndpoint: (
       method: string,
-      url: string,
+      url: unknown,
       body: unknown,
       result?: string,
     ) => {
-      const request = fetch(url, {
+      const request = fetch(String(url), {
         method,
         headers:
           body === undefined

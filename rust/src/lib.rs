@@ -22,7 +22,7 @@ mod node;
 mod value;
 mod wire;
 
-pub use action::{parse_action, Action, Expr, Ref};
+pub use action::{parse_action, Action, EndpointUrl, Expr, Ref};
 pub use cem::{parse_cem, parse_manifest, ComponentSchema, PropSchema, PropType};
 pub use diff::{apply, diff, Op, Patch, Path, PathSeg};
 pub use example::Example;

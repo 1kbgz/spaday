@@ -14,6 +14,7 @@ from spaday.actions import (
     ToggleField,
     bind,
     by_id,
+    concat,
     cond,
     event_value,
     field,
@@ -102,6 +103,19 @@ def test_field_composes_an_action_body_from_store_state():
     assert action.to_dict()["body"]["fields"]["qty"] == {"expr": "field", "name": "qty"}
     node = element("button").on("click", action).to_json()
     assert json.loads(apply(node, diff(node, node))) == json.loads(node)  # the core accepts field in an action
+
+
+def test_call_endpoint_url_can_be_composed_from_store_state():
+    action = CallEndpoint("POST", concat("/send/basket/", field("key")), obj({"value": field("value")}))
+    assert action.to_dict()["url"] == {
+        "expr": "concat",
+        "parts": [
+            {"expr": "lit", "value": "/send/basket/"},
+            {"expr": "field", "name": "key"},
+        ],
+    }
+    node = element("button").on("click", action).to_json()
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)
 
 
 def test_call_endpoint_result_routes_the_outcome_to_a_store_field():

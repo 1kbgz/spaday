@@ -25,7 +25,7 @@ extern "C" {
     #[wasm_bindgen(method, js_name = sendPatch)]
     fn send_patch(this: &Host, model: &str, field: &str, value: JsValue);
     #[wasm_bindgen(method, js_name = callEndpoint)]
-    fn call_endpoint(this: &Host, method: &str, url: &str, body: JsValue, result: Option<&str>);
+    fn call_endpoint(this: &Host, method: &str, url: JsValue, body: JsValue, result: Option<&str>);
     #[wasm_bindgen(method, js_name = callNamed)]
     fn call_named(this: &Host, handler: &str);
 }
@@ -100,15 +100,19 @@ fn run(action: &spaday::Action, host: &Host) {
             body,
             result,
         } => {
+            let u = match url {
+                spaday::EndpointUrl::Static(value) => JsValue::from_str(value),
+                spaday::EndpointUrl::Expr(expr) => eval(expr, host),
+            };
             let b = body.as_ref().map_or(JsValue::UNDEFINED, |e| eval(e, host));
-            host.call_endpoint(method, url, b, result.as_deref());
+            host.call_endpoint(method, u, b, result.as_deref());
         }
         NamedJs { handler } => host.call_named(handler),
     }
 }
 
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
-    use spaday::Expr::{Event, Field, Lit, Not, Obj, Prop};
+    use spaday::Expr::{Concat, Event, Field, Lit, Not, Obj, Prop};
     match expr {
         // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
         // `JSON.stringify` (e.g. a CallEndpoint body) and set cleanly as props.
@@ -129,6 +133,13 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
                 let _ = js_sys::Reflect::set(&obj, &JsValue::from_str(name), &eval(sub, host));
             }
             obj.into()
+        }
+        Concat { parts } => {
+            let values = js_sys::Array::new();
+            for part in parts {
+                values.push(&eval(part, host));
+            }
+            values.join("").into()
         }
     }
 }

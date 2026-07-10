@@ -97,11 +97,14 @@ class AppShell:
 
     Within a region, contributions sort by ``order`` (lower first; ties keep insertion order).
     ``HEADER_RIGHT`` / ``FOOTER_RIGHT`` are right-aligned; a Nav / Gutter / Footer is only emitted when
-    its regions have contributions (``Main`` is always present).
+    its regions have contributions (``Main`` is always present). ``containers`` sets generic props on
+    the ``MAIN`` / ``GUTTER_LEFT`` / ``GUTTER_RIGHT`` containers, e.g. full-bleed content with
+    ``AppShell(containers={Region.MAIN: {"style": "padding:0;overflow:hidden"}})``.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, containers: Optional[Dict[Region, Dict[str, Any]]] = None) -> None:
         self._items: Dict[Region, List[Tuple[float, int, Child]]] = {region: [] for region in Region}
+        self._containers = {Region(region): dict(props) for region, props in (containers or {}).items()}
         self._count = 0  # insertion sequence, so equal orders keep add() order
 
     def add(self, region: Region, *components: Child, order: float = 0) -> "AppShell":
@@ -135,11 +138,11 @@ class AppShell:
         body: List[Component] = []
         gutter_left = self._in(Region.GUTTER_LEFT)
         if gutter_left:
-            body.append(Gutter(*gutter_left))
-        body.append(Main(*self._in(Region.MAIN)))
+            body.append(Gutter(*gutter_left, **self._containers.get(Region.GUTTER_LEFT, {})))
+        body.append(Main(*self._in(Region.MAIN), **self._containers.get(Region.MAIN, {})))
         gutter_right = self._in(Region.GUTTER_RIGHT)
         if gutter_right:
-            body.append(Gutter(*gutter_right))
+            body.append(Gutter(*gutter_right, **self._containers.get(Region.GUTTER_RIGHT, {})))
         children.append(Body(*body))
         footer = self._sides(self._in(Region.FOOTER_LEFT), self._in(Region.FOOTER_RIGHT))
         if footer:
