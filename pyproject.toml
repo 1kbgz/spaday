@@ -14,8 +14,13 @@ authors = [
 description = "Build reactive web-component UIs configured in Python, executed in the browser"
 readme = "README.md"
 license = { text = "Apache-2.0" }
+<<<<<<< before updating
 version = "0.2.1"
 requires-python = ">=3.10"
+=======
+version = "0.1.0"
+requires-python = ">=3.11"
+>>>>>>> after updating
 keywords = []
 
 classifiers = [
@@ -25,7 +30,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -115,7 +119,7 @@ search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 
 [tool.cibuildwheel]
-build = "cp310-*"
+build = "cp311-*"
 test-command = "pytest -vvv {project}/spaday/tests"
 test-extras = "develop"
 
@@ -251,6 +255,7 @@ section-order = [
 [tool.yardang]
 title = "spaday"
 root = "README.md"
+<<<<<<< before updating
 pages = [
     "docs/src/tutorial.md",
     "docs/src/concepts.md",
@@ -273,3 +278,8 @@ exclude_patterns = [
     ".github",
     "spaday/examples/README.md",
 ]
+=======
+pages = []
+use-autoapi = true
+
+>>>>>>> after updating
