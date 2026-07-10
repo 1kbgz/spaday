@@ -1,6 +1,6 @@
 [package]
 name = "spaday"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["1kbgz <dev@1kbgz.com>"]
 edition = "2021"
 license = "Apache-2.0"
