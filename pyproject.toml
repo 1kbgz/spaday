@@ -250,7 +250,6 @@ section-order = [
 [tool.yardang]
 title = "spaday"
 root = "README.md"
-<<<<<<< before updating
 pages = [
     "docs/src/tutorial.md",
     "docs/src/concepts.md",
@@ -273,8 +272,3 @@ exclude_patterns = [
     ".github",
     "spaday/examples/README.md",
 ]
-=======
-pages = []
-use-autoapi = true
-
->>>>>>> after updating
