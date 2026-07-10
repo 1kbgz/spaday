@@ -17,7 +17,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Callable, Optional, Sequence, Union
 
-from ..bootstrap import Page, Wire, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Page, Wire, bootstrap, bundles_dir, tree_frame, tree_json
 
 if TYPE_CHECKING:  # annotations only — starlette is imported inside the functions (optional extra)
     from starlette.applications import Starlette
@@ -50,6 +50,7 @@ def mount(
     routes: Sequence = (),
     html: Optional[Union[str, Path]] = None,
     js: Optional[Union[str, Path]] = None,
+    layout: Optional[AssetLayout] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
     wire: Optional[Union[str, Sequence[Union[dict, Wire]]]] = None,
@@ -73,6 +74,7 @@ def mount(
     from starlette.routing import Mount, Route
     from starlette.staticfiles import StaticFiles
 
+    asset_layout = layout or ("source" if js is not None else None)
     body = bootstrap(
         base=prefix,
         bundles=bundles,
@@ -85,8 +87,9 @@ def mount(
         title=title,
         store=store,
         nonce=nonce,
+        layout=asset_layout,
     )
-    js_dir = Path(js) if js is not None else bundles_dir()
+    js_dir = Path(js) if js is not None else bundles_dir(asset_layout)
 
     async def homepage(_request):
         return FileResponse(html) if html is not None else HTMLResponse(body)

@@ -31,6 +31,16 @@ def test_serve_frame_route_returns_a_decodable_frame(tmp_path):
     assert client.get("/tree.json").status_code == 404  # json route not mounted in frame mode
 
 
+def test_serve_installed_layout_hosts_packaged_assets():
+    client = TestClient(serve(Main("hi"), layout="installed", bundles=["webawesome"]))
+    home = client.get("/").text
+    assert "/js/cdn/index.js" in home and "/js/pkg/spaday_bg.wasm" in home
+    assert "/js/css/webawesome.css" in home and "/js/cdn/examples/webawesome.js" in home
+    assert client.get("/js/cdn/index.js").status_code == 200
+    assert client.get("/js/pkg/spaday_bg.wasm").status_code == 200
+    assert client.get("/js/css/webawesome.css").status_code == 200
+
+
 def test_mount_adds_routes_to_an_existing_app_under_a_prefix(tmp_path):
     from starlette.applications import Starlette
 

@@ -24,7 +24,7 @@ def test_transports_wire_bootstrap():
 
 
 def test_bundles_are_pulled_into_head():
-    html = bootstrap(bundles=["webawesome"])
+    html = bootstrap(bundles=["webawesome"], layout="source")
     assert "@awesome.me/webawesome/dist/styles/webawesome.css" in html
     assert '<script type="module" src="/js/dist/cdn/examples/webawesome.js">' in html
 
@@ -67,12 +67,30 @@ def test_tree_frame_round_trips_to_the_authored_tree():
     assert json.loads(decode_frame(tree_frame(page)))["payload"] == page.to_node()
 
 
-def test_bundles_dir_points_at_the_js_bundles():
-    assert bundles_dir().name == "js"
+def test_source_bundles_dir_points_at_the_js_bundles():
+    assert bundles_dir("source").name == "js"
+
+
+def test_installed_layout_uses_packaged_assets():
+    assert bundles_dir("installed").name == "extension"
+    html = bootstrap(layout="installed", bundles=["webawesome", "perspective"], wire="transports")
+    assert 'from "/js/cdn/index.js"' in html
+    assert 'module_or_path: "/js/pkg/spaday_bg.wasm"' in html
+    assert 'from "/js/transports/cdn/index.js"' in html
+    assert 'module_or_path: "/js/transports/pkg/transports_bg.wasm"' in html
+    assert 'href="/js/css/webawesome.css"' in html
+    assert 'src="/js/cdn/examples/webawesome.js"' in html
+    assert 'src="/js/cdn/wrappers/perspective-workspace.js"' in html
+    assert "node_modules" not in html and "/dist/" not in html
+
+
+def test_invalid_asset_layout_raises():
+    with pytest.raises(ValueError, match="layout"):
+        bootstrap(layout="other")
 
 
 def test_base_prefixes_the_tree_js_and_ws_urls():
-    html = bootstrap(base="/dash", wire="transports", bundles=["webawesome"])
+    html = bootstrap(base="/dash", wire="transports", bundles=["webawesome"], layout="source")
     assert 'fetch("/dash/tree.json")' in html  # tree
     assert "/dash/js/dist/esm/index.js" in html  # runtime
     assert "/dash/js/node_modules/@awesome.me" in html  # bundle

@@ -69,9 +69,10 @@ shell.add(Region.MAIN, chart)
 app = shell.build()   # -> App(Nav(...), Body(Gutter(...), Main(...)), ...)
 ```
 
-Regions: `HEADER_LEFT` / `HEADER_RIGHT`, `GUTTER_LEFT` / `GUTTER_RIGHT`, `MAIN`, and `FOOTER_LEFT` /
-`FOOTER_RIGHT`. The `*_RIGHT` regions are right-aligned; a Nav / Gutter / Footer only appears when its
-regions have contributions.
+Flow regions are `HEADER_LEFT` / `HEADER_CENTER` / `HEADER_RIGHT`, `GUTTER_LEFT` / `GUTTER_RIGHT`,
+`MAIN`, and `FOOTER_LEFT` / `FOOTER_RIGHT`. The `*_RIGHT` regions are right-aligned; a Nav / Gutter /
+Footer only appears when its regions have contributions. `DRAWER_LEFT`, `DRAWER_RIGHT`, `DRAWER_BOTTOM`,
+and `OVERLAY` append directly under `App`, after flow chrome, for top-layer UI.
 
 ## Tabs and navigation
 

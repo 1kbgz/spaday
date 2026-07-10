@@ -97,6 +97,34 @@ def test_app_shell_orders_contributions_within_a_region():
     assert [c["tag"] for c in main["slots"]["default"]] == ["early", "mid-a", "mid-b", "late"]
 
 
+def test_app_shell_composes_centered_header_and_non_flow_regions():
+    shell = (
+        AppShell()
+        .add(Region.HEADER_LEFT, element("menu-button"))
+        .add(Region.HEADER_CENTER, "Gateway")
+        .add(Region.HEADER_RIGHT, element("theme-button"))
+        .add(Region.DRAWER_LEFT, element("left-drawer"))
+        .add(Region.DRAWER_RIGHT, element("right-drawer"))
+        .add(Region.DRAWER_BOTTOM, element("bottom-drawer"))
+        .add(Region.OVERLAY, element("confirm-dialog"))
+    )
+    children = shell.build().to_node()["slots"]["default"]
+    assert [child["tag"] for child in children] == [
+        "spa-nav",
+        "spa-body",
+        "left-drawer",
+        "right-drawer",
+        "bottom-drawer",
+        "confirm-dialog",
+    ]
+    assert [child["tag"] for child in children[0]["slots"]["default"]] == ["menu-button", "div", "span", "div", "theme-button"]
+
+
+def test_app_shell_orders_non_flow_contributions():
+    shell = AppShell().add(Region.OVERLAY, element("late"), order=10).add(Region.OVERLAY, element("early"), order=-1)
+    assert [child["tag"] for child in shell.build().to_node()["slots"]["default"]][-2:] == ["early", "late"]
+
+
 def test_app_shell_omits_empty_frame_pieces():
     # nothing contributed: just Body(Main) — no Nav, no gutters, no Footer
     node = AppShell().build().to_node()

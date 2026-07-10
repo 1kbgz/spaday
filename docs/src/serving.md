@@ -41,6 +41,9 @@ if __name__ == "__main__":
 
 The built-in bundles are `"webawesome"`, `"lightweight-charts"`, and `"perspective"`. `serve` is the
 one-line happy path — it is just `mount` onto a fresh app, so drop to `mount` when the app is yours.
+In a source checkout it serves built assets from `js/`; from a wheel it automatically serves packaged
+`spaday/extension` assets. Use `layout="source"` or `layout="installed"` only to override detection, such
+as when supplying a matching custom `js=` directory.
 
 ## Embed in an existing app
 

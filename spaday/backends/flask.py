@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Sequence, Union
 
-from ..bootstrap import Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
 
 if TYPE_CHECKING:  # annotations only — flask is imported inside the functions (not a spaday dependency)
     from flask import Flask
@@ -27,6 +27,7 @@ def mount(
     prefix: str = "",
     routes: Sequence = (),
     js: Optional[Union[str, Path]] = None,
+    layout: Optional[AssetLayout] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
     wire: Optional[str] = None,
@@ -41,8 +42,20 @@ def mount(
     share one app. Returns ``app`` for chaining."""
     from flask import Response, send_from_directory
 
-    body = bootstrap(base=prefix, bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
-    js_dir = str(js) if js is not None else str(bundles_dir())
+    asset_layout = layout or ("source" if js is not None else None)
+    body = bootstrap(
+        base=prefix,
+        bundles=bundles,
+        wire=wire,
+        ws=ws,
+        tree=tree,
+        reconnect=reconnect,
+        scripts=scripts,
+        head=head,
+        title=title,
+        layout=asset_layout,
+    )
+    js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     key = prefix.strip("/").replace("/", "_") or "root"  # unique endpoint names per mount
 
     app.add_url_rule(f"{prefix}/", f"spaday_index_{key}", lambda: Response(body, mimetype="text/html"))
