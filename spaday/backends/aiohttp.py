@@ -16,7 +16,7 @@ import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Optional, Sequence, Union
 
-from ..bootstrap import Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
 
 if TYPE_CHECKING:  # annotations only — aiohttp is imported inside the functions (not a spaday dependency)
     from aiohttp import web
@@ -29,6 +29,7 @@ def mount(
     prefix: str = "",
     routes: Sequence = (),
     js: Optional[Union[str, Path]] = None,
+    layout: Optional[AssetLayout] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
     wire: Optional[str] = None,
@@ -43,8 +44,20 @@ def mount(
     transports). Returns ``app`` for chaining."""
     from aiohttp import web
 
-    body = bootstrap(base=prefix, bundles=bundles, wire=wire, ws=ws, tree=tree, reconnect=reconnect, scripts=scripts, head=head, title=title)
-    js_dir = str(js) if js is not None else str(bundles_dir())
+    asset_layout = layout or ("source" if js is not None else None)
+    body = bootstrap(
+        base=prefix,
+        bundles=bundles,
+        wire=wire,
+        ws=ws,
+        tree=tree,
+        reconnect=reconnect,
+        scripts=scripts,
+        head=head,
+        title=title,
+        layout=asset_layout,
+    )
+    js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
 
     async def homepage(_request):
         return web.Response(text=body, content_type="text/html")

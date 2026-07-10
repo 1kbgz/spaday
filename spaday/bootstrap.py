@@ -32,7 +32,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional, Sequence, Union
+from typing import Literal, Optional, Sequence, Union
 
 from .component import Component
 from .spaday import encode_frame  # compiled core (always available); used by tree_frame
@@ -65,11 +65,26 @@ class Wire:
     flatten: bool = True
 
 
+AssetLayout = Literal["source", "installed"]
+
+_SOURCE_DIR = Path(__file__).parent.parent / "js"
+_EXTENSION_DIR = Path(__file__).parent / "extension"
+
 # Paths under the served ``/js`` mount — prefixed with ``{base}/js`` at build time (see ``_js``).
-_RUNTIME = "/dist/esm/index.js"
-_WASM = "/dist/pkg/spaday_bg.wasm"
-_TRANSPORTS = "/node_modules/@1kbgz/transports/dist/cdn/index.js"
-_TRANSPORTS_WASM = "/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm"
+_ASSETS = {
+    "source": {
+        "runtime": "/dist/esm/index.js",
+        "wasm": "/dist/pkg/spaday_bg.wasm",
+        "transports": "/node_modules/@1kbgz/transports/dist/cdn/index.js",
+        "transports_wasm": "/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm",
+    },
+    "installed": {
+        "runtime": "/cdn/index.js",
+        "wasm": "/pkg/spaday_bg.wasm",
+        "transports": "/transports/cdn/index.js",
+        "transports_wasm": "/transports/pkg/transports_bg.wasm",
+    },
+}
 
 # A fresh per-page-load id for a ``session=True`` wire's tenant key. ``crypto.randomUUID()`` is
 # secure-context-only (https / localhost), so it's undefined over plain http from another host — fall back
@@ -90,13 +105,30 @@ BUNDLES = {
     "perspective": [("js", "/dist/cdn/wrappers/perspective-workspace.js")],
 }
 
+_INSTALLED_BUNDLES = {
+    "webawesome": [
+        ("css", "/css/webawesome.css"),
+        ("js", "/cdn/examples/webawesome.js"),
+    ],
+    "lightweight-charts": [("js", "/cdn/wrappers/lightweight-chart.js")],
+    "perspective": [("js", "/cdn/wrappers/perspective-workspace.js")],
+}
 
-def bundles_dir() -> Path:
-    """The directory of built JS bundles a backend serves at ``{base}/js`` — the repo's ``js/`` (dev
-    checkout). The :data:`BUNDLES` and runtime URLs assume this layout. (A pip-installed app ships assets
-    under ``spaday/extension`` in a different layout without ``node_modules``; serving an installed app is
-    a separate concern — a backend can override the dir, but the URLs would also need re-pathing.)"""
-    return Path(__file__).parent.parent / "js"
+
+def _layout(layout: Optional[AssetLayout] = None) -> AssetLayout:
+    if layout is not None and layout not in _ASSETS:
+        raise ValueError("layout must be 'source' or 'installed'")
+    return layout or ("source" if _SOURCE_DIR.is_dir() else "installed")
+
+
+def bundles_dir(layout: Optional[AssetLayout] = None) -> Path:
+    """Directory a backend serves at ``{base}/js``.
+
+    Uses the source checkout's ``js/`` directory when present and otherwise the wheel's packaged
+    ``spaday/extension`` assets. ``layout`` can force either form, mainly when serving a custom asset
+    directory with a backend's ``js=`` option.
+    """
+    return _SOURCE_DIR if _layout(layout) == "source" else _EXTENSION_DIR
 
 
 def _js(base: str) -> str:
@@ -119,13 +151,14 @@ def tree_frame(page: Page, *, id: str = "spa-tree") -> bytes:
     return encode_frame(json.dumps(_resolve(page).to_node()), id, "snapshot", 0, "application/json")
 
 
-def _bundle_head(bundles: Sequence[str], base: str, nonce: Optional[str] = None) -> str:
+def _bundle_head(bundles: Sequence[str], base: str, nonce: Optional[str] = None, layout: Optional[AssetLayout] = None) -> str:
     n = f' nonce="{nonce}"' if nonce else ""  # CSP nonce on the generated script/style tags
     tags = []
+    available = BUNDLES if _layout(layout) == "source" else _INSTALLED_BUNDLES
     for name in bundles:
-        if name not in BUNDLES:
-            raise ValueError(f"unknown bundle {name!r}; known: {', '.join(sorted(BUNDLES))}")
-        for kind, path in BUNDLES[name]:
+        if name not in available:
+            raise ValueError(f"unknown bundle {name!r}; known: {', '.join(sorted(available))}")
+        for kind, path in available[name]:
             url = f"{_js(base)}{path}"
             tags.append(f'<link rel="stylesheet"{n} href="{url}" />' if kind == "css" else f'<script type="module"{n} src="{url}"></script>')
     return "\n    ".join(tags)
@@ -175,6 +208,7 @@ def _script(
     reconnect: bool,
     store: Optional[dict] = None,
     target: Optional[str] = None,
+    layout: Optional[AssetLayout] = None,
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
     to transports. ``wire="transports"`` mirrors ONE model into the store (Store + Client + connectStore);
@@ -184,6 +218,7 @@ def _script(
     selector) when given, else ``document.body``. (``ws``/``reconnect``/``tree="frame"`` apply to the
     single-model string form only; a wire list carries each spec's own url and uses a snapshot per socket.)"""
     js = _js(base)
+    assets = _ASSETS[_layout(layout)]
     into = f'document.querySelector("{target}")' if target else "document.body"
     transports = wire == "transports"
     # a wire LIST may mix Wire instances and raw dicts — normalize each to the dict the codegen consumes
@@ -194,13 +229,13 @@ def _script(
     runtime_names = (
         ["mount", "init"] + (["Store"] if (wired or store) else []) + (["connectStore"] if wired else []) + (["decodeFrame"] if frame else [])
     )
-    lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{_RUNTIME}";']
+    lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{assets["runtime"]}";']
     if wired:
-        lines.append(f'import {{ Client, fromValue, toValue, wasm }} from "{js}{_TRANSPORTS}";')
+        lines.append(f'import {{ Client, fromValue, toValue, wasm }} from "{js}{assets["transports"]}";')
     lines.extend(f'import "{s}";' for s in scripts)
-    lines.append(f'await init({{ module_or_path: "{js}{_WASM}" }});')
+    lines.append(f'await init({{ module_or_path: "{js}{assets["wasm"]}" }});')
     if wired:
-        lines.append(f'await wasm.default({{ module_or_path: "{js}{_TRANSPORTS_WASM}" }});')
+        lines.append(f'await wasm.default({{ module_or_path: "{js}{assets["transports_wasm"]}" }});')
     if frame:
         lines.append(f'const framed = new Uint8Array(await (await fetch("{base}/tree")).arrayBuffer());')
         lines.append("const node = JSON.parse(decodeFrame(framed)).payload;")
@@ -273,6 +308,7 @@ def bootstrap(
     fragment: bool = False,
     target: Optional[str] = None,
     nonce: Optional[str] = None,
+    layout: Optional[AssetLayout] = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
@@ -288,10 +324,11 @@ def bootstrap(
     specific element (e.g. ``"#widget"``) instead of ``document.body``; the host provides that element.
     ``nonce`` stamps the generated ``<script>``/``<link>`` tags with a CSP nonce, so a host with a strict
     ``script-src``/``style-src`` policy can allow the snippet. See the module docstring for the rest of the
-    options and the route contract."""
+    options and the route contract. ``layout`` selects source-checkout or installed-wheel asset URLs;
+    by default it follows :func:`bundles_dir`."""
     n = f' nonce="{nonce}"' if nonce else ""
-    head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base, nonce), head) if p)
-    script = _script(base, wire, scripts, ws, tree, reconnect, store, target)
+    head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base, nonce, layout), head) if p)
+    script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
         return f'{head_block}<script type="module"{n}>\n  {script}\n</script>\n'

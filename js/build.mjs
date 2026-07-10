@@ -108,6 +108,14 @@ async function build() {
       !file.relativePath.startsWith("esm/") &&
       !file.relativePath.startsWith("dist/esm/"),
   });
+  await cpy(
+    "node_modules/@1kbgz/transports/dist/cdn/index.js*",
+    "../spaday/extension/transports/cdn",
+  );
+  await cpy(
+    "node_modules/@1kbgz/transports/dist/pkg/*",
+    "../spaday/extension/transports/pkg",
+  );
 }
 
 build();

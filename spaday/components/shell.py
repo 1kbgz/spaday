@@ -71,12 +71,17 @@ class Region(str, Enum):
     """A named insertion point in an :class:`AppShell`."""
 
     HEADER_LEFT = "header-left"
+    HEADER_CENTER = "header-center"
     HEADER_RIGHT = "header-right"
     GUTTER_LEFT = "gutter-left"
     MAIN = "main"
     GUTTER_RIGHT = "gutter-right"
     FOOTER_LEFT = "footer-left"
     FOOTER_RIGHT = "footer-right"
+    DRAWER_LEFT = "drawer-left"
+    DRAWER_RIGHT = "drawer-right"
+    DRAWER_BOTTOM = "drawer-bottom"
+    OVERLAY = "overlay"
 
 
 class AppShell:
@@ -116,8 +121,15 @@ class AppShell:
 
     def build(self) -> App:
         """The composed ``App`` tree (call again after further ``add``\\s for an updated tree)."""
-        children: List[Component] = []
-        header = self._sides(self._in(Region.HEADER_LEFT), self._in(Region.HEADER_RIGHT))
+        children: List[Child] = []
+        header_left = self._in(Region.HEADER_LEFT)
+        header_center = self._in(Region.HEADER_CENTER)
+        header_right = self._in(Region.HEADER_RIGHT)
+        header = (
+            [*header_left, element("div", style="flex:1"), *header_center, element("div", style="flex:1"), *header_right]
+            if header_center
+            else self._sides(header_left, header_right)
+        )
         if header:
             children.append(Nav(*header))
         body: List[Component] = []
@@ -132,6 +144,8 @@ class AppShell:
         footer = self._sides(self._in(Region.FOOTER_LEFT), self._in(Region.FOOTER_RIGHT))
         if footer:
             children.append(Footer(Row(*footer)))  # the footer itself isn't flex; Row lays the strip out
+        for region in (Region.DRAWER_LEFT, Region.DRAWER_RIGHT, Region.DRAWER_BOTTOM, Region.OVERLAY):
+            children.extend(self._in(region))
         return App(*children)
 
 
