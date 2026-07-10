@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Serve and embed a spaday app" href="serving.html"><link rel="prev" title="Add behavior and reactivity" href="behavior.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Author a component tree - spaday v0.2.0</title>
+        <title>Author a component tree - spaday v0.2.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -304,9 +304,10 @@ a sidebar), compose the shell from <strong>named regions</strong> with <code cla
 <span class="n">app</span> <span class="o">=</span> <span class="n">shell</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>   <span class="c1"># -&gt; App(Nav(...), Body(Gutter(...), Main(...)), ...)</span>
 </pre></div>
 </div>
-<p>Regions: <code class="docutils literal notranslate"><span class="pre">HEADER_LEFT</span></code> / <code class="docutils literal notranslate"><span class="pre">HEADER_RIGHT</span></code>, <code class="docutils literal notranslate"><span class="pre">GUTTER_LEFT</span></code> / <code class="docutils literal notranslate"><span class="pre">GUTTER_RIGHT</span></code>, <code class="docutils literal notranslate"><span class="pre">MAIN</span></code>, and <code class="docutils literal notranslate"><span class="pre">FOOTER_LEFT</span></code> /
-<code class="docutils literal notranslate"><span class="pre">FOOTER_RIGHT</span></code>. The <code class="docutils literal notranslate"><span class="pre">*_RIGHT</span></code> regions are right-aligned; a Nav / Gutter / Footer only appears when its
-regions have contributions.</p>
+<p>Flow regions are <code class="docutils literal notranslate"><span class="pre">HEADER_LEFT</span></code> / <code class="docutils literal notranslate"><span class="pre">HEADER_CENTER</span></code> / <code class="docutils literal notranslate"><span class="pre">HEADER_RIGHT</span></code>, <code class="docutils literal notranslate"><span class="pre">GUTTER_LEFT</span></code> / <code class="docutils literal notranslate"><span class="pre">GUTTER_RIGHT</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MAIN</span></code>, and <code class="docutils literal notranslate"><span class="pre">FOOTER_LEFT</span></code> / <code class="docutils literal notranslate"><span class="pre">FOOTER_RIGHT</span></code>. The <code class="docutils literal notranslate"><span class="pre">*_RIGHT</span></code> regions are right-aligned; a Nav / Gutter /
+Footer only appears when its regions have contributions. <code class="docutils literal notranslate"><span class="pre">DRAWER_LEFT</span></code>, <code class="docutils literal notranslate"><span class="pre">DRAWER_RIGHT</span></code>, <code class="docutils literal notranslate"><span class="pre">DRAWER_BOTTOM</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> append directly under <code class="docutils literal notranslate"><span class="pre">App</span></code>, after flow chrome, for top-layer UI.</p>
 </section>
 <section id="tabs-and-navigation">
 <h2>Tabs and navigation<a class="headerlink" href="#tabs-and-navigation" title="Link to this heading">¶</a></h2>
@@ -485,7 +486,7 @@ they are served as the tree the browser mounts.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=938c9ccc"></script>
+</div><script src="../../_static/documentation_options.js?v=37f418d5"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

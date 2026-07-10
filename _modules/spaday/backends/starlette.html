@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.backends.starlette - spaday v0.2.0</title>
+        <title>spaday.backends.starlette - spaday v0.2.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.0</code></div></a>
+      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -258,7 +258,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">..bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">Page</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_frame</span><span class="p">,</span> <span class="n">tree_json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssetLayout</span><span class="p">,</span> <span class="n">Page</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_frame</span><span class="p">,</span> <span class="n">tree_json</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>  <span class="c1"># annotations only — starlette is imported inside the functions (optional extra)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.applications</span><span class="w"> </span><span class="kn">import</span> <span class="n">Starlette</span>
@@ -293,6 +293,7 @@
     <span class="n">routes</span><span class="p">:</span> <span class="n">Sequence</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">html</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">js</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">layout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AssetLayout</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;spaday&quot;</span><span class="p">,</span>
     <span class="n">bundles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">wire</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Wire</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -316,6 +317,7 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mount</span><span class="p">,</span> <span class="n">Route</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.staticfiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticFiles</span>
 
+    <span class="n">asset_layout</span> <span class="o">=</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">&quot;source&quot;</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">body</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span>
         <span class="n">base</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
         <span class="n">bundles</span><span class="o">=</span><span class="n">bundles</span><span class="p">,</span>
@@ -328,8 +330,9 @@
         <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
         <span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
         <span class="n">nonce</span><span class="o">=</span><span class="n">nonce</span><span class="p">,</span>
+        <span class="n">layout</span><span class="o">=</span><span class="n">asset_layout</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">js_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">js</span><span class="p">)</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">bundles_dir</span><span class="p">()</span>
+    <span class="n">js_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">js</span><span class="p">)</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">bundles_dir</span><span class="p">(</span><span class="n">asset_layout</span><span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">homepage</span><span class="p">(</span><span class="n">_request</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">FileResponse</span><span class="p">(</span><span class="n">html</span><span class="p">)</span> <span class="k">if</span> <span class="n">html</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
@@ -399,7 +402,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
+</div><script src="../../../_static/documentation_options.js?v=37f418d5"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

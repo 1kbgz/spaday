@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.bootstrap - spaday v0.2.0</title>
+        <title>spaday.bootstrap - spaday v0.2.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -273,7 +273,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_frame</span>  <span class="c1"># compiled core (always available); used by tree_frame</span>
@@ -309,11 +309,26 @@
 
 
 
+<span class="n">AssetLayout</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="s2">&quot;installed&quot;</span><span class="p">]</span>
+
+<span class="n">_SOURCE_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;js&quot;</span>
+<span class="n">_EXTENSION_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;extension&quot;</span>
+
 <span class="c1"># Paths under the served ``/js`` mount — prefixed with ``{base}/js`` at build time (see ``_js``).</span>
-<span class="n">_RUNTIME</span> <span class="o">=</span> <span class="s2">&quot;/dist/esm/index.js&quot;</span>
-<span class="n">_WASM</span> <span class="o">=</span> <span class="s2">&quot;/dist/pkg/spaday_bg.wasm&quot;</span>
-<span class="n">_TRANSPORTS</span> <span class="o">=</span> <span class="s2">&quot;/node_modules/@1kbgz/transports/dist/cdn/index.js&quot;</span>
-<span class="n">_TRANSPORTS_WASM</span> <span class="o">=</span> <span class="s2">&quot;/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm&quot;</span>
+<span class="n">_ASSETS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;runtime&quot;</span><span class="p">:</span> <span class="s2">&quot;/dist/esm/index.js&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wasm&quot;</span><span class="p">:</span> <span class="s2">&quot;/dist/pkg/spaday_bg.wasm&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transports&quot;</span><span class="p">:</span> <span class="s2">&quot;/node_modules/@1kbgz/transports/dist/cdn/index.js&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transports_wasm&quot;</span><span class="p">:</span> <span class="s2">&quot;/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;installed&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;runtime&quot;</span><span class="p">:</span> <span class="s2">&quot;/cdn/index.js&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wasm&quot;</span><span class="p">:</span> <span class="s2">&quot;/pkg/spaday_bg.wasm&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transports&quot;</span><span class="p">:</span> <span class="s2">&quot;/transports/cdn/index.js&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;transports_wasm&quot;</span><span class="p">:</span> <span class="s2">&quot;/transports/pkg/transports_bg.wasm&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
 
 <span class="c1"># A fresh per-page-load id for a ``session=True`` wire&#39;s tenant key. ``crypto.randomUUID()`` is</span>
 <span class="c1"># secure-context-only (https / localhost), so it&#39;s undefined over plain http from another host — fall back</span>
@@ -334,15 +349,32 @@
     <span class="s2">&quot;perspective&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;/dist/cdn/wrappers/perspective-workspace.js&quot;</span><span class="p">)],</span>
 <span class="p">}</span>
 
+<span class="n">_INSTALLED_BUNDLES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;webawesome&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;css&quot;</span><span class="p">,</span> <span class="s2">&quot;/css/webawesome.css&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;/cdn/examples/webawesome.js&quot;</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;lightweight-charts&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;/cdn/wrappers/lightweight-chart.js&quot;</span><span class="p">)],</span>
+    <span class="s2">&quot;perspective&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;/cdn/wrappers/perspective-workspace.js&quot;</span><span class="p">)],</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AssetLayout</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AssetLayout</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">layout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">layout</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_ASSETS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;layout must be &#39;source&#39; or &#39;installed&#39;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">&quot;source&quot;</span> <span class="k">if</span> <span class="n">_SOURCE_DIR</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;installed&quot;</span><span class="p">)</span>
+
 
 <div class="viewcode-block" id="bundles_dir">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.bootstrap.bundles_dir">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">bundles_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;The directory of built JS bundles a backend serves at ``{base}/js`` — the repo&#39;s ``js/`` (dev</span>
-<span class="sd">    checkout). The :data:`BUNDLES` and runtime URLs assume this layout. (A pip-installed app ships assets</span>
-<span class="sd">    under ``spaday/extension`` in a different layout without ``node_modules``; serving an installed app is</span>
-<span class="sd">    a separate concern — a backend can override the dir, but the URLs would also need re-pathing.)&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;js&quot;</span></div>
+<span class="k">def</span><span class="w"> </span><span class="nf">bundles_dir</span><span class="p">(</span><span class="n">layout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AssetLayout</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Directory a backend serves at ``{base}/js``.</span>
+
+<span class="sd">    Uses the source checkout&#39;s ``js/`` directory when present and otherwise the wheel&#39;s packaged</span>
+<span class="sd">    ``spaday/extension`` assets. ``layout`` can force either form, mainly when serving a custom asset</span>
+<span class="sd">    directory with a backend&#39;s ``js=`` option.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_SOURCE_DIR</span> <span class="k">if</span> <span class="n">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;source&quot;</span> <span class="k">else</span> <span class="n">_EXTENSION_DIR</span></div>
 
 
 
@@ -372,13 +404,14 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_bundle_head</span><span class="p">(</span><span class="n">bundles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_bundle_head</span><span class="p">(</span><span class="n">bundles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AssetLayout</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39; nonce=&quot;</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># CSP nonce on the generated script/style tags</span>
     <span class="n">tags</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">available</span> <span class="o">=</span> <span class="n">BUNDLES</span> <span class="k">if</span> <span class="n">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;source&quot;</span> <span class="k">else</span> <span class="n">_INSTALLED_BUNDLES</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">bundles</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">BUNDLES</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown bundle </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">; known: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">BUNDLES</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">BUNDLES</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">available</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown bundle </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">; known: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">available</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">available</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
             <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_js</span><span class="p">(</span><span class="n">base</span><span class="p">)</span><span class="si">}{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="n">tags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&lt;link rel=&quot;stylesheet&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> href=&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">&quot; /&gt;&#39;</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;css&quot;</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;&lt;script type=&quot;module&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> src=&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">&quot;&gt;&lt;/script&gt;&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
@@ -428,6 +461,7 @@
     <span class="n">reconnect</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">store</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">layout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AssetLayout</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The page&#39;s module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired</span>
 <span class="sd">    to transports. ``wire=&quot;transports&quot;`` mirrors ONE model into the store (Store + Client + connectStore);</span>
@@ -437,6 +471,7 @@
 <span class="sd">    selector) when given, else ``document.body``. (``ws``/``reconnect``/``tree=&quot;frame&quot;`` apply to the</span>
 <span class="sd">    single-model string form only; a wire list carries each spec&#39;s own url and uses a snapshot per socket.)&quot;&quot;&quot;</span>
     <span class="n">js</span> <span class="o">=</span> <span class="n">_js</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+    <span class="n">assets</span> <span class="o">=</span> <span class="n">_ASSETS</span><span class="p">[</span><span class="n">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">)]</span>
     <span class="n">into</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;document.querySelector(&quot;</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s1">&quot;)&#39;</span> <span class="k">if</span> <span class="n">target</span> <span class="k">else</span> <span class="s2">&quot;document.body&quot;</span>
     <span class="n">transports</span> <span class="o">=</span> <span class="n">wire</span> <span class="o">==</span> <span class="s2">&quot;transports&quot;</span>
     <span class="c1"># a wire LIST may mix Wire instances and raw dicts — normalize each to the dict the codegen consumes</span>
@@ -447,13 +482,13 @@
     <span class="n">runtime_names</span> <span class="o">=</span> <span class="p">(</span>
         <span class="p">[</span><span class="s2">&quot;mount&quot;</span><span class="p">,</span> <span class="s2">&quot;init&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">([</span><span class="s2">&quot;Store&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="p">(</span><span class="n">wired</span> <span class="ow">or</span> <span class="n">store</span><span class="p">)</span> <span class="k">else</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">([</span><span class="s2">&quot;connectStore&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">wired</span> <span class="k">else</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">([</span><span class="s2">&quot;decodeFrame&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">frame</span> <span class="k">else</span> <span class="p">[])</span>
     <span class="p">)</span>
-    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;import </span><span class="se">{{</span><span class="s1"> </span><span class="si">{</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">runtime_names</span><span class="p">)</span><span class="si">}</span><span class="s1"> </span><span class="se">}}</span><span class="s1"> from &quot;</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">_RUNTIME</span><span class="si">}</span><span class="s1">&quot;;&#39;</span><span class="p">]</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;import </span><span class="se">{{</span><span class="s1"> </span><span class="si">{</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">runtime_names</span><span class="p">)</span><span class="si">}</span><span class="s1"> </span><span class="se">}}</span><span class="s1"> from &quot;</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">&quot;runtime&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;;&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">wired</span><span class="p">:</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;import </span><span class="se">{{</span><span class="s1"> Client, fromValue, toValue, wasm </span><span class="se">}}</span><span class="s1"> from &quot;</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">_TRANSPORTS</span><span class="si">}</span><span class="s1">&quot;;&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;import </span><span class="se">{{</span><span class="s1"> Client, fromValue, toValue, wasm </span><span class="se">}}</span><span class="s1"> from &quot;</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">&quot;transports&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;;&#39;</span><span class="p">)</span>
     <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;import &quot;</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s1">&quot;;&#39;</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">scripts</span><span class="p">)</span>
-    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;await init(</span><span class="se">{{</span><span class="s1"> module_or_path: &quot;</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">_WASM</span><span class="si">}</span><span class="s1">&quot; </span><span class="se">}}</span><span class="s1">);&#39;</span><span class="p">)</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;await init(</span><span class="se">{{</span><span class="s1"> module_or_path: &quot;</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">&quot;wasm&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; </span><span class="se">}}</span><span class="s1">);&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">wired</span><span class="p">:</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;await wasm.default(</span><span class="se">{{</span><span class="s1"> module_or_path: &quot;</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">_TRANSPORTS_WASM</span><span class="si">}</span><span class="s1">&quot; </span><span class="se">}}</span><span class="s1">);&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;await wasm.default(</span><span class="se">{{</span><span class="s1"> module_or_path: &quot;</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">&quot;transports_wasm&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; </span><span class="se">}}</span><span class="s1">);&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">frame</span><span class="p">:</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;const framed = new Uint8Array(await (await fetch(&quot;</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s1">/tree&quot;)).arrayBuffer());&#39;</span><span class="p">)</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;const node = JSON.parse(decodeFrame(framed)).payload;&quot;</span><span class="p">)</span>
@@ -528,6 +563,7 @@
     <span class="n">fragment</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nonce</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">layout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AssetLayout</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /</span>
 <span class="sd">    ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``</span>
@@ -543,10 +579,11 @@
 <span class="sd">    specific element (e.g. ``&quot;#widget&quot;``) instead of ``document.body``; the host provides that element.</span>
 <span class="sd">    ``nonce`` stamps the generated ``&lt;script&gt;``/``&lt;link&gt;`` tags with a CSP nonce, so a host with a strict</span>
 <span class="sd">    ``script-src``/``style-src`` policy can allow the snippet. See the module docstring for the rest of the</span>
-<span class="sd">    options and the route contract.&quot;&quot;&quot;</span>
+<span class="sd">    options and the route contract. ``layout`` selects source-checkout or installed-wheel asset URLs;</span>
+<span class="sd">    by default it follows :func:`bundles_dir`.&quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39; nonce=&quot;</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
-    <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_bundle_head</span><span class="p">(</span><span class="n">bundles</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">),</span> <span class="n">head</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span>
-    <span class="n">script</span> <span class="o">=</span> <span class="n">_script</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">wire</span><span class="p">,</span> <span class="n">scripts</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">tree</span><span class="p">,</span> <span class="n">reconnect</span><span class="p">,</span> <span class="n">store</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+    <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_bundle_head</span><span class="p">(</span><span class="n">bundles</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">layout</span><span class="p">),</span> <span class="n">head</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">script</span> <span class="o">=</span> <span class="n">_script</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">wire</span><span class="p">,</span> <span class="n">scripts</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">tree</span><span class="p">,</span> <span class="n">reconnect</span><span class="p">,</span> <span class="n">store</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">layout</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment</span><span class="p">:</span>
         <span class="n">head_block</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">head_markup</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">head_markup</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">head_block</span><span class="si">}</span><span class="s1">&lt;script type=&quot;module&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1">&gt;</span><span class="se">\n</span><span class="s1">  </span><span class="si">{</span><span class="n">script</span><span class="si">}</span><span class="se">\n</span><span class="s1">&lt;/script&gt;</span><span class="se">\n</span><span class="s1">&#39;</span>
@@ -598,7 +635,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=938c9ccc"></script>
+</div><script src="../../_static/documentation_options.js?v=37f418d5"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
