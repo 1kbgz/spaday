@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="Generate typed classes from a manifest" href="cem.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>API reference - spaday v0.2.1</title>
+        <title>API reference - spaday v0.2.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -431,10 +431,11 @@ authored declaratively instead of with a hand-written transports listener.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="spaday.CallEndpoint">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">CallEndpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#CallEndpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.CallEndpoint" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">CallEndpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Expr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#CallEndpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.CallEndpoint" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
-<p>A REST round-trip: <code class="docutils literal notranslate"><span class="pre">method</span></code> <code class="docutils literal notranslate"><span class="pre">url</span></code> with an optional JSON <code class="docutils literal notranslate"><span class="pre">body</span></code> (an <code class="xref py py-class docutils literal notranslate"><span class="pre">Expr</span></code> or a plain
-value). The one intentional server call — the runtime performs it with <code class="docutils literal notranslate"><span class="pre">fetch</span></code>.</p>
+<p>A REST round-trip: <code class="docutils literal notranslate"><span class="pre">method</span></code> <code class="docutils literal notranslate"><span class="pre">url</span></code> with an optional JSON <code class="docutils literal notranslate"><span class="pre">body</span></code>. <code class="docutils literal notranslate"><span class="pre">url</span></code> may be a static
+string or an <code class="xref py py-class docutils literal notranslate"><span class="pre">Expr</span></code>; <code class="docutils literal notranslate"><span class="pre">body</span></code> may be an expression or a plain value. The runtime performs the
+call with <code class="docutils literal notranslate"><span class="pre">fetch</span></code>.</p>
 <p>Pass <code class="docutils literal notranslate"><span class="pre">result</span></code> (a signal-store field name) to capture the outcome: on completion the runtime writes
 <code class="docutils literal notranslate"><span class="pre">{&quot;status&quot;:</span> <span class="pre">&lt;int&gt;,</span> <span class="pre">&quot;ok&quot;:</span> <span class="pre">&lt;bool&gt;,</span> <span class="pre">&quot;body&quot;:</span> <span class="pre">&lt;parsed</span> <span class="pre">JSON</span> <span class="pre">or</span> <span class="pre">text&gt;}</span></code> to that field, so success/error
 feedback stays declarative (bind or <code class="xref py py-class docutils literal notranslate"><span class="pre">Show</span></code> on it):</p>
@@ -900,7 +901,7 @@ follows the active theme unless overridden.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=37f418d5"></script>
+</div><script src="../../_static/documentation_options.js?v=000c92bf"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

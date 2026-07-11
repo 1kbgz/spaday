@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.validate - spaday v0.2.1</title>
+        <title>spaday.validate - spaday v0.2.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -278,8 +278,14 @@
     <span class="n">target</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;target&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">expr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;expr&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;prop&quot;</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">target</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ref&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span>
         <span class="k">yield</span> <span class="n">target</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">expr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;expr&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;not&quot;</span><span class="p">:</span>
-        <span class="k">yield from</span> <span class="n">_expr_refs</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;of&quot;</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">}:</span>  <span class="c1"># literal payload is data; a prop target was handled above</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                <span class="k">yield from</span> <span class="n">_expr_refs</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield from</span> <span class="n">_expr_refs</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_action_refs</span><span class="p">(</span><span class="n">action</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -288,7 +294,7 @@
     <span class="n">target</span> <span class="o">=</span> <span class="n">action</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;target&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">target</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ref&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span>
         <span class="k">yield</span> <span class="n">target</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;detail&quot;</span><span class="p">,</span> <span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="s2">&quot;cond&quot;</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;detail&quot;</span><span class="p">,</span> <span class="s2">&quot;url&quot;</span><span class="p">,</span> <span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="s2">&quot;cond&quot;</span><span class="p">):</span>
         <span class="k">yield from</span> <span class="n">_expr_refs</span><span class="p">(</span><span class="n">action</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
     <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">action</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;actions&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
         <span class="k">yield from</span> <span class="n">_action_refs</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
@@ -354,7 +360,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=37f418d5"></script>
+</div><script src="../../_static/documentation_options.js?v=000c92bf"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

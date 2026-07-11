@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.actions - spaday v0.2.1</title>
+        <title>spaday.actions - spaday v0.2.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.1</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -259,12 +259,13 @@
 <span class="sd">(write the mounted signal store, so a plain button can drive reactive state); ``SendPatch`` (a model-edit</span>
 <span class="sd">intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST</span>
 <span class="sd">round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:</span>
-<span class="sd">``lit`` / ``event_value`` / ``not_`` / ``prop`` (read live element state); targets ``this`` / ``by_id``.</span>
+<span class="sd">``lit`` / ``event_value`` / ``field`` / ``not_`` / ``prop`` / ``obj`` / ``concat``; targets ``this`` /</span>
+<span class="sd">``by_id``.</span>
 <span class="sd">``bind`` here is a one-way event-driven helper; reactive prop↔state bindings (one- or two-way) are</span>
 <span class="sd">authored with ``Component.bind`` and interpreted by the runtime&#39;s signal store.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Expr</span><span class="p">:</span>
@@ -456,6 +457,22 @@
 
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_Concat</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">parts</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parts</span> <span class="o">=</span> <span class="n">parts</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span> <span class="s2">&quot;parts&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">part</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parts</span><span class="p">]}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">concat</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concatenate expressions as strings, e.g. a state-derived endpoint URL::</span>
+
+<span class="sd">    CallEndpoint(&quot;POST&quot;, concat(&quot;/send/basket/&quot;, field(&quot;key&quot;)), body)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_Concat</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">)</span>
+
+
 <span class="k">class</span><span class="w"> </span><span class="nc">Ref</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A reference to a DOM element an action targets.&quot;&quot;&quot;</span>
 
@@ -621,8 +638,9 @@
 <div class="viewcode-block" id="CallEndpoint">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.CallEndpoint">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CallEndpoint</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A REST round-trip: ``method`` ``url`` with an optional JSON ``body`` (an :class:`Expr` or a plain</span>
-<span class="sd">    value). The one intentional server call — the runtime performs it with ``fetch``.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A REST round-trip: ``method`` ``url`` with an optional JSON ``body``. ``url`` may be a static</span>
+<span class="sd">    string or an :class:`Expr`; ``body`` may be an expression or a plain value. The runtime performs the</span>
+<span class="sd">    call with ``fetch``.</span>
 
 <span class="sd">    Pass ``result`` (a signal-store field name) to capture the outcome: on completion the runtime writes</span>
 <span class="sd">    ``{&quot;status&quot;: &lt;int&gt;, &quot;ok&quot;: &lt;bool&gt;, &quot;body&quot;: &lt;parsed JSON or text&gt;}`` to that field, so success/error</span>
@@ -633,12 +651,13 @@
 <span class="sd">    Without ``result`` the call is fire-and-forget.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Expr</span><span class="p">],</span> <span class="n">body</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">result</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">Expr</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span>
         <span class="n">body</span> <span class="o">=</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="n">body</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span> <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="n">body</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">}</span></div>
 
 
 
@@ -704,7 +723,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=37f418d5"></script>
+</div><script src="../../_static/documentation_options.js?v=000c92bf"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
