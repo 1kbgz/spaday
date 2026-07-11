@@ -234,6 +234,38 @@ test("a cond expr selects between two values by a field, reactively", async ({
   expect(result.after).toBe("dark");
 });
 
+test("a concat expr composes strings from fields reactively", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ key: "A" });
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "span",
+        bindings: {
+          textContent: {
+            compute: {
+              expr: "concat",
+              parts: [
+                { expr: "lit", value: "Basket " },
+                { expr: "field", name: "key" },
+              ],
+            },
+            mode: "one-way",
+          },
+        },
+      },
+      store,
+    );
+    const initial = root.textContent;
+    store.set("key", "B");
+    return { initial, after: root.textContent };
+  });
+  expect(result).toEqual({ initial: "Basket A", after: "Basket B" });
+});
+
 test("a root-class binding toggles a class on <html> from a field", async ({
   page,
 }) => {

@@ -34,8 +34,14 @@ def _expr_refs(expr: Any) -> Iterator[str]:
     target = expr.get("target")
     if expr.get("expr") == "prop" and isinstance(target, dict) and target.get("ref") == "id":
         yield target["id"]
-    if expr.get("expr") == "not":
-        yield from _expr_refs(expr.get("of"))
+    for key, value in expr.items():
+        if key in {"value", "target"}:  # literal payload is data; a prop target was handled above
+            continue
+        if isinstance(value, list):
+            for item in value:
+                yield from _expr_refs(item)
+        else:
+            yield from _expr_refs(value)
 
 
 def _action_refs(action: Any) -> Iterator[str]:
@@ -44,7 +50,7 @@ def _action_refs(action: Any) -> Iterator[str]:
     target = action.get("target")
     if isinstance(target, dict) and target.get("ref") == "id":
         yield target["id"]
-    for key in ("value", "detail", "body", "cond"):
+    for key in ("value", "detail", "url", "body", "cond"):
         yield from _expr_refs(action.get(key))
     for sub in action.get("actions") or []:
         yield from _action_refs(sub)

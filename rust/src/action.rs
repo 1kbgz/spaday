@@ -10,13 +10,13 @@
 //! - `Ref`:  `{"ref":"this"}` · `{"ref":"id","id":"panel"}`
 //! - `Expr`: `{"expr":"lit","value":<json>}` · `{"expr":"event"}` · `{"expr":"not","of":<Expr>}` ·
 //!   `{"expr":"prop","target":<Ref>,"name":"checked"}` · `{"expr":"field","name":"qty"}` ·
-//!   `{"expr":"obj","fields":{<name>:<Expr>}}`
+//!   `{"expr":"obj","fields":{<name>:<Expr>}}` · `{"expr":"concat","parts":[<Expr>,..]}`
 //! - `Action`: `{"kind":"set",target,prop,value}` · `{"kind":"toggle",target,prop}` ·
 //!   `{"kind":"set-field","field","value":<Expr>}` · `{"kind":"toggle-field","field"}` ·
 //!   `{"kind":"seq","actions":[..]}` · `{"kind":"emit","event","detail":<Expr>|null}` ·
 //!   `{"kind":"patch","model","field","value":<Expr>}` ·
 //!   `{"kind":"if","cond":<Expr>,"then":<Action>,"else":<Action>|null}` ·
-//!   `{"kind":"call","method","url","body":<Expr>|null,"result":<string>|null}` ·
+//!   `{"kind":"call","method","url":<string>|<Expr>,"body":<Expr>|null,"result":<string>|null}` ·
 //!   `{"kind":"js","handler"}`
 
 use serde::{Deserialize, Serialize};
@@ -57,6 +57,28 @@ pub enum Expr {
     Obj {
         fields: std::collections::BTreeMap<String, Expr>,
     },
+    /// Concatenate evaluated values as strings — primarily for state-derived endpoint URLs.
+    Concat { parts: Vec<Expr> },
+}
+
+/// A static endpoint URL or one evaluated from event/store state at action time.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum EndpointUrl {
+    Static(String),
+    Expr(Expr),
+}
+
+impl From<&str> for EndpointUrl {
+    fn from(value: &str) -> Self {
+        Self::Static(value.into())
+    }
+}
+
+impl From<String> for EndpointUrl {
+    fn from(value: String) -> Self {
+        Self::Static(value)
+    }
 }
 
 /// A declarative event handler, interpreted in the browser.
@@ -113,7 +135,7 @@ pub enum Action {
     #[serde(rename = "call")]
     CallEndpoint {
         method: String,
-        url: String,
+        url: EndpointUrl,
         #[serde(default)]
         body: Option<Expr>,
         #[serde(default)]
@@ -281,6 +303,35 @@ mod tests {
                 result: None,
             },
             json!({"kind": "call", "method": "GET", "url": "/ping", "body": null, "result": null}),
+        );
+    }
+
+    #[test]
+    fn call_endpoint_with_computed_url() {
+        round(
+            &Action::CallEndpoint {
+                method: "POST".into(),
+                url: EndpointUrl::Expr(Expr::Concat {
+                    parts: vec![
+                        Expr::Lit {
+                            value: json!("/send/basket/"),
+                        },
+                        Expr::Field { name: "key".into() },
+                    ],
+                }),
+                body: None,
+                result: None,
+            },
+            json!({
+                "kind": "call",
+                "method": "POST",
+                "url": {"expr": "concat", "parts": [
+                    {"expr": "lit", "value": "/send/basket/"},
+                    {"expr": "field", "name": "key"}
+                ]},
+                "body": null,
+                "result": null
+            }),
         );
     }
 

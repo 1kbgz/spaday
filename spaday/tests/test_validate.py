@@ -2,6 +2,7 @@ import pytest
 
 import spaday
 from spaday import (
+    CallEndpoint,
     Emit,
     If,
     Sequence,
@@ -9,6 +10,7 @@ from spaday import (
     Toggle,
     ValidationError,
     by_id,
+    concat,
     element,
     prop,
     this,
@@ -44,6 +46,12 @@ def test_refs_inside_sequence_if_and_expr_are_all_checked():
         validate(tree)
     msg = str(exc.value)
     assert "'a'" in msg and "'b'" in msg and "'c'" in msg  # nested action + expr refs all caught
+
+
+def test_refs_inside_computed_endpoint_urls_are_checked():
+    tree = element("button").on("click", CallEndpoint("POST", concat("/send/", prop(by_id("key"), "value"))))
+    with pytest.raises(ValidationError, match="'key'"):
+        validate(tree)
 
 
 def test_only_unresolved_refs_are_reported():
