@@ -38,13 +38,13 @@ jobs:
       with:
         persist-credentials: false
 
-    - uses: actions-ext/python/setup@4567028b4cf2be3739404cfd3521f0b9df98b6b1
+    - uses: actions-ext/python/setup@5f78fa2cadf4dad2a7cded3c72655bcdd3dda735
       with:
         version: ${{ matrix.python-version }}
 
-    - uses: actions-ext/rust/setup@01743451de2c7bf6bbbd798b1575a46bf1f69b26
+    - uses: actions-ext/rust/setup@c9cdbe5cc8a2485bf2eb22644302559c741ca763
 
-    - uses: actions-ext/node/setup@165e261b251b39bcd073c10e84d218393d3b9960
+    - uses: actions-ext/node/setup@3478453a763ed3c8c6eba05a092ab81a265c5492
       with:
         version: ${{ matrix.node-version }}
 
@@ -66,7 +66,7 @@ jobs:
       run: make coverage
 
     - name: Upload test results (Python)
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
         path: '**/junit.xml'
@@ -109,17 +109,17 @@ jobs:
         CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=11.0
       if: matrix.os != 'ubuntu-latest'
 
-    - uses: actions-ext/python/test-wheel@4567028b4cf2be3739404cfd3521f0b9df98b6b1
+    - uses: actions-ext/python/test-wheel@5f78fa2cadf4dad2a7cded3c72655bcdd3dda735
       with:
         module: spaday
       if: matrix.os == 'ubuntu-latest'
 
-    - uses: actions-ext/python/test-sdist@4567028b4cf2be3739404cfd3521f0b9df98b6b1
+    - uses: actions-ext/python/test-sdist@5f78fa2cadf4dad2a7cded3c72655bcdd3dda735
       with:
         module: spaday
       if: matrix.os == 'ubuntu-latest'
 
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: dist-${{matrix.os}}
         path: dist
