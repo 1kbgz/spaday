@@ -20,6 +20,8 @@ Every attribute is a typed keyword (`variant: Optional[Literal["brand", "neutral
 **don't** pass is omitted, so the element keeps its own default and update patches stay minimal.
 
 To use a component library other than WebAwesome, [generate its classes from a manifest](cem.md).
+An independently distributed integration can also register its browser assets through the
+[`ComponentPackage` serving contract](serving.md#install-an-external-component-package).
 
 ## Nest children into slots
 

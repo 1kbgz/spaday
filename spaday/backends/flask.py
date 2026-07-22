@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Sequence, Union
 
 from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 
 if TYPE_CHECKING:  # annotations only — flask is imported inside the functions (not a spaday dependency)
     from flask import Flask
@@ -30,6 +31,7 @@ def mount(
     layout: Optional[AssetLayout] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
+    packages: Union[PackageRef, Sequence[PackageRef]] = (),
     wire: Optional[str] = None,
     ws: str = "/ws",
     tree: str = "json",
@@ -43,9 +45,11 @@ def mount(
     from flask import Response, send_from_directory
 
     asset_layout = layout or ("source" if js is not None else None)
+    component_packages = resolve_component_packages(packages)
     body = bootstrap(
         base=prefix,
         bundles=bundles,
+        packages=component_packages,
         wire=wire,
         ws=ws,
         tree=tree,
@@ -64,6 +68,14 @@ def mount(
     else:
         app.add_url_rule(f"{prefix}/tree.json", f"spaday_tree_{key}", lambda: Response(tree_json(page), mimetype="application/json"))
     app.add_url_rule(f"{prefix}/js/<path:path>", f"spaday_js_{key}", lambda path: send_from_directory(js_dir, path))
+    for package in component_packages:
+        package_dir = package.assets_dir
+        package_key = package.name.replace("-", "_").replace(".", "_")
+        app.add_url_rule(
+            f"{package_url_prefix(package, prefix)}/<path:path>",
+            f"spaday_component_{key}_{package_key}",
+            lambda path, directory=package_dir: send_from_directory(directory, path),
+        )
     for rule in routes:
         app.add_url_rule(*rule)
     return app

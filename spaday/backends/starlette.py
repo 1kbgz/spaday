@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Callable, Optional, Sequence, Union
 
 from ..bootstrap import AssetLayout, Page, Wire, bootstrap, bundles_dir, tree_frame, tree_json
+from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 
 if TYPE_CHECKING:  # annotations only — starlette is imported inside the functions (optional extra)
     from starlette.applications import Starlette
@@ -53,6 +54,7 @@ def mount(
     layout: Optional[AssetLayout] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
+    packages: Union[PackageRef, Sequence[PackageRef]] = (),
     wire: Optional[Union[str, Sequence[Union[dict, Wire]]]] = None,
     ws: str = "/ws",
     tree: str = "json",
@@ -75,9 +77,11 @@ def mount(
     from starlette.staticfiles import StaticFiles
 
     asset_layout = layout or ("source" if js is not None else None)
+    component_packages = resolve_component_packages(packages)
     body = bootstrap(
         base=prefix,
         bundles=bundles,
+        packages=component_packages,
         wire=wire,
         ws=ws,
         tree=tree,
@@ -101,14 +105,23 @@ def mount(
         return Response(tree_frame(page), media_type="application/octet-stream")
 
     tree_route = Route(f"{prefix}/tree", tree_route_frame) if tree == "frame" else Route(f"{prefix}/tree.json", tree_route_json)
-    app.routes.extend([Route(f"{prefix}/", homepage), tree_route, *_prefixed(routes, prefix), Mount(f"{prefix}/js", StaticFiles(directory=js_dir))])
+    package_mounts = [Mount(package_url_prefix(package, prefix), StaticFiles(directory=package.assets_dir)) for package in component_packages]
+    app.routes.extend(
+        [
+            Route(f"{prefix}/", homepage),
+            tree_route,
+            *_prefixed(routes, prefix),
+            *package_mounts,
+            Mount(f"{prefix}/js", StaticFiles(directory=js_dir)),
+        ]
+    )
     return app
 
 
 def serve(page: Page, *, background: Sequence[Awaitable] = (), lifespan: Optional[Callable] = None, **opts) -> Starlette:
     """Create a Starlette app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the
     app's lifetime (or pass a custom ``lifespan`` for ordered startup, e.g. a clustering relay); all other
-    keyword options are :func:`mount`'s (``prefix``/``routes``/``html``/``js``/``title``/``bundles``/
+    keyword options are :func:`mount`'s (``prefix``/``routes``/``html``/``js``/``title``/``bundles``/``packages``/
     ``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``store``/``nonce``)."""
     from starlette.applications import Starlette
 

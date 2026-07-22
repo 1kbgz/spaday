@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Optional, Sequence, Union
 
 from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 
 if TYPE_CHECKING:  # annotations only — aiohttp is imported inside the functions (not a spaday dependency)
     from aiohttp import web
@@ -32,6 +33,7 @@ def mount(
     layout: Optional[AssetLayout] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
+    packages: Union[PackageRef, Sequence[PackageRef]] = (),
     wire: Optional[str] = None,
     ws: str = "/ws",
     tree: str = "json",
@@ -45,9 +47,11 @@ def mount(
     from aiohttp import web
 
     asset_layout = layout or ("source" if js is not None else None)
+    component_packages = resolve_component_packages(packages)
     body = bootstrap(
         base=prefix,
         bundles=bundles,
+        packages=component_packages,
         wire=wire,
         ws=ws,
         tree=tree,
@@ -76,6 +80,8 @@ def mount(
         tree_route = web.get(f"{prefix}/tree.json", tree_handler)
 
     app.add_routes([web.get(f"{prefix}/", homepage), tree_route, *routes])
+    for package in component_packages:
+        app.router.add_static(package_url_prefix(package, prefix), str(package.assets_dir))
     app.router.add_static(f"{prefix}/js", js_dir)
     return app
 

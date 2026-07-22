@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Optional, Sequence, Union
 
 from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 
 if TYPE_CHECKING:  # annotations only — tornado is imported inside the functions (not a spaday dependency)
     from tornado.web import Application
@@ -33,6 +34,7 @@ def mount(
     layout: Optional[AssetLayout] = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
+    packages: Union[PackageRef, Sequence[PackageRef]] = (),
     wire: Optional[str] = None,
     ws: str = "/ws",
     tree: str = "json",
@@ -46,9 +48,11 @@ def mount(
     from tornado.web import RequestHandler, StaticFileHandler
 
     asset_layout = layout or ("source" if js is not None else None)
+    component_packages = resolve_component_packages(packages)
     body = bootstrap(
         base=prefix,
         bundles=bundles,
+        packages=component_packages,
         wire=wire,
         ws=ws,
         tree=tree,
@@ -83,7 +87,15 @@ def mount(
 
         tree_rule = (rf"{pre}/tree\.json", _Tree)
 
-    handlers = [(rf"{pre}/", _Index), tree_rule, *routes, (rf"{pre}/js/(.*)", StaticFileHandler, {"path": js_dir})]
+    package_handlers = [
+        (
+            rf"{re.escape(package_url_prefix(package, prefix))}/(.*)",
+            StaticFileHandler,
+            {"path": str(package.assets_dir)},
+        )
+        for package in component_packages
+    ]
+    handlers = [(rf"{pre}/", _Index), tree_rule, *routes, *package_handlers, (rf"{pre}/js/(.*)", StaticFileHandler, {"path": js_dir})]
     app.add_handlers(r".*", handlers)
     return app
 

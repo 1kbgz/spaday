@@ -9,9 +9,21 @@ from starlette.responses import PlainTextResponse  # noqa: E402
 from starlette.routing import Route  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
+import spaday.packages as package_registry  # noqa: E402
 from spaday import decode_frame  # noqa: E402
 from spaday.backends.starlette import mount, serve  # noqa: E402
 from spaday.components.shell import Main  # noqa: E402
+from spaday.packages import ComponentPackage  # noqa: E402
+
+
+class _EntryPoint:
+    name = "fixture"
+
+    def __init__(self, package):
+        self.package = package
+
+    def load(self):
+        return self.package
 
 
 def test_serve_hosts_page_tree_bundle_and_routes(tmp_path):
@@ -22,6 +34,18 @@ def test_serve_hosts_page_tree_bundle_and_routes(tmp_path):
     assert client.get("/tree.json").json() == page.to_node()  # tree served as JSON
     assert client.get("/js/dist/esm/index.js") is not None  # /js mount present (dir is tmp here)
     assert client.get("/api/ping").text == "pong"  # spliced route
+
+
+def test_entry_point_package_adds_tags_and_serves_assets(monkeypatch, tmp_path):
+    (tmp_path / "index.js").write_text("export const loaded = true;", encoding="utf-8")
+    package = ComponentPackage("fixture", tmp_path, (("js", "index.js"),))
+    monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: [_EntryPoint(package)])
+
+    client = TestClient(serve(Main("hi"), packages=["fixture"], prefix="/dash"))
+    assert 'src="/dash/components/fixture/index.js"' in client.get("/dash/").text
+    asset = client.get("/dash/components/fixture/index.js")
+    assert asset.status_code == 200
+    assert asset.text == "export const loaded = true;"
 
 
 def test_serve_frame_route_returns_a_decodable_frame(tmp_path):
