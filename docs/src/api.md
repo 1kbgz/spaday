@@ -88,6 +88,14 @@ Generate a page and deliver it on any backend; see [Serve and embed](serving.md)
 .. autofunction:: spaday.bootstrap.bundles_dir
 ```
 
+### External component packages
+
+```{eval-rst}
+.. autoclass:: spaday.ComponentPackage
+.. autofunction:: spaday.resolve_component_packages
+.. autofunction:: spaday.discover_component_packages
+```
+
 ## Server-side rendering
 
 ```{eval-rst}

@@ -28,6 +28,7 @@ from .actions import (
 from .bootstrap import Wire
 from .cem import classes, generate
 from .component import Component, Paragraph, Strong, Text, element
+from .packages import ComponentPackage, discover_component_packages, resolve_component_packages
 from .render import render_html
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
 from .theme import SHELL_TOKENS
@@ -56,6 +57,10 @@ __all__ = [
     "render_html",
     # a typed transports wire spec for a multi-model page (serve/bootstrap wire=[…])
     "Wire",
+    # external component-package assets (direct descriptor, Python path, or entry point)
+    "ComponentPackage",
+    "resolve_component_packages",
+    "discover_component_packages",
     # theming token reference (css custom properties are set via Component.css)
     "SHELL_TOKENS",
     # build-time validation

@@ -6,6 +6,8 @@ What an app would otherwise hand-write in HTML is declared in Python:
 
 - ``bundles=["webawesome", …]`` — pull a component library's styles + catalog bundle into ``<head>``
   (see :data:`BUNDLES`), instead of copy-pasting its ``<link>``/``<script>`` tags.
+- ``packages=["trees", …]`` — do the same for external component packages selected by descriptor,
+  ``module:attribute`` Python path, or installed entry-point name.
 - ``wire="transports"`` — generate the transports ``Client`` + ``connectStore`` + websocket bootstrap
   (what every transports example's HTML repeats); without it the page just mounts a static tree.
 - ``tree="frame"`` — fetch the tree as a transports Snapshot frame at ``…/tree`` (UI tree + model data on
@@ -24,6 +26,7 @@ What an app would otherwise hand-write in HTML is declared in Python:
     GET {base}/            -> bootstrap(...)        # this HTML
     GET {base}/tree.json   -> tree_json(page)       # or GET {base}/tree -> tree_frame(page) when tree="frame"
     GET {base}/js/*        -> the files under bundles_dir()
+    GET {base}/components/{package}/* -> a selected component package's assets
     WS  {base}/ws          -> a transports endpoint # only when wire="transports" (the backend/transports owns it)
 """
 
@@ -35,6 +38,7 @@ from pathlib import Path
 from typing import Literal, Optional, Sequence, Union
 
 from .component import Component
+from .packages import ComponentPackage, PackageRef, package_url_prefix, resolve_component_packages
 from .spaday import encode_frame  # compiled core (always available); used by tree_frame
 
 #: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called
@@ -160,6 +164,17 @@ def _bundle_head(bundles: Sequence[str], base: str, nonce: Optional[str] = None,
             raise ValueError(f"unknown bundle {name!r}; known: {', '.join(sorted(available))}")
         for kind, path in available[name]:
             url = f"{_js(base)}{path}"
+            tags.append(f'<link rel="stylesheet"{n} href="{url}" />' if kind == "css" else f'<script type="module"{n} src="{url}"></script>')
+    return "\n    ".join(tags)
+
+
+def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: Optional[str] = None) -> str:
+    n = f' nonce="{nonce}"' if nonce else ""
+    tags = []
+    for package in packages:
+        prefix = package_url_prefix(package, base)
+        for kind, path in package.assets:
+            url = f"{prefix}/{path}"
             tags.append(f'<link rel="stylesheet"{n} href="{url}" />' if kind == "css" else f'<script type="module"{n} src="{url}"></script>')
     return "\n    ".join(tags)
 
@@ -297,6 +312,7 @@ def bootstrap(
     *,
     base: str = "",
     bundles: Sequence[str] = (),
+    packages: Union[PackageRef, Sequence[PackageRef]] = (),
     wire: Optional[Union[str, Sequence[Union[dict, Wire]]]] = None,
     ws: str = "/ws",
     tree: str = "json",
@@ -324,10 +340,12 @@ def bootstrap(
     specific element (e.g. ``"#widget"``) instead of ``document.body``; the host provides that element.
     ``nonce`` stamps the generated ``<script>``/``<link>`` tags with a CSP nonce, so a host with a strict
     ``script-src``/``style-src`` policy can allow the snippet. See the module docstring for the rest of the
-    options and the route contract. ``layout`` selects source-checkout or installed-wheel asset URLs;
-    by default it follows :func:`bundles_dir`."""
+    options and the route contract. ``packages`` selects external :class:`~spaday.packages.ComponentPackage`
+    descriptors directly, by ``module:attribute`` path, or by installed entry-point name. ``layout``
+    selects source-checkout or installed-wheel asset URLs; by default it follows :func:`bundles_dir`."""
     n = f' nonce="{nonce}"' if nonce else ""
-    head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base, nonce, layout), head) if p)
+    component_packages = resolve_component_packages(packages)
+    head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base, nonce, layout), _package_head(component_packages, base, nonce), head) if p)
     script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
