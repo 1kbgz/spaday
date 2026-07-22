@@ -1,3 +1,6 @@
+import sys
+from types import ModuleType
+
 import pytest
 
 import spaday.packages as package_registry
@@ -14,10 +17,19 @@ class EntryPoint:
         return self.package
 
 
-def test_resolves_a_descriptor_and_python_path():
+@pytest.fixture
+def python_path_package(monkeypatch):
+    package = ComponentPackage("fixture", ".", (("css", "fixture.css"), ("js", "fixture.js")))
+    module = ModuleType("spaday_package_fixture")
+    module.package = package
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    return package
+
+
+def test_resolves_a_descriptor_and_python_path(python_path_package):
     direct = ComponentPackage("direct", ".", (("js", "index.js"),))
     assert resolve_component_packages(direct) == (direct,)
-    assert resolve_component_packages("spaday.tests.package_fixture:package")[0].name == "fixture"
+    assert resolve_component_packages("spaday_package_fixture:package") == (python_path_package,)
 
 
 def test_resolves_and_discovers_installed_entry_points(monkeypatch):
@@ -30,10 +42,10 @@ def test_resolves_and_discovers_installed_entry_points(monkeypatch):
     assert discover_component_packages() == (first, second)
 
 
-def test_bootstrap_uses_the_same_descriptor_for_package_asset_urls():
+def test_bootstrap_uses_the_same_descriptor_for_package_asset_urls(python_path_package):
     html = bootstrap(
         base="/dash",
-        packages="spaday.tests.package_fixture:package",
+        packages="spaday_package_fixture:package",
         nonce="abc123",
     )
     assert '<link rel="stylesheet" nonce="abc123" href="/dash/components/fixture/fixture.css" />' in html
