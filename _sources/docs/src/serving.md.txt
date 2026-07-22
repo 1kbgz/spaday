@@ -7,12 +7,12 @@ takes the same generation options. (For keeping the UI in sync with a server-sid
 
 There is **no hand-written HTML**: spaday generates the bootstrap page from your Python description.
 
-| Rung | spaday owns | Seam |
-| ---- | ----------- | ---- |
-| No HTML | the whole app | `serve(page, …)` |
-| Some HTML | a sub-path of your app | `mount(app, page, prefix=…)` |
-| Full custom HTML | one node in your page | `bootstrap(fragment=True, target=…)` + `tree_json(page)` |
-| Notebook | a cell's widget | `Widget(component)` |
+| Rung             | spaday owns            | Seam                                                     |
+| ---------------- | ---------------------- | -------------------------------------------------------- |
+| No HTML          | the whole app          | `serve(page, …)`                                         |
+| Some HTML        | a sub-path of your app | `mount(app, page, prefix=…)`                             |
+| Full custom HTML | one node in your page  | `bootstrap(fragment=True, target=…)` + `tree_json(page)` |
+| Notebook         | a cell's widget        | `Widget(component)`                                      |
 
 `page` is a built component **or a zero-arg callable returning one** — a callable is re-rendered per
 request, so the tree can reflect current state.
@@ -44,6 +44,46 @@ one-line happy path — it is just `mount` onto a fresh app, so drop to `mount` 
 In a source checkout it serves built assets from `js/`; from a wheel it automatically serves packaged
 `spaday/extension` assets. Use `layout="source"` or `layout="installed"` only to override detection, such
 as when supplying a matching custom `js=` directory.
+
+## Install an external component package
+
+External integrations use one `ComponentPackage` descriptor for both `<head>` tags and static routes.
+An application can pass the descriptor directly or select it by Python path:
+
+```python
+from spaday_trees import package as trees
+
+app = serve(page, packages=[trees])
+app = serve(page, packages=["spaday_trees:package"])
+```
+
+An integration package defines that descriptor beside its built assets:
+
+```python
+from pathlib import Path
+
+from spaday import ComponentPackage
+
+package = ComponentPackage(
+    name="trees",
+    assets_dir=Path(__file__).parent / "extension",
+    assets=(("css", "trees.css"), ("js", "trees.js")),
+)
+```
+
+To make the short form `packages=["trees"]` available, publish the same object as a Python packaging
+entry point:
+
+```toml
+[project.entry-points."spaday.component_packages"]
+trees = "spaday_trees:package"
+```
+
+Entry-point packages are opt-in: spaday loads only names selected by the application, never every
+installed integration. All four backends serve each selected descriptor's `assets_dir` at
+`{prefix}/components/{name}/`; `bootstrap` emits its CSS and module-script URLs from the same `assets`
+list. This registration is host-side only: component tags and props already cross the generic spaday
+tree, so an integration needs no Rust plugin.
 
 ## Embed in an existing app
 
@@ -127,10 +167,10 @@ app = serve(
 Whatever rung you pick, the generated page expects the host to serve these paths (`{base}` is the
 `prefix`, empty by default) — `serve`/`mount` wire them for you:
 
-| Path | Serves |
-| ---- | ------ |
-| `GET {base}/` | the bootstrap HTML (`bootstrap(...)`) |
-| `GET {base}/tree.json` | the authored tree (`tree_json(page)`) |
-| `GET {base}/js/*` | the bundles under `bundles_dir()` |
-| `WS {base}/ws` | a transports endpoint (only when wired) |
-```
+| Path                             | Serves                                      |
+| -------------------------------- | ------------------------------------------- |
+| `GET {base}/`                    | the bootstrap HTML (`bootstrap(...)`)       |
+| `GET {base}/tree.json`           | the authored tree (`tree_json(page)`)       |
+| `GET {base}/js/*`                | the bundles under `bundles_dir()`           |
+| `GET {base}/components/{name}/*` | assets for each selected `ComponentPackage` |
+| `WS {base}/ws`                   | a transports endpoint (only when wired)     |

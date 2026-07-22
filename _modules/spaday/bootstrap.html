@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.bootstrap - spaday v0.2.2</title>
+        <title>spaday.bootstrap - spaday v0.3.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.3.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.3.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -247,6 +247,8 @@
 
 <span class="sd">- ``bundles=[&quot;webawesome&quot;, …]`` — pull a component library&#39;s styles + catalog bundle into ``&lt;head&gt;``</span>
 <span class="sd">  (see :data:`BUNDLES`), instead of copy-pasting its ``&lt;link&gt;``/``&lt;script&gt;`` tags.</span>
+<span class="sd">- ``packages=[&quot;trees&quot;, …]`` — do the same for external component packages selected by descriptor,</span>
+<span class="sd">  ``module:attribute`` Python path, or installed entry-point name.</span>
 <span class="sd">- ``wire=&quot;transports&quot;`` — generate the transports ``Client`` + ``connectStore`` + websocket bootstrap</span>
 <span class="sd">  (what every transports example&#39;s HTML repeats); without it the page just mounts a static tree.</span>
 <span class="sd">- ``tree=&quot;frame&quot;`` — fetch the tree as a transports Snapshot frame at ``…/tree`` (UI tree + model data on</span>
@@ -265,6 +267,7 @@
 <span class="sd">    GET {base}/            -&gt; bootstrap(...)        # this HTML</span>
 <span class="sd">    GET {base}/tree.json   -&gt; tree_json(page)       # or GET {base}/tree -&gt; tree_frame(page) when tree=&quot;frame&quot;</span>
 <span class="sd">    GET {base}/js/*        -&gt; the files under bundles_dir()</span>
+<span class="sd">    GET {base}/components/{package}/* -&gt; a selected component package&#39;s assets</span>
 <span class="sd">    WS  {base}/ws          -&gt; a transports endpoint # only when wire=&quot;transports&quot; (the backend/transports owns it)</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -276,6 +279,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.packages</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentPackage</span><span class="p">,</span> <span class="n">PackageRef</span><span class="p">,</span> <span class="n">package_url_prefix</span><span class="p">,</span> <span class="n">resolve_component_packages</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_frame</span>  <span class="c1"># compiled core (always available); used by tree_frame</span>
 
 <span class="c1">#: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called</span>
@@ -417,6 +421,17 @@
     <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_package_head</span><span class="p">(</span><span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39; nonce=&quot;</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">assets</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">tags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&lt;link rel=&quot;stylesheet&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> href=&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">&quot; /&gt;&#39;</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;css&quot;</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;&lt;script type=&quot;module&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> src=&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">&quot;&gt;&lt;/script&gt;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_wire_block</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The generated JS for ONE wire spec in a multi-model page: a transports ``Client``, a namespaced</span>
 <span class="sd">    ``connectStore`` into the shared ``store``, the ``WebSocket`` feeding it, and a ``&lt;namespace&gt;.connected``</span>
@@ -552,6 +567,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">bundles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">packages</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">PackageRef</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PackageRef</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">wire</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Wire</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/ws&quot;</span><span class="p">,</span>
     <span class="n">tree</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
@@ -579,10 +595,12 @@
 <span class="sd">    specific element (e.g. ``&quot;#widget&quot;``) instead of ``document.body``; the host provides that element.</span>
 <span class="sd">    ``nonce`` stamps the generated ``&lt;script&gt;``/``&lt;link&gt;`` tags with a CSP nonce, so a host with a strict</span>
 <span class="sd">    ``script-src``/``style-src`` policy can allow the snippet. See the module docstring for the rest of the</span>
-<span class="sd">    options and the route contract. ``layout`` selects source-checkout or installed-wheel asset URLs;</span>
-<span class="sd">    by default it follows :func:`bundles_dir`.&quot;&quot;&quot;</span>
+<span class="sd">    options and the route contract. ``packages`` selects external :class:`~spaday.packages.ComponentPackage`</span>
+<span class="sd">    descriptors directly, by ``module:attribute`` path, or by installed entry-point name. ``layout``</span>
+<span class="sd">    selects source-checkout or installed-wheel asset URLs; by default it follows :func:`bundles_dir`.&quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39; nonce=&quot;</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
-    <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_bundle_head</span><span class="p">(</span><span class="n">bundles</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">layout</span><span class="p">),</span> <span class="n">head</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
+    <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_bundle_head</span><span class="p">(</span><span class="n">bundles</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">layout</span><span class="p">),</span> <span class="n">_package_head</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">),</span> <span class="n">head</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span>
     <span class="n">script</span> <span class="o">=</span> <span class="n">_script</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">wire</span><span class="p">,</span> <span class="n">scripts</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">tree</span><span class="p">,</span> <span class="n">reconnect</span><span class="p">,</span> <span class="n">store</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">layout</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment</span><span class="p">:</span>
         <span class="n">head_block</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">head_markup</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">head_markup</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
@@ -635,7 +653,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=000c92bf"></script>
+</div><script src="../../_static/documentation_options.js?v=e259d695"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

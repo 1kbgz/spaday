@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Author a component tree" href="components.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Serve and embed a spaday app - spaday v0.2.2</title>
+        <title>Serve and embed a spaday app - spaday v0.3.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.3.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.2.2</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.3.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -308,6 +308,40 @@ In a source checkout it serves built assets from <code class="docutils literal n
 <code class="docutils literal notranslate"><span class="pre">spaday/extension</span></code> assets. Use <code class="docutils literal notranslate"><span class="pre">layout=&quot;source&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">layout=&quot;installed&quot;</span></code> only to override detection, such
 as when supplying a matching custom <code class="docutils literal notranslate"><span class="pre">js=</span></code> directory.</p>
 </section>
+<section id="install-an-external-component-package">
+<h2>Install an external component package<a class="headerlink" href="#install-an-external-component-package" title="Link to this heading">¶</a></h2>
+<p>External integrations use one <code class="docutils literal notranslate"><span class="pre">ComponentPackage</span></code> descriptor for both <code class="docutils literal notranslate"><span class="pre">&lt;head&gt;</span></code> tags and static routes.
+An application can pass the descriptor directly or select it by Python path:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_trees</span><span class="w"> </span><span class="kn">import</span> <span class="n">package</span> <span class="k">as</span> <span class="n">trees</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">trees</span><span class="p">])</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;spaday_trees:package&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>An integration package defines that descriptor beside its built assets:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentPackage</span>
+
+<span class="n">package</span> <span class="o">=</span> <span class="n">ComponentPackage</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;trees&quot;</span><span class="p">,</span>
+    <span class="n">assets_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;extension&quot;</span><span class="p">,</span>
+    <span class="n">assets</span><span class="o">=</span><span class="p">((</span><span class="s2">&quot;css&quot;</span><span class="p">,</span> <span class="s2">&quot;trees.css&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;trees.js&quot;</span><span class="p">)),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>To make the short form <code class="docutils literal notranslate"><span class="pre">packages=[&quot;trees&quot;]</span></code> available, publish the same object as a Python packaging
+entry point:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[project.entry-points.</span><span class="s2">&quot;spaday.component_packages&quot;</span><span class="k">]</span>
+<span class="n">trees</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;spaday_trees:package&quot;</span>
+</pre></div>
+</div>
+<p>Entry-point packages are opt-in: spaday loads only names selected by the application, never every
+installed integration. All four backends serve each selected descriptor’s <code class="docutils literal notranslate"><span class="pre">assets_dir</span></code> at
+<code class="docutils literal notranslate"><span class="pre">{prefix}/components/{name}/</span></code>; <code class="docutils literal notranslate"><span class="pre">bootstrap</span></code> emits its CSS and module-script URLs from the same <code class="docutils literal notranslate"><span class="pre">assets</span></code>
+list. This registration is host-side only: component tags and props already cross the generic spaday
+tree, so an integration needs no Rust plugin.</p>
+</section>
 <section id="embed-in-an-existing-app">
 <h2>Embed in an existing app<a class="headerlink" href="#embed-in-an-existing-app" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">mount</span></code> adds spaday’s routes to an app <strong>you</strong> already have, under a <code class="docutils literal notranslate"><span class="pre">prefix</span></code> — it touches nothing else.
@@ -399,14 +433,14 @@ the store; you supply the websocket route and run <code class="docutils literal 
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">{base}/js/*</span></code></p></td>
 <td><p>the bundles under <code class="docutils literal notranslate"><span class="pre">bundles_dir()</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">WS</span> <span class="pre">{base}/ws</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">{base}/components/{name}/*</span></code></p></td>
+<td><p>assets for each selected <code class="docutils literal notranslate"><span class="pre">ComponentPackage</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WS</span> <span class="pre">{base}/ws</span></code></p></td>
 <td><p>a transports endpoint (only when wired)</p></td>
 </tr>
 </tbody>
 </table>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
 </div>
 </section>
 </section>
@@ -468,6 +502,7 @@ the store; you supply the websocket route and run <code class="docutils literal 
             <ul>
 <li><a class="reference internal" href="#">Serve and embed a spaday app</a><ul>
 <li><a class="reference internal" href="#serve-a-whole-app">Serve a whole app</a></li>
+<li><a class="reference internal" href="#install-an-external-component-package">Install an external component package</a></li>
 <li><a class="reference internal" href="#embed-in-an-existing-app">Embed in an existing app</a></li>
 <li><a class="reference internal" href="#drop-into-a-host-page">Drop into a host page</a></li>
 <li><a class="reference internal" href="#seed-reactive-state-without-a-server">Seed reactive state without a server</a></li>
@@ -484,7 +519,7 @@ the store; you supply the websocket route and run <code class="docutils literal 
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=000c92bf"></script>
+</div><script src="../../_static/documentation_options.js?v=e259d695"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
