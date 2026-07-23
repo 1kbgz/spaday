@@ -10,7 +10,8 @@ Reactive ``bind`` targets a state *field*, not a node, so it has nothing to reso
 hatches legitimately allow custom attributes).
 """
 
-from typing import Any, Iterator, List, Set, Union
+from collections.abc import Iterator
+from typing import Any
 
 from .component import Component
 
@@ -19,7 +20,7 @@ class ValidationError(ValueError):
     """Raised by :func:`validate` when a component tree has unresolved references."""
 
 
-def _collect_ids(node: dict, ids: Set[str]) -> None:
+def _collect_ids(node: dict, ids: set[str]) -> None:
     id_value = (node.get("props") or {}).get("id")
     if isinstance(id_value, dict) and isinstance(id_value.get("Str"), str):
         ids.add(id_value["Str"])
@@ -59,7 +60,7 @@ def _action_refs(action: Any) -> Iterator[str]:
             yield from _action_refs(action[key])
 
 
-def _collect_refs(node: dict, refs: List[str]) -> None:
+def _collect_refs(node: dict, refs: list[str]) -> None:
     for action in (node.get("events") or {}).values():
         refs.extend(_action_refs(action))
     for children in (node.get("slots") or {}).values():
@@ -67,15 +68,15 @@ def _collect_refs(node: dict, refs: List[str]) -> None:
             _collect_refs(child, refs)
 
 
-def validate(tree: Union[Component, dict]) -> None:
+def validate(tree: Component | dict) -> None:
     """Raise :class:`ValidationError` if any ``by_id(...)`` reference in the tree's actions is unresolved.
 
     Pass a :class:`~spaday.component.Component` (or its serialized node dict). Returns ``None`` on success.
     """
     node = tree.to_node() if isinstance(tree, Component) else tree
-    ids: Set[str] = set()
+    ids: set[str] = set()
     _collect_ids(node, ids)
-    refs: List[str] = []
+    refs: list[str] = []
     _collect_refs(node, refs)
     missing = sorted({ref for ref in refs if ref not in ids})
     if missing:

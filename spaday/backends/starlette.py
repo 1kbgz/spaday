@@ -13,9 +13,10 @@ stays light.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Awaitable, Callable, Optional, Sequence, Union
+from typing import TYPE_CHECKING
 
 from ..bootstrap import AssetLayout, Page, Wire, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
@@ -49,20 +50,20 @@ def mount(
     *,
     prefix: str = "",
     routes: Sequence = (),
-    html: Optional[Union[str, Path]] = None,
-    js: Optional[Union[str, Path]] = None,
-    layout: Optional[AssetLayout] = None,
+    html: str | Path | None = None,
+    js: str | Path | None = None,
+    layout: AssetLayout | None = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
-    packages: Union[PackageRef, Sequence[PackageRef]] = (),
-    wire: Optional[Union[str, Sequence[Union[dict, Wire]]]] = None,
+    packages: PackageRef | Sequence[PackageRef] = (),
+    wire: str | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
     tree: str = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     head: str = "",
-    store: Optional[dict] = None,
-    nonce: Optional[str] = None,
+    store: dict | None = None,
+    nonce: str | None = None,
 ) -> Starlette:
     """Add spaday's routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under
     ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``
@@ -118,7 +119,7 @@ def mount(
     return app
 
 
-def serve(page: Page, *, background: Sequence[Awaitable] = (), lifespan: Optional[Callable] = None, **opts) -> Starlette:
+def serve(page: Page, *, background: Sequence[Awaitable] = (), lifespan: Callable | None = None, **opts) -> Starlette:
     """Create a Starlette app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the
     app's lifetime (or pass a custom ``lifespan`` for ordered startup, e.g. a clustering relay); all other
     keyword options are :func:`mount`'s (``prefix``/``routes``/``html``/``js``/``title``/``bundles``/``packages``/

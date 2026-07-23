@@ -1,5 +1,5 @@
 import enum
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -18,7 +18,7 @@ class Settings(BaseModel):
     ratio: float = 1.0
     color: Color = Color.red
     mode: Literal["a", "b"] = "a"
-    note: Optional[str] = None
+    note: str | None = None
 
 
 def _controls(model, **kw):

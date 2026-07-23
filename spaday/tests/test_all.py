@@ -28,7 +28,7 @@ def test_identical_trees_produce_empty_patch():
 
 
 def test_keyed_children_reorder():
-    item = lambda k: {"tag": "wa-card", "key": k}  # noqa: E731
+    item = lambda k: {"tag": "wa-card", "key": k}
     old = json.dumps({"tag": "spa-list", "slots": {"default": [item("a"), item("b"), item("c")]}})
     new = json.dumps({"tag": "spa-list", "slots": {"default": [item("c"), item("a"), item("b")]}})
     patch = diff(old, new)

@@ -2,9 +2,9 @@ import pytest
 
 pytest.importorskip("anywidget")  # the optional `widget` extra
 
-import spaday  # noqa: E402
-from spaday import Toggle, by_id, element  # noqa: E402
-from spaday.widget import Widget  # noqa: E402
+import spaday
+from spaday import Toggle, by_id, element
+from spaday.widget import Widget
 
 
 def test_serializes_the_tree():

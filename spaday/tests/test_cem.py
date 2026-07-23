@@ -13,7 +13,7 @@ FIXTURE = str(FIXTURES / "webawesome.cem.json")
 def _module():
     """Generate the fixture's components and exec them into a fresh namespace."""
     ns: dict = {}
-    exec(generate(FIXTURE), ns)
+    exec(generate(FIXTURE), ns)  # noqa: S102
     return ns
 
 

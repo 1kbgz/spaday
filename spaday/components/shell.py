@@ -17,12 +17,12 @@ becomes a left or right gutter by where it sits in a :class:`Body`.
 """
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from ..component import Child, Component, element
 from .webawesome import WaTab, WaTabPanel
 
-__all__ = ["App", "AppShell", "Region", "Nav", "Body", "Gutter", "Main", "Footer", "Column", "Stack", "Row", "Toolbar", "Show", "Tabs", "Table"]
+__all__ = ["App", "AppShell", "Body", "Column", "Footer", "Gutter", "Main", "Nav", "Region", "Row", "Show", "Stack", "Table", "Tabs", "Toolbar"]
 
 
 class App(Component):
@@ -51,7 +51,7 @@ class Gutter(Component):
 
     tag = "spa-gutter"
 
-    def __init__(self, *children: Child, width: Optional[str] = None, gap: Optional[str] = None, key: Optional[str] = None, **props: Any) -> None:
+    def __init__(self, *children: Child, width: str | None = None, gap: str | None = None, key: str | None = None, **props: Any) -> None:
         super().__init__(*children, key=key, props={"width": width, "gap": gap}, **props)
 
 
@@ -102,8 +102,8 @@ class AppShell:
     ``AppShell(containers={Region.MAIN: {"style": "padding:0;overflow:hidden"}})``.
     """
 
-    def __init__(self, *, containers: Optional[Dict[Region, Dict[str, Any]]] = None) -> None:
-        self._items: Dict[Region, List[Tuple[float, int, Child]]] = {region: [] for region in Region}
+    def __init__(self, *, containers: dict[Region, dict[str, Any]] | None = None) -> None:
+        self._items: dict[Region, list[tuple[float, int, Child]]] = {region: [] for region in Region}
         self._containers = {Region(region): dict(props) for region, props in (containers or {}).items()}
         self._count = 0  # insertion sequence, so equal orders keep add() order
 
@@ -114,17 +114,17 @@ class AppShell:
             self._count += 1
         return self
 
-    def _in(self, region: Region) -> List[Child]:
+    def _in(self, region: Region) -> list[Child]:
         return [c for _, _, c in sorted(self._items[region], key=lambda item: (item[0], item[1]))]
 
     @staticmethod
-    def _sides(left: List[Child], right: List[Child]) -> List[Child]:
+    def _sides(left: list[Child], right: list[Child]) -> list[Child]:
         """Left items, then right items pushed to the far edge (a flex spacer between)."""
         return [*left, element("div", style="flex:1"), *right] if right else list(left)
 
     def build(self) -> App:
         """The composed ``App`` tree (call again after further ``add``\\s for an updated tree)."""
-        children: List[Child] = []
+        children: list[Child] = []
         header_left = self._in(Region.HEADER_LEFT)
         header_center = self._in(Region.HEADER_CENTER)
         header_right = self._in(Region.HEADER_RIGHT)
@@ -135,7 +135,7 @@ class AppShell:
         )
         if header:
             children.append(Nav(*header))
-        body: List[Component] = []
+        body: list[Component] = []
         gutter_left = self._in(Region.GUTTER_LEFT)
         if gutter_left:
             body.append(Gutter(*gutter_left, **self._containers.get(Region.GUTTER_LEFT, {})))
@@ -158,7 +158,7 @@ class Column(Component):
 
     tag = "spa-stack"
 
-    def __init__(self, *children: Child, gap: Optional[str] = None, align: Optional[str] = None, key: Optional[str] = None, **props: Any) -> None:
+    def __init__(self, *children: Child, gap: str | None = None, align: str | None = None, key: str | None = None, **props: Any) -> None:
         super().__init__(*children, key=key, props={"gap": gap, "align": align}, **props)
 
 
@@ -174,10 +174,10 @@ class Row(Component):
     def __init__(
         self,
         *children: Child,
-        gap: Optional[str] = None,
-        align: Optional[str] = None,
-        justify: Optional[str] = None,
-        key: Optional[str] = None,
+        gap: str | None = None,
+        align: str | None = None,
+        justify: str | None = None,
+        key: str | None = None,
         **props: Any,
     ) -> None:
         super().__init__(*children, key=key, props={"gap": gap, "align": align, "justify": justify}, **props)
@@ -191,10 +191,10 @@ class Toolbar(Component):
     def __init__(
         self,
         *children: Child,
-        gap: Optional[str] = None,
-        align: Optional[str] = None,
-        justify: Optional[str] = None,
-        key: Optional[str] = None,
+        gap: str | None = None,
+        align: str | None = None,
+        justify: str | None = None,
+        key: str | None = None,
         **props: Any,
     ) -> None:
         super().__init__(*children, key=key, props={"gap": gap, "align": align, "justify": justify}, **props)
@@ -217,7 +217,7 @@ class Show(Component):
 
     tag = "spa-show"
 
-    def __init__(self, *children: Child, field: Optional[str] = None, when: Optional[Any] = None, key: Optional[str] = None, **props: Any) -> None:
+    def __init__(self, *children: Child, field: str | None = None, when: Any | None = None, key: str | None = None, **props: Any) -> None:
         super().__init__(*children, key=key, props={"style": "display:contents"}, **props)
         if field is not None:
             self._bindings["when"] = {"field": field, "mode": "one-way"}
@@ -248,10 +248,10 @@ class Tabs(Component):
 
     tag = "wa-tab-group"
 
-    def __init__(self, *, active: Optional[str] = None, placement: Optional[str] = None, key: Optional[str] = None, **props: Any) -> None:
+    def __init__(self, *, active: str | None = None, placement: str | None = None, key: str | None = None, **props: Any) -> None:
         super().__init__(key=key, props={"active": active, "placement": placement}, **props)
 
-    def tab(self, label: str, *content: Child, name: Optional[str] = None) -> "Tabs":
+    def tab(self, label: str, *content: Child, name: str | None = None) -> "Tabs":
         """Add a tab: a ``wa-tab`` header labelled ``label`` and a ``wa-tab-panel`` holding ``content``,
         linked by ``name`` (a slug of ``label`` by default)."""
         name = name or _tab_name(label)
@@ -273,5 +273,5 @@ class Table(Component):
 
     tag = "spa-table"
 
-    def __init__(self, *, columns: Optional[list] = None, rows: Optional[list] = None, key: Optional[str] = None, **props: Any) -> None:
+    def __init__(self, *, columns: list | None = None, rows: list | None = None, key: str | None = None, **props: Any) -> None:
         super().__init__(key=key, props={"columns": columns, "rows": rows}, **props)

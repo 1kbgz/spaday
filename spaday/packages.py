@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from importlib import import_module
 from importlib.metadata import entry_points
 from pathlib import Path, PurePosixPath
-from typing import Sequence, Union
 
 ENTRY_POINT_GROUP = "spaday.component_packages"
 _PACKAGE_NAME = re.compile(r"[a-z0-9][a-z0-9._-]*\Z")
@@ -42,7 +42,7 @@ class ComponentPackage:
         object.__setattr__(self, "assets", tuple(normalized))
 
 
-PackageRef = Union[ComponentPackage, str]
+PackageRef = ComponentPackage | str
 
 
 def package_url_prefix(package: ComponentPackage, base: str = "") -> str:
@@ -77,7 +77,7 @@ def _from_entry_point(name: str) -> ComponentPackage:
     return _require_package(matches[0].load(), f"component package entry point {name!r}")
 
 
-def resolve_component_packages(packages: Union[PackageRef, Sequence[PackageRef]] = ()) -> tuple[ComponentPackage, ...]:
+def resolve_component_packages(packages: PackageRef | Sequence[PackageRef] = ()) -> tuple[ComponentPackage, ...]:
     """Resolve descriptors, ``module:attribute`` paths, or installed entry-point names.
 
     Entry points are loaded only when explicitly named; installing an integration
