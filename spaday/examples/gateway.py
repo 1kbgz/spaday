@@ -40,6 +40,7 @@ import perspective
 import uvicorn
 from perspective.handlers.starlette import PerspectiveStarletteHandler
 from pydantic import BaseModel, Field, ValidationError
+from spaday_perspective import PerspectivePanel
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket
@@ -48,7 +49,6 @@ from spaday import element
 from spaday.actions import CallEndpoint, NamedJs, cond, eq, field, obj
 from spaday.backends.starlette import serve
 from spaday.components.form import form
-from spaday.components.perspective import PerspectivePanel
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack
 from spaday.components.webawesome import WaButton, WaOption, WaSelect, WaSwitch
 
@@ -210,7 +210,7 @@ def page() -> object:
     )
 
 
-# No hand-written HTML: serve() generates the bootstrap (WebAwesome + Perspective bundles, the seeded
+# No hand-written HTML: serve() generates the bootstrap (WebAwesome + Perspective package, the seeded
 # signal store the controls bind to, and the clear-blotter NamedJs handler module) and mounts `page`.
 app = serve(
     page,
@@ -219,7 +219,8 @@ app = serve(
         Route("/api/clear", clear_orders, methods=["POST"]),
         WebSocketRoute("/perspective", psp_data),
     ],
-    bundles=["webawesome", "perspective"],
+    bundles=["webawesome"],
+    packages=["perspective"],
     store={"symbol": "AAPL", "side": "buy", "qty": 100, "price": 100.0, "dark": True, "view": "blotter"},
     scripts=["/js/dist/cdn/examples/gateway.js"],
     head=THEME_CSS,

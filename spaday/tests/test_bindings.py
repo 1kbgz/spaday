@@ -44,14 +44,14 @@ def test_compute_authoring_and_diff_round_trip():
 
 def test_compute_with_cond_selects_a_value_by_a_field():
     # a boolean `dark` field driving a string theme prop — what a light/dark switch needs for canvas widgets
-    node = element("perspective-panel").compute("theme", cond(field("dark"), "dark", "light")).to_node()
+    node = element("canvas-widget").compute("theme", cond(field("dark"), "dark", "light")).to_node()
     assert node["bindings"]["theme"]["compute"] == {
         "expr": "cond",
         "test": {"expr": "field", "name": "dark"},
         "then": {"expr": "lit", "value": "dark"},
         "else": {"expr": "lit", "value": "light"},
     }
-    j = element("perspective-panel").compute("theme", cond(field("dark"), "dark", "light")).to_json()
+    j = element("canvas-widget").compute("theme", cond(field("dark"), "dark", "light")).to_json()
     assert json.loads(spaday.apply(j, spaday.diff(j, j))) == json.loads(j)  # rides the core diff/apply
 
 

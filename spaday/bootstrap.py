@@ -106,7 +106,6 @@ BUNDLES = {
         ("js", "/dist/cdn/examples/webawesome.js"),
     ],
     "lightweight-charts": [("js", "/dist/cdn/wrappers/lightweight-chart.js")],
-    "perspective": [("js", "/dist/cdn/wrappers/perspective-workspace.js")],
 }
 
 _INSTALLED_BUNDLES = {
@@ -115,7 +114,6 @@ _INSTALLED_BUNDLES = {
         ("js", "/cdn/examples/webawesome.js"),
     ],
     "lightweight-charts": [("js", "/cdn/wrappers/lightweight-chart.js")],
-    "perspective": [("js", "/cdn/wrappers/perspective-workspace.js")],
 }
 
 

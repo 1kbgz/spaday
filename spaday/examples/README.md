@@ -24,7 +24,8 @@ with **transports** as the live wire.
   (`/perspective`, a `perspective.Server`); spaday/transports sync only a small **config** model
   (`ws_url`, `tables`, `layout` + per-viewer views). So the server can **push** a new view at any time —
   the "Push a new view" button flips the workspace layout for *every* connected tab (not a one-time REST
-  call). Needs `pip install "spaday[perspective]"` and the perspective JS (built into the wrapper bundle).
+  call). Needs `pip install "spaday[perspective]"`; the extra installs `spaday-perspective`, whose package
+  registration supplies the browser bundle.
 
 ## Run
 
@@ -145,8 +146,7 @@ right control gutter, a footer — it's the **REST + Perspective** path a real g
 - **A channel control** — "Clear blotter" is a declarative `CallEndpoint` POST (clears with `replace([])`
   so the empty state pushes to the blotter immediately).
 
-The only glue: "Send order" reads the form's store and POSTs it via a `NamedJs` handler, because composing
-a whole object as a `CallEndpoint` body isn't expressible in the action DSL yet — that's the roadmap's
-`CallEndpoint(body=form.value)`. Everything else is declarative. Needs `pip install "spaday[perspective]"`.
+The remaining glue is the `clear-blotter` `NamedJs` repaint handler; form submission, theme, and layout
+changes are declarative. Needs `pip install "spaday[perspective]"`.
 
 Run: `python -m spaday.examples.gateway` → http://127.0.0.1:8006

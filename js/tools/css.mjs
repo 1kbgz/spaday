@@ -12,17 +12,6 @@ const DEFAULT_RESOLVER = {
       return specifier;
     }
 
-    if (specifier.startsWith("perspective-viewer-")) {
-      const viewerCssDir = path.resolve(
-        "node_modules/@perspective-dev/viewer/dist/css",
-      );
-      const normalized = specifier.replace(/^perspective-viewer-/, "");
-      const normalizedPath = path.join(viewerCssDir, normalized);
-      if (fs.existsSync(normalizedPath)) {
-        return normalizedPath;
-      }
-      return path.join(viewerCssDir, specifier);
-    }
     return path.resolve(path.dirname(originatingFile), specifier);
   },
 };

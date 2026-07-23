@@ -55,6 +55,8 @@ def test_bootstrap_uses_the_same_descriptor_for_package_asset_urls(python_path_p
 def test_rejects_unsafe_descriptors_and_duplicate_selection():
     with pytest.raises(ValueError, match="name"):
         ComponentPackage("Not Safe", ".", (("js", "index.js"),))
+    with pytest.raises(ValueError, match="asset kind"):
+        ComponentPackage("safe", ".", (("image", "index.png"),))
     with pytest.raises(ValueError, match="relative"):
         ComponentPackage("safe", ".", (("js", "../index.js"),))
     package = ComponentPackage("same", ".", (("js", "index.js"),))

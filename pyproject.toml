@@ -38,7 +38,7 @@ form = ["pydantic>=2"]  # schema-generated forms: spaday.components.form turns a
 widget = ["anywidget"]
 examples = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets"]  # pydantic: the example models + form()
 cluster = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
-perspective = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6", "superstore>=0.3.1"]  # the omnibus Perspective panel (Mode B: a perspective.Server over its own ws); superstore generates the orders + chart series
+perspective = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6", "spaday-perspective>=0.1.0", "superstore>=0.3.1"]  # external panel + Mode B server; superstore generates the orders + chart series
 aiohttp = ["aiohttp"]  # the aiohttp backend (spaday.backends.aiohttp)
 flask = ["flask"]  # the Flask backend (spaday.backends.flask)
 tornado = ["tornado"]  # the Tornado backend (spaday.backends.tornado)

@@ -41,6 +41,7 @@ import uvicorn
 from perspective import Server as PerspectiveServer
 from perspective.handlers.starlette import PerspectiveStarletteHandler
 from pydantic import BaseModel, Field
+from spaday_perspective import PerspectivePanel
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket
@@ -51,7 +52,6 @@ from spaday.actions import CallEndpoint, SendPatch, Sequence, SetProp, Toggle, b
 from spaday.backends.starlette import serve
 from spaday.components.form import FormField, form
 from spaday.components.lightweight_charts import LightweightChart
-from spaday.components.perspective import PerspectivePanel
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Show, Stack, Toolbar
 from spaday.components.webawesome import WaButton, WaCallout, WaCard, WaOption, WaSelect, WaSwitch
 
@@ -488,7 +488,8 @@ app = serve(
         WebSocketRoute("/perspective", blotter.data_endpoint),  # Perspective's own data socket (Mode B)
         Route("/perspective/relayout", blotter.relayout, methods=["POST"]),
     ],
-    bundles=["webawesome", "lightweight-charts", "perspective"],
+    bundles=["webawesome", "lightweight-charts"],
+    packages=["perspective"],
     head=TYPOGRAPHY_CSS,
     title="spaday — omnibus example",
 )

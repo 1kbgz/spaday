@@ -41,6 +41,17 @@ pip install spaday            # core: author + serialize component trees
 pip install "spaday[widget]"  # + the Jupyter / anywidget host
 ```
 
+## Component ecosystem
+
+Install only the integrations an application uses. Each package provides typed Python components and
+registers its browser assets with spaday:
+
+- [spaday-trees](https://github.com/1kbgz/spaday-trees) — virtualized project and repository trees from [Pierre](https://trees.software/docs).
+- [spaday-spectrum](https://github.com/1kbgz/spaday-spectrum) — [Adobe Spectrum Web Components](https://opensource.adobe.com/spectrum-web-components/).
+- [spaday-perspective](https://github.com/1kbgz/spaday-perspective) — live [Perspective](https://perspective-dev.github.io) workspaces and datagrids.
+
+Select an installed integration by its entry-point name, for example `serve(page, packages=["trees"])`.
+
 ## Documentation
 
 - **[Tutorial](docs/src/tutorial.md)** — build your first interactive UI, step by step (in a notebook).

@@ -45,7 +45,7 @@ def test_scripts_are_injected():
 
 def test_unknown_bundle_raises():
     with pytest.raises(ValueError):
-        bootstrap(bundles=["nope"])
+        bootstrap(bundles=["perspective"])
 
 
 def test_tree_json_serializes_and_recomputes_per_call():
@@ -73,14 +73,13 @@ def test_source_bundles_dir_points_at_the_js_bundles():
 
 def test_installed_layout_uses_packaged_assets():
     assert bundles_dir("installed").name == "extension"
-    html = bootstrap(layout="installed", bundles=["webawesome", "perspective"], wire="transports")
+    html = bootstrap(layout="installed", bundles=["webawesome"], wire="transports")
     assert 'from "/js/cdn/index.js"' in html
     assert 'module_or_path: "/js/pkg/spaday_bg.wasm"' in html
     assert 'from "/js/transports/cdn/index.js"' in html
     assert 'module_or_path: "/js/transports/pkg/transports_bg.wasm"' in html
     assert 'href="/js/css/webawesome.css"' in html
     assert 'src="/js/cdn/examples/webawesome.js"' in html
-    assert 'src="/js/cdn/wrappers/perspective-workspace.js"' in html
     assert "node_modules" not in html and "/dist/" not in html
 
 
