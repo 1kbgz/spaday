@@ -10,6 +10,5 @@ for an *imperative* library (TradingView lightweight-charts), bound via a hand-a
 from . import shell, webawesome
 from .form import FormField, form  # noqa: F401  (form-from-schema generator + per-field overrides)
 from .lightweight_charts import LightweightChart  # noqa: F401  (an imperative-library wrapper)
-from .perspective import PerspectivePanel  # noqa: F401  (Perspective workspace wrapper, config over transports)
 from .shell import *  # noqa: F401,F403  (high-level layout/shell components)
 from .webawesome import *  # noqa: F401,F403  (re-export the generated component classes)

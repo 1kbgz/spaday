@@ -54,10 +54,6 @@
   },
   "devDependencies": {
     "@1kbgz/transports": "^0.3.0",
-    "@perspective-dev/client": "^4.5.1",
-    "@perspective-dev/viewer": "^4.5.1",
-    "@perspective-dev/viewer-datagrid": "^4.5.1",
-    "@perspective-dev/workspace": "^4.5.1",
     "@playwright/test": "^1.60.0",
     "cpy": "^13.2.2",
     "esbuild": "^0.28.0",

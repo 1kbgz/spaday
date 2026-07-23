@@ -109,4 +109,5 @@ def test_omnibus_serves_the_namespaced_multi_wire_page():
         page = client.get("/")
         assert page.status_code == 200
         assert "connectStore(store, client0" in page.text and '"global"' in page.text  # several namespaced wires
+        assert 'src="/components/perspective/cdn/index.js"' in page.text  # external package, not a core bundle
         assert client.get("/tree.json").status_code == 200
