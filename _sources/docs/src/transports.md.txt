@@ -106,12 +106,14 @@ to the panel with a computed `config` prop, so a server push re-restores the wor
 
 ```python
 from spaday import field, obj
-from spaday.components.perspective import PerspectivePanel
+from spaday_perspective import PerspectivePanel
 
 PerspectivePanel().compute("config", obj({
     "ws_url": field("cfg.ws_url"), "tables": field("cfg.tables"), "layout": field("cfg.layout"),
 }))
 ```
+
+Install `spaday-perspective` and select its assets with `packages=["perspective"]` when serving the page.
 
 See `spaday/examples/gateway.py` (no transports — REST + Perspective's own ws) and the omnibus for the
 full pattern.

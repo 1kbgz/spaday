@@ -344,13 +344,14 @@ layout) so it’s mirrored whole instead of one store field per key.</p></li>
 only a small <strong>config</strong> model (server, tables, layout). Mirror the config with <code class="docutils literal notranslate"><span class="pre">flatten=False</span></code> and feed it
 to the panel with a computed <code class="docutils literal notranslate"><span class="pre">config</span></code> prop, so a server push re-restores the workspace for every tab:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">field</span><span class="p">,</span> <span class="n">obj</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.perspective</span><span class="w"> </span><span class="kn">import</span> <span class="n">PerspectivePanel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_perspective</span><span class="w"> </span><span class="kn">import</span> <span class="n">PerspectivePanel</span>
 
 <span class="n">PerspectivePanel</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span>
     <span class="s2">&quot;ws_url&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;cfg.ws_url&quot;</span><span class="p">),</span> <span class="s2">&quot;tables&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;cfg.tables&quot;</span><span class="p">),</span> <span class="s2">&quot;layout&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;cfg.layout&quot;</span><span class="p">),</span>
 <span class="p">}))</span>
 </pre></div>
 </div>
+<p>Install <code class="docutils literal notranslate"><span class="pre">spaday-perspective</span></code> and select its assets with <code class="docutils literal notranslate"><span class="pre">packages=[&quot;perspective&quot;]</span></code> when serving the page.</p>
 <p>See <code class="docutils literal notranslate"><span class="pre">spaday/examples/gateway.py</span></code> (no transports — REST + Perspective’s own ws) and the omnibus for the
 full pattern.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>
