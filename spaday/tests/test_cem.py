@@ -39,15 +39,15 @@ def test_generated_class_builds_a_node():
 
 def test_typed_signatures_rendered():
     code = generate(FIXTURE)
-    assert 'size: Optional[Literal["small", "medium", "large"]] = None' in code
-    assert "name: Optional[str] = None" in code  # `string | null` -> Optional
-    assert "checked: Optional[bool] = None" in code
+    assert 'size: Literal["small", "medium", "large"] | None = None' in code
+    assert "name: str | None = None" in code
+    assert "checked: bool | None = None" in code
 
 
 def test_python_keyword_attribute_is_escaped():
     # wa-button has a `for` attribute; the param is `for_`, mapped back to the `for` prop.
     code = generate(FIXTURE)
-    assert "for_: Optional[str] = None" in code
+    assert "for_: str | None = None" in code
     node = _module()["WaButton"](for_="field").to_node()
     assert node["props"]["for"] == {"Str": "field"}
 
