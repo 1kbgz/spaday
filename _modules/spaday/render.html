@@ -259,7 +259,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">html</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_SLOT</span><span class="p">,</span> <span class="n">Component</span>
 
@@ -269,7 +269,7 @@
 
 <div class="viewcode-block" id="render_html">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.render_html">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">render_html</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Component</span><span class="p">,</span> <span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_html</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Component</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Render a component (or an already-built node dict) to a light-DOM HTML string for hydration.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">_render</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">to_node</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">,</span> <span class="n">Component</span><span class="p">)</span> <span class="k">else</span> <span class="n">tree</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
