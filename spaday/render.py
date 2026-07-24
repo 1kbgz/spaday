@@ -18,7 +18,7 @@ What is intentionally *not* rendered here:
 """
 
 import html
-from typing import Any, Union
+from typing import Any
 
 from .component import DEFAULT_SLOT, Component
 
@@ -26,7 +26,7 @@ from .component import DEFAULT_SLOT, Component
 _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
 
 
-def render_html(tree: Union[Component, dict]) -> str:
+def render_html(tree: Component | dict) -> str:
     """Render a component (or an already-built node dict) to a light-DOM HTML string for hydration."""
     return _render(tree.to_node() if isinstance(tree, Component) else tree, None)
 

@@ -4,11 +4,11 @@ import pytest
 
 pytest.importorskip("aiohttp")  # the aiohttp backend — aiohttp is not a spaday dependency
 
-from aiohttp.test_utils import TestClient, TestServer  # noqa: E402
+from aiohttp.test_utils import TestClient, TestServer
 
-from spaday.backends.aiohttp import serve  # noqa: E402
-from spaday.components.shell import Main  # noqa: E402
-from spaday.packages import ComponentPackage  # noqa: E402
+from spaday.backends.aiohttp import serve
+from spaday.components.shell import Main
+from spaday.packages import ComponentPackage
 
 
 def test_serve_hosts_page_and_tree(tmp_path):

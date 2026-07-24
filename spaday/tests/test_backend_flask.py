@@ -2,9 +2,9 @@ import pytest
 
 pytest.importorskip("flask")  # the Flask (WSGI) backend — flask is not a spaday dependency
 
-from spaday.backends.flask import serve  # noqa: E402
-from spaday.components.shell import Main  # noqa: E402
-from spaday.packages import ComponentPackage  # noqa: E402
+from spaday.backends.flask import serve
+from spaday.components.shell import Main
+from spaday.packages import ComponentPackage
 
 
 def test_serve_hosts_page_and_tree(tmp_path):

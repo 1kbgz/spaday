@@ -16,8 +16,9 @@ transports-hosted domain model: use this `Widget` to render a spaday tree direct
 `Session` over the comm (`transports.serve_comm`) when the data is a transports model the tree reads.
 """
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union
+from typing import Any
 
 import anywidget
 import traitlets
@@ -30,7 +31,7 @@ _EXT = Path(__file__).parent / "extension"
 _ESM = _EXT / "cdn" / "widget.webawesome.js"
 _CSS = _EXT / "css" / "webawesome.css"  # WebAwesome's base + theme tokens (import chain resolved)
 
-Tree = Union[Component, dict]
+Tree = Component | dict
 
 
 def _to_node(tree: Tree) -> dict:
@@ -47,11 +48,11 @@ class Widget(anywidget.AnyWidget):
     # two-way-bound control updates Python here, and a Python-side change updates the bound props.
     _state = traitlets.Dict().tag(sync=True)
 
-    def __init__(self, tree: Tree, state: Optional[dict] = None, **kwargs: Any) -> None:
+    def __init__(self, tree: Tree, state: dict | None = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._tree = _to_node(tree)
         self._state = dict(state or {})
-        self._intent_handlers: List[Callable[[dict], None]] = []
+        self._intent_handlers: list[Callable[[dict], None]] = []
         self.on_msg(self._on_msg)
 
     def update(self, tree: Tree) -> None:

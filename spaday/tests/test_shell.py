@@ -32,7 +32,7 @@ def test_shell_composes_a_page_and_round_trips_through_core():
 
 
 def test_shell_re_exported_from_components_package():
-    import spaday.components as components
+    from spaday import components
 
     assert components.App is App
     assert components.Stack is Stack

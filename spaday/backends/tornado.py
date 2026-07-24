@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Awaitable, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Awaitable, Optional, Sequence, Union
+from typing import TYPE_CHECKING
 
 from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
@@ -30,12 +31,12 @@ def mount(
     *,
     prefix: str = "",
     routes: Sequence = (),
-    js: Optional[Union[str, Path]] = None,
-    layout: Optional[AssetLayout] = None,
+    js: str | Path | None = None,
+    layout: AssetLayout | None = None,
     title: str = "spaday",
     bundles: Sequence[str] = (),
-    packages: Union[PackageRef, Sequence[PackageRef]] = (),
-    wire: Optional[str] = None,
+    packages: PackageRef | Sequence[PackageRef] = (),
+    wire: str | None = None,
     ws: str = "/ws",
     tree: str = "json",
     reconnect: bool = False,
