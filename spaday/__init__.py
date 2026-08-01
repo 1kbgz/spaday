@@ -37,63 +37,63 @@ from .validate import ValidationError, validate
 __version__ = "0.4.0"
 
 __all__ = [
-    "__version__",
-    # component-tree diff/patch (compiled core)
-    "diff",
-    "apply",
-    # framed wire (tree/patch over transports' Frame + JSON/msgpack codecs)
-    "encode_frame",
-    "decode_frame",
-    # CEM binding generator
-    "parse_cem",
-    "generate",
-    "classes",
-    "Component",
-    "element",
-    "Text",
-    "Strong",
-    "Paragraph",
-    # server-side rendering (light-DOM HTML for first paint; client hydrates)
-    "render_html",
-    # a typed transports wire spec for a multi-model page (serve/bootstrap wire=[…])
-    "Wire",
-    # external component-package assets (direct descriptor, Python path, or entry point)
-    "ComponentPackage",
-    "resolve_component_packages",
-    "discover_component_packages",
     # theming token reference (css custom properties are set via Component.css)
     "SHELL_TOKENS",
-    # build-time validation
-    "validate",
-    "ValidationError",
-    # action DSL (declarative behavior, run in the browser)
-    "actions",
-    "SetProp",
-    "Toggle",
-    "SetField",
-    "ToggleField",
-    "Sequence",
-    "Emit",
-    "SendPatch",
-    "If",
     "CallEndpoint",
+    "Component",
+    # external component-package assets (direct descriptor, Python path, or entry point)
+    "ComponentPackage",
+    "Emit",
+    "If",
     "NamedJs",
-    "lit",
-    "event_value",
-    "not_",
-    "prop",
-    "field",
-    "eq",
-    "all_",
-    "any_",
-    "concat",
-    "cond",
-    "obj",
-    "this",
-    "by_id",
-    "bind",
+    "Paragraph",
+    "SendPatch",
+    "Sequence",
+    "SetField",
+    "SetProp",
+    "Strong",
+    "Text",
+    "Toggle",
+    "ToggleField",
+    "ValidationError",
     # anywidget host (optional; requires the `widget` extra)
     "Widget",
+    # a typed transports wire spec for a multi-model page (serve/bootstrap wire=[…])
+    "Wire",
+    "__version__",
+    # action DSL (declarative behavior, run in the browser)
+    "actions",
+    "all_",
+    "any_",
+    "apply",
+    "bind",
+    "by_id",
+    "classes",
+    "concat",
+    "cond",
+    "decode_frame",
+    # component-tree diff/patch (compiled core)
+    "diff",
+    "discover_component_packages",
+    "element",
+    # framed wire (tree/patch over transports' Frame + JSON/msgpack codecs)
+    "encode_frame",
+    "eq",
+    "event_value",
+    "field",
+    "generate",
+    "lit",
+    "not_",
+    "obj",
+    # CEM binding generator
+    "parse_cem",
+    "prop",
+    # server-side rendering (light-DOM HTML for first paint; client hydrates)
+    "render_html",
+    "resolve_component_packages",
+    "this",
+    # build-time validation
+    "validate",
 ]
 
 

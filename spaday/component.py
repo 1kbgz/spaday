@@ -11,7 +11,7 @@ the runtime interprets the action in the browser on the DOM event, with no round
 """
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Union
 
 #: The conventional name of a component's unnamed (default) slot (matches the Rust core).
 DEFAULT_SLOT = "default"
@@ -23,7 +23,7 @@ Child = Union["Component", dict, str]
 def _attr_name(name: str) -> str:
     """A Python kwarg → its attribute name: drop one trailing underscore so reserved words work
     (``class_`` → ``class``, ``for_`` → ``for``)."""
-    return name[:-1] if name.endswith("_") else name
+    return name.removesuffix("_")
 
 
 def _tag(value: Any) -> Any:
@@ -51,8 +51,7 @@ def _as_node(child: Child) -> dict:
 
 def _css_name(name: str) -> str:
     """A Python kwarg → its CSS name: drop one trailing ``_``, then ``_`` → ``-`` (``font_size`` → ``font-size``)."""
-    if name.endswith("_"):
-        name = name[:-1]
+    name = name.removesuffix("_")
     return name.replace("_", "-")
 
 
@@ -68,16 +67,16 @@ class Component:
 
     tag: str = ""
 
-    def __init__(self, *children: Child, key: Optional[str] = None, props: Optional[Dict[str, Any]] = None, **attrs: Any) -> None:
+    def __init__(self, *children: Child, key: str | None = None, props: dict[str, Any] | None = None, **attrs: Any) -> None:
         self._key = key
         merged = dict(props or {})  # typed props (from a subclass) + generic keyword props (id, style, …)
         merged.update({_attr_name(k): v for k, v in attrs.items()})
-        self._props: Dict[str, Any] = {k: v for k, v in merged.items() if v is not None}
-        self._slots: Dict[str, List[Child]] = {}
-        self._events: Dict[str, dict] = {}
-        self._bindings: Dict[str, dict] = {}
-        self._style: Dict[str, str] = {}  # inline CSS declarations + custom properties (theming)
-        self._classes: List[str] = []  # CSS classes (variants / states)
+        self._props: dict[str, Any] = {k: v for k, v in merged.items() if v is not None}
+        self._slots: dict[str, list[Child]] = {}
+        self._events: dict[str, dict] = {}
+        self._bindings: dict[str, dict] = {}
+        self._style: dict[str, str] = {}  # inline CSS declarations + custom properties (theming)
+        self._classes: list[str] = []  # CSS classes (variants / states)
         self.child(*children)
 
     def key(self, key: str) -> "Component":
@@ -178,7 +177,7 @@ class Component:
         self._bindings[f"root-class:{name}"] = {"field": field, "mode": "one-way"}
         return self
 
-    def _final_props(self) -> Dict[str, Any]:
+    def _final_props(self) -> dict[str, Any]:
         """Props with theming folded in: ``style``/``class`` merged from :meth:`style`/:meth:`css`/
         :meth:`classes` (after any literal ``style``/``class`` prop)."""
         props = dict(self._props)
@@ -212,7 +211,7 @@ class Component:
         return json.dumps(self.to_node())
 
 
-def element(tag: str, *children: Child, key: Optional[str] = None, **props: Any) -> Component:
+def element(tag: str, *children: Child, key: str | None = None, **props: Any) -> Component:
     """Build a plain element (e.g. a ``div`` container) for structure a typed component doesn't cover.
 
     Children nest positionally; a prop name with a trailing underscore is de-escaped so reserved words

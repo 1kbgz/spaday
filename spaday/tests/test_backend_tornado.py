@@ -5,11 +5,11 @@ import pytest
 
 pytest.importorskip("tornado")  # the Tornado backend — tornado is not a spaday dependency
 
-from tornado.testing import AsyncHTTPTestCase  # noqa: E402
+from tornado.testing import AsyncHTTPTestCase
 
-from spaday.backends.tornado import serve  # noqa: E402
-from spaday.components.shell import Main  # noqa: E402
-from spaday.packages import ComponentPackage  # noqa: E402
+from spaday.backends.tornado import serve
+from spaday.components.shell import Main
+from spaday.packages import ComponentPackage
 
 
 class TestTornadoBackend(AsyncHTTPTestCase):

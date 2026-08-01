@@ -5,15 +5,15 @@ import pytest
 
 pytest.importorskip("starlette")  # the Starlette backend — the optional `examples` extra
 
-from starlette.responses import PlainTextResponse  # noqa: E402
-from starlette.routing import Route  # noqa: E402
-from starlette.testclient import TestClient  # noqa: E402
+from starlette.responses import PlainTextResponse
+from starlette.routing import Route
+from starlette.testclient import TestClient
 
-import spaday.packages as package_registry  # noqa: E402
-from spaday import decode_frame  # noqa: E402
-from spaday.backends.starlette import mount, serve  # noqa: E402
-from spaday.components.shell import Main  # noqa: E402
-from spaday.packages import ComponentPackage  # noqa: E402
+import spaday.packages as package_registry
+from spaday import decode_frame
+from spaday.backends.starlette import mount, serve
+from spaday.components.shell import Main
+from spaday.packages import ComponentPackage
 
 
 class _EntryPoint:

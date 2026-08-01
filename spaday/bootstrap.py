@@ -33,9 +33,10 @@ What an app would otherwise hand-write in HTML is declared in Python:
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal, Optional, Sequence, Union
+from typing import Literal, Union
 
 from .component import Component
 from .packages import ComponentPackage, PackageRef, package_url_prefix, resolve_component_packages
@@ -64,7 +65,7 @@ class Wire:
     """
 
     url: str
-    namespace: Optional[str] = None
+    namespace: str | None = None
     session: bool = False
     flatten: bool = True
 
@@ -117,13 +118,13 @@ _INSTALLED_BUNDLES = {
 }
 
 
-def _layout(layout: Optional[AssetLayout] = None) -> AssetLayout:
+def _layout(layout: AssetLayout | None = None) -> AssetLayout:
     if layout is not None and layout not in _ASSETS:
         raise ValueError("layout must be 'source' or 'installed'")
     return layout or ("source" if _SOURCE_DIR.is_dir() else "installed")
 
 
-def bundles_dir(layout: Optional[AssetLayout] = None) -> Path:
+def bundles_dir(layout: AssetLayout | None = None) -> Path:
     """Directory a backend serves at ``{base}/js``.
 
     Uses the source checkout's ``js/`` directory when present and otherwise the wheel's packaged
@@ -153,7 +154,7 @@ def tree_frame(page: Page, *, id: str = "spa-tree") -> bytes:
     return encode_frame(json.dumps(_resolve(page).to_node()), id, "snapshot", 0, "application/json")
 
 
-def _bundle_head(bundles: Sequence[str], base: str, nonce: Optional[str] = None, layout: Optional[AssetLayout] = None) -> str:
+def _bundle_head(bundles: Sequence[str], base: str, nonce: str | None = None, layout: AssetLayout | None = None) -> str:
     n = f' nonce="{nonce}"' if nonce else ""  # CSP nonce on the generated script/style tags
     tags = []
     available = BUNDLES if _layout(layout) == "source" else _INSTALLED_BUNDLES
@@ -166,7 +167,7 @@ def _bundle_head(bundles: Sequence[str], base: str, nonce: Optional[str] = None,
     return "\n    ".join(tags)
 
 
-def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: Optional[str] = None) -> str:
+def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None) -> str:
     n = f' nonce="{nonce}"' if nonce else ""
     tags = []
     for package in packages:
@@ -214,14 +215,14 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
 
 def _script(
     base: str,
-    wire: Optional[Union[str, Sequence[Union[dict, Wire]]]],
+    wire: str | Sequence[dict | Wire] | None,
     scripts: Sequence[str],
     ws: str,
     tree: str,
     reconnect: bool,
-    store: Optional[dict] = None,
-    target: Optional[str] = None,
-    layout: Optional[AssetLayout] = None,
+    store: dict | None = None,
+    target: str | None = None,
+    layout: AssetLayout | None = None,
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
     to transports. ``wire="transports"`` mirrors ONE model into the store (Store + Client + connectStore);
@@ -310,19 +311,19 @@ def bootstrap(
     *,
     base: str = "",
     bundles: Sequence[str] = (),
-    packages: Union[PackageRef, Sequence[PackageRef]] = (),
-    wire: Optional[Union[str, Sequence[Union[dict, Wire]]]] = None,
+    packages: PackageRef | Sequence[PackageRef] = (),
+    wire: str | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
     tree: str = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     head: str = "",
     title: str = "spaday",
-    store: Optional[dict] = None,
+    store: dict | None = None,
     fragment: bool = False,
-    target: Optional[str] = None,
-    nonce: Optional[str] = None,
-    layout: Optional[AssetLayout] = None,
+    target: str | None = None,
+    nonce: str | None = None,
+    layout: AssetLayout | None = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``

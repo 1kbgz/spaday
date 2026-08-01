@@ -24,13 +24,13 @@ round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered han
 authored with ``Component.bind`` and interpreted by the runtime's signal store.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 
 class Expr:
     """A value computed in the browser at event time (a literal, the event's value, ...)."""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         raise NotImplementedError
 
 
@@ -38,12 +38,12 @@ class _Lit(Expr):
     def __init__(self, value: Any) -> None:
         self.value = value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "lit", "value": self.value}
 
 
 class _EventValue(Expr):
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "event"}
 
 
@@ -51,7 +51,7 @@ class _Not(Expr):
     def __init__(self, of: Any) -> None:
         self.of = of
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "not", "of": _expr(self.of).to_dict()}
 
 
@@ -79,7 +79,7 @@ class _Prop(Expr):
     def __init__(self, target: "Ref", name: str) -> None:
         self.target, self.name = target, name
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "prop", "target": self.target.to_dict(), "name": self.name}
 
 
@@ -93,7 +93,7 @@ class _Field(Expr):
     def __init__(self, name: str) -> None:
         self.name = name
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "field", "name": self.name}
 
 
@@ -107,7 +107,7 @@ class _Eq(Expr):
     def __init__(self, a: Any, b: Any) -> None:
         self.a, self.b = a, b
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "eq", "a": _expr(self.a).to_dict(), "b": _expr(self.b).to_dict()}
 
 
@@ -120,7 +120,7 @@ class _All(Expr):
     def __init__(self, *exprs: Any) -> None:
         self.exprs = exprs
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "all", "of": [_expr(e).to_dict() for e in self.exprs]}
 
 
@@ -133,7 +133,7 @@ class _Any(Expr):
     def __init__(self, *exprs: Any) -> None:
         self.exprs = exprs
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "any", "of": [_expr(e).to_dict() for e in self.exprs]}
 
 
@@ -146,7 +146,7 @@ class _Cond(Expr):
     def __init__(self, test: Any, then: Any, otherwise: Any) -> None:
         self.test, self.then, self.otherwise = test, then, otherwise
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "expr": "cond",
             "test": _expr(self.test).to_dict(),
@@ -166,14 +166,14 @@ def cond(test: Any, then: Any, otherwise: Any) -> Expr:
 
 
 class _Obj(Expr):
-    def __init__(self, fields: Dict[str, Any]) -> None:
+    def __init__(self, fields: dict[str, Any]) -> None:
         self.fields = fields
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "obj", "fields": {k: _expr(v).to_dict() for k, v in self.fields.items()}}
 
 
-def obj(fields: Dict[str, Any]) -> Expr:
+def obj(fields: dict[str, Any]) -> Expr:
     """Compose a JSON object from named sub-expressions (each value a plain value or an :class:`Expr`).
     Lets a whole model be POSTed declaratively as a :class:`CallEndpoint` body — composing live control
     values without a hand-written handler::
@@ -190,7 +190,7 @@ class _Concat(Expr):
     def __init__(self, *parts: Any) -> None:
         self.parts = parts
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"expr": "concat", "parts": [_expr(part).to_dict() for part in self.parts]}
 
 
@@ -205,12 +205,12 @@ def concat(*parts: Any) -> Expr:
 class Ref:
     """A reference to a DOM element an action targets."""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         raise NotImplementedError
 
 
 class _This(Ref):
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"ref": "this"}
 
 
@@ -218,7 +218,7 @@ class _Id(Ref):
     def __init__(self, id: str) -> None:
         self.id = id
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"ref": "id", "id": self.id}
 
 
@@ -235,7 +235,7 @@ def by_id(id: str) -> Ref:
 class Action:
     """Declarative behavior, interpreted in the browser. Serializes to the component's ``events`` map."""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         raise NotImplementedError
 
 
@@ -245,7 +245,7 @@ class SetProp(Action):
     def __init__(self, target: Ref, prop: str, value: Any) -> None:
         self.target, self.prop, self.value = target, prop, value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"kind": "set", "target": self.target.to_dict(), "prop": self.prop, "value": _expr(self.value).to_dict()}
 
 
@@ -255,7 +255,7 @@ class Toggle(Action):
     def __init__(self, target: Ref, prop: str) -> None:
         self.target, self.prop = target, prop
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"kind": "toggle", "target": self.target.to_dict(), "prop": self.prop}
 
 
@@ -270,7 +270,7 @@ class SetField(Action):
     def __init__(self, field: str, value: Any) -> None:
         self.field, self.value = field, value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"kind": "set-field", "field": self.field, "value": _expr(self.value).to_dict()}
 
 
@@ -284,7 +284,7 @@ class ToggleField(Action):
     def __init__(self, field: str) -> None:
         self.field = field
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"kind": "toggle-field", "field": self.field}
 
 
@@ -292,9 +292,9 @@ class Sequence(Action):
     """Run several actions in order."""
 
     def __init__(self, *actions: Action) -> None:
-        self.actions: List[Action] = list(actions)
+        self.actions: list[Action] = list(actions)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"kind": "seq", "actions": [a.to_dict() for a in self.actions]}
 
 
@@ -304,7 +304,7 @@ class Emit(Action):
     def __init__(self, event: str, detail: Any = None) -> None:
         self.event, self.detail = event, detail
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         detail = _expr(self.detail).to_dict() if self.detail is not None else None
         return {"kind": "emit", "event": self.event, "detail": detail}
 
@@ -320,7 +320,7 @@ class SendPatch(Action):
     def __init__(self, model: str, field: str, value: Any) -> None:
         self.model, self.field, self.value = model, field, value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"kind": "patch", "model": self.model, "field": self.field, "value": _expr(self.value).to_dict()}
 
 
@@ -328,10 +328,10 @@ class If(Action):
     """Run ``then`` if ``cond`` is truthy, else ``els`` (if given) — branch on live state, e.g.
     ``If(prop(by_id("sw"), "checked"), SetProp(...), SetProp(...))``."""
 
-    def __init__(self, cond: Any, then: Action, els: Optional[Action] = None) -> None:
+    def __init__(self, cond: Any, then: Action, els: Action | None = None) -> None:
         self.cond, self.then, self.els = cond, then, els
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "kind": "if",
             "cond": _expr(self.cond).to_dict(),
@@ -354,10 +354,10 @@ class CallEndpoint(Action):
     Without ``result`` the call is fire-and-forget.
     """
 
-    def __init__(self, method: str, url: Union[str, Expr], body: Any = None, result: Optional[str] = None) -> None:
+    def __init__(self, method: str, url: str | Expr, body: Any = None, result: str | None = None) -> None:
         self.method, self.url, self.body, self.result = method, url, body, result
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         url = self.url.to_dict() if isinstance(self.url, Expr) else self.url
         body = _expr(self.body).to_dict() if self.body is not None else None
         return {"kind": "call", "method": self.method, "url": url, "body": body, "result": self.result}
@@ -370,7 +370,7 @@ class NamedJs(Action):
     def __init__(self, handler: str) -> None:
         self.handler = handler
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"kind": "js", "handler": self.handler}
 
 

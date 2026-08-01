@@ -8,14 +8,14 @@ cluster = pytest.importorskip("spaday.examples.cluster", reason="needs a transpo
 
 
 def test_resume_seeds_only_an_empty_chart():
-    value, day, data, rng = cluster._resume({})
+    _value, _day, data, _rng = cluster._resume({})
     assert len(data) == cluster.WINDOW
     assert min(data) == "2023-01-01"  # a cold start seeds from the beginning
 
 
 def test_resume_continues_from_a_caught_up_chart_without_rewinding():
     later = {"2023-09-01": 50.0, "2023-09-02": 51.0}
-    value, day, data, rng = cluster._resume(later)
+    value, day, data, _rng = cluster._resume(later)
     assert data == later  # keeps the caught-up window — no rewind to 2023-01-01
     assert day.isoformat() == "2023-09-03"  # next point is the day after the last
     assert value == 51.0  # continues from the last value

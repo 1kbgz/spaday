@@ -84,7 +84,7 @@ class _FieldSpec:
     plain_required: bool  # the source declares it required (no default / listed in ``required``)
     constraints: dict  # native validation attributes (min/max/step/minlength/maxlength/pattern)
     annotated_hint: FormField | None  # a co-located ``Annotated[..., FormField(...)]`` override
-    children: Callable[[], Iterator[tuple[str, "_FieldSpec"]]] | None  # sub-fields for a nested object
+    children: Callable[[], Iterator[tuple[str, _FieldSpec]]] | None  # sub-fields for a nested object
 
 
 def _unwrap_optional(ann: Any) -> Any:
