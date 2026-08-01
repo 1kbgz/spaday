@@ -12,7 +12,6 @@ markup the browser hydrates).
 """
 
 import json
-from pathlib import Path
 
 import uvicorn
 from starlette.applications import Starlette
@@ -22,11 +21,13 @@ from starlette.staticfiles import StaticFiles
 
 from spaday import element, render_html
 from spaday.actions import Toggle, by_id
+from spaday.bootstrap import bundles_dir
 from spaday.components.shell import App, Body, Main, Nav, Row, Stack
 from spaday.components.webawesome import WaButton
 
-HERE = Path(__file__).parent
-JS = HERE.parent.parent / "js"
+JS = bundles_dir()
+if (JS / "dist").is_dir():
+    JS /= "dist"
 
 
 def build_tree():
@@ -76,8 +77,8 @@ PAGE = """<!doctype html>
     <div id="app">{ssr}</div>
     <script type="application/json" id="tree">{tree}</script>
     <script type="module">
-      import {{ hydrate, init, Store }} from "/js/dist/esm/index.js";
-      await init({{ module_or_path: "/js/dist/pkg/spaday_bg.wasm" }});
+      import {{ hydrate, init, Store }} from "/js/cdn/index.js";
+      await init({{ module_or_path: "/js/pkg/spaday_bg.wasm" }});
       const tree = JSON.parse(document.getElementById("tree").textContent);
       const store = new Store();
       store.set("name", "world"); // seed the bound state; hydrate writes it onto the live input + echo

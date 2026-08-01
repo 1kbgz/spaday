@@ -81,6 +81,8 @@ def test_ssr_ships_server_rendered_markup_to_hydrate():
         assert home.status_code == 200
         assert "spaday SSR" in home.text  # the server-rendered content is in the body (view-source paints it)
         assert "hydrate(" in home.text and 'id="tree"' in home.text  # + the tree the browser hydrates onto
+        assert 'from "/js/cdn/index.js"' in home.text
+        assert client.get("/js/cdn/index.js").status_code == 200
 
 
 # ── Notebook / anywidget: a reusable component builder + a demo wrapper ────────────────────────────

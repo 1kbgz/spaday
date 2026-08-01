@@ -132,7 +132,7 @@ def test_gallery_apps_serve_their_bootstrap_and_routes():
         with TestClient(module.create_app()) as client:
             page = client.get("/")
             assert page.status_code == 200
-            assert "/js/dist/cdn/examples/webawesome.js" in page.text
+            assert "cdn/examples/webawesome.js" in page.text
             assert "<style>\nbody {" in page.text
             assert page.text.index("</style>") < page.text.index("</head>")
             assert client.get("/tree.json").status_code == 200
