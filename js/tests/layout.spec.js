@@ -12,6 +12,12 @@ const wbtn = (label) => ({
   tag: "wa-button",
   props: { variant: { Str: "neutral" }, textContent: { Str: label } },
 });
+const buttonGroup = {
+  tag: "wa-button-group",
+  slots: {
+    default: [wbtn("New project"), wbtn("Filters")],
+  },
+};
 
 // App › Nav / Body(Gutter + Main(Toolbar, Row)) / Footer — the shapes the example composes.
 const TREE = {
@@ -46,6 +52,7 @@ const TREE = {
                     tag: "spa-toolbar",
                     slots: {
                       default: [
+                        buttonGroup,
                         wbtn("Line"),
                         wbtn("Area"),
                         wbtn("Histogram"),
@@ -184,6 +191,106 @@ test("toolbar controls don't overlap and have non-zero size", async ({
     expect(s.w, `${s.tag} width`).toBeGreaterThan(0);
     expect(s.h, `${s.tag} height`).toBeGreaterThan(0);
   }
+});
+
+test("buttons nested in a WebAwesome button group stay within their hosts", async ({
+  page,
+}) => {
+  await mountTree(page);
+  const boxes = await page
+    .locator("wa-button-group > wa-button")
+    .evaluateAll((buttons) =>
+      buttons.map((button) => {
+        const host = button.getBoundingClientRect();
+        const base = button.shadowRoot
+          .querySelector('[part~="base"]')
+          .getBoundingClientRect();
+        return {
+          hostRight: Math.round(host.right),
+          baseRight: Math.round(base.right),
+        };
+      }),
+    );
+  expect(boxes).toHaveLength(2);
+  for (const box of boxes)
+    expect(box.baseRight, "button base stays inside host").toBeLessThanOrEqual(
+      box.hostRight + OVERFLOW_TOL,
+    );
+});
+
+test("a content-sized button stays inside a narrow card footer", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.__spaday.mount(document.body, {
+      tag: "div",
+      props: { style: { Str: "width:304px" } },
+      slots: {
+        default: [
+          {
+            tag: "wa-card",
+            props: { "with-footer": { Bool: true } },
+            slots: {
+              footer: [
+                {
+                  tag: "spa-stack",
+                  props: {
+                    align: { Str: "start" },
+                    gap: { Str: "12px" },
+                  },
+                  slots: {
+                    default: [
+                      {
+                        tag: "spa-row",
+                        slots: {
+                          default: [
+                            {
+                              tag: "span",
+                              props: {
+                                textContent: { Str: "Published 5 hours ago" },
+                              },
+                            },
+                          ],
+                        },
+                      },
+                      {
+                        tag: "wa-button",
+                        props: {
+                          variant: { Str: "brand" },
+                          textContent: { Str: "Read release notes" },
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+  });
+  const button = page.getByText("Read release notes", { exact: true });
+  await expect(button).toBeVisible();
+  const boxes = await button.evaluate((el) => {
+    const bounds = (node) => {
+      const r = node.getBoundingClientRect();
+      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    };
+    const card = el.closest("wa-card");
+    return {
+      button: bounds(el),
+      base: bounds(el.shadowRoot.querySelector('[part~="base"]')),
+      footer: bounds(card.shadowRoot.querySelector("footer")),
+      card: bounds(card),
+    };
+  });
+  expect(boxes.button.left).toBeGreaterThanOrEqual(boxes.footer.left);
+  expect(boxes.button.right).toBeLessThanOrEqual(boxes.footer.right);
+  expect(boxes.base.right).toBeLessThanOrEqual(
+    boxes.button.right + OVERFLOW_TOL,
+  );
+  expect(boxes.button.bottom).toBeLessThanOrEqual(boxes.card.bottom);
 });
 
 test("the app shell lays out in order (nav → body → footer; gutter left of main)", async ({

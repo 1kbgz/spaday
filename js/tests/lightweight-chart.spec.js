@@ -94,6 +94,33 @@ test("a SetProp patch updates the chart's data", async ({ page }) => {
   expect(len).toBe(4); // the runtime set the live element's `data` property
 });
 
+test("data updates preserve the user's visible range", async ({ page }) => {
+  await page.evaluate(
+    (n) => {
+      window.__el = window.__spaday.mount(document.body, n);
+    },
+    node("line", LINE),
+  );
+  await page.waitForFunction(() =>
+    document.querySelector("lightweight-chart canvas"),
+  );
+  await page.waitForTimeout(100);
+
+  const ranges = await page.evaluate(async () => {
+    const el = window.__el;
+    const timeScale = el.chart.timeScale();
+    timeScale.setVisibleLogicalRange({ from: 0, to: 1 });
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const before = timeScale.getVisibleLogicalRange();
+    el.data = [...el.data, { time: "2019-01-04", value: 14 }];
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return { before, after: timeScale.getVisibleLogicalRange() };
+  });
+
+  expect(ranges.after.from).toBeCloseTo(ranges.before.from);
+  expect(ranges.after.to).toBeCloseTo(ranges.before.to);
+});
+
 test("re-fits the time scale on resize, so it isn't left compacted from a zero-width mount", async ({
   page,
 }) => {
