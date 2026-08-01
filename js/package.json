@@ -50,7 +50,7 @@
     "watch": "nodemon --watch src -e ts,css,html --exec \"pnpm build:debug\""
   },
   "dependencies": {
-    "@awesome.me/webawesome": "^3.4.0"
+    "@awesome.me/webawesome": "^3.10.0"
   },
   "devDependencies": {
     "@1kbgz/transports": "^0.3.0",
