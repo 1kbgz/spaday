@@ -34,7 +34,7 @@ def build_tree():
     return (
         App()
         .css(spa_surface="#0f172a", spa_surface_2="#1e293b", spa_border="#334155", spa_muted="#94a3b8")  # retheme the shell
-        .style(color="#e2e8f0", min_height="100vh")
+        .style(color="#e2e8f0", background="#0f172a", min_height="100vh")
         .child(Nav().child(element("strong").text("spaday SSR — server-rendered, then hydrated")))
         .child(
             Body().child(

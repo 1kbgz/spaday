@@ -75,6 +75,7 @@ def test_fragment_drops_into_a_host_owned_page_with_a_csp_nonce():
 
 def test_ssr_ships_server_rendered_markup_to_hydrate():
     ssr = pytest.importorskip("spaday.examples.ssr", reason="needs starlette")
+    assert "background: #0f172a" in ssr.build_tree().to_node()["props"]["style"]["Str"]
     with _client(ssr.app) as client:
         home = client.get("/")
         assert home.status_code == 200

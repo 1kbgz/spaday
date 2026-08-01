@@ -57,16 +57,22 @@ develop = [
     "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
     "mdformat-tables>=1",
+    "perspective-python>=4.5,<4.6",  # gateway + omnibus browser example tests
     "pydantic>=2",  # form() + the example/test models (was only present transitively, via bump-my-version)
+    "pyzmq",  # clustered chart browser example test
     "pytest",
     "pytest-cov",
     "ruff",
+    "spaday-perspective>=0.1.0",  # gateway + omnibus browser example tests
     "starlette",  # the Starlette backend — covered by test_backend_starlette (import spaday stays starlette-free)
     "superstore>=0.3.1",  # the omnibus example's data generator (orders + chart series)
     "tornado",  # the Tornado backend — covered by test_backend_tornado
+    "transports",  # reactive, form, cluster, embed, gateway, and omnibus example tests
     "twine",
     "ty",
     "uv",
+    "uvicorn",  # Playwright launches each served example in a real browser
+    "websockets",  # transports and Perspective example browser tests
     "wheel",
 ]
 
@@ -139,7 +145,7 @@ skip = "*win32 *arm_64"
 branch = true
 omit = [
     "spaday/tests/integration/*",
-    "spaday/tests/test_examples.py",  # integration-style example smokes; they skip without the optional [examples]/[perspective]/[widget] extras (not in [develop]), so don't gate coverage on them
+    "spaday/tests/test_examples.py",  # integration-style example smokes; don't gate unit coverage on server startup/shutdown paths
     "spaday/examples/*",
 ]
 
@@ -223,6 +229,12 @@ testpaths = "spaday/tests"
 line-length = 150
 
 [tool.ruff.lint]
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+]
 extend-select = [
     "I",
 ]

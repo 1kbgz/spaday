@@ -51,11 +51,13 @@ export class LightweightChart extends HTMLElement {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- data shape varies by series type
   private _data: any[] = [];
   private _theme: "light" | "dark" = "light";
+  private hasFitContent = false;
   private resizeObserver?: ResizeObserver;
 
   connectedCallback(): void {
     if (!this.style.display) this.style.display = "block";
     if (!this.style.height) this.style.height = "300px";
+    this.hasFitContent = false;
     // attributionLogo off: the page must carry TradingView attribution elsewhere (lightweight-charts NOTICE).
     this.chart = createChart(this, {
       autoSize: true,
@@ -89,6 +91,7 @@ export class LightweightChart extends HTMLElement {
     this._type = value in SERIES ? value : "line";
     if (this.chart) {
       if (this.series) this.chart.removeSeries(this.series);
+      this.hasFitContent = false;
       this.addSeries();
       this.draw();
     }
@@ -134,8 +137,17 @@ export class LightweightChart extends HTMLElement {
 
   private draw(): void {
     if (this.series) {
+      const timeScale = this.chart?.timeScale();
+      const visibleRange = this.hasFitContent
+        ? timeScale?.getVisibleLogicalRange()
+        : null;
       this.series.setData(this._data);
-      this.chart?.timeScale().fitContent();
+      if (visibleRange) {
+        timeScale?.setVisibleLogicalRange(visibleRange);
+      } else if (this._data.length) {
+        timeScale?.fitContent();
+        this.hasFitContent = true;
+      }
     }
   }
 }
