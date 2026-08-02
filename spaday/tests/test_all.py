@@ -1,8 +1,4 @@
-<<<<<<< before updating
 import json
-=======
-from spaday import *
->>>>>>> after updating
 
 from spaday import apply, diff
 
