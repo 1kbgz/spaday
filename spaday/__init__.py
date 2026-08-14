@@ -34,7 +34,7 @@ from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compil
 from .theme import SHELL_TOKENS
 from .validate import ValidationError, validate
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     # theming token reference (css custom properties are set via Component.css)
