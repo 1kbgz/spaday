@@ -3,7 +3,7 @@ import json
 import pytest
 
 from spaday import apply, diff, element
-from spaday.actions import field, not_
+from spaday.actions import NamedJs, field, not_
 from spaday.components.shell import App, AppShell, Body, Column, Footer, Gutter, Main, Nav, Region, Row, Show, Stack, Table, Tabs, Toolbar
 
 
@@ -194,6 +194,23 @@ def test_table_authors_a_spa_table():
     assert node["tag"] == "spa-table"
     assert node["props"]["columns"] == {"List": [{"Str": "symbol"}, {"Str": "qty"}]}
     assert node["props"]["rows"] == {"List": [{"Map": {"symbol": {"Str": "AAPL"}, "qty": {"Int": 10}}}]}
+
+
+def test_table_projects_component_cells_through_named_slots():
+    button = element("button").text("Inspect").on("click", NamedJs("inspect-order"))
+    table = Table(columns=["symbol", "action"], rows=[{"symbol": "AAPL", "action": button}])
+    node = table.to_node()
+
+    assert node["props"]["rows"]["List"][0]["Map"]["action"] == {"Map": {"__spaday_cell_slot__": {"Str": "cell-0"}}}
+    assert node["slots"]["cell-0"] == [
+        {
+            "tag": "button",
+            "props": {"textContent": {"Str": "Inspect"}},
+            "events": {"click": {"kind": "js", "handler": "inspect-order"}},
+        }
+    ]
+    tree = table.to_json()
+    assert json.loads(apply(tree, diff(tree, tree))) == node
 
 
 def test_table_rows_are_reactive():
