@@ -158,3 +158,5 @@ AGENTS.md
 
 # spaday example generated data
 spaday/examples/*.json
+
+spaday-*
