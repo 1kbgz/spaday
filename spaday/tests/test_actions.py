@@ -12,6 +12,8 @@ from spaday.actions import (
     SetProp,
     Toggle,
     ToggleField,
+    all_,
+    any_,
     bind,
     by_id,
     concat,
@@ -72,6 +74,17 @@ def test_cond_wire_shape_coerces_branches_to_literals():
         "test": {"expr": "field", "name": "dark"},
         "then": {"expr": "lit", "value": "dark"},
         "else": {"expr": "lit", "value": "light"},
+    }
+
+
+def test_logical_combinators_coerce_values_to_expressions():
+    assert all_(field("ready"), True).to_dict() == {
+        "expr": "all",
+        "of": [{"expr": "field", "name": "ready"}, {"expr": "lit", "value": True}],
+    }
+    assert any_(field("ready"), False).to_dict() == {
+        "expr": "any",
+        "of": [{"expr": "field", "name": "ready"}, {"expr": "lit", "value": False}],
     }
 
 

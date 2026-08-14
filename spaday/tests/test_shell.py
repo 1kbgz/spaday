@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from spaday import apply, diff, element
+from spaday import Paragraph, Strong, Text, apply, diff, element
 from spaday.actions import NamedJs, field, not_
 from spaday.components.shell import App, AppShell, Body, Column, Footer, Gutter, Main, Nav, Region, Row, Show, Stack, Table, Toolbar
 
@@ -65,6 +65,16 @@ def test_constructor_children_and_string_text_and_generic_props():
     assert Nav().child("Title").to_node() == nav
 
 
+def test_component_keys_primitives_and_prop_validation():
+    assert element("article").key("story").to_node()["key"] == "story"
+    assert Text("plain").tag == "span"
+    assert Strong("bold").tag == "strong"
+    assert Paragraph("copy").tag == "p"
+    assert element("x-data", values=[None]).to_node()["props"]["values"] == {"List": ["Null"]}
+    with pytest.raises(TypeError, match="unsupported prop value type"):
+        element("x-data", value=object()).to_node()
+
+
 def test_app_shell_composes_named_regions_into_the_frame():
     shell = (
         AppShell()
@@ -108,6 +118,12 @@ def test_app_shell_styles_main_and_gutters_through_container_props():
     gutter, main = shell.build().to_node()["slots"]["default"][0]["slots"]["default"]
     assert gutter["props"]["style"] == {"Str": "overflow-y:auto"}
     assert main["props"] == {"style": {"Str": "padding:0;overflow:hidden"}, "id": {"Str": "workspace"}}
+
+
+def test_app_shell_composes_a_right_gutter():
+    shell = AppShell().add(Region.MAIN, element("chart")).add(Region.GUTTER_RIGHT, element("details"))
+    body = shell.build().to_node()["slots"]["default"][0]
+    assert [child["tag"] for child in body["slots"]["default"]] == ["spa-main", "spa-gutter"]
 
 
 def test_app_shell_composes_centered_header_and_non_flow_regions():
