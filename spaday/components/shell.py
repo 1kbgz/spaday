@@ -16,6 +16,7 @@ Children nest positionally (a string child is a text node); spacing comes from :
 becomes a left or right gutter by where it sits in a :class:`Body`.
 """
 
+import math
 from enum import Enum
 from typing import Any
 
@@ -264,21 +265,42 @@ class Table(Component):
     """A lightweight data table — a ``spa-table`` that renders ``rows`` (a list of dicts) under
     ``columns``. Both are reactive: bind or compute ``rows`` to a state field and the table re-renders::
 
-        Table(columns=["symbol", "qty", "price"]).compute("rows", field("orders"))
+        Table(columns=["symbol", "qty", "price"], row_key="id").compute("rows", field("orders"))
 
     ``columns`` may be plain keys (``["symbol"]`` — the label is the key) or ``{"key": …, "label": …}``
     dicts; omit it to infer the columns from the first row. Pass ``rows`` for a static table. A static
     cell may be a :class:`Component`; it is rendered as a normal component tree node, including its
-    bindings and events. Other cell values render as text. For virtual scrolling or very large datasets,
-    use a dedicated grid wrapper.
+    bindings and events. Other cell values render as text. Set ``row_key`` to a field containing a unique
+    string or number; reactive row changes then reuse, update, insert, remove, and reorder existing table
+    rows by that identity. For virtual scrolling or very large datasets, use a dedicated grid wrapper.
     """
 
     tag = "spa-table"
 
-    def __init__(self, *, columns: list | None = None, rows: list | None = None, key: str | None = None, **props: Any) -> None:
+    def __init__(
+        self,
+        *,
+        columns: list | None = None,
+        rows: list | None = None,
+        row_key: str | None = None,
+        key: str | None = None,
+        **props: Any,
+    ) -> None:
         normalized_rows = None if rows is None else []
         rich_cells: list[tuple[str, Component]] = []
+        identities: set[tuple[str, str | float]] = set()
         for row in rows or []:
+            if row_key is not None:
+                value = row.get(row_key)
+                if isinstance(value, str):
+                    identity = ("string", value)
+                elif isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+                    identity = ("number", float(value))
+                else:
+                    raise ValueError(f"Table row_key {row_key!r} must exist and contain a string or finite number")
+                if identity in identities:
+                    raise ValueError(f"Table row_key {row_key!r} contains duplicate value {value!r}")
+                identities.add(identity)
             normalized_row = {}
             for name, value in row.items():
                 if isinstance(value, Component):
@@ -288,6 +310,6 @@ class Table(Component):
                 else:
                     normalized_row[name] = value
             normalized_rows.append(normalized_row)
-        super().__init__(key=key, props={"columns": columns, "rows": normalized_rows}, **props)
+        super().__init__(key=key, props={"columns": columns, "rowKey": row_key, "rows": normalized_rows}, **props)
         for slot, component in rich_cells:
             self.child_in(slot, component)
