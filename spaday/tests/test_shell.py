@@ -214,6 +214,20 @@ def test_table_projects_component_cells_through_named_slots():
 
 
 def test_table_rows_are_reactive():
-    node = Table(columns=["a"]).compute("rows", field("orders")).to_node()
+    node = Table(columns=["id", "a"], row_key="id").compute("rows", field("orders")).to_node()
+    assert node["props"]["rowKey"] == {"Str": "id"}
     assert node["bindings"]["rows"] == {"compute": {"expr": "field", "name": "orders"}, "mode": "one-way"}
     assert "rows" not in node.get("props", {})  # computed, not a static prop
+
+
+@pytest.mark.parametrize(
+    ("rows", "message"),
+    [
+        ([{"name": "missing"}], "must exist"),
+        ([{"id": True}], "string or finite number"),
+        ([{"id": 1}, {"id": 1.0}], "duplicate value"),
+    ],
+)
+def test_table_static_row_keys_must_be_valid_and_unique(rows, message):
+    with pytest.raises(ValueError, match=message):
+        Table(columns=["id"], row_key="id", rows=rows)

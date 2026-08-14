@@ -135,8 +135,13 @@ a seeded [`store=`](serving.md) or a hosted model over [transports](transports.m
 from spaday import field
 from spaday.components.shell import Table
 
-Table(columns=["symbol", "qty", "price"]).compute("rows", field("orders"))
+Table(columns=["id", "symbol", "qty", "price"], row_key="id").compute("rows", field("orders"))
 ```
+
+Set `row_key` to a field whose value is a unique string or number. When reactive `rows` changes, the
+browser reuses and reorders existing rows by that identity, updates changed cells, inserts new rows, and
+removes missing rows. Omit `row_key` to retain full-table rendering. The application still replaces its
+`rows` state normally; no separate imperative table state is required.
 
 `columns` may be plain keys (`["symbol"]` — the label is the key) or `{"key": …, "label": …}` dicts; omit
 it to infer the columns from the first row. Pass `rows=[…]` for a static table. Scalar cells render as

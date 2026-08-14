@@ -111,6 +111,94 @@ test("spa-table renders rows under columns and re-renders when the bound field c
   ]); // reactively re-rendered from the changed field
 });
 
+test("spa-table reconciles keyed row updates, additions, removals, and moves", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({
+      orders: [
+        { id: "a", symbol: "AAPL", qty: 10 },
+        { id: "b", symbol: "MSFT", qty: 5 },
+      ],
+    });
+    const el = mount(
+      document.body,
+      {
+        tag: "spa-table",
+        props: {
+          columns: {
+            List: [{ Str: "id" }, { Str: "symbol" }, { Str: "qty" }],
+          },
+          rowKey: { Str: "id" },
+        },
+        bindings: {
+          rows: { compute: { expr: "field", name: "orders" }, mode: "one-way" },
+        },
+      },
+      store,
+    );
+    const table = el.shadowRoot.querySelector("table");
+    const [a, b] = [...table.tBodies[0].rows];
+    const bSymbolText = b.cells[1].firstChild;
+
+    store.set("orders", [
+      { id: "b", symbol: "MSFT", qty: 7 },
+      { id: "c", symbol: "GOOG", qty: 9 },
+    ]);
+
+    const rows = [...table.tBodies[0].rows];
+    return {
+      tablePreserved: el.shadowRoot.querySelector("table") === table,
+      movedRowPreserved: rows[0] === b,
+      unchangedCellPreserved: rows[0].cells[1].firstChild === bSymbolText,
+      removedRowDetached: !a.isConnected,
+      addedRowIsNew: rows[1] !== a && rows[1] !== b,
+      values: rows.map((row) => [...row.cells].map((cell) => cell.textContent)),
+    };
+  });
+
+  expect(result).toEqual({
+    tablePreserved: true,
+    movedRowPreserved: true,
+    unchangedCellPreserved: true,
+    removedRowDetached: true,
+    addedRowIsNew: true,
+    values: [
+      ["b", "MSFT", "7"],
+      ["c", "GOOG", "9"],
+    ],
+  });
+});
+
+test("spa-table rejects missing and duplicate row keys", async ({ page }) => {
+  const errors = await page.evaluate(() => {
+    const el = window.__spaday.mount(document.body, {
+      tag: "spa-table",
+      props: {
+        columns: { List: [{ Str: "id" }] },
+        rowKey: { Str: "id" },
+        rows: { List: [] },
+      },
+    });
+    const assign = (rows) => {
+      try {
+        el.rows = rows;
+        return null;
+      } catch (error) {
+        return error.message;
+      }
+    };
+    return {
+      missing: assign([{ name: "missing" }]),
+      duplicate: assign([{ id: 1 }, { id: 1 }]),
+    };
+  });
+
+  expect(errors.missing).toContain('row_key "id" must exist');
+  expect(errors.duplicate).toContain('row_key "id" contains duplicate value 1');
+});
+
 test("spa-table projects rich component cells with working actions", async ({
   page,
 }) => {

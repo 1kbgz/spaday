@@ -95,8 +95,9 @@ if (typeof customElements !== "undefined") {
 // A lightweight data table (`spa-table`): renders `rows` (a list of objects) under `columns`, both set as
 // JS properties — so a bound / computed `rows` re-renders reactively. Scalar cells are text (built with
 // createElement, never innerHTML); component-valued static cells are ordinary light-DOM children
-// projected into their cell through a named slot. Not a virtual-scroll grid; a themed `<table>` for
-// modest data.
+// projected into their cell through a named slot. `rowKey` opts into keyed row/cell reconciliation;
+// without it, updates retain the original full-render behavior. Not a virtual-scroll grid; a themed
+// `<table>` for modest data.
 const TABLE_CSS = `:host{display:block;overflow:auto}
 table{border-collapse:collapse;width:100%;font-size:.9rem;color:inherit}
 th,td{text-align:left;padding:.4rem .65rem;border-bottom:1px solid ${BORDER};white-space:nowrap}
@@ -114,12 +115,22 @@ function tableCell(td: HTMLTableCellElement, value: unknown): void {
     Object.keys(value).length === 1 &&
     typeof (value as Record<string, unknown>)[CELL_SLOT] === "string"
   ) {
+    const name = String((value as Record<string, unknown>)[CELL_SLOT]);
+    const existing = td.firstElementChild;
+    if (
+      td.childNodes.length === 1 &&
+      existing instanceof HTMLSlotElement &&
+      existing.name === name
+    )
+      return;
     const slot = document.createElement("slot");
-    slot.name = String((value as Record<string, unknown>)[CELL_SLOT]);
-    td.append(slot);
+    slot.name = name;
+    td.replaceChildren(slot);
     return;
   }
-  td.textContent = value == null ? "" : String(value);
+  const text = value == null ? "" : String(value);
+  if (td.childElementCount === 0 && td.textContent === text) return;
+  td.textContent = text;
 }
 
 function tableColumns(
@@ -145,12 +156,59 @@ function tableColumns(
   );
 }
 
+function sameColumns(a: TableCol[], b: TableCol[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (column, i) => column.key === b[i].key && column.label === b[i].label,
+    )
+  );
+}
+
+function rowIdentity(row: Record<string, unknown>, rowKey: string): string {
+  const value = row[rowKey];
+  if (typeof value === "string") return `string:${value}`;
+  if (typeof value === "number" && Number.isFinite(value))
+    return `number:${value}`;
+  throw new Error(
+    `spa-table row_key ${JSON.stringify(rowKey)} must exist and contain a string or finite number`,
+  );
+}
+
+function keyedRows(
+  rows: Record<string, unknown>[],
+  rowKey: string,
+): Array<[string, Record<string, unknown>]> {
+  const seen = new Set<string>();
+  return rows.map((row) => {
+    const identity = rowIdentity(row, rowKey);
+    if (seen.has(identity))
+      throw new Error(
+        `spa-table row_key ${JSON.stringify(rowKey)} contains duplicate value ${JSON.stringify(row[rowKey])}`,
+      );
+    seen.add(identity);
+    return [identity, row];
+  });
+}
+
+function updateTableRow(
+  tr: HTMLTableRowElement,
+  row: Record<string, unknown>,
+  cols: TableCol[],
+): void {
+  while (tr.cells.length < cols.length) tr.insertCell();
+  while (tr.cells.length > cols.length) tr.deleteCell(-1);
+  cols.forEach((column, i) => tableCell(tr.cells[i], row[column.key]));
+}
+
 if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
   customElements.define(
     "spa-table",
     class extends HTMLElement {
       private cols: unknown = null;
       private data: Record<string, unknown>[] = [];
+      private key: string | null = null;
+      private renderedCols: TableCol[] = [];
       private root: ShadowRoot;
       constructor() {
         super();
@@ -158,14 +216,23 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
         const style = document.createElement("style");
         style.textContent = TABLE_CSS;
         this.root.append(style);
-        this.render();
+        this.render(true);
       }
       set columns(v: unknown) {
         this.cols = v;
-        this.render();
+        this.render(true);
       }
       get columns(): unknown {
         return this.cols;
+      }
+      set rowKey(v: unknown) {
+        const next = v == null ? null : String(v);
+        if (next === this.key) return;
+        this.key = next;
+        this.render(true);
+      }
+      get rowKey(): unknown {
+        return this.key;
       }
       set rows(v: unknown) {
         this.data = Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
@@ -174,8 +241,35 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
       get rows(): unknown {
         return this.data;
       }
-      private render(): void {
+      private reconcileRows(
+        tbody: HTMLTableSectionElement,
+        cols: TableCol[],
+      ): void {
+        const rows = keyedRows(this.data, this.key!); // validates before mutating the DOM
+        const existing = new Map(
+          [...tbody.rows].map((tr) => [tr.dataset.spadayRowKey!, tr]),
+        );
+        for (const [identity, row] of rows) {
+          const tr = existing.get(identity) ?? document.createElement("tr");
+          tr.dataset.spadayRowKey = identity;
+          updateTableRow(tr, row, cols);
+          tbody.append(tr); // inserts a new row or moves an existing row into the requested order
+          existing.delete(identity);
+        }
+        for (const tr of existing.values()) tr.remove();
+      }
+      private render(force = false): void {
         const cols = tableColumns(this.cols, this.data);
+        const old = this.root.querySelector("table");
+        if (
+          old &&
+          this.key !== null &&
+          !force &&
+          sameColumns(cols, this.renderedCols)
+        ) {
+          this.reconcileRows(old.tBodies[0], cols);
+          return;
+        }
         const table = document.createElement("table");
         const hr = table.createTHead().insertRow();
         for (const c of cols) {
@@ -184,13 +278,15 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
           hr.append(th);
         }
         const tbody = table.createTBody();
-        for (const row of this.data) {
-          const tr = tbody.insertRow();
-          for (const c of cols) tableCell(tr.insertCell(), row[c.key]);
-        }
-        const old = this.root.querySelector("table");
+        if (this.key !== null) this.reconcileRows(tbody, cols);
+        else
+          for (const row of this.data) {
+            const tr = tbody.insertRow();
+            updateTableRow(tr, row, cols);
+          }
         if (old) old.replaceWith(table);
         else this.root.append(table);
+        this.renderedCols = cols;
       }
     },
   );
