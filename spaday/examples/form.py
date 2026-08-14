@@ -6,7 +6,7 @@ tabs) — the same reactive seam as ``examples/reactive.py``, but the controls c
 
 The serving is one ``spaday.serve`` call and **no hand-authored HTML**: it hosts the generated tree at
 ``/tree.json`` (so the page is a Component, not a hand-built dict), generates the bootstrap page —
-pulling in WebAwesome (``bundles``) and the transports ``Client`` + ``connectStore`` wiring
+pulling in WebAwesome (``packages``) and the transports ``Client`` + ``connectStore`` wiring
 (``wire="transports"``) — splices in the ``/ws`` endpoint, and runs ``autosync`` for the app's lifetime.
 
 Run: ``python -m spaday.examples.form`` then open http://127.0.0.1:8002/.
@@ -17,10 +17,10 @@ import enum
 import transports
 import uvicorn
 from pydantic import BaseModel
+from spaday_webawesome import form
 from starlette.routing import WebSocketRoute
 
 from spaday.backends.starlette import serve
-from spaday.components import form
 
 
 class Size(str, enum.Enum):
@@ -44,7 +44,7 @@ server = transports.Server(session)
 
 app = serve(
     lambda: form(Settings),  # the form, generated from the model — no controls authored by hand
-    bundles=["webawesome"],  # WebAwesome styles + catalog, instead of hand-written <link>/<script> tags
+    packages=["webawesome"],  # WebAwesome styles + catalog, instead of hand-written <link>/<script> tags
     wire="transports",  # generate the Client + connectStore + websocket bootstrap (no glue HTML)
     routes=[WebSocketRoute("/ws", transports.ws_endpoint(server))],
     background=[transports.autosync(server)],

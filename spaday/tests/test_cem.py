@@ -1,4 +1,3 @@
-import ast
 import json
 from pathlib import Path
 
@@ -69,18 +68,6 @@ def test_slots_compose_typed_components():
     assert node["slots"]["default"][0]["tag"] == "wa-switch"
 
 
-def test_committed_webawesome_components_import():
-    from spaday.components.webawesome import WaButton, WaCard, WaSwitch
-
-    assert WaSwitch.tag == "wa-switch"
-    assert WaButton.tag == "wa-button"
-    assert WaCard.tag == "wa-card"
-    assert issubclass(WaSwitch, Component)
-    # a generated component composes and round-trips like any node
-    tree = WaCard().child(WaSwitch(checked=True)).to_json()
-    assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
-
-
 def test_classes_builds_components_at_runtime():
     klasses = classes(FIXTURE)
     assert set(klasses) == {"WaSwitch", "WaButton", "WaCard"}
@@ -105,22 +92,6 @@ def test_classes_single_name_returns_one_class():
     assert WaSwitch(checked=True).to_node()["props"]["checked"] == {"Bool": True}
     with pytest.raises(KeyError):
         classes(FIXTURE, "NoSuchComponent")
-
-
-def test_committed_webawesome_is_not_stale():
-    """The committed catalog must match what the generator produces from its source manifest.
-
-    Comparison is on the parsed AST, not raw text, so the committed file's `ruff format` pass (which
-    rewraps lines) doesn't cause a false mismatch — only a real change in the generator or the source
-    manifest does.
-    """
-    fresh = generate(str(FIXTURES / "webawesome.3.9.0.cem.json"))
-    committed = (Path(__file__).parent.parent / "components" / "webawesome.py").read_text(encoding="utf-8")
-    assert ast.dump(ast.parse(fresh)) == ast.dump(ast.parse(committed)), (
-        "spaday/components/webawesome.py is stale — regenerate it:\n"
-        "  python -m spaday.cem spaday/tests/fixtures/webawesome.3.9.0.cem.json "
-        "-o spaday/components/webawesome.py && ruff format spaday/components/webawesome.py"
-    )
 
 
 def test_text_and_element_authoring():

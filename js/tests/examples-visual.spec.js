@@ -11,7 +11,7 @@ const EXAMPLES = [
   { name: "__main__", selector: "spa-app" },
   { name: "cluster", selector: "lightweight-chart" },
   { name: "data_dashboard", selector: "spa-app" },
-  { name: "devices", selector: "wa-card" },
+  { name: "devices", selector: "article" },
   { name: "embed", path: "/spaday/", selector: "spa-app" },
   { name: "form", selector: "wa-input" },
   { name: "fragment", selector: "#spaday-root wa-button" },
@@ -23,7 +23,7 @@ const EXAMPLES = [
   { name: "webawesome_forms", selector: "wa-input" },
   { name: "webawesome_navigation", selector: "wa-page" },
   { name: "webawesome_observers", selector: "spa-app" },
-  { name: "widget", selector: "wa-card" },
+  { name: "widget", selector: "section" },
 ];
 
 function freePort() {

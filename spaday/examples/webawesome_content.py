@@ -3,9 +3,7 @@
 Run ``python -m spaday.examples.webawesome_content`` and open http://127.0.0.1:8013.
 """
 
-from spaday import element
-from spaday.components.shell import App, Body, Column, Main, Nav, Row
-from spaday.components.webawesome import (
+from spaday_webawesome import (
     WaAnimatedImage,
     WaButton,
     WaCard,
@@ -23,6 +21,9 @@ from spaday.components.webawesome import (
     WaScroller,
     WaSplitPanel,
 )
+
+from spaday import element
+from spaday.components.shell import App, Body, Column, Main, Nav, Row
 
 STYLE = """<style>
 body { margin: 0; font-family: system-ui, sans-serif; }
@@ -165,7 +166,7 @@ def create_app():
 
     return serve(
         build_page,
-        bundles=["webawesome"],
+        packages=["webawesome"],
         title="spaday — rich content",
         head=STYLE,
     )

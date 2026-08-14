@@ -4,9 +4,7 @@ serve a spaday app — a backend (see :mod:`spaday.backends`) is just thin glue 
 
 What an app would otherwise hand-write in HTML is declared in Python:
 
-- ``bundles=["webawesome", …]`` — pull a component library's styles + catalog bundle into ``<head>``
-  (see :data:`BUNDLES`), instead of copy-pasting its ``<link>``/``<script>`` tags.
-- ``packages=["trees", …]`` — do the same for external component packages selected by descriptor,
+- ``packages=["trees", …]`` — pull a component package's styles and registration bundle into ``<head>``, selected by descriptor,
   ``module:attribute`` Python path, or installed entry-point name.
 - ``wire="transports"`` — generate the transports ``Client`` + ``connectStore`` + websocket bootstrap
   (what every transports example's HTML repeats); without it the page just mounts a static tree.
@@ -16,7 +14,7 @@ What an app would otherwise hand-write in HTML is declared in Python:
 - ``scripts=[…]`` — extra ES-module URLs to load (e.g. ``NamedJs`` handlers).
 - ``base="/dashboard"`` — mount the app under a path prefix, so it coexists with the host's other routes
   (the tree / ``/js`` / ws URLs are all prefixed). Default ``""`` = served at the root.
-- ``fragment=True`` + ``target="#widget"`` — return just the bundle tags + the module ``<script>`` (not a
+- ``fragment=True`` + ``target="#widget"`` — return just the package tags + the module ``<script>`` (not a
   whole document), mounting into ``target`` — a snippet to drop into a host page's template, so spaday is
   one component among many (several roots can share a page).
 
@@ -96,27 +94,6 @@ _ASSETS = {
 # to a non-crypto id so the page still loads. It's only a transports ``Hub`` key, not a secret.
 _SESSION_ID = "globalThis.crypto?.randomUUID?.() ?? (Date.now().toString(36) + Math.random().toString(36).slice(2))"
 
-#: Named component-library bundles a page can pull into ``<head>`` via ``bundles=[…]``. Each entry is a
-#: ``(kind, path)`` pair — ``kind`` is ``"css"`` or ``"js"``, ``path`` is under the served ``/js`` mount —
-#: the markup (styles + the catalog/wrapper script that registers the elements) an example would otherwise
-#: paste into its HTML.
-BUNDLES = {
-    "webawesome": [
-        ("css", "/node_modules/@awesome.me/webawesome/dist/styles/webawesome.css"),
-        ("css", "/node_modules/@awesome.me/webawesome/dist/styles/themes/default.css"),
-        ("js", "/dist/cdn/examples/webawesome.js"),
-    ],
-    "lightweight-charts": [("js", "/dist/cdn/wrappers/lightweight-chart.js")],
-}
-
-_INSTALLED_BUNDLES = {
-    "webawesome": [
-        ("css", "/css/webawesome.css"),
-        ("js", "/cdn/examples/webawesome.js"),
-    ],
-    "lightweight-charts": [("js", "/cdn/wrappers/lightweight-chart.js")],
-}
-
 
 def _layout(layout: AssetLayout | None = None) -> AssetLayout:
     if layout is not None and layout not in _ASSETS:
@@ -152,19 +129,6 @@ def tree_frame(page: Page, *, id: str = "spa-tree") -> bytes:
     — the same length-prefixed, codec-tagged envelope transports uses for model state, so the UI tree and
     the model data ride one wire."""
     return encode_frame(json.dumps(_resolve(page).to_node()), id, "snapshot", 0, "application/json")
-
-
-def _bundle_head(bundles: Sequence[str], base: str, nonce: str | None = None, layout: AssetLayout | None = None) -> str:
-    n = f' nonce="{nonce}"' if nonce else ""  # CSP nonce on the generated script/style tags
-    tags = []
-    available = BUNDLES if _layout(layout) == "source" else _INSTALLED_BUNDLES
-    for name in bundles:
-        if name not in available:
-            raise ValueError(f"unknown bundle {name!r}; known: {', '.join(sorted(available))}")
-        for kind, path in available[name]:
-            url = f"{_js(base)}{path}"
-            tags.append(f'<link rel="stylesheet"{n} href="{url}" />' if kind == "css" else f'<script type="module"{n} src="{url}"></script>')
-    return "\n    ".join(tags)
 
 
 def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None) -> str:
@@ -310,7 +274,6 @@ def _script(
 def bootstrap(
     *,
     base: str = "",
-    bundles: Sequence[str] = (),
     packages: PackageRef | Sequence[PackageRef] = (),
     wire: str | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
@@ -333,7 +296,7 @@ def bootstrap(
     "namespace": …, "session": …}, …]`` mirrors **several** models into one store, each namespaced so their
     fields don't collide (a chart on ``global.*`` next to one on ``session.*``) — the multi-model page.
 
-    By default returns a whole HTML document. With ``fragment=True`` it returns just the bundle tags + the
+    By default returns a whole HTML document. With ``fragment=True`` it returns just the package tags + the
     module ``<script>`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is
     one component among many rather than the whole page. Pass ``target`` (a CSS selector) to mount into a
     specific element (e.g. ``"#widget"``) instead of ``document.body``; the host provides that element.
@@ -344,7 +307,7 @@ def bootstrap(
     selects source-checkout or installed-wheel asset URLs; by default it follows :func:`bundles_dir`."""
     n = f' nonce="{nonce}"' if nonce else ""
     component_packages = resolve_component_packages(packages)
-    head_markup = "\n    ".join(p for p in (_bundle_head(bundles, base, nonce, layout), _package_head(component_packages, base, nonce), head) if p)
+    head_markup = "\n    ".join(p for p in (_package_head(component_packages, base, nonce), head) if p)
     script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""

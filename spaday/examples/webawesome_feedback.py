@@ -3,9 +3,8 @@
 Run ``python -m spaday.examples.webawesome_feedback`` and open http://127.0.0.1:8012.
 """
 
-from spaday import Emit, SetField, ToggleField, element
-from spaday.components.shell import AppShell, Column, Region, Row, Show, Tabs, Toolbar
-from spaday.components.webawesome import (
+from spaday_webawesome import (
+    Tabs,
     WaAnimation,
     WaAvatar,
     WaBadge,
@@ -19,6 +18,9 @@ from spaday.components.webawesome import (
     WaSpinner,
     WaTag,
 )
+
+from spaday import Emit, SetField, ToggleField, element
+from spaday.components.shell import AppShell, Column, Region, Row, Show, Toolbar
 
 STYLE = """<style>
 body { margin: 0; font-family: system-ui, sans-serif; }
@@ -108,7 +110,7 @@ def create_app():
 
     return serve(
         build_page,
-        bundles=["webawesome"],
+        packages=["webawesome"],
         store={"busy": True, "progress": 64},
         title="spaday — status and feedback",
         head=STYLE,

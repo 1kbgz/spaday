@@ -23,7 +23,6 @@ from spaday import element, render_html
 from spaday.actions import Toggle, by_id
 from spaday.bootstrap import bundles_dir
 from spaday.components.shell import App, Body, Main, Nav, Row, Stack
-from spaday.components.webawesome import WaButton
 
 JS = bundles_dir()
 if (JS / "dist").is_dir():
@@ -44,10 +43,7 @@ def build_tree():
                     .child(element("p").text("This markup was rendered on the server (view source). Behavior attaches on hydrate."))
                     .child(
                         Row().child(
-                            WaButton(variant="brand")
-                            .text("Toggle details")
-                            .css(background_color="#6366f1")
-                            .on("click", Toggle(by_id("info"), "hidden"))
+                            element("button").text("Toggle details").css(background_color="#6366f1").on("click", Toggle(by_id("info"), "hidden"))
                         )
                     )
                     .child(

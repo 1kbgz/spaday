@@ -15,11 +15,11 @@ from spaday.packages import ComponentPackage
 class TestTornadoBackend(AsyncHTTPTestCase):
     def get_app(self):
         # bundles_dir() (the real js/) backs the /js StaticFileHandler; the test only fetches / and /tree.json
-        return serve(Main("hi"), bundles=["webawesome"], wire="transports")
+        return serve(Main("hi"), wire="transports")
 
     def test_serve_hosts_page_and_tree(self):
         home = self.fetch("/").body.decode()
-        assert "connectStore" in home and "webawesome.css" in home  # the generated bootstrap + bundle
+        assert "connectStore" in home
         assert json.loads(self.fetch("/tree.json").body) == Main("hi").to_node()  # tree served as JSON
 
 

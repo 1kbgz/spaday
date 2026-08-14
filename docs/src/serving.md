@@ -20,17 +20,17 @@ request, so the tree can reflect current state.
 ## Serve a whole app
 
 `serve` creates a Starlette app and mounts your page on it: it generates the bootstrap HTML, hosts the
-tree at `/tree.json`, and serves the JS bundles at `/js`. Pull a component library into `<head>` with
-`bundles=`, add your own routes with `routes=`, and run lifetime coroutines with `background=`:
+tree at `/tree.json`, and serves core JS at `/js`. Pull a component library into `<head>` with
+`packages=`, add your own routes with `routes=`, and run lifetime coroutines with `background=`:
 
 ```python
 import uvicorn
 from spaday.backends.starlette import serve
-from spaday.components.webawesome import WaButton
+from spaday_webawesome import WaButton
 
 app = serve(
     lambda: WaButton(variant="brand").text("Hi"),
-    bundles=["webawesome"],          # pull WebAwesome's styles + catalog into <head>
+    packages=["webawesome"],          # pull WebAwesome's styles + catalog into <head>
     head="<style>body{margin:2rem}</style>",
     title="my app",
 )
@@ -39,9 +39,10 @@ if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
 ```
 
-The built-in bundles are `"webawesome"` and `"lightweight-charts"`. External integrations such as
-`spaday-perspective` use `packages=` (see below). `serve` is the one-line happy path — it is just
-`mount` onto a fresh app, so drop to `mount` when the app is yours.
+Component integrations are peer packages: `spaday-webawesome`, `spaday-lightweight-charts`,
+`spaday-regular-layout`, `spaday-regular-table`, and `spaday-perspective` all use `packages=` (see
+below). `serve` is the one-line happy path — it is `mount` onto a fresh app, so drop to `mount` when the
+app is yours.
 In a source checkout it serves built assets from `js/`; from a wheel it automatically serves packaged
 `spaday/extension` assets. Use `layout="source"` or `layout="installed"` only to override detection, such
 as when supplying a matching custom `js=` directory.
@@ -99,7 +100,7 @@ from starlette.routing import Route
 from spaday.backends.starlette import mount
 
 app = Starlette(routes=[Route("/", my_own_homepage)])   # your app, your routes
-mount(app, page, prefix="/panel", bundles=["webawesome"])   # spaday lives only under /panel
+mount(app, page, prefix="/panel", packages=["webawesome"])   # spaday lives only under /panel
 ```
 
 Backends ship for **Starlette/FastAPI**, **aiohttp**, **Flask**, and **Tornado** — import `serve`/`mount`
@@ -109,22 +110,24 @@ from `spaday.backends.<name>`. They are thin glue over the framework-agnostic ge
 
 When the host owns the entire HTML page (its own markup, CSS, bundler), emit spaday as a *fragment* —
 just the bundle tags + the mounting `<script>`, with no document — and splice it into a node the host
-provides. The host serves the tree and `/js` itself:
+provides. The host serves the tree, core `/js`, and selected package assets itself:
 
 ```python
 from starlette.responses import HTMLResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
+from spaday_webawesome import package as webawesome
 from spaday.bootstrap import bootstrap, bundles_dir, tree_json
 
 async def home(_request):
-    fragment = bootstrap(fragment=True, target="#spaday-root", bundles=["webawesome"])
+    fragment = bootstrap(fragment=True, target="#spaday-root", packages=[webawesome])
     return HTMLResponse(f"<!doctype html>… <div id='spaday-root'></div> {fragment} …")
 
 routes = [
     Route("/", home),
     Route("/tree.json", lambda _r: Response(tree_json(page), media_type="application/json")),
     Mount("/js", StaticFiles(directory=bundles_dir())),
+    Mount("/components/webawesome", StaticFiles(directory=webawesome.assets_dir)),
 ]
 ```
 
@@ -132,7 +135,7 @@ The mounting script is inline, so a host with a strict `script-src` Content-Secu
 per-request **`nonce`** — it stamps the generated `<script>`/`<link>` tags so the policy can allow them:
 
 ```python
-fragment = bootstrap(fragment=True, target="#spaday-root", bundles=["webawesome"], nonce=request_nonce)
+fragment = bootstrap(fragment=True, target="#spaday-root", packages=[webawesome], nonce=request_nonce)
 # ...and set `Content-Security-Policy: script-src 'self' 'nonce-<request_nonce>' 'wasm-unsafe-eval'`
 ```
 
@@ -172,6 +175,6 @@ Whatever rung you pick, the generated page expects the host to serve these paths
 | -------------------------------- | ------------------------------------------- |
 | `GET {base}/`                    | the bootstrap HTML (`bootstrap(...)`)       |
 | `GET {base}/tree.json`           | the authored tree (`tree_json(page)`)       |
-| `GET {base}/js/*`                | the bundles under `bundles_dir()`           |
+| `GET {base}/js/*`                | core assets under `bundles_dir()`           |
 | `GET {base}/components/{name}/*` | assets for each selected `ComponentPackage` |
 | `WS {base}/ws`                   | a transports endpoint (only when wired)     |

@@ -5,6 +5,7 @@ import pytest
 from spaday import decode_frame
 from spaday.bootstrap import bootstrap, bundles_dir, tree_frame, tree_json
 from spaday.components.shell import Main
+from spaday.packages import ComponentPackage
 
 # The generic bootstrapping layer is framework-agnostic — these run with no webserver dependency.
 
@@ -23,10 +24,11 @@ def test_transports_wire_bootstrap():
     assert "mount(document.body, node, store)" in html
 
 
-def test_bundles_are_pulled_into_head():
-    html = bootstrap(bundles=["webawesome"], layout="source")
-    assert "@awesome.me/webawesome/dist/styles/webawesome.css" in html
-    assert '<script type="module" src="/js/dist/cdn/examples/webawesome.js">' in html
+def test_component_package_assets_are_pulled_into_head(tmp_path):
+    package = ComponentPackage("fixture", tmp_path, (("css", "theme.css"), ("js", "index.js")))
+    html = bootstrap(packages=[package])
+    assert 'href="/components/fixture/theme.css"' in html
+    assert 'src="/components/fixture/index.js"' in html
 
 
 def test_frame_tree_bootstrap_decodes_a_frame():
@@ -41,11 +43,6 @@ def test_reconnect_bootstrap_reopens_the_socket():
 
 def test_scripts_are_injected():
     assert 'import "/static/handlers.js";' in bootstrap(scripts=["/static/handlers.js"])
-
-
-def test_unknown_bundle_raises():
-    with pytest.raises(ValueError):
-        bootstrap(bundles=["perspective"])
 
 
 def test_tree_json_serializes_and_recomputes_per_call():
@@ -73,13 +70,11 @@ def test_source_bundles_dir_points_at_the_js_bundles():
 
 def test_installed_layout_uses_packaged_assets():
     assert bundles_dir("installed").name == "extension"
-    html = bootstrap(layout="installed", bundles=["webawesome"], wire="transports")
+    html = bootstrap(layout="installed", wire="transports")
     assert 'from "/js/cdn/index.js"' in html
     assert 'module_or_path: "/js/pkg/spaday_bg.wasm"' in html
     assert 'from "/js/transports/cdn/index.js"' in html
     assert 'module_or_path: "/js/transports/pkg/transports_bg.wasm"' in html
-    assert 'href="/js/css/webawesome.css"' in html
-    assert 'src="/js/cdn/examples/webawesome.js"' in html
     assert "node_modules" not in html and "/dist/" not in html
 
 
@@ -89,18 +84,17 @@ def test_invalid_asset_layout_raises():
 
 
 def test_base_prefixes_the_tree_js_and_ws_urls():
-    html = bootstrap(base="/dash", wire="transports", bundles=["webawesome"], layout="source")
+    html = bootstrap(base="/dash", wire="transports", layout="source")
     assert 'fetch("/dash/tree.json")' in html  # tree
     assert "/dash/js/dist/esm/index.js" in html  # runtime
-    assert "/dash/js/node_modules/@awesome.me" in html  # bundle
     assert "${location.host}/dash/ws" in html  # websocket
     assert 'fetch("/tree.json")' in bootstrap()  # default base="" is unprefixed (served at root)
 
 
 def test_fragment_emits_a_snippet_not_a_document():
-    f = bootstrap(fragment=True, target="#widget", wire="transports", bundles=["webawesome"])
+    f = bootstrap(fragment=True, target="#widget", wire="transports")
     assert "<!doctype html>" not in f and "<html" not in f  # a snippet to drop into a host template
-    assert '<script type="module">' in f and "webawesome.css" in f  # bundle tags + the module script
+    assert '<script type="module">' in f
     assert 'mount(document.querySelector("#widget"), node, store)' in f  # mounts into the target element
 
 

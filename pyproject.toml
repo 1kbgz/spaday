@@ -34,9 +34,10 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-form = ["pydantic>=2"]  # schema-generated forms: spaday.components.form turns a pydantic model into bound wa-* controls
 widget = ["anywidget"]
-examples = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets"]  # pydantic: the example models + form()
+webawesome = ["spaday-webawesome>=0.1.0"]
+lightweight-charts = ["spaday-lightweight-charts>=0.1.0"]
+examples = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "spaday-webawesome>=0.1.0", "spaday-lightweight-charts>=0.1.0"]
 cluster = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
 perspective = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6", "spaday-perspective>=0.1.0", "superstore>=0.3.1"]  # external panel + Mode B server; superstore generates the orders + chart series
 aiohttp = ["aiohttp"]  # the aiohttp backend (spaday.backends.aiohttp)
@@ -58,7 +59,7 @@ develop = [
     "mdformat",
     "mdformat-tables>=1",
     "perspective-python>=4.5,<4.6",  # gateway + omnibus browser example tests
-    "pydantic>=2",  # form() + the example/test models (was only present transitively, via bump-my-version)
+    "pydantic>=2",  # example/test models
     "pyzmq",  # clustered chart browser example test
     "pytest",
     "pytest-cov",

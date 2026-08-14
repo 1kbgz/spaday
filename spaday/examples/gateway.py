@@ -41,6 +41,7 @@ import uvicorn
 from perspective.handlers.starlette import PerspectiveStarletteHandler
 from pydantic import BaseModel, Field, ValidationError
 from spaday_perspective import PerspectivePanel
+from spaday_webawesome import WaButton, WaOption, WaSelect, WaSwitch, form
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket
@@ -48,9 +49,7 @@ from starlette.websockets import WebSocket
 from spaday import element
 from spaday.actions import CallEndpoint, NamedJs, cond, eq, field, obj
 from spaday.backends.starlette import serve
-from spaday.components.form import form
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack
-from spaday.components.webawesome import WaButton, WaOption, WaSelect, WaSwitch
 
 
 class Side(str, enum.Enum):
@@ -219,8 +218,7 @@ app = serve(
         Route("/api/clear", clear_orders, methods=["POST"]),
         WebSocketRoute("/perspective", psp_data),
     ],
-    bundles=["webawesome"],
-    packages=["perspective"],
+    packages=["webawesome", "perspective"],
     store={"symbol": "AAPL", "side": "buy", "qty": 100, "price": 100.0, "dark": True, "view": "blotter"},
     scripts=["/js/dist/cdn/examples/gateway.js"],
     head=THEME_CSS,

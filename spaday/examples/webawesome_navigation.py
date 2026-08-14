@@ -3,9 +3,7 @@
 Run ``python -m spaday.examples.webawesome_navigation`` and open http://127.0.0.1:8011.
 """
 
-from spaday import Sequence, SetField, SetProp, by_id, cond, element, eq, field
-from spaday.components.shell import Column, Row, Show
-from spaday.components.webawesome import (
+from spaday_webawesome import (
     WaAccordion,
     WaAccordionItem,
     WaBreadcrumb,
@@ -26,6 +24,9 @@ from spaday.components.webawesome import (
     WaTree,
     WaTreeItem,
 )
+
+from spaday import Sequence, SetField, SetProp, by_id, cond, element, eq, field
+from spaday.components.shell import Column, Row, Show
 
 STYLE = """<style>
 body { margin: 0; font-family: system-ui, sans-serif; }
@@ -216,7 +217,7 @@ def create_app():
 
     return serve(
         build_page,
-        bundles=["webawesome"],
+        packages=["webawesome"],
         store={"section": "overview"},
         title="spaday — application navigation",
         head=STYLE,

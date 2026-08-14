@@ -34,7 +34,6 @@ def mount(
     js: str | Path | None = None,
     layout: AssetLayout | None = None,
     title: str = "spaday",
-    bundles: Sequence[str] = (),
     packages: PackageRef | Sequence[PackageRef] = (),
     wire: str | None = None,
     ws: str = "/ws",
@@ -52,7 +51,6 @@ def mount(
     component_packages = resolve_component_packages(packages)
     body = bootstrap(
         base=prefix,
-        bundles=bundles,
         packages=component_packages,
         wire=wire,
         ws=ws,

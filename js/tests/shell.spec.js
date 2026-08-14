@@ -55,20 +55,6 @@ test("layout primitives carry their own encapsulated layout CSS", async ({
   expect(r.row.alignItems).toBe("center"); // Row centers its items
 });
 
-test("shell containers carry the slotted wa-button display fix", async ({
-  page,
-}) => {
-  // WebAwesome's wa-button is inline-block; without this it blockifies to `block` as a flex item and
-  // its internal base part overflows the host. Guard that the fix rule stays in the shadow style.
-  const hasFix = await page.evaluate(() => {
-    const el = window.__spaday.mount(document.body, { tag: "spa-row" });
-    return el.shadowRoot
-      .querySelector("style")
-      .textContent.includes("::slotted(wa-button)");
-  });
-  expect(hasFix).toBe(true);
-});
-
 test("spa-table renders rows under columns and re-renders when the bound field changes", async ({
   page,
 }) => {

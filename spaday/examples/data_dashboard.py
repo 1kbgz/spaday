@@ -3,10 +3,11 @@
 Run ``python -m spaday.examples.data_dashboard`` and open http://127.0.0.1:8015.
 """
 
+from spaday_lightweight_charts import LightweightChart
+from spaday_webawesome import Tabs, WaCallout, WaOption, WaSelect, WaSwitch, WaTag
+
 from spaday import cond, element, field
-from spaday.components.lightweight_charts import LightweightChart
-from spaday.components.shell import AppShell, Column, Region, Row, Show, Table, Tabs, Toolbar
-from spaday.components.webawesome import WaCallout, WaOption, WaSelect, WaSwitch, WaTag
+from spaday.components.shell import AppShell, Column, Region, Row, Show, Table, Toolbar
 
 STYLE = """<style>
 body { margin: 0; font-family: system-ui, sans-serif; }
@@ -99,7 +100,7 @@ def create_app():
 
     return serve(
         build_page,
-        bundles=["webawesome", "lightweight-charts"],
+        packages=["webawesome", "lightweight-charts"],
         store={
             "chart_type": "area",
             "show_chart": True,

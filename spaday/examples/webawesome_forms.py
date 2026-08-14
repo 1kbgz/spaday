@@ -3,9 +3,7 @@
 Run ``python -m spaday.examples.webawesome_forms`` and open http://127.0.0.1:8010.
 """
 
-from spaday import CallEndpoint, If, Sequence, SetField, element, eq, field, not_, obj
-from spaday.components.shell import App, Body, Column, Footer, Main, Nav, Row, Show, Toolbar
-from spaday.components.webawesome import (
+from spaday_webawesome import (
     WaButton,
     WaCheckbox,
     WaCheckboxGroup,
@@ -23,6 +21,9 @@ from spaday.components.webawesome import (
     WaTextarea,
     WaTimeInput,
 )
+
+from spaday import CallEndpoint, If, Sequence, SetField, element, eq, field, not_, obj
+from spaday.components.shell import App, Body, Column, Footer, Main, Nav, Row, Show, Toolbar
 
 STYLE = """<style>
 body { margin: 0; font-family: system-ui, sans-serif; }
@@ -171,7 +172,7 @@ def create_app():
 
     return serve(
         build_page,
-        bundles=["webawesome"],
+        packages=["webawesome"],
         store={
             "name": "Ada Lovelace",
             "email": "ada@example.com",

@@ -28,12 +28,12 @@ from datetime import date, timedelta
 import transports
 import uvicorn
 from pydantic import BaseModel, Field
+from spaday_lightweight_charts import LightweightChart
 from starlette.routing import WebSocketRoute
 from transports import Hub, LastWriteWins, RelayBroadcaster, ZmqBackplane
 
 from spaday import Paragraph
 from spaday.backends.starlette import serve
-from spaday.components import LightweightChart
 from spaday.components.shell import Column
 
 WINDOW = 120
@@ -114,7 +114,7 @@ app = serve(
     page,
     wire="transports",  # generate the Client + connectStore + websocket bootstrap
     reconnect=True,  # durable to a worker/server restart; each reconnect re-fetches the snapshot
-    bundles=["lightweight-charts"],
+    packages=["lightweight-charts"],
     routes=[WebSocketRoute("/ws", transports.ws_endpoint(relay))],  # the relay satisfies the Broadcaster contract
     lifespan=lifespan,  # relay.start() before serving; the elected worker runs the ticker
     title="spaday — multi-worker clustered chart",

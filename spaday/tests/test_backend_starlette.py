@@ -29,7 +29,7 @@ class _EntryPoint:
 def test_serve_hosts_page_tree_bundle_and_routes(tmp_path):
     page = Main("hi")
     routes = [Route("/api/ping", lambda _r: PlainTextResponse("pong"))]
-    client = TestClient(serve(page, js=tmp_path, bundles=["webawesome"], wire="transports", routes=routes))
+    client = TestClient(serve(page, js=tmp_path, wire="transports", routes=routes))
     assert "connectStore(" in client.get("/").text  # the generated bootstrap
     assert client.get("/tree.json").json() == page.to_node()  # tree served as JSON
     assert client.get("/js/dist/esm/index.js") is not None  # /js mount present (dir is tmp here)
@@ -56,13 +56,11 @@ def test_serve_frame_route_returns_a_decodable_frame(tmp_path):
 
 
 def test_serve_installed_layout_hosts_packaged_assets():
-    client = TestClient(serve(Main("hi"), layout="installed", bundles=["webawesome"]))
+    client = TestClient(serve(Main("hi"), layout="installed"))
     home = client.get("/").text
     assert "/js/cdn/index.js" in home and "/js/pkg/spaday_bg.wasm" in home
-    assert "/js/css/webawesome.css" in home and "/js/cdn/examples/webawesome.js" in home
     assert client.get("/js/cdn/index.js").status_code == 200
     assert client.get("/js/pkg/spaday_bg.wasm").status_code == 200
-    assert client.get("/js/css/webawesome.css").status_code == 200
 
 
 def test_mount_adds_routes_to_an_existing_app_under_a_prefix(tmp_path):
@@ -103,10 +101,12 @@ def test_mount_stamps_a_csp_nonce_on_generated_tags(tmp_path):
     from starlette.applications import Starlette
 
     app = Starlette()
-    mount(app, Main("hi"), prefix="/dash", bundles=["webawesome"], js=tmp_path, nonce="abc123")
+    (tmp_path / "fixture.js").write_text("export {};", encoding="utf-8")
+    package = ComponentPackage("fixture", tmp_path, (("js", "fixture.js"),))
+    mount(app, Main("hi"), prefix="/dash", packages=[package], js=tmp_path, nonce="abc123")
     page = TestClient(app).get("/dash/").text
     assert '<script type="module" nonce="abc123">' in page  # the inline mount script
-    assert 'nonce="abc123"' in page and "webawesome.css" in page  # ...and the bundle tags
+    assert 'nonce="abc123"' in page and "/components/fixture/fixture.js" in page
 
 
 def test_serve_custom_html_and_background(tmp_path):

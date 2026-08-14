@@ -25,7 +25,7 @@ from pydantic import BaseModel
 from starlette.routing import WebSocketRoute
 from spaday import element
 from spaday.backends.starlette import serve
-from spaday.components.webawesome import WaInput, WaSwitch
+from spaday_webawesome import WaInput, WaSwitch
 
 class Controls(BaseModel):
     label: str = "hello"
@@ -44,7 +44,7 @@ def page():
 
 app = serve(
     page,
-    bundles=["webawesome"],
+    packages=["webawesome"],
     wire="transports",
     routes=[WebSocketRoute("/ws", transports.ws_endpoint(server))],
     background=[transports.autosync(server)],   # fan host-side changes to every client
@@ -117,4 +117,3 @@ Install `spaday-perspective` and select its assets with `packages=["perspective"
 
 See `spaday/examples/gateway.py` (no transports — REST + Perspective's own ws) and the omnibus for the
 full pattern.
-```

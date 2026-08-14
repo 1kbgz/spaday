@@ -1,6 +1,6 @@
 # Tutorial: build your first interactive UI
 
-In this tutorial you will build a small settings panel — a card with a switch and a reveal button —
+In this tutorial you will build a small settings panel — a checkbox and a reveal button —
 and make it interactive, all from Python. By the end you will have rendered web components, run
 behavior in the browser with no server, and wired a control two-way to state your Python code can read.
 
@@ -21,16 +21,14 @@ jupyter lab
 In a cell, build a card containing a switch and display it:
 
 ```python
-from spaday import Widget
-from spaday.components.webawesome import WaCard, WaSwitch
+from spaday import Widget, element
 
-panel = WaCard().child(WaSwitch().text("Lamp"))
+panel = element("label").child(element("input", type="checkbox")).child("Lamp")
 Widget(panel)
 ```
 
-Run the cell. You should see a bordered card with a labelled toggle switch. `WaCard` and `WaSwitch` are
-typed Python classes for [WebAwesome](https://webawesome.com) components; `.child(...)` nests one inside
-another, and `Widget(...)` renders the tree in the output area.
+Run the cell. You should see a labelled checkbox. `.child(...)` nests one element inside another, and
+`Widget(...)` renders the tree in the output area.
 
 ## Step 2 — add a layout
 
@@ -40,18 +38,17 @@ children out vertically:
 ```python
 from spaday import element, Widget
 from spaday.components.shell import Stack
-from spaday.components.webawesome import WaCard, WaSwitch
 
-panel = WaCard().child(
+panel = element("section", style="border:1px solid #bbb;padding:1rem").child(
     Stack()
     .child(element("strong").text("Settings"))
-    .child(WaSwitch().text("Lamp"))
-    .child(WaSwitch().text("Notifications"))
+    .child(element("label").child(element("input", type="checkbox")).child("Lamp"))
+    .child(element("label").child(element("input", type="checkbox")).child("Notifications"))
 )
 Widget(panel)
 ```
 
-Run it. You should see a card titled **Settings** with two switches stacked under it. `Stack` is one of
+Run it. You should see a panel titled **Settings** with two checkboxes stacked under it. `Stack` is one of
 spaday's `spa-*` layout components; `element("strong")` is an escape hatch for a plain HTML tag.
 
 ## Step 3 — make it do something, in the browser
@@ -62,14 +59,13 @@ Python. Attach a declarative action with `.on(...)`:
 ```python
 from spaday import by_id, element, Toggle, Widget
 from spaday.components.shell import Stack
-from spaday.components.webawesome import WaButton, WaCallout, WaCard, WaSwitch
 
-panel = WaCard().child(
+panel = element("section", style="border:1px solid #bbb;padding:1rem").child(
     Stack()
     .child(element("strong").text("Settings"))
-    .child(WaSwitch().text("Lamp"))
-    .child(WaButton(variant="brand").text("Details").on("click", Toggle(by_id("info"), "hidden")))
-    .child(WaCallout().prop("id", "info").prop("hidden", True).text("Runs entirely client-side."))
+    .child(element("label").child(element("input", type="checkbox")).child("Lamp"))
+    .child(element("button").text("Details").on("click", Toggle(by_id("info"), "hidden")))
+    .child(element("div", id="info", hidden=True).text("Runs entirely client-side."))
 )
 Widget(panel)
 ```
@@ -85,12 +81,15 @@ switch's `checked` to a field of it, **two-way**:
 ```python
 from spaday import element, Widget
 from spaday.components.shell import Stack
-from spaday.components.webawesome import WaCard, WaSwitch
 
-panel = WaCard().child(
+panel = element("section", style="border:1px solid #bbb;padding:1rem").child(
     Stack()
     .child(element("strong").text("Settings"))
-    .child(WaSwitch().text("Lamp").bind("checked", "lamp", mode="two-way"))
+    .child(
+        element("label")
+        .child(element("input", type="checkbox").bind("checked", "lamp", mode="two-way"))
+        .child("Lamp")
+    )
 )
 w = Widget(panel, state={"lamp": True})
 w
@@ -125,7 +124,7 @@ interactions run in the browser *and* report back to Python.
 
 ## What you built
 
-- A web-component UI authored entirely in typed Python.
+- A component UI authored entirely in Python.
 - Behavior (`Toggle`) that runs client-side with no round-trip.
 - A control two-way-bound to state, readable and writable from Python.
 

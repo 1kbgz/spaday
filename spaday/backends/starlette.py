@@ -54,7 +54,6 @@ def mount(
     js: str | Path | None = None,
     layout: AssetLayout | None = None,
     title: str = "spaday",
-    bundles: Sequence[str] = (),
     packages: PackageRef | Sequence[PackageRef] = (),
     wire: str | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
@@ -81,7 +80,6 @@ def mount(
     component_packages = resolve_component_packages(packages)
     body = bootstrap(
         base=prefix,
-        bundles=bundles,
         packages=component_packages,
         wire=wire,
         ws=ws,
@@ -122,7 +120,7 @@ def mount(
 def serve(page: Page, *, background: Sequence[Awaitable] = (), lifespan: Callable | None = None, **opts) -> Starlette:
     """Create a Starlette app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the
     app's lifetime (or pass a custom ``lifespan`` for ordered startup, e.g. a clustering relay); all other
-    keyword options are :func:`mount`'s (``prefix``/``routes``/``html``/``js``/``title``/``bundles``/``packages``/
+    keyword options are :func:`mount`'s (``prefix``/``routes``/``html``/``js``/``title``/``packages``/
     ``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``store``/``nonce``)."""
     from starlette.applications import Starlette
 

@@ -9,8 +9,8 @@ Build reactive web-component UIs **configured in Python, executed in the browser
 
 ## Overview
 
-You author a UI as a tree of typed Python components — [WebAwesome](https://webawesome.com) by default,
-or any library that ships a [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest).
+You author a UI as a tree of typed Python components from opt-in packages or any library that ships a
+[Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest).
 You attach behavior as **declarative data**: an action DSL (toggle a prop, send a model edit, call an
 endpoint) and reactive **bindings** (a control two-way-bound to a state field, or a prop computed from
 others). spaday's JavaScript runtime renders the tree to real web components and interprets that
@@ -25,11 +25,10 @@ CEM parser, the action interpreter, and the reactive engine live in Rust and com
 authors the tree) and **wasm** (the browser runs it). One core, two bindings.
 
 ```python
-from spaday import Widget
-from spaday.components.webawesome import WaCard, WaSwitch
+from spaday import Widget, element
 
-# a switch two-way-bound to a state field, rendered in a Jupyter cell
-ui = WaCard().child(WaSwitch().text("Lamp").bind("checked", "on", mode="two-way"))
+# a checkbox two-way-bound to a state field, rendered in a Jupyter cell
+ui = element("input", type="checkbox").bind("checked", "on", mode="two-way")
 w = Widget(ui, state={"on": True})
 w  # flip the switch → w.state["on"] flips in Python; set w.state → the switch follows
 ```
@@ -49,6 +48,10 @@ registers its browser assets with spaday:
 - [spaday-trees](https://github.com/1kbgz/spaday-trees) — virtualized project and repository trees from [Pierre](https://trees.software/docs).
 - [spaday-spectrum](https://github.com/1kbgz/spaday-spectrum) — [Adobe Spectrum Web Components](https://opensource.adobe.com/spectrum-web-components/).
 - [spaday-perspective](https://github.com/1kbgz/spaday-perspective) — live [Perspective](https://perspective-dev.github.io) workspaces and datagrids.
+- [spaday-webawesome](https://github.com/1kbgz/spaday-webawesome) — typed [WebAwesome](https://webawesome.com) catalog, forms, and tabs.
+- [spaday-lightweight-charts](https://github.com/1kbgz/spaday-lightweight-charts) — reactive TradingView Lightweight Charts.
+- [spaday-regular-layout](https://github.com/1kbgz/spaday-regular-layout) — serializable resizable panel layouts.
+- [spaday-regular-table](https://github.com/1kbgz/spaday-regular-table) — viewport-virtualized high-performance data tables.
 
 Select an installed integration by its entry-point name, for example `serve(page, packages=["trees"])`.
 

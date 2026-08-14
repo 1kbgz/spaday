@@ -19,9 +19,8 @@ import spaday
 code = spaday.generate("custom-elements.json")   # returns the module source (typed classes)
 ```
 
-This is how the built-in WebAwesome catalog is produced. A test checks the committed
-`spaday/components/webawesome.py` against its source manifest so it can't silently drift; regenerate it
-with `spaday-cem <manifest> -o spaday/components/webawesome.py` followed by `ruff format`.
+Peer packages use this workflow for committed catalogs. For example, `spaday-webawesome` generates
+`spaday_webawesome/components.py` from its committed manifest and checks AST drift in its test suite.
 
 ## Build classes at runtime
 

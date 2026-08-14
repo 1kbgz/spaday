@@ -17,6 +17,7 @@ Run: ``python -m spaday.examples.fragment`` then open http://127.0.0.1:8008/.
 import secrets
 
 import uvicorn
+from spaday_webawesome import WaButton, WaCallout, package as webawesome_package
 from starlette.applications import Starlette
 from starlette.responses import HTMLResponse, Response
 from starlette.routing import Mount, Route
@@ -26,7 +27,6 @@ from spaday import element
 from spaday.actions import Toggle, by_id
 from spaday.bootstrap import bootstrap, bundles_dir, tree_json
 from spaday.components.shell import Stack
-from spaday.components.webawesome import WaButton, WaCallout
 
 
 def panel() -> object:
@@ -71,7 +71,7 @@ async def home(_request):
     # in the host's CSP header, so the inline module script is allowed without 'unsafe-inline'. ('self'
     # covers the imported /js modules; 'wasm-unsafe-eval' lets spaday compile its wasm core.)
     nonce = secrets.token_urlsafe(16)
-    fragment = bootstrap(fragment=True, target="#spaday-root", bundles=["webawesome"], nonce=nonce)
+    fragment = bootstrap(fragment=True, target="#spaday-root", packages=[webawesome_package], nonce=nonce)
     csp = f"script-src 'self' 'nonce-{nonce}' 'wasm-unsafe-eval'"
     return HTMLResponse(HOST_PAGE.format(fragment=fragment), headers={"Content-Security-Policy": csp})
 
@@ -86,6 +86,7 @@ app = Starlette(
         Route("/", home),
         Route("/tree.json", tree),
         Mount("/js", StaticFiles(directory=bundles_dir())),
+        Mount("/components/webawesome", StaticFiles(directory=webawesome_package.assets_dir)),
     ]
 )
 
