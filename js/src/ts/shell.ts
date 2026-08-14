@@ -93,9 +93,10 @@ if (typeof customElements !== "undefined") {
 }
 
 // A lightweight data table (`spa-table`): renders `rows` (a list of objects) under `columns`, both set as
-// JS properties — so a bound / computed `rows` re-renders reactively. Cells are text (built with
-// createElement, never innerHTML). Not a virtual-scroll grid (that's regular-table); a themed `<table>`
-// for modest data.
+// JS properties — so a bound / computed `rows` re-renders reactively. Scalar cells are text (built with
+// createElement, never innerHTML); component-valued static cells are ordinary light-DOM children
+// projected into their cell through a named slot. Not a virtual-scroll grid; a themed `<table>` for
+// modest data.
 const TABLE_CSS = `:host{display:block;overflow:auto}
 table{border-collapse:collapse;width:100%;font-size:.9rem;color:inherit}
 th,td{text-align:left;padding:.4rem .65rem;border-bottom:1px solid ${BORDER};white-space:nowrap}
@@ -103,6 +104,24 @@ thead th{background:${SURFACE_2};font-weight:600;position:sticky;top:0}
 tbody tr:hover td{background:${SURFACE_2}}`;
 
 type TableCol = { key: string; label: string };
+const CELL_SLOT = "__spaday_cell_slot__";
+
+function tableCell(td: HTMLTableCellElement, value: unknown): void {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 1 &&
+    typeof (value as Record<string, unknown>)[CELL_SLOT] === "string"
+  ) {
+    const slot = document.createElement("slot");
+    slot.name = String((value as Record<string, unknown>)[CELL_SLOT]);
+    td.append(slot);
+    return;
+  }
+  td.textContent = value == null ? "" : String(value);
+}
+
 function tableColumns(
   cols: unknown,
   rows: Record<string, unknown>[],
@@ -167,9 +186,7 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
         const tbody = table.createTBody();
         for (const row of this.data) {
           const tr = tbody.insertRow();
-          for (const c of cols)
-            tr.insertCell().textContent =
-              row[c.key] == null ? "" : String(row[c.key]);
+          for (const c of cols) tableCell(tr.insertCell(), row[c.key]);
         }
         const old = this.root.querySelector("table");
         if (old) old.replaceWith(table);

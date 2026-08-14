@@ -139,8 +139,40 @@ Table(columns=["symbol", "qty", "price"]).compute("rows", field("orders"))
 ```
 
 `columns` may be plain keys (`["symbol"]` — the label is the key) or `{"key": …, "label": …}` dicts; omit
-it to infer the columns from the first row. Pass `rows=[…]` for a static table. Cells are text; for virtual
-scrolling or very large datasets, wrap a grid library (regular-table) via the [wrapper recipe](wrappers.md).
+it to infer the columns from the first row. Pass `rows=[…]` for a static table. Scalar cells render as
+text. A static cell can instead contain any spaday component, including a button with an action:
+
+```python
+from spaday import NamedJs
+from spaday.components.shell import Table
+from spaday.components.webawesome import WaButton
+
+inspect = (
+    WaButton(appearance="plain")
+    .text("Inspect")
+    .prop("data-symbol", "AAPL")
+    .on("click", NamedJs("inspect-order"))
+)
+Table(
+    columns=["symbol", {"key": "action", "label": ""}],
+    rows=[{"symbol": "AAPL", "action": inspect}],
+)
+```
+
+Register the named handler in a JavaScript module loaded through `scripts=`:
+
+```javascript
+import { registerHandler } from "/js/dist/esm/index.js";
+
+registerHandler("inspect-order", (_event, button) => {
+  window.inspectOrder(button.getAttribute("data-symbol"));
+});
+```
+
+Rich cells are normal component-tree nodes, so their bindings and declarative actions work unchanged.
+Reactive `rows` remain serializable data; define component cells in static `rows` or update the table's
+component tree. For virtual scrolling or very large datasets, use a grid library via the
+[wrapper recipe](wrappers.md).
 
 ## Reach for a raw element
 

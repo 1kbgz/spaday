@@ -110,3 +110,68 @@ test("spa-table renders rows under columns and re-renders when the bound field c
     ["GOOG", "7"],
   ]); // reactively re-rendered from the changed field
 });
+
+test("spa-table projects rich component cells with working actions", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    const { mount, registerHandler } = window.__spaday;
+    let call = null;
+    registerHandler("inspect-order", (event, currentTarget) => {
+      call = {
+        event: event.type,
+        id: currentTarget.id,
+        symbol: currentTarget.getAttribute("data-symbol"),
+      };
+    });
+    const el = mount(document.body, {
+      tag: "spa-table",
+      props: {
+        columns: { List: [{ Str: "symbol" }, { Str: "action" }] },
+        rows: {
+          List: [
+            {
+              Map: {
+                symbol: { Str: "AAPL" },
+                action: {
+                  Map: { __spaday_cell_slot__: { Str: "cell-0" } },
+                },
+              },
+            },
+          ],
+        },
+      },
+      slots: {
+        "cell-0": [
+          {
+            tag: "button",
+            props: {
+              id: { Str: "inspect" },
+              "data-symbol": { Str: "AAPL" },
+              textContent: { Str: "Inspect" },
+            },
+            events: {
+              click: { kind: "js", handler: "inspect-order" },
+            },
+          },
+        ],
+      },
+    });
+    const slot = el.shadowRoot.querySelector('slot[name="cell-0"]');
+    const button = slot.assignedElements()[0];
+    button.click();
+    return {
+      call,
+      cellText: button.textContent,
+      assignedTag: button.tagName,
+      slotName: button.getAttribute("slot"),
+    };
+  });
+
+  expect(r).toEqual({
+    call: { event: "click", id: "inspect", symbol: "AAPL" },
+    cellText: "Inspect",
+    assignedTag: "BUTTON",
+    slotName: "cell-0",
+  });
+});

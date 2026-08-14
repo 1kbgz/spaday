@@ -267,11 +267,27 @@ class Table(Component):
         Table(columns=["symbol", "qty", "price"]).compute("rows", field("orders"))
 
     ``columns`` may be plain keys (``["symbol"]`` — the label is the key) or ``{"key": …, "label": …}``
-    dicts; omit it to infer the columns from the first row. Pass ``rows`` for a static table. (For virtual
-    scrolling / very large datasets, wrap regular-table — Phase 7.)
+    dicts; omit it to infer the columns from the first row. Pass ``rows`` for a static table. A static
+    cell may be a :class:`Component`; it is rendered as a normal component tree node, including its
+    bindings and events. Other cell values render as text. For virtual scrolling or very large datasets,
+    use a dedicated grid wrapper.
     """
 
     tag = "spa-table"
 
     def __init__(self, *, columns: list | None = None, rows: list | None = None, key: str | None = None, **props: Any) -> None:
-        super().__init__(key=key, props={"columns": columns, "rows": rows}, **props)
+        normalized_rows = None if rows is None else []
+        rich_cells: list[tuple[str, Component]] = []
+        for row in rows or []:
+            normalized_row = {}
+            for name, value in row.items():
+                if isinstance(value, Component):
+                    slot = f"cell-{len(rich_cells)}"
+                    normalized_row[name] = {"__spaday_cell_slot__": slot}
+                    rich_cells.append((slot, value))
+                else:
+                    normalized_row[name] = value
+            normalized_rows.append(normalized_row)
+        super().__init__(key=key, props={"columns": columns, "rows": normalized_rows}, **props)
+        for slot, component in rich_cells:
+            self.child_in(slot, component)
