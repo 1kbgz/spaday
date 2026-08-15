@@ -267,7 +267,7 @@ serve it with <code class="docutils literal notranslate"><span class="pre">wire=
 <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocketRoute</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">serve</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaInput</span><span class="p">,</span> <span class="n">WaSwitch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaInput</span><span class="p">,</span> <span class="n">WaSwitch</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Controls</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;hello&quot;</span>
@@ -286,7 +286,7 @@ serve it with <code class="docutils literal notranslate"><span class="pre">wire=
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span>
     <span class="n">page</span><span class="p">,</span>
-    <span class="n">bundles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">],</span>
+    <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">],</span>
     <span class="n">wire</span><span class="o">=</span><span class="s2">&quot;transports&quot;</span><span class="p">,</span>
     <span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">WebSocketRoute</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">,</span> <span class="n">transports</span><span class="o">.</span><span class="n">ws_endpoint</span><span class="p">(</span><span class="n">server</span><span class="p">))],</span>
     <span class="n">background</span><span class="o">=</span><span class="p">[</span><span class="n">transports</span><span class="o">.</span><span class="n">autosync</span><span class="p">(</span><span class="n">server</span><span class="p">)],</span>   <span class="c1"># fan host-side changes to every client</span>
@@ -354,9 +354,6 @@ to the panel with a computed <code class="docutils literal notranslate"><span cl
 <p>Install <code class="docutils literal notranslate"><span class="pre">spaday-perspective</span></code> and select its assets with <code class="docutils literal notranslate"><span class="pre">packages=[&quot;perspective&quot;]</span></code> when serving the page.</p>
 <p>See <code class="docutils literal notranslate"><span class="pre">spaday/examples/gateway.py</span></code> (no transports — REST + Perspective’s own ws) and the omnibus for the
 full pattern.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
 </section>
 </section>
 

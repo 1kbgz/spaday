@@ -246,7 +246,7 @@
 <span class="sd">the DOM event, with **no round-trip to Python**::</span>
 
 <span class="sd">    from spaday.actions import SetProp, Toggle, by_id, event_value, not_</span>
-<span class="sd">    from spaday.components import WaButton, WaSwitch</span>
+<span class="sd">    from spaday_webawesome import WaButton, WaSwitch</span>
 
 <span class="sd">    WaButton(variant=&quot;neutral&quot;).text(&quot;Toggle&quot;).on(&quot;click&quot;, Toggle(by_id(&quot;panel&quot;), &quot;hidden&quot;))</span>
 <span class="sd">    WaSwitch().text(&quot;Show&quot;).on(&quot;change&quot;, SetProp(by_id(&quot;panel&quot;), &quot;hidden&quot;, not_(event_value())))</span>

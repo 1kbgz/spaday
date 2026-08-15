@@ -245,9 +245,7 @@
 
 <span class="sd">What an app would otherwise hand-write in HTML is declared in Python:</span>
 
-<span class="sd">- ``bundles=[&quot;webawesome&quot;, …]`` — pull a component library&#39;s styles + catalog bundle into ``&lt;head&gt;``</span>
-<span class="sd">  (see :data:`BUNDLES`), instead of copy-pasting its ``&lt;link&gt;``/``&lt;script&gt;`` tags.</span>
-<span class="sd">- ``packages=[&quot;trees&quot;, …]`` — do the same for external component packages selected by descriptor,</span>
+<span class="sd">- ``packages=[&quot;trees&quot;, …]`` — pull a component package&#39;s styles and registration bundle into ``&lt;head&gt;``, selected by descriptor,</span>
 <span class="sd">  ``module:attribute`` Python path, or installed entry-point name.</span>
 <span class="sd">- ``wire=&quot;transports&quot;`` — generate the transports ``Client`` + ``connectStore`` + websocket bootstrap</span>
 <span class="sd">  (what every transports example&#39;s HTML repeats); without it the page just mounts a static tree.</span>
@@ -257,7 +255,7 @@
 <span class="sd">- ``scripts=[…]`` — extra ES-module URLs to load (e.g. ``NamedJs`` handlers).</span>
 <span class="sd">- ``base=&quot;/dashboard&quot;`` — mount the app under a path prefix, so it coexists with the host&#39;s other routes</span>
 <span class="sd">  (the tree / ``/js`` / ws URLs are all prefixed). Default ``&quot;&quot;`` = served at the root.</span>
-<span class="sd">- ``fragment=True`` + ``target=&quot;#widget&quot;`` — return just the bundle tags + the module ``&lt;script&gt;`` (not a</span>
+<span class="sd">- ``fragment=True`` + ``target=&quot;#widget&quot;`` — return just the package tags + the module ``&lt;script&gt;`` (not a</span>
 <span class="sd">  whole document), mounting into ``target`` — a snippet to drop into a host page&#39;s template, so spaday is</span>
 <span class="sd">  one component among many (several roots can share a page).</span>
 
@@ -340,27 +338,6 @@
 <span class="c1"># to a non-crypto id so the page still loads. It&#39;s only a transports ``Hub`` key, not a secret.</span>
 <span class="n">_SESSION_ID</span> <span class="o">=</span> <span class="s2">&quot;globalThis.crypto?.randomUUID?.() ?? (Date.now().toString(36) + Math.random().toString(36).slice(2))&quot;</span>
 
-<span class="c1">#: Named component-library bundles a page can pull into ``&lt;head&gt;`` via ``bundles=[…]``. Each entry is a</span>
-<span class="c1">#: ``(kind, path)`` pair — ``kind`` is ``&quot;css&quot;`` or ``&quot;js&quot;``, ``path`` is under the served ``/js`` mount —</span>
-<span class="c1">#: the markup (styles + the catalog/wrapper script that registers the elements) an example would otherwise</span>
-<span class="c1">#: paste into its HTML.</span>
-<span class="n">BUNDLES</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;webawesome&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;css&quot;</span><span class="p">,</span> <span class="s2">&quot;/node_modules/@awesome.me/webawesome/dist/styles/webawesome.css&quot;</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;css&quot;</span><span class="p">,</span> <span class="s2">&quot;/node_modules/@awesome.me/webawesome/dist/styles/themes/default.css&quot;</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;/dist/cdn/examples/webawesome.js&quot;</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="s2">&quot;lightweight-charts&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;/dist/cdn/wrappers/lightweight-chart.js&quot;</span><span class="p">)],</span>
-<span class="p">}</span>
-
-<span class="n">_INSTALLED_BUNDLES</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;webawesome&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;css&quot;</span><span class="p">,</span> <span class="s2">&quot;/css/webawesome.css&quot;</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;/cdn/examples/webawesome.js&quot;</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="s2">&quot;lightweight-charts&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;/cdn/wrappers/lightweight-chart.js&quot;</span><span class="p">)],</span>
-<span class="p">}</span>
-
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">:</span> <span class="n">AssetLayout</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AssetLayout</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">layout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">layout</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_ASSETS</span><span class="p">:</span>
@@ -405,19 +382,6 @@
 <span class="sd">    the model data ride one wire.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">encode_frame</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">_resolve</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to_node</span><span class="p">()),</span> <span class="nb">id</span><span class="p">,</span> <span class="s2">&quot;snapshot&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;application/json&quot;</span><span class="p">)</span></div>
 
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_bundle_head</span><span class="p">(</span><span class="n">bundles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="n">AssetLayout</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39; nonce=&quot;</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># CSP nonce on the generated script/style tags</span>
-    <span class="n">tags</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">available</span> <span class="o">=</span> <span class="n">BUNDLES</span> <span class="k">if</span> <span class="n">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;source&quot;</span> <span class="k">else</span> <span class="n">_INSTALLED_BUNDLES</span>
-    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">bundles</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">available</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown bundle </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">; known: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">available</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">available</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
-            <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_js</span><span class="p">(</span><span class="n">base</span><span class="p">)</span><span class="si">}{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="n">tags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&lt;link rel=&quot;stylesheet&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> href=&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">&quot; /&gt;&#39;</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;css&quot;</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;&lt;script type=&quot;module&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> src=&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">&quot;&gt;&lt;/script&gt;&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_package_head</span><span class="p">(</span><span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -565,7 +529,6 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">bootstrap</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="n">bundles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">packages</span><span class="p">:</span> <span class="n">PackageRef</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PackageRef</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/ws&quot;</span><span class="p">,</span>
@@ -588,7 +551,7 @@
 <span class="sd">    &quot;namespace&quot;: …, &quot;session&quot;: …}, …]`` mirrors **several** models into one store, each namespaced so their</span>
 <span class="sd">    fields don&#39;t collide (a chart on ``global.*`` next to one on ``session.*``) — the multi-model page.</span>
 
-<span class="sd">    By default returns a whole HTML document. With ``fragment=True`` it returns just the bundle tags + the</span>
+<span class="sd">    By default returns a whole HTML document. With ``fragment=True`` it returns just the package tags + the</span>
 <span class="sd">    module ``&lt;script&gt;`` — a snippet to **drop into a host page&#39;s template** (Jinja/Django/…), so spaday is</span>
 <span class="sd">    one component among many rather than the whole page. Pass ``target`` (a CSS selector) to mount into a</span>
 <span class="sd">    specific element (e.g. ``&quot;#widget&quot;``) instead of ``document.body``; the host provides that element.</span>
@@ -599,7 +562,7 @@
 <span class="sd">    selects source-checkout or installed-wheel asset URLs; by default it follows :func:`bundles_dir`.&quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39; nonce=&quot;</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
     <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
-    <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_bundle_head</span><span class="p">(</span><span class="n">bundles</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">layout</span><span class="p">),</span> <span class="n">_package_head</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">),</span> <span class="n">head</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_package_head</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">),</span> <span class="n">head</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span>
     <span class="n">script</span> <span class="o">=</span> <span class="n">_script</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">wire</span><span class="p">,</span> <span class="n">scripts</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">tree</span><span class="p">,</span> <span class="n">reconnect</span><span class="p">,</span> <span class="n">store</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">layout</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment</span><span class="p">:</span>
         <span class="n">head_block</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">head_markup</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">head_markup</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>

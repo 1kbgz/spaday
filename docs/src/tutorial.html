@@ -247,7 +247,7 @@
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="tutorial-build-your-first-interactive-ui">
 <h1>Tutorial: build your first interactive UI<a class="headerlink" href="#tutorial-build-your-first-interactive-ui" title="Link to this heading">¶</a></h1>
-<p>In this tutorial you will build a small settings panel — a card with a switch and a reveal button —
+<p>In this tutorial you will build a small settings panel — a checkbox and a reveal button —
 and make it interactive, all from Python. By the end you will have rendered web components, run
 behavior in the browser with no server, and wired a control two-way to state your Python code can read.</p>
 <p>We will work in a <strong>Jupyter notebook</strong>, because it renders a spaday UI with no setup. Everything you
@@ -263,16 +263,14 @@ jupyter<span class="w"> </span>lab
 <section id="step-1-render-a-component">
 <h2>Step 1 — render a component<a class="headerlink" href="#step-1-render-a-component" title="Link to this heading">¶</a></h2>
 <p>In a cell, build a card containing a switch and display it:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaSwitch</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span>
 <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Run the cell. You should see a bordered card with a labelled toggle switch. <code class="docutils literal notranslate"><span class="pre">WaCard</span></code> and <code class="docutils literal notranslate"><span class="pre">WaSwitch</span></code> are
-typed Python classes for <a class="reference external" href="https://webawesome.com">WebAwesome</a> components; <code class="docutils literal notranslate"><span class="pre">.child(...)</span></code> nests one inside
-another, and <code class="docutils literal notranslate"><span class="pre">Widget(...)</span></code> renders the tree in the output area.</p>
+<p>Run the cell. You should see a labelled checkbox. <code class="docutils literal notranslate"><span class="pre">.child(...)</span></code> nests one element inside another, and
+<code class="docutils literal notranslate"><span class="pre">Widget(...)</span></code> renders the tree in the output area.</p>
 </section>
 <section id="step-2-add-a-layout">
 <h2>Step 2 — add a layout<a class="headerlink" href="#step-2-add-a-layout" title="Link to this heading">¶</a></h2>
@@ -280,18 +278,17 @@ another, and <code class="docutils literal notranslate"><span class="pre">Widget
 children out vertically:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span><span class="p">,</span> <span class="n">Widget</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaSwitch</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;section&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;border:1px solid #bbb;padding:1rem&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
     <span class="n">Stack</span><span class="p">()</span>
     <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Notifications&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Notifications&quot;</span><span class="p">))</span>
 <span class="p">)</span>
 <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Run it. You should see a card titled <strong>Settings</strong> with two switches stacked under it. <code class="docutils literal notranslate"><span class="pre">Stack</span></code> is one of
+<p>Run it. You should see a panel titled <strong>Settings</strong> with two checkboxes stacked under it. <code class="docutils literal notranslate"><span class="pre">Stack</span></code> is one of
 spaday’s <code class="docutils literal notranslate"><span class="pre">spa-*</span></code> layout components; <code class="docutils literal notranslate"><span class="pre">element(&quot;strong&quot;)</span></code> is an escape hatch for a plain HTML tag.</p>
 </section>
 <section id="step-3-make-it-do-something-in-the-browser">
@@ -300,14 +297,13 @@ spaday’s <code class="docutils literal notranslate"><span class="pre">spa-*</s
 Python. Attach a declarative action with <code class="docutils literal notranslate"><span class="pre">.on(...)</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">element</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">,</span> <span class="n">Widget</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaCallout</span><span class="p">,</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaSwitch</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;section&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;border:1px solid #bbb;padding:1rem&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
     <span class="n">Stack</span><span class="p">()</span>
     <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Details&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;info&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">)))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaCallout</span><span class="p">()</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;hidden&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Runs entirely client-side.&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Details&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;info&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">)))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Runs entirely client-side.&quot;</span><span class="p">))</span>
 <span class="p">)</span>
 <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
 </pre></div>
@@ -321,12 +317,15 @@ browser. Your Python kernel is never contacted when you click.</p>
 switch’s <code class="docutils literal notranslate"><span class="pre">checked</span></code> to a field of it, <strong>two-way</strong>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span><span class="p">,</span> <span class="n">Widget</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaSwitch</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;section&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;border:1px solid #bbb;padding:1rem&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
     <span class="n">Stack</span><span class="p">()</span>
     <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span>
+        <span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
 <span class="p">)</span>
 <span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 <span class="n">w</span>
@@ -356,7 +355,7 @@ interactions run in the browser <em>and</em> report back to Python.</p>
 <section id="what-you-built">
 <h2>What you built<a class="headerlink" href="#what-you-built" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>A web-component UI authored entirely in typed Python.</p></li>
+<li><p>A component UI authored entirely in Python.</p></li>
 <li><p>Behavior (<code class="docutils literal notranslate"><span class="pre">Toggle</span></code>) that runs client-side with no round-trip.</p></li>
 <li><p>A control two-way-bound to state, readable and writable from Python.</p></li>
 </ul>

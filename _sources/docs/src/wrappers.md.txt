@@ -13,7 +13,7 @@ Write an element that creates the library object on connect and exposes the conf
 as **properties** whose setters call the library:
 
 ```ts
-// js/src/ts/wrappers/lightweight-chart.ts (abridged)
+// spaday-lightweight-charts/js/src/ts/index.ts (abridged)
 import { createChart, LineSeries /* … */ } from "lightweight-charts";
 
 export class LightweightChart extends HTMLElement {
@@ -38,13 +38,13 @@ The library ships no `custom-elements.json`, so write a small one describing the
 [generate a class from it](cem.md):
 
 ```bash
-spaday-cem spaday/components/lightweight_charts.cem.json -o spaday/components/lightweight_charts.py
+spaday-cem spaday_lightweight_charts/components.cem.json -o spaday_lightweight_charts/components.py
 ```
 
 You now author it like any other component:
 
 ```python
-from spaday.components import LightweightChart
+from spaday_lightweight_charts import LightweightChart
 
 LightweightChart(
     type="line",
@@ -63,6 +63,6 @@ element is an ordinary custom element, so it also takes [actions and bindings](b
 to a state field and the chart redraws reactively as the field changes.
 
 ```{note}
-This is the seam for libraries like Perspective and regular-table too: a wrapper element exposing a
-config property whose setter calls the library (e.g. `viewer.restore(config)`).
+This is the seam used by `spaday-perspective`, `spaday-regular-layout`, and `spaday-regular-table`: a
+wrapper element exposes serializable properties whose setters call the library.
 ```

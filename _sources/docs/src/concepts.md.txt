@@ -24,14 +24,14 @@ elements rather than rebuilding them, so a `wa-switch`'s internal state survives
 Python and mutating over time both reduce to producing patches the runtime applies.
 
 The typed Python classes are **generated** from a [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest)
-— the standard description web-component libraries publish. WebAwesome is the default catalog, but the
-same generator turns *any* manifest into typed classes, and the same parse drives the browser runtime's
-registry. spaday is not tied to WebAwesome; it is a binding layer for CEM-described components.
+— the standard description web-component libraries publish. The same generator turns *any* manifest
+into typed classes, and the same parse drives the browser runtime's registry. Catalogs such as
+WebAwesome live in opt-in peer packages; spaday core is the binding layer for all of them.
 
 spaday deliberately operates at a **higher altitude** than an HTML builder: it does not expose `div`/`p`.
 You compose from curated shell pieces (App, Nav, gutters, Main, Stack, Row) and high-level components,
 with raw HTML elements available only as an escape hatch for text. This is what separates "a Python
-wrapper over WebAwesome" from a UI framework.
+wrapper over one component catalog" from a UI framework.
 
 ## Behavior is data, not code
 
@@ -86,7 +86,7 @@ webserver, or with the synced state of a Jupyter widget, and the UI code is iden
 ## The page generates itself
 
 A spaday web page is not hand-written — it is a **function of the Python description**. `serve(page, …)`
-(and the lower-level `bootstrap`) generate the bootstrap HTML: the `<head>` bundles, the wasm init, the
+(and the lower-level `bootstrap`) generate the bootstrap HTML: package asset tags, wasm init, the
 fetch of the tree, the websocket wiring, and the mount. Because the page is generated rather than authored,
 there is a single **integration ladder** — `serve` (spaday runs the whole app) → `mount` (spaday under a
 sub-path of your app) → a `fragment` (spaday in one node of a page you own) → an anywidget (a notebook

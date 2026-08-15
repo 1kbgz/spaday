@@ -1,7 +1,7 @@
 # API reference
 
-The Python surface of spaday. The component classes themselves (`WaButton`, `Stack`, `LightweightChart`,
-…) are generated and not listed here — see [Author a component tree](components.md) and
+The Python surface of spaday. Peer-package component classes are not listed here; see
+[Author a component tree](components.md) and
 [Generate typed classes](cem.md).
 
 ## Authoring
@@ -128,5 +128,5 @@ The `spa-*` shell components are re-themed by setting their `--spa-*` CSS custom
 `Component.css` (e.g. `App().css(spa_surface="#111", spa_border="#333")`, which cascades to the whole
 shell). `spaday.SHELL_TOKENS` maps each `css()` keyword to the CSS custom property it drives and what it
 controls — `spa_surface`, `spa_surface_2`, `spa_border`, `spa_muted`, `spa_gap`, `spa_align`,
-`spa_justify`, `spa_gutter_width` — each falling back to a WebAwesome `--wa-color-*` token so the shell
-follows the active theme unless overridden.
+`spa_justify`, `spa_gutter_width`. Shell elements use neutral defaults unless an application or component
+package maps its theme tokens onto those variables.

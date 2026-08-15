@@ -262,9 +262,8 @@ you how to generate classes for any such library. (For a library that is <em>not
 <span class="n">code</span> <span class="o">=</span> <span class="n">spaday</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="s2">&quot;custom-elements.json&quot;</span><span class="p">)</span>   <span class="c1"># returns the module source (typed classes)</span>
 </pre></div>
 </div>
-<p>This is how the built-in WebAwesome catalog is produced. A test checks the committed
-<code class="docutils literal notranslate"><span class="pre">spaday/components/webawesome.py</span></code> against its source manifest so it can’t silently drift; regenerate it
-with <code class="docutils literal notranslate"><span class="pre">spaday-cem</span> <span class="pre">&lt;manifest&gt;</span> <span class="pre">-o</span> <span class="pre">spaday/components/webawesome.py</span></code> followed by <code class="docutils literal notranslate"><span class="pre">ruff</span> <span class="pre">format</span></code>.</p>
+<p>Peer packages use this workflow for committed catalogs. For example, <code class="docutils literal notranslate"><span class="pre">spaday-webawesome</span></code> generates
+<code class="docutils literal notranslate"><span class="pre">spaday_webawesome/components.py</span></code> from its committed manifest and checks AST drift in its test suite.</p>
 </section>
 <section id="build-classes-at-runtime">
 <h2>Build classes at runtime<a class="headerlink" href="#build-classes-at-runtime" title="Link to this heading">¶</a></h2>

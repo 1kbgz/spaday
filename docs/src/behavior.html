@@ -254,7 +254,7 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 <h2>Run an action when an event fires<a class="headerlink" href="#run-an-action-when-an-event-fires" title="Link to this heading">¶</a></h2>
 <p>Attach a declarative action to a DOM event with <code class="docutils literal notranslate"><span class="pre">.on(event,</span> <span class="pre">action)</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">Toggle</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
 <span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Details&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;info&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">))</span>
 </pre></div>
@@ -274,7 +274,7 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 <h2>Reference live values in an action<a class="headerlink" href="#reference-live-values-in-an-action" title="Link to this heading">¶</a></h2>
 <p>Action values are <strong>expressions</strong> evaluated when the event fires:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">event_value</span><span class="p">,</span> <span class="n">not_</span><span class="p">,</span> <span class="n">SetProp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSwitch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSwitch</span>
 
 <span class="c1"># set the panel&#39;s `hidden` to the *negation* of the switch&#39;s new value</span>
 <span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;change&quot;</span><span class="p">,</span> <span class="n">SetProp</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;panel&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">event_value</span><span class="p">())))</span>
@@ -290,7 +290,7 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 <h2>Bind a control to state<a class="headerlink" href="#bind-a-control-to-state" title="Link to this heading">¶</a></h2>
 <p>For state that outlives a single event, use the reactive <strong>signal store</strong>. Bind a prop to a named state
 field with <code class="docutils literal notranslate"><span class="pre">.bind(prop,</span> <span class="pre">field,</span> <span class="pre">mode=...)</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSwitch</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSwitch</span>
 
 <span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">)</span>
 </pre></div>
@@ -306,7 +306,7 @@ it. <strong>Where the field lives</strong> depends on the host: in a notebook it
 <p>A two-way binding writes state from a control’s own value. To write state from any event — e.g. a plain
 icon button flipping a theme flag, or “Clear” resetting a form’s fields — use the store-writing actions:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetField</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">ToggleField</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
 <span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;🌙&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">ToggleField</span><span class="p">(</span><span class="s2">&quot;dark&quot;</span><span class="p">))</span>
 <span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Clear&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">(</span><span class="n">SetField</span><span class="p">(</span><span class="s2">&quot;symbol&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="n">SetField</span><span class="p">(</span><span class="s2">&quot;qty&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
@@ -318,7 +318,7 @@ icon button flipping a theme flag, or “Clear” resetting a form’s fields �
 <p>To <em>derive</em> a prop rather than mirror a single field, use <code class="docutils literal notranslate"><span class="pre">.compute(prop,</span> <span class="pre">expr)</span></code> with a field
 expression. It recomputes whenever any field it reads changes (one-way by nature):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">all_</span><span class="p">,</span> <span class="n">eq</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">not_</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaCallout</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaCallout</span>
 
 <span class="c1"># disabled = not(enabled)</span>
 <span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;disabled&quot;</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;enabled&quot;</span><span class="p">)))</span>
@@ -337,7 +337,7 @@ expression. It recomputes whenever any field it reads changes (one-way by nature
 <h2>Send a model edit or call an endpoint<a class="headerlink" href="#send-a-model-edit-or-call-an-endpoint" title="Link to this heading">¶</a></h2>
 <p>Two actions intentionally reach beyond the browser:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallEndpoint</span><span class="p">,</span> <span class="n">SendPatch</span><span class="p">,</span> <span class="n">event_value</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaSelect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaSelect</span>
 
 <span class="c1"># mutate a transports model field — the app routes the edit to the wire (server-authoritative)</span>
 <span class="n">WaSelect</span><span class="p">()</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;change&quot;</span><span class="p">,</span> <span class="n">SendPatch</span><span class="p">(</span><span class="s2">&quot;chart&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="n">event_value</span><span class="p">()))</span>

@@ -15,14 +15,13 @@ pip install "spaday[widget]"
 Wrap any component tree in `Widget` and return it from a cell:
 
 ```python
-from spaday import Widget
-from spaday.components.webawesome import WaCard, WaSwitch
+from spaday import Widget, element
 
-Widget(WaCard().child(WaSwitch().text("Lamp")))
+Widget(element("button").text("Run"))
 ```
 
-The full WebAwesome catalog and the spaday runtime are bundled into the widget, so `wa-*` components
-render with nothing else to load.
+The widget bundles the spaday runtime and wasm core. It renders core `spa-*` components and native HTML
+elements; component-package browser assets are loaded by web backends through `packages=`.
 
 ## Update the rendered tree
 
@@ -30,10 +29,10 @@ Keep a reference and call `update` to replace the tree; the browser applies a mi
 elements are preserved, not rebuilt):
 
 ```python
-w = Widget(WaCard().child(WaSwitch().text("Lamp")))
+w = Widget(element("div").text("Lamp"))
 w  # display it
 
-w.update(WaCard().child(WaSwitch().text("Lamp")).child(WaSwitch().text("Fan")))
+w.update(element("div").child("Lamp").child(element("div").text("Fan")))
 ```
 
 ## Back reactive bindings with state
@@ -42,10 +41,9 @@ Pass a `state` dict to drive the tree's [reactive bindings](behavior.md). A two-
 updates the state from the browser, and assigning `w.state` updates the control:
 
 ```python
-from spaday import Widget
-from spaday.components.webawesome import WaSwitch
+from spaday import Widget, element
 
-w = Widget(WaSwitch().text("Lamp").bind("checked", "lamp", mode="two-way"), state={"lamp": True})
+w = Widget(element("input", type="checkbox").bind("checked", "lamp", mode="two-way"), state={"lamp": True})
 w
 ```
 
@@ -79,5 +77,5 @@ Because the widget is an anywidget, Panel renders it directly:
 ```python
 import panel as pn
 pn.extension()
-pn.panel(Widget(WaSwitch().text("Lamp")))
+pn.panel(Widget(element("button").text("Run")))
 ```

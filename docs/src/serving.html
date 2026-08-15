@@ -285,15 +285,15 @@ request, so the tree can reflect current state.</p>
 <section id="serve-a-whole-app">
 <h2>Serve a whole app<a class="headerlink" href="#serve-a-whole-app" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">serve</span></code> creates a Starlette app and mounts your page on it: it generates the bootstrap HTML, hosts the
-tree at <code class="docutils literal notranslate"><span class="pre">/tree.json</span></code>, and serves the JS bundles at <code class="docutils literal notranslate"><span class="pre">/js</span></code>. Pull a component library into <code class="docutils literal notranslate"><span class="pre">&lt;head&gt;</span></code> with
-<code class="docutils literal notranslate"><span class="pre">bundles=</span></code>, add your own routes with <code class="docutils literal notranslate"><span class="pre">routes=</span></code>, and run lifetime coroutines with <code class="docutils literal notranslate"><span class="pre">background=</span></code>:</p>
+tree at <code class="docutils literal notranslate"><span class="pre">/tree.json</span></code>, and serves core JS at <code class="docutils literal notranslate"><span class="pre">/js</span></code>. Pull a component library into <code class="docutils literal notranslate"><span class="pre">&lt;head&gt;</span></code> with
+<code class="docutils literal notranslate"><span class="pre">packages=</span></code>, add your own routes with <code class="docutils literal notranslate"><span class="pre">routes=</span></code>, and run lifetime coroutines with <code class="docutils literal notranslate"><span class="pre">background=</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">uvicorn</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">serve</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span>
     <span class="k">lambda</span><span class="p">:</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Hi&quot;</span><span class="p">),</span>
-    <span class="n">bundles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">],</span>          <span class="c1"># pull WebAwesome&#39;s styles + catalog into &lt;head&gt;</span>
+    <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">],</span>          <span class="c1"># pull WebAwesome&#39;s styles + catalog into &lt;head&gt;</span>
     <span class="n">head</span><span class="o">=</span><span class="s2">&quot;&lt;style&gt;body{margin:2rem}&lt;/style&gt;&quot;</span><span class="p">,</span>
     <span class="n">title</span><span class="o">=</span><span class="s2">&quot;my app&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -302,9 +302,10 @@ tree at <code class="docutils literal notranslate"><span class="pre">/tree.json<
     <span class="n">uvicorn</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The built-in bundles are <code class="docutils literal notranslate"><span class="pre">&quot;webawesome&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;lightweight-charts&quot;</span></code>. External integrations such as
-<code class="docutils literal notranslate"><span class="pre">spaday-perspective</span></code> use <code class="docutils literal notranslate"><span class="pre">packages=</span></code> (see below). <code class="docutils literal notranslate"><span class="pre">serve</span></code> is the one-line happy path — it is just
-<code class="docutils literal notranslate"><span class="pre">mount</span></code> onto a fresh app, so drop to <code class="docutils literal notranslate"><span class="pre">mount</span></code> when the app is yours.
+<p>Component integrations are peer packages: <code class="docutils literal notranslate"><span class="pre">spaday-webawesome</span></code>, <code class="docutils literal notranslate"><span class="pre">spaday-lightweight-charts</span></code>,
+<code class="docutils literal notranslate"><span class="pre">spaday-regular-layout</span></code>, <code class="docutils literal notranslate"><span class="pre">spaday-regular-table</span></code>, and <code class="docutils literal notranslate"><span class="pre">spaday-perspective</span></code> all use <code class="docutils literal notranslate"><span class="pre">packages=</span></code> (see
+below). <code class="docutils literal notranslate"><span class="pre">serve</span></code> is the one-line happy path — it is <code class="docutils literal notranslate"><span class="pre">mount</span></code> onto a fresh app, so drop to <code class="docutils literal notranslate"><span class="pre">mount</span></code> when the
+app is yours.
 In a source checkout it serves built assets from <code class="docutils literal notranslate"><span class="pre">js/</span></code>; from a wheel it automatically serves packaged
 <code class="docutils literal notranslate"><span class="pre">spaday/extension</span></code> assets. Use <code class="docutils literal notranslate"><span class="pre">layout=&quot;source&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">layout=&quot;installed&quot;</span></code> only to override detection, such
 as when supplying a matching custom <code class="docutils literal notranslate"><span class="pre">js=</span></code> directory.</p>
@@ -354,7 +355,7 @@ only adds routes — <strong>the host owns the app’s lifespan</strong>, so run
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">mount</span>
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">Starlette</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">Route</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">my_own_homepage</span><span class="p">)])</span>   <span class="c1"># your app, your routes</span>
-<span class="n">mount</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">page</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/panel&quot;</span><span class="p">,</span> <span class="n">bundles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">])</span>   <span class="c1"># spaday lives only under /panel</span>
+<span class="n">mount</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">page</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/panel&quot;</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">])</span>   <span class="c1"># spaday lives only under /panel</span>
 </pre></div>
 </div>
 <p>Backends ship for <strong>Starlette/FastAPI</strong>, <strong>aiohttp</strong>, <strong>Flask</strong>, and <strong>Tornado</strong> — import <code class="docutils literal notranslate"><span class="pre">serve</span></code>/<code class="docutils literal notranslate"><span class="pre">mount</span></code>
@@ -364,26 +365,28 @@ from <code class="docutils literal notranslate"><span class="pre">spaday.backend
 <h2>Drop into a host page<a class="headerlink" href="#drop-into-a-host-page" title="Link to this heading">¶</a></h2>
 <p>When the host owns the entire HTML page (its own markup, CSS, bundler), emit spaday as a <em>fragment</em> —
 just the bundle tags + the mounting <code class="docutils literal notranslate"><span class="pre">&lt;script&gt;</span></code>, with no document — and splice it into a node the host
-provides. The host serves the tree and <code class="docutils literal notranslate"><span class="pre">/js</span></code> itself:</p>
+provides. The host serves the tree, core <code class="docutils literal notranslate"><span class="pre">/js</span></code>, and selected package assets itself:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">starlette.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTMLResponse</span><span class="p">,</span> <span class="n">Response</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mount</span><span class="p">,</span> <span class="n">Route</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.staticfiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticFiles</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">package</span> <span class="k">as</span> <span class="n">webawesome</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_json</span>
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">home</span><span class="p">(</span><span class="n">_request</span><span class="p">):</span>
-    <span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;#spaday-root&quot;</span><span class="p">,</span> <span class="n">bundles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">])</span>
+    <span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;#spaday-root&quot;</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">webawesome</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;!doctype html&gt;… &lt;div id=&#39;spaday-root&#39;&gt;&lt;/div&gt; </span><span class="si">{</span><span class="n">fragment</span><span class="si">}</span><span class="s2"> …&quot;</span><span class="p">)</span>
 
 <span class="n">routes</span> <span class="o">=</span> <span class="p">[</span>
     <span class="n">Route</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">home</span><span class="p">),</span>
     <span class="n">Route</span><span class="p">(</span><span class="s2">&quot;/tree.json&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_r</span><span class="p">:</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;application/json&quot;</span><span class="p">)),</span>
     <span class="n">Mount</span><span class="p">(</span><span class="s2">&quot;/js&quot;</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">bundles_dir</span><span class="p">())),</span>
+    <span class="n">Mount</span><span class="p">(</span><span class="s2">&quot;/components/webawesome&quot;</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">webawesome</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">)),</span>
 <span class="p">]</span>
 </pre></div>
 </div>
 <p>The mounting script is inline, so a host with a strict <code class="docutils literal notranslate"><span class="pre">script-src</span></code> Content-Security-Policy passes a
 per-request <strong><code class="docutils literal notranslate"><span class="pre">nonce</span></code></strong> — it stamps the generated <code class="docutils literal notranslate"><span class="pre">&lt;script&gt;</span></code>/<code class="docutils literal notranslate"><span class="pre">&lt;link&gt;</span></code> tags so the policy can allow them:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;#spaday-root&quot;</span><span class="p">,</span> <span class="n">bundles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">],</span> <span class="n">nonce</span><span class="o">=</span><span class="n">request_nonce</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;#spaday-root&quot;</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">webawesome</span><span class="p">],</span> <span class="n">nonce</span><span class="o">=</span><span class="n">request_nonce</span><span class="p">)</span>
 <span class="c1"># ...and set `Content-Security-Policy: script-src &#39;self&#39; &#39;nonce-&lt;request_nonce&gt;&#39; &#39;wasm-unsafe-eval&#39;`</span>
 </pre></div>
 </div>
@@ -432,7 +435,7 @@ the store; you supply the websocket route and run <code class="docutils literal 
 <td><p>the authored tree (<code class="docutils literal notranslate"><span class="pre">tree_json(page)</span></code>)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">{base}/js/*</span></code></p></td>
-<td><p>the bundles under <code class="docutils literal notranslate"><span class="pre">bundles_dir()</span></code></p></td>
+<td><p>core assets under <code class="docutils literal notranslate"><span class="pre">bundles_dir()</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">{base}/components/{name}/*</span></code></p></td>
 <td><p>assets for each selected <code class="docutils literal notranslate"><span class="pre">ComponentPackage</span></code></p></td>

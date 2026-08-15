@@ -297,7 +297,6 @@
     <span class="n">js</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">layout</span><span class="p">:</span> <span class="n">AssetLayout</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;spaday&quot;</span><span class="p">,</span>
-    <span class="n">bundles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">packages</span><span class="p">:</span> <span class="n">PackageRef</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PackageRef</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/ws&quot;</span><span class="p">,</span>
@@ -324,7 +323,6 @@
     <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
     <span class="n">body</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span>
         <span class="n">base</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
-        <span class="n">bundles</span><span class="o">=</span><span class="n">bundles</span><span class="p">,</span>
         <span class="n">packages</span><span class="o">=</span><span class="n">component_packages</span><span class="p">,</span>
         <span class="n">wire</span><span class="o">=</span><span class="n">wire</span><span class="p">,</span>
         <span class="n">ws</span><span class="o">=</span><span class="n">ws</span><span class="p">,</span>
@@ -368,7 +366,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">serve</span><span class="p">(</span><span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">background</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Awaitable</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span> <span class="n">lifespan</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">opts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Starlette</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a Starlette app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the</span>
 <span class="sd">    app&#39;s lifetime (or pass a custom ``lifespan`` for ordered startup, e.g. a clustering relay); all other</span>
-<span class="sd">    keyword options are :func:`mount`&#39;s (``prefix``/``routes``/``html``/``js``/``title``/``bundles``/``packages``/</span>
+<span class="sd">    keyword options are :func:`mount`&#39;s (``prefix``/``routes``/``html``/``js``/``title``/``packages``/</span>
 <span class="sd">    ``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``store``/``nonce``).&quot;&quot;&quot;</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.applications</span><span class="w"> </span><span class="kn">import</span> <span class="n">Starlette</span>
 

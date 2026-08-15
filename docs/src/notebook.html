@@ -257,23 +257,22 @@ server. It works in Jupyter (Lab / Notebook / Colab / VS Code) and the wider
 <section id="render-a-tree">
 <h2>Render a tree<a class="headerlink" href="#render-a-tree" title="Link to this heading">¶</a></h2>
 <p>Wrap any component tree in <code class="docutils literal notranslate"><span class="pre">Widget</span></code> and return it from a cell:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaSwitch</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
 
-<span class="n">Widget</span><span class="p">(</span><span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)))</span>
+<span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Run&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>The full WebAwesome catalog and the spaday runtime are bundled into the widget, so <code class="docutils literal notranslate"><span class="pre">wa-*</span></code> components
-render with nothing else to load.</p>
+<p>The widget bundles the spaday runtime and wasm core. It renders core <code class="docutils literal notranslate"><span class="pre">spa-*</span></code> components and native HTML
+elements; component-package browser assets are loaded by web backends through <code class="docutils literal notranslate"><span class="pre">packages=</span></code>.</p>
 </section>
 <section id="update-the-rendered-tree">
 <h2>Update the rendered tree<a class="headerlink" href="#update-the-rendered-tree" title="Link to this heading">¶</a></h2>
 <p>Keep a reference and call <code class="docutils literal notranslate"><span class="pre">update</span></code> to replace the tree; the browser applies a minimal diff (live
 elements are preserved, not rebuilt):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
 <span class="n">w</span>  <span class="c1"># display it</span>
 
-<span class="n">w</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Fan&quot;</span><span class="p">)))</span>
+<span class="n">w</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Fan&quot;</span><span class="p">)))</span>
 </pre></div>
 </div>
 </section>
@@ -281,10 +280,9 @@ elements are preserved, not rebuilt):</p>
 <h2>Back reactive bindings with state<a class="headerlink" href="#back-reactive-bindings-with-state" title="Link to this heading">¶</a></h2>
 <p>Pass a <code class="docutils literal notranslate"><span class="pre">state</span></code> dict to drive the tree’s <a class="reference internal" href="behavior.html"><span class="std std-doc">reactive bindings</span></a>. A two-way-bound control
 updates the state from the browser, and assigning <code class="docutils literal notranslate"><span class="pre">w.state</span></code> updates the control:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSwitch</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
 
-<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 <span class="n">w</span>
 </pre></div>
 </div>
@@ -312,7 +310,7 @@ control→state edit.</p>
 <p>Because the widget is an anywidget, Panel renders it directly:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">panel</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pn</span>
 <span class="n">pn</span><span class="o">.</span><span class="n">extension</span><span class="p">()</span>
-<span class="n">pn</span><span class="o">.</span><span class="n">panel</span><span class="p">(</span><span class="n">Widget</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)))</span>
+<span class="n">pn</span><span class="o">.</span><span class="n">panel</span><span class="p">(</span><span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Run&quot;</span><span class="p">)))</span>
 </pre></div>
 </div>
 </section>

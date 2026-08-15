@@ -387,7 +387,7 @@
 <span class="sd">        ``--background-color: navy``. This is how a web component&#39;s documented `--*` theme tokens are</span>
 <span class="sd">        set from Python (per component), and how the ``spa-*`` shell is re-themed at the app level</span>
 <span class="sd">        (``App().css(spa_surface=&quot;#111&quot;, spa_border=&quot;#333&quot;)`` cascades to the whole shell). WebAwesome&#39;s</span>
-<span class="sd">        own tokens (``--wa-color-*``) are set the same way. See :mod:`spaday.theme`.</span>
+<span class="sd">        own custom-property tokens are set the same way. See :mod:`spaday.theme`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_style</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;--&quot;</span> <span class="o">+</span> <span class="n">_css_name</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">})</span>
         <span class="k">return</span> <span class="bp">self</span></div>

@@ -10,7 +10,7 @@ Attach a declarative action to a DOM event with `.on(event, action)`:
 
 ```python
 from spaday import by_id, Toggle
-from spaday.components.webawesome import WaButton
+from spaday_webawesome import WaButton
 
 WaButton().text("Details").on("click", Toggle(by_id("info"), "hidden"))
 ```
@@ -31,7 +31,7 @@ Action values are **expressions** evaluated when the event fires:
 
 ```python
 from spaday import by_id, event_value, not_, SetProp
-from spaday.components.webawesome import WaSwitch
+from spaday_webawesome import WaSwitch
 
 # set the panel's `hidden` to the *negation* of the switch's new value
 WaSwitch().on("change", SetProp(by_id("panel"), "hidden", not_(event_value())))
@@ -47,7 +47,7 @@ For state that outlives a single event, use the reactive **signal store**. Bind 
 field with `.bind(prop, field, mode=...)`:
 
 ```python
-from spaday.components.webawesome import WaSwitch
+from spaday_webawesome import WaSwitch
 
 WaSwitch().bind("checked", "lamp", mode="two-way")
 ```
@@ -65,7 +65,7 @@ icon button flipping a theme flag, or "Clear" resetting a form's fields — use 
 
 ```python
 from spaday import SetField, Sequence, ToggleField
-from spaday.components.webawesome import WaButton
+from spaday_webawesome import WaButton
 
 WaButton().text("🌙").on("click", ToggleField("dark"))
 WaButton().text("Clear").on("click", Sequence(SetField("symbol", ""), SetField("qty", 0)))
@@ -78,7 +78,7 @@ expression. It recomputes whenever any field it reads changes (one-way by nature
 
 ```python
 from spaday import all_, eq, field, not_
-from spaday.components.webawesome import WaButton, WaCallout
+from spaday_webawesome import WaButton, WaCallout
 
 # disabled = not(enabled)
 WaButton().compute("disabled", not_(field("enabled")))
@@ -91,8 +91,7 @@ WaButton().compute("disabled", not_(all_(field("a"), field("b"))))
 ```
 
 The field-expression helpers: `field(name)`, `lit(value)`, `not_(e)`, `eq(a, b)`, `all_(*es)` (AND),
-`any_(*es)` (OR), `cond(test, then, else)` (a ternary — `compute("theme", cond(field("dark"), "dark",
-"light"))`), and `obj({name: expr})` (compose an object from sub-expressions). They compose.
+`any_(*es)` (OR), `cond(test, then, else)` (a ternary — `compute("theme", cond(field("dark"), "dark", "light"))`), and `obj({name: expr})` (compose an object from sub-expressions). They compose.
 
 ## Send a model edit or call an endpoint
 
@@ -100,7 +99,7 @@ Two actions intentionally reach beyond the browser:
 
 ```python
 from spaday import CallEndpoint, SendPatch, event_value
-from spaday.components.webawesome import WaButton, WaSelect
+from spaday_webawesome import WaButton, WaSelect
 
 # mutate a transports model field — the app routes the edit to the wire (server-authoritative)
 WaSelect().on("change", SendPatch("chart", "type", event_value()))

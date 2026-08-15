@@ -250,11 +250,10 @@
 <p>This guide shows you how to build a spaday UI from typed components: setting props, nesting children,
 laying out with shell components, and serializing the result. To attach behavior, see
 <a class="reference internal" href="behavior.html"><span class="std std-doc">Add behavior and reactivity</span></a>.</p>
-<section id="use-a-built-in-component">
-<h2>Use a built-in component<a class="headerlink" href="#use-a-built-in-component" title="Link to this heading">¶</a></h2>
-<p>WebAwesome components are generated as typed classes. Import one and set its attributes as keyword
-arguments:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
+<section id="use-a-component-package">
+<h2>Use a component package<a class="headerlink" href="#use-a-component-package" title="Link to this heading">¶</a></h2>
+<p>Install <code class="docutils literal notranslate"><span class="pre">spaday-webawesome</span></code>, then import a generated component and set its attributes as keyword arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
 <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;large&quot;</span><span class="p">)</span>
 </pre></div>
@@ -262,14 +261,14 @@ arguments:</p>
 <p>Every attribute is a typed keyword (<code class="docutils literal notranslate"><span class="pre">variant:</span> <span class="pre">Optional[Literal[&quot;brand&quot;,</span> <span class="pre">&quot;neutral&quot;,</span> <span class="pre">...]]</span></code>,
 <code class="docutils literal notranslate"><span class="pre">disabled:</span> <span class="pre">Optional[bool]</span></code>, …), so a typo or a wrong type is an error at authoring time. A prop you
 <strong>don’t</strong> pass is omitted, so the element keeps its own default and update patches stay minimal.</p>
-<p>To use a component library other than WebAwesome, <a class="reference internal" href="cem.html"><span class="std std-doc">generate its classes from a manifest</span></a>.
+<p>To bind a different component library, <a class="reference internal" href="cem.html"><span class="std std-doc">generate its classes from a manifest</span></a>.
 An independently distributed integration can also register its browser assets through the
-<a class="reference internal" href="serving.html#install-an-external-component-package"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ComponentPackage</span></code> serving contract</span></a>.</p>
+<a class="reference internal" href="serving.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ComponentPackage</span></code> serving contract</span></a>.</p>
 </section>
 <section id="nest-children-into-slots">
 <h2>Nest children into slots<a class="headerlink" href="#nest-children-into-slots" title="Link to this heading">¶</a></h2>
 <p>Compose a tree with <code class="docutils literal notranslate"><span class="pre">.child(...)</span></code> for the default slot and <code class="docutils literal notranslate"><span class="pre">.child_in(&quot;slot&quot;,</span> <span class="pre">...)</span></code> for a named one:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaSwitch</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaSwitch</span>
 
 <span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="s2">&quot;header&quot;</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">())</span>
 </pre></div>
@@ -315,9 +314,9 @@ and <code class="docutils literal notranslate"><span class="pre">OVERLAY</span><
 <h2>Tabs and navigation<a class="headerlink" href="#tabs-and-navigation" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">Tabs</span></code> builds a WebAwesome <code class="docutils literal notranslate"><span class="pre">wa-tab-group</span></code> from <code class="docutils literal notranslate"><span class="pre">(label,</span> <span class="pre">content)</span></code> pairs — no hand-pairing of tab headers
 with panels. Bind its <code class="docutils literal notranslate"><span class="pre">active</span></code> prop to a state field for <strong>routing-aware</strong> navigation: the field drives
-which tab shows, and the user’s selection is written back (<code class="docutils literal notranslate"><span class="pre">serve(bundles=[&quot;webawesome&quot;])</span></code> registers the
+which tab shows, and the user’s selection is written back (<code class="docutils literal notranslate"><span class="pre">serve(packages=[&quot;webawesome&quot;])</span></code> registers the
 nav components):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tabs</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tabs</span>
 
 <span class="n">Tabs</span><span class="p">()</span>
 <span class="o">.</span><span class="n">tab</span><span class="p">(</span><span class="s2">&quot;Overview&quot;</span><span class="p">,</span> <span class="n">overview_panel</span><span class="p">)</span>
@@ -337,7 +336,7 @@ from the schema and each <strong>two-way bound</strong> to a field of the same n
 to dotted <code class="docutils literal notranslate"><span class="pre">parent.child</span></code> paths:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.form</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormField</span><span class="p">,</span> <span class="n">form</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormField</span><span class="p">,</span> <span class="n">form</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Size</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
     <span class="n">small</span> <span class="o">=</span> <span class="s2">&quot;small&quot;</span>
@@ -351,8 +350,8 @@ to dotted <code class="docutils literal notranslate"><span class="pre">parent.ch
 <span class="n">form</span><span class="p">(</span><span class="n">Settings</span><span class="p">)</span>   <span class="c1"># a Stack of bound controls — none authored by hand</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">form</span></code> needs pydantic — install it with the <code class="docutils literal notranslate"><span class="pre">form</span></code> extra (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;spaday[form]&quot;</span></code>); it’s also pulled
-in by <code class="docutils literal notranslate"><span class="pre">spaday[examples]</span></code>. The controls bind to fields named <code class="docutils literal notranslate"><span class="pre">name</span></code> / <code class="docutils literal notranslate"><span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">size</span></code>, so back them with
+<p><code class="docutils literal notranslate"><span class="pre">form</span></code> and pydantic are provided by <code class="docutils literal notranslate"><span class="pre">spaday-webawesome</span></code>. The controls bind to fields named <code class="docutils literal notranslate"><span class="pre">name</span></code> /
+<code class="docutils literal notranslate"><span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">size</span></code>, so back them with
 a seeded <a class="reference internal" href="serving.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">store=</span></code></span></a> or a hosted model over <a class="reference internal" href="transports.html"><span class="std std-doc">transports</span></a>. Relabel a field with
 <code class="docutils literal notranslate"><span class="pre">FormField</span></code> (as <code class="docutils literal notranslate"><span class="pre">Annotated[int,</span> <span class="pre">FormField(label=&quot;…&quot;)]</span></code> metadata or via <code class="docutils literal notranslate"><span class="pre">overrides=</span></code>), and drop fields with
 <code class="docutils literal notranslate"><span class="pre">exclude=</span></code>.</p>
@@ -376,7 +375,7 @@ it to infer the columns from the first row. Pass <code class="docutils literal n
 text. A static cell can instead contain any spaday component, including a button with an action:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedJs</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
 <span class="n">inspect</span> <span class="o">=</span> <span class="p">(</span>
     <span class="n">WaButton</span><span class="p">(</span><span class="n">appearance</span><span class="o">=</span><span class="s2">&quot;plain&quot;</span><span class="p">)</span>
@@ -400,8 +399,11 @@ text. A static cell can instead contain any spaday component, including a button
 </div>
 <p>Rich cells are normal component-tree nodes, so their bindings and declarative actions work unchanged.
 Reactive <code class="docutils literal notranslate"><span class="pre">rows</span></code> remain serializable data; define component cells in static <code class="docutils literal notranslate"><span class="pre">rows</span></code> or update the table’s
-component tree. For virtual scrolling or very large datasets, use a grid library via the
-<a class="reference internal" href="wrappers.html"><span class="std std-doc">wrapper recipe</span></a>.</p>
+component tree. For virtual scrolling or very large datasets, use <code class="docutils literal notranslate"><span class="pre">RegularTable</span></code> from
+<code class="docutils literal notranslate"><span class="pre">spaday-regular-table</span></code>; it only renders the current viewport. Its browser element supports
+<code class="docutils literal notranslate"><span class="pre">updateRow</span></code>, <code class="docutils literal notranslate"><span class="pre">insertRow</span></code>, and <code class="docutils literal notranslate"><span class="pre">removeRow</span></code> without replacing the full dataset, and emits <code class="docutils literal notranslate"><span class="pre">table-draw</span></code>
+after scrolling or redraws so a named JavaScript handler can decorate visible cells with buttons or
+other rich DOM.</p>
 </section>
 <section id="reach-for-a-raw-element">
 <h2>Reach for a raw element<a class="headerlink" href="#reach-for-a-raw-element" title="Link to this heading">¶</a></h2>
@@ -498,7 +500,7 @@ they are served as the tree the browser mounts.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Author a component tree</a><ul>
-<li><a class="reference internal" href="#use-a-built-in-component">Use a built-in component</a></li>
+<li><a class="reference internal" href="#use-a-component-package">Use a component package</a></li>
 <li><a class="reference internal" href="#nest-children-into-slots">Nest children into slots</a></li>
 <li><a class="reference internal" href="#set-text">Set text</a></li>
 <li><a class="reference internal" href="#lay-out-with-shell-components">Lay out with shell components</a></li>

@@ -244,12 +244,12 @@
 <span class="sd">The Rust core parses a ``custom-elements.json`` into normalized component schemas</span>
 <span class="sd">(:func:`spaday.spaday.parse_cem`); this module renders those schemas into a Python module — one</span>
 <span class="sd">:class:`~spaday.component.Component` subclass per element, with each attribute exposed as a typed</span>
-<span class="sd">keyword argument. The committed :mod:`spaday.components.webawesome` is produced this way; point the</span>
-<span class="sd">generator at any manifest to bind any web-component library.</span>
+<span class="sd">keyword argument. Peer component packages use this generator for committed typed catalogs; point it at</span>
+<span class="sd">any manifest to bind any web-component library.</span>
 
 <span class="sd">Usage::</span>
 
-<span class="sd">    python -m spaday.cem path/to/custom-elements.json -o spaday/components/webawesome.py</span>
+<span class="sd">    python -m spaday.cem path/to/custom-elements.json -o my_components.py</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
@@ -281,7 +281,7 @@
 <span class="sd">    The dynamic counterpart to :func:`generate`: build classes without emitting a file. With ``name``,</span>
 <span class="sd">    returns just that one class (``MyClass = spaday.classes(manifest, &quot;MyClass&quot;)``); otherwise returns</span>
 <span class="sd">    ``{class_name: class}`` for the whole manifest. Handy for binding an arbitrary or one-off manifest</span>
-<span class="sd">    on the fly. Unlike the committed, generated catalog (e.g. :mod:`spaday.components.webawesome`),</span>
+<span class="sd">    on the fly. Unlike a committed, generated peer-package catalog,</span>
 <span class="sd">    these classes are **not statically typed** — the type checker can&#39;t see their per-attribute</span>
 <span class="sd">    signatures — though they still validate keyword names at call time. Reach for :func:`generate`</span>
 <span class="sd">    (committed codegen) when you want typing.</span>

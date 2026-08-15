@@ -256,7 +256,7 @@ internally, then <a class="reference internal" href="cem.html"><span class="std 
 <h2>1. A custom element that drives the library<a class="headerlink" href="#a-custom-element-that-drives-the-library" title="Link to this heading">¶</a></h2>
 <p>Write an element that creates the library object on connect and exposes the config you want from Python
 as <strong>properties</strong> whose setters call the library:</p>
-<div class="highlight-ts notranslate"><div class="highlight"><pre><span></span><span class="c1">// js/src/ts/wrappers/lightweight-chart.ts (abridged)</span>
+<div class="highlight-ts notranslate"><div class="highlight"><pre><span></span><span class="c1">// spaday-lightweight-charts/js/src/ts/index.ts (abridged)</span>
 <span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">createChart</span><span class="p">,</span><span class="w"> </span><span class="nx">LineSeries</span><span class="w"> </span><span class="cm">/* … */</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;lightweight-charts&quot;</span><span class="p">;</span>
 
 <span class="k">export</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nx">LightweightChart</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="nx">HTMLElement</span><span class="w"> </span><span class="p">{</span>
@@ -279,11 +279,11 @@ as <strong>properties</strong> whose setters call the library:</p>
 <h2>2. A hand-authored CEM → a typed Python class<a class="headerlink" href="#a-hand-authored-cem-a-typed-python-class" title="Link to this heading">¶</a></h2>
 <p>The library ships no <code class="docutils literal notranslate"><span class="pre">custom-elements.json</span></code>, so write a small one describing the element’s props and
 <a class="reference internal" href="cem.html"><span class="std std-doc">generate a class from it</span></a>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>spaday-cem<span class="w"> </span>spaday/components/lightweight_charts.cem.json<span class="w"> </span>-o<span class="w"> </span>spaday/components/lightweight_charts.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>spaday-cem<span class="w"> </span>spaday_lightweight_charts/components.cem.json<span class="w"> </span>-o<span class="w"> </span>spaday_lightweight_charts/components.py
 </pre></div>
 </div>
 <p>You now author it like any other component:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components</span><span class="w"> </span><span class="kn">import</span> <span class="n">LightweightChart</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_lightweight_charts</span><span class="w"> </span><span class="kn">import</span> <span class="n">LightweightChart</span>
 
 <span class="n">LightweightChart</span><span class="p">(</span>
     <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
@@ -302,8 +302,8 @@ element is an ordinary custom element, so it also takes <a class="reference inte
 to a state field and the chart redraws reactively as the field changes.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This is the seam for libraries like Perspective and regular-table too: a wrapper element exposing a
-config property whose setter calls the library (e.g. <code class="docutils literal notranslate"><span class="pre">viewer.restore(config)</span></code>).</p>
+<p>This is the seam used by <code class="docutils literal notranslate"><span class="pre">spaday-perspective</span></code>, <code class="docutils literal notranslate"><span class="pre">spaday-regular-layout</span></code>, and <code class="docutils literal notranslate"><span class="pre">spaday-regular-table</span></code>: a
+wrapper element exposes serializable properties whose setters call the library.</p>
 </div>
 </section>
 </section>
