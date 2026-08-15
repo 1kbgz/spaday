@@ -400,10 +400,53 @@ text. A static cell can instead contain any spaday component, including a button
 <p>Rich cells are normal component-tree nodes, so their bindings and declarative actions work unchanged.
 Reactive <code class="docutils literal notranslate"><span class="pre">rows</span></code> remain serializable data; define component cells in static <code class="docutils literal notranslate"><span class="pre">rows</span></code> or update the table’s
 component tree. For virtual scrolling or very large datasets, use <code class="docutils literal notranslate"><span class="pre">RegularTable</span></code> from
-<code class="docutils literal notranslate"><span class="pre">spaday-regular-table</span></code>; it only renders the current viewport. Its browser element supports
-<code class="docutils literal notranslate"><span class="pre">updateRow</span></code>, <code class="docutils literal notranslate"><span class="pre">insertRow</span></code>, and <code class="docutils literal notranslate"><span class="pre">removeRow</span></code> without replacing the full dataset, and emits <code class="docutils literal notranslate"><span class="pre">table-draw</span></code>
-after scrolling or redraws so a named JavaScript handler can decorate visible cells with buttons or
-other rich DOM.</p>
+<code class="docutils literal notranslate"><span class="pre">spaday-regular-table</span></code>; it only renders the current viewport. Column <code class="docutils literal notranslate"><span class="pre">cell</span></code> descriptors create buttons,
+badges, formatted values, or custom elements from serializable Python data. Bind its <code class="docutils literal notranslate"><span class="pre">rowPatch</span></code> prop or
+set <code class="docutils literal notranslate"><span class="pre">stream_url</span></code> for revisioned update, insert, and remove batches without replacing the full dataset.
+Rich-cell events accept normal spaday actions, so these workflows need no companion JavaScript.</p>
+</section>
+<section id="render-an-action-for-every-live-record">
+<h2>Render an action for every live record<a class="headerlink" href="#render-an-action-for-every-live-record" title="Link to this heading">¶</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">Each</span></code> when every record needs a component subtree rather than table cells. Bind the outer
+collection with <code class="docutils literal notranslate"><span class="pre">field=</span></code>, identify items with <code class="docutils literal notranslate"><span class="pre">key=</span></code>, and read the current record with <code class="docutils literal notranslate"><span class="pre">item()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallEndpoint</span><span class="p">,</span> <span class="n">Strong</span><span class="p">,</span> <span class="n">concat</span><span class="p">,</span> <span class="n">element</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">scope</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components</span><span class="w"> </span><span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Each</span><span class="p">,</span> <span class="n">Row</span><span class="p">,</span> <span class="n">Show</span>
+
+<span class="n">records</span> <span class="o">=</span> <span class="n">Each</span><span class="p">(</span>
+    <span class="n">Row</span><span class="p">(</span>
+        <span class="n">Strong</span><span class="p">(</span><span class="n">item</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)),</span>
+        <span class="n">Show</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;span&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Ready&quot;</span><span class="p">),</span> <span class="n">when</span><span class="o">=</span><span class="n">item</span><span class="p">(</span><span class="s2">&quot;ready&quot;</span><span class="p">)),</span>
+        <span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span>
+            <span class="s2">&quot;click&quot;</span><span class="p">,</span>
+            <span class="n">CallEndpoint</span><span class="p">(</span>
+                <span class="s2">&quot;DELETE&quot;</span><span class="p">,</span>
+                <span class="n">concat</span><span class="p">(</span><span class="s2">&quot;/stage/&quot;</span><span class="p">,</span> <span class="n">scope</span><span class="p">(</span><span class="s2">&quot;staging.channel&quot;</span><span class="p">)),</span>
+                <span class="n">obj</span><span class="p">({</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)}),</span>
+            <span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">items</span><span class="o">=</span><span class="n">item</span><span class="p">(</span><span class="s2">&quot;records&quot;</span><span class="p">),</span>
+    <span class="n">key</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span>
+    <span class="n">scope</span><span class="o">=</span><span class="s2">&quot;record&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">staging_panel</span> <span class="o">=</span> <span class="n">Each</span><span class="p">(</span>
+    <span class="n">Column</span><span class="p">(</span><span class="n">records</span><span class="p">),</span>
+    <span class="n">field</span><span class="o">=</span><span class="s2">&quot;stagings&quot;</span><span class="p">,</span>
+    <span class="n">key</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span>
+    <span class="n">scope</span><span class="o">=</span><span class="s2">&quot;staging&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">item(&quot;path&quot;)</span></code> reads the innermost item. <code class="docutils literal notranslate"><span class="pre">scope(&quot;name.path&quot;)</span></code> reads the nearest current or ancestor
+scope with that name. <code class="docutils literal notranslate"><span class="pre">field(&quot;name&quot;)</span></code> always reads global store state.</p>
+<p>Keys must be unique strings or finite numbers. Replacing, inserting, removing, or reordering the bound
+collection updates at most once per animation frame. Existing keys retain their live root element,
+focus, cursor position, local properties, bindings, and action scope. Item scopes are read-only; use an
+action to update global state, send a model patch, or call an endpoint.</p>
+<p>Run the complete <a class="reference download internal" download="" href="../../_downloads/eafe7401a3f4370593828ca399129cc0/keyed_records.py"><span class="xref download myst">keyed records example</span></a> to try nested channels,
+server-driven add/update/remove/reorder operations, per-record endpoint payloads, and preserved local
+input state without page-specific JavaScript.</p>
 </section>
 <section id="reach-for-a-raw-element">
 <h2>Reach for a raw element<a class="headerlink" href="#reach-for-a-raw-element" title="Link to this heading">¶</a></h2>
@@ -507,6 +550,7 @@ they are served as the tree the browser mounts.</p>
 <li><a class="reference internal" href="#tabs-and-navigation">Tabs and navigation</a></li>
 <li><a class="reference internal" href="#generate-a-form-from-a-model">Generate a form from a model</a></li>
 <li><a class="reference internal" href="#show-data-in-a-table">Show data in a table</a></li>
+<li><a class="reference internal" href="#render-an-action-for-every-live-record">Render an action for every live record</a></li>
 <li><a class="reference internal" href="#reach-for-a-raw-element">Reach for a raw element</a></li>
 <li><a class="reference internal" href="#set-a-prop-a-typed-class-doesn-t-expose">Set a prop a typed class doesn’t expose</a></li>
 <li><a class="reference internal" href="#key-for-stable-updates">Key for stable updates</a></li>

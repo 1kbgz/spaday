@@ -176,10 +176,57 @@ registerHandler("inspect-order", (_event, button) => {
 Rich cells are normal component-tree nodes, so their bindings and declarative actions work unchanged.
 Reactive `rows` remain serializable data; define component cells in static `rows` or update the table's
 component tree. For virtual scrolling or very large datasets, use `RegularTable` from
-`spaday-regular-table`; it only renders the current viewport. Its browser element supports
-`updateRow`, `insertRow`, and `removeRow` without replacing the full dataset, and emits `table-draw`
-after scrolling or redraws so a named JavaScript handler can decorate visible cells with buttons or
-other rich DOM.
+`spaday-regular-table`; it only renders the current viewport. Column `cell` descriptors create buttons,
+badges, formatted values, or custom elements from serializable Python data. Bind its `rowPatch` prop or
+set `stream_url` for revisioned update, insert, and remove batches without replacing the full dataset.
+Rich-cell events accept normal spaday actions, so these workflows need no companion JavaScript.
+
+## Render an action for every live record
+
+Use `Each` when every record needs a component subtree rather than table cells. Bind the outer
+collection with `field=`, identify items with `key=`, and read the current record with `item()`:
+
+```python
+from spaday import CallEndpoint, Strong, concat, element, item, obj, scope
+from spaday.components import Column, Each, Row, Show
+
+records = Each(
+    Row(
+        Strong(item("name")),
+        Show(element("span").text("Ready"), when=item("ready")),
+        element("button").text("X").on(
+            "click",
+            CallEndpoint(
+                "DELETE",
+                concat("/stage/", scope("staging.channel")),
+                obj({"id": item("id")}),
+            ),
+        ),
+    ),
+    items=item("records"),
+    key="id",
+    scope="record",
+)
+
+staging_panel = Each(
+    Column(records),
+    field="stagings",
+    key="id",
+    scope="staging",
+)
+```
+
+`item("path")` reads the innermost item. `scope("name.path")` reads the nearest current or ancestor
+scope with that name. `field("name")` always reads global store state.
+
+Keys must be unique strings or finite numbers. Replacing, inserting, removing, or reordering the bound
+collection updates at most once per animation frame. Existing keys retain their live root element,
+focus, cursor position, local properties, bindings, and action scope. Item scopes are read-only; use an
+action to update global state, send a model patch, or call an endpoint.
+
+Run the complete [keyed records example](../../spaday/examples/keyed_records.py) to try nested channels,
+server-driven add/update/remove/reorder operations, per-record endpoint payloads, and preserved local
+input state without page-specific JavaScript.
 
 ## Reach for a raw element
 

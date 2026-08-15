@@ -259,8 +259,8 @@
 <span class="sd">(write the mounted signal store, so a plain button can drive reactive state); ``SendPatch`` (a model-edit</span>
 <span class="sd">intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST</span>
 <span class="sd">round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:</span>
-<span class="sd">``lit`` / ``event_value`` / ``field`` / ``not_`` / ``prop`` / ``obj`` / ``concat``; targets ``this`` /</span>
-<span class="sd">``by_id``.</span>
+<span class="sd">``lit`` / ``event_value`` / ``field`` / ``item`` / ``scope`` / ``not_`` / ``prop`` / ``obj`` /</span>
+<span class="sd">``concat``; targets ``this`` / ``by_id``.</span>
 <span class="sd">``bind`` here is a one-way event-driven helper; reactive prop↔state bindings (one- or two-way) are</span>
 <span class="sd">authored with ``Component.bind`` and interpreted by the runtime&#39;s signal store.</span>
 <span class="sd">&quot;&quot;&quot;</span>
@@ -356,6 +356,48 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The current value of a reactive state field — for a *computed* binding (``Component.compute``),</span>
 <span class="sd">    evaluated against the signal store in the browser, e.g. ``not_(field(&quot;enabled&quot;))``.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">_Field</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_Item</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;item&quot;</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="item">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.item">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">item</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read ``path`` from the innermost ``Each`` item.</span>
+
+<span class="sd">    An empty path returns the complete item. Missing paths evaluate to ``undefined`` in the browser.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_Item</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_Scope</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;scope&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="scope">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.scope">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">scope</span><span class="p">(</span><span class="n">reference</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a named current or ancestor item scope.</span>
+
+<span class="sd">    ``scope(&quot;staging.channel&quot;)`` reads ``channel`` from the nearest scope named ``staging``;</span>
+<span class="sd">    ``scope(&quot;staging&quot;)`` returns that scope&#39;s complete item.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">reference</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;scope reference must start with a name&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_Scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
 
 
 

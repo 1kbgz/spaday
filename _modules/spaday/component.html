@@ -254,6 +254,8 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Expr</span>
+
 <span class="c1">#: The conventional name of a component&#39;s unnamed (default) slot (matches the Rust core).</span>
 <span class="n">DEFAULT_SLOT</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
 
@@ -349,12 +351,15 @@
 
 <div class="viewcode-block" id="Component.text">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.text">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Component&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the element&#39;s text content (e.g. a button or option label).</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Expr</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Component&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the element&#39;s literal or reactive text content (e.g. a button or option label).</span>
 
 <span class="sd">        Text is set as the ``textContent`` DOM property by the runtime, so this is for leaf elements</span>
-<span class="sd">        whose label *is* their text (don&#39;t combine it with child nodes).</span>
+<span class="sd">        whose label *is* their text (don&#39;t combine it with child nodes). An expression such as</span>
+<span class="sd">        ``item(&quot;name&quot;)`` becomes a computed binding.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Expr</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;textContent&quot;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="p">[</span><span class="s2">&quot;textContent&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
@@ -434,8 +439,8 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Reactively set ``prop`` to a value *computed* from state fields (one-way).</span>
 
 <span class="sd">        ``expr`` is a field expression (:func:`~spaday.actions.field` / ``eq`` / ``not_`` / ``all_`` /</span>
-<span class="sd">        ``any_`` / ``lit``) evaluated in the browser against the signal store and recomputed whenever any</span>
-<span class="sd">        field it reads changes, e.g. ``compute(&quot;disabled&quot;, not_(field(&quot;enabled&quot;)))``.</span>
+<span class="sd">        ``any_`` / ``lit`` / ``item`` / ``scope``) evaluated in the browser and recomputed whenever any</span>
+<span class="sd">        global field or repeater scope it reads changes, e.g. ``compute(&quot;disabled&quot;, not_(field(&quot;enabled&quot;)))``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;compute&quot;</span><span class="p">:</span> <span class="n">expr</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="s2">&quot;one-way&quot;</span><span class="p">}</span>
         <span class="k">return</span> <span class="bp">self</span></div>
@@ -511,19 +516,19 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">Text</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">Text</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Expr</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;An inline text node — a ``&lt;span&gt;``. ``Row(&quot;Echo: &quot;, echo)`` does the same via a bare string child.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;span&quot;</span><span class="p">,</span> <span class="n">textContent</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;span&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">Strong</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">Strong</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Expr</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Bold inline text — a ``&lt;strong&gt;``.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">,</span> <span class="n">textContent</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">Paragraph</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">Paragraph</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Expr</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Component</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A paragraph — a ``&lt;p&gt;``.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="n">textContent</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 </pre></div>
         </article>
       </div>
