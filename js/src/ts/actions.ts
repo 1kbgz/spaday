@@ -8,7 +8,7 @@
 import { interpret as wasmInterpret } from "../../dist/pkg/spaday";
 import { getHandler } from "./handlers";
 import { setProp } from "./runtime";
-import type { Store } from "./signals";
+import type { Scope, Store } from "./signals";
 import { assertReady } from "./wasm-ready";
 
 /** The context an action runs in: the DOM event, the listener's element, and the mounted signal store
@@ -17,6 +17,7 @@ export interface ActionContext {
   event: Event;
   currentTarget: Element;
   store?: Store;
+  scope?: Scope;
 }
 
 /** Run one action (the core's plain DSL wire form) against the DOM in the given event context. */
@@ -49,6 +50,9 @@ function host(ctx: ActionContext) {
     },
     // a reactive state field from the mounted signal store (undefined if the tree has no store)
     getField: (name: string) => ctx.store?.get(name),
+    getItem: (path: string) => ctx.scope?.get(path),
+    getScope: (name: string, path: string) =>
+      ctx.scope?.resolve(name)?.get(path),
     // write a reactive state field (SetField/ToggleField) — a no-op if the tree has no store
     setField: (name: string, value: unknown) => ctx.store?.set(name, value),
     emit: (event: string, detail: unknown) =>

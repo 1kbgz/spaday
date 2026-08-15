@@ -1,8 +1,8 @@
 """Server-side rendering: a component tree → light-DOM HTML for first paint (hydrated client-side)."""
 
 from spaday import element, render_html
-from spaday.actions import Toggle, this
-from spaday.components.shell import App, Main, Show, Stack
+from spaday.actions import Toggle, item, this
+from spaday.components.shell import App, Each, Main, Show, Stack
 
 
 def test_renders_tag_attrs_and_text():
@@ -33,6 +33,11 @@ def test_spa_show_renders_empty():
     # structural reactivity is client-side: the element renders, its subtree is mounted on hydrate
     html = render_html(Show(field="on").child(element("span").text("x")))
     assert html == '<spa-show style="display:contents"></spa-show>'
+
+
+def test_spa_each_renders_empty():
+    html = render_html(Each(element("span").compute("textContent", item("name")), field="rows", key="id"))
+    assert html == '<spa-each style="display:contents" itemKey="id"></spa-each>'
 
 
 def test_escapes_attributes_and_text():

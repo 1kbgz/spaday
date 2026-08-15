@@ -159,8 +159,8 @@ class Component:
         """Reactively set ``prop`` to a value *computed* from state fields (one-way).
 
         ``expr`` is a field expression (:func:`~spaday.actions.field` / ``eq`` / ``not_`` / ``all_`` /
-        ``any_`` / ``lit``) evaluated in the browser against the signal store and recomputed whenever any
-        field it reads changes, e.g. ``compute("disabled", not_(field("enabled")))``.
+        ``any_`` / ``lit`` / ``item`` / ``scope``) evaluated in the browser and recomputed whenever any
+        global field or repeater scope it reads changes, e.g. ``compute("disabled", not_(field("enabled")))``.
         """
         self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
         return self

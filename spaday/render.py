@@ -13,8 +13,8 @@ What is intentionally *not* rendered here:
   browser (full Declarative-Shadow-DOM SSR would need the component library running server-side).
 - **Events / bindings.** Attached on hydrate, not present in the HTML.
 - **Complex props** (lists / maps, e.g. a chart's ``data``) — can't be attributes; set on hydrate.
-- **``spa-show`` children** — structural reactivity is client-side, so the element renders empty and its
-  subtree is mounted during hydrate.
+- **``spa-show`` / ``spa-each`` children** — structural reactivity is client-side, so the elements render
+  empty and their subtrees are mounted during hydrate.
 """
 
 import html
@@ -49,7 +49,7 @@ def _render(node: dict, slot: str) -> str:
     inner = ""
     if text is not None:
         inner = html.escape(str(text))
-    elif tag != "spa-show":  # spa-show children are mounted client-side during hydrate
+    elif tag not in {"spa-show", "spa-each"}:  # structural children are mounted client-side during hydrate
         for slot_name, children in node.get("slots", {}).items():
             for child in children:
                 inner += _render(child, slot_name)

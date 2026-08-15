@@ -3,8 +3,8 @@ import json
 import pytest
 
 from spaday import Paragraph, Strong, Text, apply, diff, element
-from spaday.actions import NamedJs, field, not_
-from spaday.components.shell import App, AppShell, Body, Column, Footer, Gutter, Main, Nav, Region, Row, Show, Stack, Table, Toolbar
+from spaday.actions import NamedJs, field, item, not_
+from spaday.components.shell import App, AppShell, Body, Column, Each, Footer, Gutter, Main, Nav, Region, Row, Show, Stack, Table, Toolbar
 
 
 def test_shell_classes_emit_spa_tags():
@@ -182,6 +182,52 @@ def test_show_when_authors_a_compute_binding():
 def test_show_requires_a_condition():
     with pytest.raises(ValueError):
         Show()
+
+
+def test_each_authors_a_keyed_collection_template():
+    node = Each(element("span").compute("textContent", item("name")), field="rows", key="id", scope="row").to_node()
+
+    assert node["tag"] == "spa-each"
+    assert node["props"] == {
+        "style": {"Str": "display:contents"},
+        "itemKey": {"Str": "id"},
+        "scopeName": {"Str": "row"},
+    }
+    assert node["bindings"]["items"] == {"field": "rows", "mode": "one-way"}
+    assert node["slots"]["default"] == [
+        {
+            "tag": "span",
+            "bindings": {"textContent": {"compute": {"expr": "item", "path": "name"}, "mode": "one-way"}},
+        }
+    ]
+
+
+def test_each_accepts_a_nested_collection_expression():
+    node = Each(element("span"), items=item("records"), key="id").to_node()
+    assert node["bindings"]["items"] == {
+        "compute": {"expr": "item", "path": "records"},
+        "mode": "one-way",
+    }
+    assert "scopeName" not in node["props"]
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"key": "id"}, "exactly one"),
+        ({"field": "rows", "items": item("rows"), "key": "id"}, "exactly one"),
+        ({"field": "rows", "key": ""}, "non-empty item field"),
+        ({"field": "rows", "key": "id", "scope": "outer.row"}, "without dots"),
+    ],
+)
+def test_each_validates_its_source_key_and_scope(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        Each(element("span"), **kwargs)
+
+
+def test_each_requires_one_component_template():
+    with pytest.raises(TypeError, match="one Component"):
+        Each("text", field="rows", key="id")
 
 
 def test_table_authors_a_spa_table():

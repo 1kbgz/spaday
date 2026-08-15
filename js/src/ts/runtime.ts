@@ -7,7 +7,7 @@
 // handlers, rebinding/detaching them as incremental `SetEvent`/`RemoveEvent` patches arrive.
 
 import { interpret } from "./actions";
-import { evalExpr, exprFields, Store } from "./signals";
+import { evalExpr, exprFields, exprScopes, Scope, Store } from "./signals";
 import { untag, Value } from "./value";
 
 export interface Binding {
@@ -37,8 +37,13 @@ const DEFAULT_SLOT = "default";
  * Build the DOM for a tree and append it to `container`; returns the root element. Pass a `store` to
  * activate the tree's reactive `bindings` (prop ↔ state field); without one, bindings are inert.
  */
-export function mount(container: Element, tree: Node, store?: Store): Element {
-  const el = build(tree, store);
+export function mount(
+  container: Element,
+  tree: Node,
+  store?: Store,
+  scope?: Scope,
+): Element {
+  const el = build(tree, store, scope);
   container.appendChild(el);
   return el;
 }
@@ -52,9 +57,10 @@ export function applyPatch(
   root: Element,
   patch: { ops: Op[] },
   store?: Store,
+  scope?: Scope,
 ): Element {
   let current = root;
-  for (const op of patch.ops) current = applyOp(current, op, store);
+  for (const op of patch.ops) current = applyOp(current, op, store, scope);
   return current;
 }
 
@@ -68,35 +74,43 @@ export function hydrate(
   container: Element,
   tree: Node,
   store?: Store,
+  scope?: Scope,
 ): Element {
   const el = container.firstElementChild;
-  if (!el) return mount(container, tree, store);
-  hydrateNode(el, tree, store);
+  if (!el) return mount(container, tree, store, scope);
+  hydrateNode(el, tree, store, scope);
   return el;
 }
 
-function hydrateNode(el: Element, node: Node, store?: Store): void {
+function hydrateNode(
+  el: Element,
+  node: Node,
+  store?: Store,
+  scope?: Scope,
+): void {
   for (const [name, value] of Object.entries(node.props ?? {})) {
     setProp(el, name, untag(value)); // re-affirm props; sets complex/property-only ones the HTML omitted
   }
   if (node.tag === "spa-show") {
-    wireShow(el, node, store); // structural children are client-mounted (the HTML rendered none)
+    wireShow(el, node, store, scope); // structural children are client-mounted (the HTML rendered none)
+  } else if (node.tag === "spa-each") {
+    wireEach(el, node, store, scope);
   } else {
     for (const [slot, children] of Object.entries(node.slots ?? {})) {
       const existing = childrenInSlot(el, slot);
       children.forEach((child, i) => {
-        if (existing[i]) hydrateNode(existing[i], child, store);
-        else appendInSlot(el, slot, build(child, store)); // HTML missing this child → build it
+        if (existing[i]) hydrateNode(existing[i], child, store, scope);
+        else appendInSlot(el, slot, build(child, store, scope)); // HTML missing this child → build it
       });
     }
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
-    bindEvent(el, name, action, store); // actions ride the wire as the core's DSL form (plain JSON)
+    bindEvent(el, name, action, store, scope); // actions ride the wire as the core's DSL form (plain JSON)
   }
-  if (store) {
+  if (store || scope) {
     for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
-      if (node.tag === "spa-show" && prop === "when") continue; // structural — handled by wireShow
-      wireBinding(el, prop, spec, store);
+      if (isStructuralBinding(node, prop)) continue;
+      wireBinding(el, prop, spec, store, scope);
     }
   }
 }
@@ -110,13 +124,14 @@ function bindEvent(
   name: string,
   action: unknown,
   store?: Store,
+  scope?: Scope,
 ): void {
   let map = listeners.get(el);
   if (!map) listeners.set(el, (map = new Map()));
   const existing = map.get(name);
   if (existing) el.removeEventListener(name, existing); // replace, don't stack
   const handler: EventListener = (event) =>
-    interpret(action, { event, currentTarget: el, store }); // store lets an action's `field` expr read state
+    interpret(action, { event, currentTarget: el, store, scope });
   el.addEventListener(name, handler);
   map.set(name, handler);
 }
@@ -133,6 +148,7 @@ function unbindEvent(el: Element, name: string): void {
 // Live binding teardowns per element/prop, so an incremental patch can rewire or detach them. A binding
 // subscribes the prop to its state field; a two-way binding also writes the field when the control changes.
 const bindings = new WeakMap<Element, Map<string, () => void>>();
+const structuralNodes = new WeakMap<Element, Node>();
 const VALUE_EVENTS = ["change", "input", "wa-tab-show"]; // a control writes its bound field on these (wa-tab-show: a wa-tab-group's active tab changed)
 
 function readProp(el: Element, name: string): unknown {
@@ -156,7 +172,8 @@ function wireBinding(
   el: Element,
   prop: string,
   spec: Binding,
-  store: Store,
+  store?: Store,
+  scope?: Scope,
 ): void {
   unwireBinding(el, prop); // replace any prior wiring for this prop
   const teardowns: Array<() => void> = [];
@@ -164,12 +181,15 @@ function wireBinding(
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads
     // changes. One-way by nature — there is nothing to write back.
-    const recompute = () => apply(evalExpr(spec.compute, store));
+    const recompute = () => apply(evalExpr(spec.compute, store, scope));
     recompute(); // initial value
-    for (const field of exprFields(spec.compute)) {
-      teardowns.push(store.subscribe(field, recompute));
-    }
-  } else if (spec.field !== undefined) {
+    if (store)
+      for (const field of exprFields(spec.compute)) {
+        teardowns.push(store.subscribe(field, recompute));
+      }
+    for (const dependency of exprScopes(spec.compute, scope))
+      teardowns.push(dependency.subscribe(recompute));
+  } else if (spec.field !== undefined && store) {
     if (store.has(spec.field)) apply(store.get(spec.field)); // initial field → prop
     teardowns.push(store.subscribe(spec.field, (v) => apply(v)));
     if (spec.mode === "two-way") {
@@ -206,42 +226,234 @@ function unwireBinding(el: Element, prop: string): void {
 // truthy and TORN DOWN + removed (not merely hidden) when it is falsy — reactive creation/removal of real
 // elements. The wrapper itself stays put (authored `display:contents`), so sibling paths don't shift as
 // children come and go.
-function wireShow(el: Element, node: Node, store?: Store): void {
+function wireShow(el: Element, node: Node, store?: Store, scope?: Scope): void {
+  structuralNodes.set(el, node);
   const cond = node.bindings?.when;
   const childDefs = node.slots?.[DEFAULT_SLOT] ?? [];
-  if (!store || !cond) {
-    for (const c of childDefs) appendInSlot(el, DEFAULT_SLOT, build(c, store)); // inert: render always
+  let mounted: Element[] = [];
+  const clear = (): void => {
+    for (const child of mounted) {
+      teardownTree(child);
+      child.remove();
+    }
+    mounted = [];
+  };
+  const inert =
+    !cond || (cond.compute === undefined ? !store : !store && !scope);
+  if (inert) {
+    for (const child of childDefs) {
+      const built = build(child, store, scope);
+      appendInSlot(el, DEFAULT_SLOT, built);
+      mounted.push(built);
+    }
+    let map = bindings.get(el);
+    if (!map) bindings.set(el, (map = new Map()));
+    map.set("when", clear);
     return;
   }
   const evaluate = (): boolean =>
     cond.compute !== undefined
-      ? !!evalExpr(cond.compute, store)
-      : !!store.get(cond.field!);
-  let mounted: Element[] = [];
+      ? !!evalExpr(cond.compute, store, scope)
+      : !!store!.get(cond.field!);
   const render = (): void => {
     if (evaluate()) {
       if (mounted.length === 0) {
         for (const c of childDefs) {
-          const ce = build(c, store);
+          const ce = build(c, store, scope);
           appendInSlot(el, DEFAULT_SLOT, ce);
           mounted.push(ce);
         }
       }
-    } else if (mounted.length) {
-      for (const ce of mounted) {
-        teardownTree(ce);
-        ce.remove();
-      }
-      mounted = [];
-    }
+    } else if (mounted.length) clear();
   };
   render(); // initial state
   const deps =
     cond.compute !== undefined ? [...exprFields(cond.compute)] : [cond.field!];
-  const subs = deps.map((f) => store.subscribe(f, render));
+  const subs = store ? deps.map((f) => store.subscribe(f, render)) : [];
+  if (cond.compute !== undefined)
+    for (const dependency of exprScopes(cond.compute, scope))
+      subs.push(dependency.subscribe(render));
   let map = bindings.get(el); // record teardown so removing the spa-show unsubscribes (via teardownTree)
   if (!map) bindings.set(el, (map = new Map()));
-  map.set("when", () => subs.forEach((u) => u()));
+  map.set("when", () => {
+    for (const unsubscribe of subs) unsubscribe();
+    clear();
+  });
+}
+
+interface EachInstance {
+  element: Element;
+  scope: Scope;
+}
+
+function eachIdentity(item: unknown, key: string): string {
+  const value = new Scope(item).get(key);
+  if (typeof value === "string") return `string:${value}`;
+  if (typeof value === "number" && Number.isFinite(value))
+    return `number:${value}`;
+  throw new Error(
+    `spa-each key ${JSON.stringify(key)} must exist and contain a string or finite number`,
+  );
+}
+
+function keyedItems(items: unknown[], key: string): Array<[string, unknown]> {
+  const seen = new Set<string>();
+  return items.map((item) => {
+    const identity = eachIdentity(item, key);
+    if (seen.has(identity))
+      throw new Error(
+        `spa-each key ${JSON.stringify(key)} contains duplicate value ${JSON.stringify(new Scope(item).get(key))}`,
+      );
+    seen.add(identity);
+    return [identity, item];
+  });
+}
+
+// `spa-each`: a client-owned keyed reconciler. The serialized default child is a template definition,
+// not live DOM. Item replacements update a reactive Scope; moves retain the existing root element.
+function wireEach(
+  el: Element,
+  node: Node,
+  store?: Store,
+  parentScope?: Scope,
+): void {
+  structuralNodes.set(el, node);
+  const source = node.bindings?.items;
+  const template = node.slots?.[DEFAULT_SLOT] ?? [];
+  const itemKey = String(untag(node.props?.itemKey!));
+  const scopeValue = node.props?.scopeName
+    ? untag(node.props.scopeName)
+    : undefined;
+  const scopeName = scopeValue == null ? undefined : String(scopeValue);
+  if (template.length !== 1)
+    throw new Error("spa-each requires exactly one component template");
+
+  let instances = new Map<string, EachInstance>();
+  let frame: number | undefined;
+  const evaluate = (): unknown[] => {
+    const value = source?.compute
+      ? evalExpr(source.compute, store, parentScope)
+      : source?.field && store
+        ? store.get(source.field)
+        : [];
+    return Array.isArray(value) ? value : [];
+  };
+  const reconcile = (): void => {
+    frame = undefined;
+    const items = keyedItems(evaluate(), itemKey); // validate the full key set before any mutation
+    const focused =
+      document.activeElement instanceof HTMLElement &&
+      el.contains(document.activeElement)
+        ? document.activeElement
+        : undefined;
+    const selection =
+      focused instanceof HTMLInputElement ||
+      focused instanceof HTMLTextAreaElement
+        ? ([
+            focused.selectionStart,
+            focused.selectionEnd,
+            focused.selectionDirection,
+          ] as const)
+        : undefined;
+    const stale = new Map(instances);
+    const next = new Map<string, EachInstance>();
+    for (const [index, [identity, item]] of items.entries()) {
+      let instance = instances.get(identity);
+      if (instance) {
+        instance.scope.set(item);
+      } else {
+        const itemScope = new Scope(item, scopeName, parentScope);
+        instance = {
+          element: build(template[0], store, itemScope),
+          scope: itemScope,
+        };
+      }
+      const current = el.children[index];
+      if (current !== instance.element) {
+        const movable = el as Element & {
+          moveBefore?: (node: Element, child: Element | null) => void;
+        };
+        if (
+          instance.element.parentElement === el &&
+          typeof movable.moveBefore === "function"
+        )
+          movable.moveBefore(instance.element, current ?? null);
+        else el.insertBefore(instance.element, current ?? null);
+      }
+      stale.delete(identity);
+      next.set(identity, instance);
+    }
+    for (const instance of stale.values()) {
+      teardownTree(instance.element);
+      instance.element.remove();
+    }
+    if (focused) {
+      focused.focus({ preventScroll: true });
+      if (
+        selection &&
+        (focused instanceof HTMLInputElement ||
+          focused instanceof HTMLTextAreaElement)
+      )
+        focused.setSelectionRange(
+          selection[0],
+          selection[1],
+          selection[2] ?? undefined,
+        );
+    }
+    instances = next;
+  };
+  const schedule = (): void => {
+    if (frame === undefined) frame = requestAnimationFrame(reconcile);
+  };
+
+  reconcile();
+  const subs: Array<() => void> = [];
+  if (source?.compute !== undefined) {
+    if (store)
+      for (const field of exprFields(source.compute))
+        subs.push(store.subscribe(field, schedule));
+    for (const dependency of exprScopes(source.compute, parentScope))
+      subs.push(dependency.subscribe(schedule));
+  } else if (source?.field && store) {
+    subs.push(store.subscribe(source.field, schedule));
+  }
+  let map = bindings.get(el);
+  if (!map) bindings.set(el, (map = new Map()));
+  map.set("items", () => {
+    if (frame !== undefined) cancelAnimationFrame(frame);
+    for (const unsubscribe of subs) unsubscribe();
+    for (const instance of instances.values()) {
+      teardownTree(instance.element);
+      instance.element.remove();
+    }
+    instances.clear();
+  });
+}
+
+function isStructuralBinding(node: Node, prop: string): boolean {
+  return (
+    (node.tag === "spa-show" && prop === "when") ||
+    (node.tag === "spa-each" && prop === "items")
+  );
+}
+
+function rewireStructuralBinding(
+  el: Element,
+  name: string,
+  binding: Binding | undefined,
+  store?: Store,
+  scope?: Scope,
+): boolean {
+  const node = structuralNodes.get(el);
+  if (!node || !isStructuralBinding(node, name)) return false;
+  const nextBindings = { ...node.bindings };
+  if (binding) nextBindings[name] = binding;
+  else delete nextBindings[name];
+  const next = { ...node, bindings: nextBindings };
+  unwireBinding(el, name);
+  if (next.tag === "spa-show") wireShow(el, next, store, scope);
+  else wireEach(el, next, store, scope);
+  return true;
 }
 
 // Tear down the reactive bindings (store subscriptions) registered across an element subtree, so removing
@@ -254,28 +466,32 @@ function teardownTree(el: Element): void {
       for (const teardown of map.values()) teardown();
       bindings.delete(e);
     }
+    structuralNodes.delete(e);
   }
 }
 
-function build(node: Node, store?: Store): Element {
+function build(node: Node, store?: Store, scope?: Scope): Element {
   const el = document.createElement(node.tag);
   for (const [name, value] of Object.entries(node.props ?? {})) {
     setProp(el, name, untag(value));
   }
   if (node.tag === "spa-show") {
-    wireShow(el, node, store); // conditionally mounts the node's default-slot children
+    wireShow(el, node, store, scope); // conditionally mounts the node's default-slot children
+  } else if (node.tag === "spa-each") {
+    wireEach(el, node, store, scope);
   } else {
     for (const [slot, children] of Object.entries(node.slots ?? {})) {
-      for (const child of children) appendInSlot(el, slot, build(child, store));
+      for (const child of children)
+        appendInSlot(el, slot, build(child, store, scope));
     }
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
-    bindEvent(el, name, action, store); // actions ride the wire as the core's DSL form (plain JSON)
+    bindEvent(el, name, action, store, scope); // actions ride the wire as the core's DSL form (plain JSON)
   }
-  if (store) {
+  if (store || scope) {
     for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
-      if (node.tag === "spa-show" && prop === "when") continue; // structural — handled by wireShow
-      wireBinding(el, prop, spec, store);
+      if (isStructuralBinding(node, prop)) continue;
+      wireBinding(el, prop, spec, store, scope);
     }
   }
   return el;
@@ -351,7 +567,7 @@ function resolve(root: Element, path: Path): Element {
   return el;
 }
 
-function applyOp(root: Element, op: Op, store?: Store): Element {
+function applyOp(root: Element, op: Op, store?: Store, scope?: Scope): Element {
   if ("SetProp" in op) {
     setProp(
       resolve(root, op.SetProp.path),
@@ -362,19 +578,23 @@ function applyOp(root: Element, op: Op, store?: Store): Element {
     removeProp(resolve(root, op.RemoveProp.path), op.RemoveProp.name);
   } else if ("SetEvent" in op) {
     const { path, name, action } = op.SetEvent;
-    bindEvent(resolve(root, path), name, action, store);
+    bindEvent(resolve(root, path), name, action, store, scope);
   } else if ("RemoveEvent" in op) {
     const { path, name } = op.RemoveEvent;
     unbindEvent(resolve(root, path), name);
   } else if ("SetBinding" in op) {
     const { path, name, binding } = op.SetBinding;
-    if (store) wireBinding(resolve(root, path), name, binding, store);
+    const el = resolve(root, path);
+    if (!rewireStructuralBinding(el, name, binding, store, scope))
+      if (store || scope) wireBinding(el, name, binding, store, scope);
   } else if ("RemoveBinding" in op) {
     const { path, name } = op.RemoveBinding;
-    unwireBinding(resolve(root, path), name);
+    const el = resolve(root, path);
+    if (!rewireStructuralBinding(el, name, undefined, store, scope))
+      unwireBinding(el, name);
   } else if ("InsertChild" in op) {
     const { path, slot, index, node } = op.InsertChild;
-    insertInSlot(resolve(root, path), slot, index, build(node, store));
+    insertInSlot(resolve(root, path), slot, index, build(node, store, scope));
   } else if ("RemoveChild" in op) {
     const { path, slot, index } = op.RemoveChild;
     const child = childrenInSlot(resolve(root, path), slot)[index];
@@ -389,7 +609,7 @@ function applyOp(root: Element, op: Op, store?: Store): Element {
   } else if ("Replace" in op) {
     const target = resolve(root, op.Replace.path);
     teardownTree(target); // release the replaced subtree's store subscriptions
-    const replacement = build(op.Replace.node, store);
+    const replacement = build(op.Replace.node, store, scope);
     target.replaceWith(replacement);
     if (op.Replace.path.length === 0) return replacement; // the root element itself was swapped
   }

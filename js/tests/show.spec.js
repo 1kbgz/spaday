@@ -74,6 +74,25 @@ test("a compute condition shows children when the expression is truthy", async (
   expect(result.after).toBe(1);
 });
 
+test("a storeless compute condition remains inert and renders its children", async ({
+  page,
+}) => {
+  const count = await page.evaluate(() => {
+    const root = window.__spaday.mount(document.createElement("div"), {
+      tag: "spa-show",
+      bindings: {
+        when: {
+          compute: { expr: "field", name: "missing" },
+          mode: "one-way",
+        },
+      },
+      slots: { default: [{ tag: "p" }] },
+    });
+    return root.querySelectorAll("p").length;
+  });
+  expect(count).toBe(1);
+});
+
 test("re-shown children are freshly bound to the current store value", async ({
   page,
 }) => {

@@ -18,6 +18,10 @@ extern "C" {
     fn event_value(this: &Host) -> JsValue;
     #[wasm_bindgen(method, js_name = getField)]
     fn get_field(this: &Host, name: &str) -> JsValue;
+    #[wasm_bindgen(method, js_name = getItem)]
+    fn get_item(this: &Host, path: &str) -> JsValue;
+    #[wasm_bindgen(method, js_name = getScope)]
+    fn get_scope(this: &Host, name: &str, path: &str) -> JsValue;
     #[wasm_bindgen(method, js_name = setField)]
     fn set_field(this: &Host, name: &str, value: JsValue);
     #[wasm_bindgen(method)]
@@ -112,7 +116,9 @@ fn run(action: &spaday::Action, host: &Host) {
 }
 
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
-    use spaday::Expr::{Concat, Event, Field, Lit, Not, Obj, Prop};
+    use spaday::Expr::{
+        All, Any, Concat, Cond, Eq, Event, Field, Item, Lit, Not, Obj, Prop, Scope,
+    };
     match expr {
         // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
         // `JSON.stringify` (e.g. a CallEndpoint body) and set cleanly as props.
@@ -121,7 +127,23 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
             .unwrap_or(JsValue::UNDEFINED),
         Event => host.event_value(),
         Field { name } => host.get_field(name),
+        Item { path } => host.get_item(path),
+        Scope { name, path } => host.get_scope(name, path),
         Not { of } => JsValue::from_bool(!truthy(&eval(of, host))),
+        Eq { a, b } => JsValue::from_bool(js_sys::Object::is(&eval(a, host), &eval(b, host))),
+        All { of } => JsValue::from_bool(of.iter().all(|value| truthy(&eval(value, host)))),
+        Any { of } => JsValue::from_bool(of.iter().any(|value| truthy(&eval(value, host)))),
+        Cond {
+            test,
+            then,
+            otherwise,
+        } => {
+            if truthy(&eval(test, host)) {
+                eval(then, host)
+            } else {
+                eval(otherwise, host)
+            }
+        }
         Prop { target, name } => {
             resolve(target, host).map_or(JsValue::NULL, |el| host.get_prop(&el, name))
         }

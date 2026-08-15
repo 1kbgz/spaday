@@ -29,6 +29,37 @@ const FAKE = () => {
   return { client, codec: { fromValue: (v) => v, toValue: (v) => v } };
 };
 
+const PATCH_FAKE = () => {
+  const client = {
+    model: {},
+    valueCalls: 0,
+    recv(data) {
+      const change = JSON.parse(data);
+      if (change.t === "snapshot") this.model = change.value;
+      return change;
+    },
+    ids() {
+      return [1];
+    },
+    value() {
+      this.valueCalls += 1;
+      return this.model;
+    },
+    edit(_id, value) {
+      return JSON.stringify(value);
+    },
+  };
+  const codec = {
+    fromCalls: 0,
+    fromValue(value) {
+      this.fromCalls += 1;
+      return value;
+    },
+    toValue: (value) => value,
+  };
+  return { client, codec };
+};
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/tests/runtime.html");
   await page.waitForFunction(() => window.__spaday);
@@ -109,6 +140,175 @@ test("inbound updates a two-way control, and applying an inbound frame does not 
   }, FAKE.toString());
   expect(result.checked).toBe(true); // the inbound value reached the bound control
   expect(result.echoes).toBe(0); // echo guard: inbound updates are not sent straight back out
+});
+
+test("inbound patch updates only its changed store branch", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: {
+          profile: { name: "old", active: true },
+          rows: [{ id: 1 }, { id: 2 }],
+        },
+      }),
+    );
+    const rows = store.get("rows");
+    let rowNotifications = 0;
+    store.subscribe("rows", () => {
+      rowNotifications += 1;
+    });
+    client.valueCalls = 0;
+    codec.fromCalls = 0;
+
+    link.receive(
+      JSON.stringify({
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 1,
+          ops: [
+            {
+              Set: {
+                path: [{ Key: "profile" }, { Key: "name" }],
+                value: "new",
+              },
+            },
+          ],
+        },
+      }),
+    );
+    return {
+      name: store.get("profile.name"),
+      rowsPreserved: store.get("rows") === rows,
+      rowNotifications,
+      valueCalls: client.valueCalls,
+      decodedValues: codec.fromCalls,
+    };
+  }, PATCH_FAKE.toString());
+
+  expect(result).toEqual({
+    name: "new",
+    rowsPreserved: true,
+    rowNotifications: 0,
+    valueCalls: 0,
+    decodedValues: 1,
+  });
+});
+
+test("inbound patch applies list insertion and removal without a model read", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { rows: [1, 2], status: "ready" },
+      }),
+    );
+    client.valueCalls = 0;
+    codec.fromCalls = 0;
+    link.receive(
+      JSON.stringify({
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 1,
+          ops: [
+            {
+              Insert: {
+                path: [{ Key: "rows" }],
+                index: 1,
+                value: 5,
+              },
+            },
+            { RemoveAt: { path: [{ Key: "rows" }], index: 0 } },
+            { Remove: { path: [{ Key: "status" }] } },
+          ],
+        },
+      }),
+    );
+    return {
+      rows: store.get("rows"),
+      status: store.get("status") ?? null,
+      valueCalls: client.valueCalls,
+      decodedValues: codec.fromCalls,
+    };
+  }, PATCH_FAKE.toString());
+
+  expect(result).toEqual({
+    rows: [5, 2],
+    status: null,
+    valueCalls: 0,
+    decodedValues: 1,
+  });
+});
+
+test("an invalid patch falls back atomically to the client snapshot", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec, undefined, false);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { profile: { name: "old" }, rows: [1] },
+      }),
+    );
+    let profileNotifications = 0;
+    store.subscribe("profile", () => {
+      profileNotifications += 1;
+    });
+    client.model = { profile: { name: "server" }, rows: [9] };
+    client.valueCalls = 0;
+    link.receive(
+      JSON.stringify({
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 1,
+          ops: [
+            {
+              Set: {
+                path: [{ Key: "profile" }, { Key: "name" }],
+                value: "transient",
+              },
+            },
+            { RemoveAt: { path: [{ Key: "rows" }], index: 5 } },
+          ],
+        },
+      }),
+    );
+    return {
+      profile: store.get("profile"),
+      rows: store.get("rows"),
+      profileNotifications,
+      valueCalls: client.valueCalls,
+    };
+  }, PATCH_FAKE.toString());
+
+  expect(result).toEqual({
+    profile: { name: "server" },
+    rows: [9],
+    profileNotifications: 1,
+    valueCalls: 1,
+  });
 });
 
 test("inbound: a nested sub-model field flows to a dotted-path binding", async ({

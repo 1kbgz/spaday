@@ -18,8 +18,8 @@ Actions: ``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` (client-side); ``Set
 (write the mounted signal store, so a plain button can drive reactive state); ``SendPatch`` (a model-edit
 intent the app routes to its wire, e.g. transports); ``If`` (conditionals); ``CallEndpoint`` (a REST
 round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered handler). Expressions:
-``lit`` / ``event_value`` / ``field`` / ``not_`` / ``prop`` / ``obj`` / ``concat``; targets ``this`` /
-``by_id``.
+``lit`` / ``event_value`` / ``field`` / ``item`` / ``scope`` / ``not_`` / ``prop`` / ``obj`` /
+``concat``; targets ``this`` / ``by_id``.
 ``bind`` here is a one-way event-driven helper; reactive prop↔state bindings (one- or two-way) are
 authored with ``Component.bind`` and interpreted by the runtime's signal store.
 """
@@ -101,6 +101,42 @@ def field(name: str) -> Expr:
     """The current value of a reactive state field — for a *computed* binding (``Component.compute``),
     evaluated against the signal store in the browser, e.g. ``not_(field("enabled"))``."""
     return _Field(name)
+
+
+class _Item(Expr):
+    def __init__(self, path: str) -> None:
+        self.path = path
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"expr": "item", "path": self.path}
+
+
+def item(path: str = "") -> Expr:
+    """Read ``path`` from the innermost ``Each`` item.
+
+    An empty path returns the complete item. Missing paths evaluate to ``undefined`` in the browser.
+    """
+    return _Item(path)
+
+
+class _Scope(Expr):
+    def __init__(self, name: str, path: str) -> None:
+        self.name, self.path = name, path
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"expr": "scope", "name": self.name, "path": self.path}
+
+
+def scope(reference: str) -> Expr:
+    """Read a named current or ancestor item scope.
+
+    ``scope("staging.channel")`` reads ``channel`` from the nearest scope named ``staging``;
+    ``scope("staging")`` returns that scope's complete item.
+    """
+    name, _, path = reference.partition(".")
+    if not name:
+        raise ValueError("scope reference must start with a name")
+    return _Scope(name, path)
 
 
 class _Eq(Expr):

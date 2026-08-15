@@ -283,5 +283,6 @@ exclude_patterns = [
     "REVIEW.md",
     "TODO.md",
     ".github",
+    "spaday-*",
     "spaday/examples/README.md",
 ]

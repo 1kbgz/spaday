@@ -22,7 +22,7 @@ from typing import Any
 
 from ..component import Child, Component, element
 
-__all__ = ["App", "AppShell", "Body", "Column", "Footer", "Gutter", "Main", "Nav", "Region", "Row", "Show", "Stack", "Table", "Toolbar"]
+__all__ = ["App", "AppShell", "Body", "Column", "Each", "Footer", "Gutter", "Main", "Nav", "Region", "Row", "Show", "Stack", "Table", "Toolbar"]
 
 
 class App(Component):
@@ -212,7 +212,8 @@ class Show(Component):
 
         Show(LightweightChart(...), field="show_chart")
 
-    Active only when the tree is mounted with a signal ``Store`` (``mount(body, tree, store)``).
+    A ``field`` condition requires a signal ``Store``. A computed condition may instead read the
+    current ``Each`` item or a named repeater scope.
     """
 
     tag = "spa-show"
@@ -225,6 +226,50 @@ class Show(Component):
             self._bindings["when"] = {"compute": when.to_dict(), "mode": "one-way"}
         else:
             raise ValueError("Show requires field= (a store field) or when= (a field-expression)")
+
+
+class Each(Component):
+    """Render one live component subtree per item in a reactive collection, reusing instances by key.
+
+    ``field`` reads a global store collection. ``items`` accepts an expression, including
+    :func:`~spaday.actions.item` for a nested collection. Inside ``template``, ``item()`` reads the
+    current item and ``scope("name.path")`` reads a named current or ancestor repeater scope::
+
+        Each(Row(Strong().compute("textContent", item("name"))), field="rows", key="id", scope="row")
+
+    The first release supports one component template root and read-only item scopes. Item keys must be
+    unique strings or finite numbers. Reordering preserves each live root element and its local state.
+    """
+
+    tag = "spa-each"
+
+    def __init__(
+        self,
+        template: Component,
+        *,
+        field: str | None = None,
+        items: Any | None = None,
+        key: str,
+        scope: str | None = None,
+        **props: Any,
+    ) -> None:
+        if not isinstance(template, Component):
+            raise TypeError("Each template must be one Component")
+        if (field is None) == (items is None):
+            raise ValueError("Each requires exactly one of field= or items=")
+        if not isinstance(key, str) or not key:
+            raise ValueError("Each key must be a non-empty item field")
+        if scope is not None and (not scope or "." in scope):
+            raise ValueError("Each scope must be a non-empty name without dots")
+        super().__init__(template, props={"style": "display:contents", "itemKey": key, "scopeName": scope}, **props)
+        if field is not None:
+            self._bindings["items"] = {"field": field, "mode": "one-way"}
+        else:
+            try:
+                expression = items.to_dict()
+            except AttributeError as exc:
+                raise TypeError("Each items must be an expression") from exc
+            self._bindings["items"] = {"compute": expression, "mode": "one-way"}
 
 
 class Table(Component):

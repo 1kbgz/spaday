@@ -19,10 +19,12 @@ from .actions import (
     eq,
     event_value,
     field,
+    item,
     lit,
     not_,
     obj,
     prop,
+    scope,
     this,
 )
 from .bootstrap import Wire
@@ -81,6 +83,7 @@ __all__ = [
     "eq",
     "event_value",
     "field",
+    "item",
     "generate",
     "lit",
     "not_",
@@ -88,6 +91,7 @@ __all__ = [
     # CEM binding generator
     "parse_cem",
     "prop",
+    "scope",
     # server-side rendering (light-DOM HTML for first paint; client hydrates)
     "render_html",
     "resolve_component_packages",
