@@ -1,6 +1,6 @@
 """A server-driven staging queue with rich, keyed rows and no page-specific JavaScript.
 
-Run ``python -m spaday.examples.keyed_records`` and open http://127.0.0.1:8016/.
+Run ``python -m spaday.examples.keyed_records`` and open http://127.0.0.1:8017/.
 
 Every channel and record is a normal Python-authored component subtree. REST actions carry the current
 item's values to Python; transports sends the resulting model patch back. ``Each`` preserves the DOM
@@ -211,4 +211,4 @@ def create_app():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(create_app(), host="127.0.0.1", port=8016)
+    uvicorn.run(create_app(), host="127.0.0.1", port=8017)

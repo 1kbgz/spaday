@@ -64,7 +64,7 @@ with `python -m`, then open its listed URL.
 | Present rich content           | [`webawesome_content.py`](./webawesome_content.py)       | <http://127.0.0.1:8013> | cards, carousel, comparison, formatters, Markdown, QR code, split and scroller layouts   |
 | Use browser utility components | [`webawesome_observers.py`](./webawesome_observers.py)   | <http://127.0.0.1:8014> | include, mutation, intersection and resize observers, zoomable frame                     |
 | Build a local data dashboard   | [`data_dashboard.py`](./data_dashboard.py)               | <http://127.0.0.1:8015> | shell regions, reactive table, tabs, conditional chart, local theme                      |
-| Build a live actionable list   | [`keyed_records.py`](./keyed_records.py)                 | <http://127.0.0.1:8016> | nested keyed collections, item-scoped actions, server CRUD, identity-preserving moves    |
+| Build a live actionable list   | [`keyed_records.py`](./keyed_records.py)                 | <http://127.0.0.1:8017> | nested keyed collections, item-scoped actions, server CRUD, identity-preserving moves    |
 
 Run one, for example:
 
@@ -95,7 +95,7 @@ The applications listen on:
 | `cluster.py`       | <http://127.0.0.1:8003> | clients connected to different workers receive the same bounded chart |
 | `ssr.py`           | <http://127.0.0.1:8005> | page source contains rendered elements that the browser hydrates      |
 | `gateway.py`       | <http://127.0.0.1:8006> | validated REST orders appear in the Perspective blotter               |
-| `keyed_records.py` | <http://127.0.0.1:8016> | per-record actions patch nested lists without replacing live row DOM  |
+| `keyed_records.py` | <http://127.0.0.1:8017> | per-record actions patch nested lists without replacing live row DOM  |
 
 `cluster.py` uses `tcp://127.0.0.1:5599` and `tcp://127.0.0.1:5600` for its default ZeroMQ backplane.
 Set `SPADAY_CLUSTER_FRONT` and `SPADAY_CLUSTER_BACK` when running multiple independent clusters.
