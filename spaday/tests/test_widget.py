@@ -56,11 +56,10 @@ def test_on_intent_receives_frontend_messages():
 def test_extension_assets_are_present():
     from spaday import widget as widget_mod
 
-    # installed wheels must ship spaday/extension/** (artifacts in pyproject); otherwise the _esm /
-    # _css the widget loads go missing and it fails to render. (The wasm core is inlined into the _esm
+    # installed wheels must ship spaday/extension/** (artifacts in pyproject); otherwise the _esm
+    # the widget loads goes missing and it fails to render. (The wasm core is inlined into the _esm
     # bundle at build time, so there is no separate wasm file to load at runtime.)
     assert widget_mod._ESM.exists()
-    assert widget_mod._CSS.exists()
 
 
 def test_widget_is_lazily_exported_from_the_package():

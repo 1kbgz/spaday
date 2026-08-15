@@ -4,16 +4,15 @@
 // with one default `<slot>` and a `:host` style; structure comes from how you nest them
 // (App › Nav / Body › Gutter + Main / Footer), spacing from Stack/Row/Toolbar.
 //
-// Surfaces/borders/muted-text fall back to **WebAwesome theme tokens**, so the shell follows the active
-// light/dark theme automatically (with a plain default when WebAwesome isn't present). A few layout
-// attributes — `gap` / `align` / `justify` / `width` — map to the corresponding CSS custom properties.
-// Importing this module (side effect, via the runtime entry) defines the elements.
+// Surfaces/borders/muted-text use `--spa-*` tokens with plain defaults. Component packages can map
+// their theme tokens onto these variables. A few layout attributes — `gap` / `align` / `justify` /
+// `width` — map to the corresponding CSS custom properties. Importing this module (side effect, via
+// the runtime entry) defines the elements.
 
-const BORDER = "var(--spa-border, var(--wa-color-surface-border, #e6e6e6))";
-const SURFACE = "var(--spa-surface, var(--wa-color-surface-default, #fff))";
-const SURFACE_2 =
-  "var(--spa-surface-2, var(--wa-color-surface-lowered, #fafafa))";
-const MUTED = "var(--spa-muted, var(--wa-color-text-quiet, #666))";
+const BORDER = "var(--spa-border, #e6e6e6)";
+const SURFACE = "var(--spa-surface, #fff)";
+const SURFACE_2 = "var(--spa-surface-2, #fafafa)";
+const MUTED = "var(--spa-muted, #666)";
 
 /** tag → the element's `:host` layout style. Each gets a shadow root with this style + a default slot. */
 const SHELL: Record<string, string> = {
@@ -53,12 +52,6 @@ const ATTR_VARS: Record<string, string> = {
   width: "--spa-gutter-width",
 };
 
-// WebAwesome's `wa-button` host is `inline-block`; as a flex item in these containers it blockifies to
-// `block` and its internal base part overflows the host (overlapping neighbors). Forcing `inline-flex`
-// blockifies to `flex` instead, so a slotted button sizes to its content. (wa-select/wa-switch are
-// already inline-flex and unaffected.)
-const SLOTTED_FIX = "::slotted(wa-button){display:inline-flex}";
-
 // Guard so importing the runtime in a non-DOM context (e.g. the test runner / SSR in node) is a no-op
 // rather than touching `customElements`/`HTMLElement`, which only exist in the browser.
 if (typeof customElements !== "undefined") {
@@ -74,7 +67,7 @@ if (typeof customElements !== "undefined") {
           super();
           const root = this.attachShadow({ mode: "open" });
           const style = document.createElement("style");
-          style.textContent = css + SLOTTED_FIX;
+          style.textContent = css;
           root.append(style, document.createElement("slot"));
         }
         attributeChangedCallback(

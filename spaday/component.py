@@ -124,7 +124,7 @@ class Component:
         ``--background-color: navy``. This is how a web component's documented `--*` theme tokens are
         set from Python (per component), and how the ``spa-*`` shell is re-themed at the app level
         (``App().css(spa_surface="#111", spa_border="#333")`` cascades to the whole shell). WebAwesome's
-        own tokens (``--wa-color-*``) are set the same way. See :mod:`spaday.theme`.
+        own custom-property tokens are set the same way. See :mod:`spaday.theme`.
         """
         self._style.update({"--" + _css_name(k): str(v) for k, v in variables.items() if v is not None})
         return self

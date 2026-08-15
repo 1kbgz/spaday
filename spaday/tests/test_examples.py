@@ -90,7 +90,7 @@ def test_ssr_ships_server_rendered_markup_to_hydrate():
 
 def test_widget_builds_a_component_tree_and_a_widget():
     widget = pytest.importorskip("spaday.examples.widget", reason="needs the [widget] extra (anywidget)")
-    assert "wa-card" in json.dumps(widget.build().to_node())  # a real component tree
+    assert '"tag": "section"' in json.dumps(widget.build().to_node())  # a real component tree
     assert widget.demo() is not None  # a ready-to-display Widget
 
 

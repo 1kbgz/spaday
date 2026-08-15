@@ -3,12 +3,12 @@
 The Rust core parses a ``custom-elements.json`` into normalized component schemas
 (:func:`spaday.spaday.parse_cem`); this module renders those schemas into a Python module — one
 :class:`~spaday.component.Component` subclass per element, with each attribute exposed as a typed
-keyword argument. The committed :mod:`spaday.components.webawesome` is produced this way; point the
-generator at any manifest to bind any web-component library.
+keyword argument. Peer component packages use this generator for committed typed catalogs; point it at
+any manifest to bind any web-component library.
 
 Usage::
 
-    python -m spaday.cem path/to/custom-elements.json -o spaday/components/webawesome.py
+    python -m spaday.cem path/to/custom-elements.json -o my_components.py
 """
 
 import argparse
@@ -38,7 +38,7 @@ def classes(manifest_path: str, name: str | None = None) -> dict[str, type[Compo
     The dynamic counterpart to :func:`generate`: build classes without emitting a file. With ``name``,
     returns just that one class (``MyClass = spaday.classes(manifest, "MyClass")``); otherwise returns
     ``{class_name: class}`` for the whole manifest. Handy for binding an arbitrary or one-off manifest
-    on the fly. Unlike the committed, generated catalog (e.g. :mod:`spaday.components.webawesome`),
+    on the fly. Unlike a committed, generated peer-package catalog,
     these classes are **not statically typed** — the type checker can't see their per-attribute
     signatures — though they still validate keyword names at call time. Reach for :func:`generate`
     (committed codegen) when you want typing.

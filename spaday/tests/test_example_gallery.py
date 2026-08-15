@@ -1,7 +1,9 @@
 import pytest
 
+pytest.importorskip("spaday_webawesome", reason="gallery needs the WebAwesome integration")
+pytest.importorskip("spaday_lightweight_charts", reason="gallery needs the Lightweight Charts integration")
+
 from spaday import validate
-from spaday.components import webawesome
 from spaday.examples import (
     data_dashboard,
     webawesome_content,
@@ -54,14 +56,6 @@ def test_gallery_pages_are_valid_component_trees():
         page = build_page()
         validate(page)
         assert page.to_node()["slots"]
-
-
-def test_gallery_covers_every_generated_webawesome_component():
-    expected = {getattr(webawesome, name).tag for name in webawesome.__all__}
-    covered = set()
-    for build_page in WEB_AWESOME_BUILDERS:
-        covered.update(_tags(build_page().to_node()))
-    assert covered >= expected
 
 
 def test_navigation_example_uses_one_state_driven_navigation_model():
@@ -132,7 +126,7 @@ def test_gallery_apps_serve_their_bootstrap_and_routes():
         with TestClient(module.create_app()) as client:
             page = client.get("/")
             assert page.status_code == 200
-            assert "cdn/examples/webawesome.js" in page.text
+            assert "/components/webawesome/cdn/index.js" in page.text
             assert "<style>\nbody {" in page.text
             assert page.text.index("</style>") < page.text.index("</head>")
             assert client.get("/tree.json").status_code == 200

@@ -21,7 +21,6 @@ backend is just the kernel.
 
 from spaday import Component, element
 from spaday.components.shell import Row, Stack
-from spaday.components.webawesome import WaCard, WaSwitch
 from spaday.widget import Widget
 
 DEVICES = {"Living room": True, "Kitchen": False, "Bedroom": False, "Garage": False}
@@ -32,8 +31,10 @@ def panel(devices: dict) -> Component:
     cards = Stack()
     for name in devices:
         cards = cards.child(
-            WaCard(appearance="outlined").child(
-                Row().child(element("strong").text(name)).child(WaSwitch().prop("style", "margin-left:auto").bind("checked", name, mode="two-way"))
+            element("article", style="border:1px solid #bbb;border-radius:.5rem;padding:.75rem").child(
+                Row()
+                .child(element("strong").text(name))
+                .child(element("input", type="checkbox", style="margin-left:auto").bind("checked", name, mode="two-way"))
             )
         )
     return cards

@@ -4,13 +4,12 @@ This guide shows you how to build a spaday UI from typed components: setting pro
 laying out with shell components, and serializing the result. To attach behavior, see
 [Add behavior and reactivity](behavior.md).
 
-## Use a built-in component
+## Use a component package
 
-WebAwesome components are generated as typed classes. Import one and set its attributes as keyword
-arguments:
+Install `spaday-webawesome`, then import a generated component and set its attributes as keyword arguments:
 
 ```python
-from spaday.components.webawesome import WaButton
+from spaday_webawesome import WaButton
 
 WaButton(variant="brand", size="large")
 ```
@@ -19,16 +18,16 @@ Every attribute is a typed keyword (`variant: Optional[Literal["brand", "neutral
 `disabled: Optional[bool]`, …), so a typo or a wrong type is an error at authoring time. A prop you
 **don't** pass is omitted, so the element keeps its own default and update patches stay minimal.
 
-To use a component library other than WebAwesome, [generate its classes from a manifest](cem.md).
+To bind a different component library, [generate its classes from a manifest](cem.md).
 An independently distributed integration can also register its browser assets through the
-[`ComponentPackage` serving contract](serving.md#install-an-external-component-package).
+[`ComponentPackage` serving contract](serving.md).
 
 ## Nest children into slots
 
 Compose a tree with `.child(...)` for the default slot and `.child_in("slot", ...)` for a named one:
 
 ```python
-from spaday.components.webawesome import WaCard, WaButton, WaSwitch
+from spaday_webawesome import WaCard, WaButton, WaSwitch
 
 WaCard().child_in("header", WaButton(variant="brand")).child(WaSwitch())
 ```
@@ -80,11 +79,11 @@ and `OVERLAY` append directly under `App`, after flow chrome, for top-layer UI.
 
 `Tabs` builds a WebAwesome `wa-tab-group` from `(label, content)` pairs — no hand-pairing of tab headers
 with panels. Bind its `active` prop to a state field for **routing-aware** navigation: the field drives
-which tab shows, and the user's selection is written back (`serve(bundles=["webawesome"])` registers the
+which tab shows, and the user's selection is written back (`serve(packages=["webawesome"])` registers the
 nav components):
 
 ```python
-from spaday.components.shell import Tabs
+from spaday_webawesome import Tabs
 
 Tabs()
 .tab("Overview", overview_panel)
@@ -106,7 +105,7 @@ to dotted `parent.child` paths:
 ```python
 import enum
 from pydantic import BaseModel
-from spaday.components.form import FormField, form
+from spaday_webawesome import FormField, form
 
 class Size(str, enum.Enum):
     small = "small"
@@ -120,8 +119,8 @@ class Settings(BaseModel):
 form(Settings)   # a Stack of bound controls — none authored by hand
 ```
 
-`form` needs pydantic — install it with the `form` extra (`pip install "spaday[form]"`); it's also pulled
-in by `spaday[examples]`. The controls bind to fields named `name` / `enabled` / `size`, so back them with
+`form` and pydantic are provided by `spaday-webawesome`. The controls bind to fields named `name` /
+`enabled` / `size`, so back them with
 a seeded [`store=`](serving.md) or a hosted model over [transports](transports.md). Relabel a field with
 `FormField` (as `Annotated[int, FormField(label="…")]` metadata or via `overrides=`), and drop fields with
 `exclude=`.
@@ -150,7 +149,7 @@ text. A static cell can instead contain any spaday component, including a button
 ```python
 from spaday import NamedJs
 from spaday.components.shell import Table
-from spaday.components.webawesome import WaButton
+from spaday_webawesome import WaButton
 
 inspect = (
     WaButton(appearance="plain")
@@ -176,8 +175,11 @@ registerHandler("inspect-order", (_event, button) => {
 
 Rich cells are normal component-tree nodes, so their bindings and declarative actions work unchanged.
 Reactive `rows` remain serializable data; define component cells in static `rows` or update the table's
-component tree. For virtual scrolling or very large datasets, use a grid library via the
-[wrapper recipe](wrappers.md).
+component tree. For virtual scrolling or very large datasets, use `RegularTable` from
+`spaday-regular-table`; it only renders the current viewport. Its browser element supports
+`updateRow`, `insertRow`, and `removeRow` without replacing the full dataset, and emits `table-draw`
+after scrolling or redraws so a named JavaScript handler can decorate visible cells with buttons or
+other rich DOM.
 
 ## Reach for a raw element
 

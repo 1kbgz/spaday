@@ -1,14 +1,9 @@
-"""Typed spaday component bindings generated from Custom Elements Manifests.
+"""Core spaday shell components.
 
-:mod:`spaday.components.webawesome` is generated from the WebAwesome manifest by :mod:`spaday.cem`.
-Bind another web-component library the same way — run the generator against its
-``custom-elements.json``. :class:`~spaday.components.lightweight_charts.LightweightChart` is a wrapper
-for an *imperative* library (TradingView lightweight-charts), bound via a hand-authored manifest.
-:mod:`spaday.components.shell` adds spaday's own high-level layout components (``spa-*``).
+Component-library catalogs and imperative wrappers live in opt-in peer packages. Use
+``spaday-webawesome``, ``spaday-lightweight-charts``, or another package registered through
+``spaday.component_packages``.
 """
 
-from . import shell, webawesome
-from .form import FormField, form
-from .lightweight_charts import LightweightChart
+from . import shell
 from .shell import *
-from .webawesome import *

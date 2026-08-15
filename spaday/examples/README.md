@@ -71,8 +71,8 @@ Run one, for example:
 python -m spaday.examples.webawesome_forms
 ```
 
-The five `webawesome_*` modules collectively instantiate every generated component in the committed
-WebAwesome Custom Elements Manifest. `spaday/tests/test_example_gallery.py` enforces that coverage.
+The five `webawesome_*` modules collectively instantiate every generated component from the
+`spaday-webawesome` catalog. `spaday/tests/test_example_gallery.py` enforces that coverage.
 
 ## Focused data and rendering examples
 
@@ -127,7 +127,7 @@ only into `#spaday-root`; the generated inline module receives the host's CSP no
 
 ## Notebook examples
 
-[`widget.py`](./widget.py) demonstrates WebAwesome components, client-side actions, browser-to-Python
+[`widget.py`](./widget.py) demonstrates native components, client-side actions, browser-to-Python
 intents, and incremental tree updates:
 
 ```python

@@ -5,7 +5,7 @@ component with :meth:`~spaday.component.Component.on` and the spaday runtime int
 the DOM event, with **no round-trip to Python**::
 
     from spaday.actions import SetProp, Toggle, by_id, event_value, not_
-    from spaday.components import WaButton, WaSwitch
+    from spaday_webawesome import WaButton, WaSwitch
 
     WaButton(variant="neutral").text("Toggle").on("click", Toggle(by_id("panel"), "hidden"))
     WaSwitch().text("Show").on("change", SetProp(by_id("panel"), "hidden", not_(event_value())))

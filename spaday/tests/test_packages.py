@@ -68,3 +68,18 @@ def test_unknown_entry_point_has_a_useful_error(monkeypatch):
     monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: ())
     with pytest.raises(ValueError, match="spaday.component_packages"):
         resolve_component_packages("missing")
+
+
+def test_rejects_invalid_python_paths_and_entry_points(monkeypatch, python_path_package):
+    module = sys.modules["spaday_package_fixture"]
+    module.invalid = object()
+
+    with pytest.raises(ValueError, match="expected 'module:attribute'"):
+        resolve_component_packages(":package")
+    with pytest.raises(TypeError, match="must expose a ComponentPackage"):
+        resolve_component_packages("spaday_package_fixture:invalid")
+
+    duplicates = [EntryPoint("duplicate", python_path_package), EntryPoint("duplicate", python_path_package)]
+    monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: duplicates)
+    with pytest.raises(ValueError, match="multiple .* entry points"):
+        resolve_component_packages("duplicate")

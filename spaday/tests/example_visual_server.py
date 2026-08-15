@@ -16,9 +16,9 @@ def _app(example: str):
     from spaday.backends.starlette import serve
 
     if example == "widget":
-        return serve(module.build, bundles=["webawesome"])
+        return serve(module.build)
     if example == "devices":
-        return serve(lambda: module.panel(module.DEVICES), bundles=["webawesome"], store=module.DEVICES)
+        return serve(lambda: module.panel(module.DEVICES), store=module.DEVICES)
     raise ValueError(f"example {example!r} has no browser entry point")
 
 

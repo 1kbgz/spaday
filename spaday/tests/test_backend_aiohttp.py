@@ -15,10 +15,10 @@ def test_serve_hosts_page_and_tree(tmp_path):
     page = Main("hi")
 
     async def check():
-        app = serve(page, js=tmp_path, bundles=["webawesome"], wire="transports")
+        app = serve(page, js=tmp_path, wire="transports")
         async with TestClient(TestServer(app)) as client:
             home = await (await client.get("/")).text()
-            assert "connectStore" in home and "webawesome.css" in home  # the generated bootstrap + bundle
+            assert "connectStore" in home
             tree = await (await client.get("/tree.json")).json()
             assert tree == page.to_node()  # tree served as JSON
 

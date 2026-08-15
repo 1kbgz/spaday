@@ -3,9 +3,7 @@
 Run ``python -m spaday.examples.webawesome_observers`` and open http://127.0.0.1:8014.
 """
 
-from spaday import Sequence, SetProp, Toggle, ToggleField, by_id, cond, element, field
-from spaday.components.shell import App, Body, Column, Main, Nav, Toolbar
-from spaday.components.webawesome import (
+from spaday_webawesome import (
     WaButton,
     WaCallout,
     WaInclude,
@@ -14,6 +12,9 @@ from spaday.components.webawesome import (
     WaResizeObserver,
     WaZoomableFrame,
 )
+
+from spaday import Sequence, SetProp, Toggle, ToggleField, by_id, cond, element, field
+from spaday.components.shell import App, Body, Column, Main, Nav, Toolbar
 
 STYLE = """<style>
 body { margin: 0; font-family: system-ui, sans-serif; }
@@ -122,7 +123,7 @@ def create_app():
 
     return serve(
         build_page,
-        bundles=["webawesome"],
+        packages=["webawesome"],
         store={"resize_wide": False},
         routes=[Route("/partial.html", partial)],
         title="spaday — browser observers",
