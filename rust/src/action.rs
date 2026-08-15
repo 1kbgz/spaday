@@ -10,6 +10,7 @@
 //! - `Ref`:  `{"ref":"this"}` · `{"ref":"id","id":"panel"}`
 //! - `Expr`: `{"expr":"lit","value":<json>}` · `{"expr":"event"}` · `{"expr":"not","of":<Expr>}` ·
 //!   `{"expr":"prop","target":<Ref>,"name":"checked"}` · `{"expr":"field","name":"qty"}` ·
+//!   `{"expr":"item","path":"id"}` · `{"expr":"scope","name":"staging","path":"channel"}` ·
 //!   `{"expr":"obj","fields":{<name>:<Expr>}}` · `{"expr":"concat","parts":[<Expr>,..]}`
 //! - `Action`: `{"kind":"set",target,prop,value}` · `{"kind":"toggle",target,prop}` ·
 //!   `{"kind":"set-field","field","value":<Expr>}` · `{"kind":"toggle-field","field"}` ·
@@ -52,6 +53,23 @@ pub enum Expr {
     /// The current value of a reactive state `field` from the signal store the tree was mounted with —
     /// e.g. compose `CallEndpoint`'s body from a form's two-way-bound fields. (Also a binding expr.)
     Field { name: String },
+    /// A value at `path` in the innermost keyed-repeater item. Empty path returns the whole item.
+    Item { path: String },
+    /// A value at `path` in the nearest current/ancestor repeater scope named `name`.
+    Scope { name: String, path: String },
+    /// Strict equality of two expressions.
+    Eq { a: Box<Expr>, b: Box<Expr> },
+    /// True when every expression is truthy.
+    All { of: Vec<Expr> },
+    /// True when any expression is truthy.
+    Any { of: Vec<Expr> },
+    /// Choose `then` when `test` is truthy, otherwise `otherwise`.
+    Cond {
+        test: Box<Expr>,
+        then: Box<Expr>,
+        #[serde(rename = "else")]
+        otherwise: Box<Expr>,
+    },
     /// Compose a JSON object from named sub-expressions — e.g. a whole model as a `CallEndpoint` body:
     /// `{"expr":"obj","fields":{"symbol":{"expr":"prop","target":{"ref":"id","id":"sym"},"name":"value"}}}`.
     Obj {
@@ -481,5 +499,38 @@ mod tests {
                 "result": null,
             }),
         );
+    }
+
+    #[test]
+    fn item_scope_and_shared_binding_expressions_round_trip() {
+        let expr = Expr::Cond {
+            test: Box::new(Expr::All {
+                of: vec![
+                    Expr::Eq {
+                        a: Box::new(Expr::Item {
+                            path: "ready".into(),
+                        }),
+                        b: Box::new(Expr::Lit { value: json!(true) }),
+                    },
+                    Expr::Scope {
+                        name: "staging".into(),
+                        path: "enabled".into(),
+                    },
+                ],
+            }),
+            then: Box::new(Expr::Item { path: "id".into() }),
+            otherwise: Box::new(Expr::Lit { value: json!(null) }),
+        };
+        let wire = json!({
+            "expr": "cond",
+            "test": {"expr": "all", "of": [
+                {"expr": "eq", "a": {"expr": "item", "path": "ready"}, "b": {"expr": "lit", "value": true}},
+                {"expr": "scope", "name": "staging", "path": "enabled"}
+            ]},
+            "then": {"expr": "item", "path": "id"},
+            "else": {"expr": "lit", "value": null}
+        });
+        assert_eq!(serde_json::to_value(&expr).unwrap(), wire);
+        assert_eq!(serde_json::from_value::<Expr>(wire).unwrap(), expr);
     }
 }

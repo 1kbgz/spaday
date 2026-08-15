@@ -14,8 +14,18 @@
 import { Store } from "./signals";
 
 /** Spaday's whole view of a transports `Client`: receive a frame, find the model, read it, edit it. */
+type PathSeg = { Key: string } | { Index: number };
+type PatchOp =
+  | { Set: { path: PathSeg[]; value: unknown } }
+  | { Remove: { path: PathSeg[] } }
+  | { Insert: { path: PathSeg[]; index: number; value: unknown } }
+  | { RemoveAt: { path: PathSeg[]; index: number } };
+type ReceiveChange =
+  | { t: "snapshot"; id: number }
+  | { t: "patch"; id: number; patch: { rev: number; ops: PatchOp[] } };
+
 export interface ModelClient {
-  recv(data: string | Uint8Array): void;
+  recv(data: string | Uint8Array): ReceiveChange | undefined | void;
   ids(): number[];
   value(id: number): unknown; // the model as a tagged core Value
   edit(id: number, value: unknown): string; // an encoded edit frame to send back
@@ -23,7 +33,7 @@ export interface ModelClient {
 
 /** Convert between tagged core Values and plain JS fields (transports' `fromValue` / `toValue`). */
 export interface ValueCodec {
-  fromValue(value: unknown): Record<string, unknown> | null;
+  fromValue(value: unknown): unknown;
   toValue(plain: unknown): unknown;
 }
 
@@ -63,6 +73,80 @@ function setPath(
   return clone;
 }
 
+function updatePath(
+  value: unknown,
+  path: PathSeg[],
+  update: (current: unknown) => unknown,
+): unknown {
+  if (!path.length) return update(value);
+  const [segment, ...rest] = path;
+  if ("Key" in segment) {
+    if (!isObj(value)) throw new Error("patch path expected an object");
+    if (rest.length && !(segment.Key in value))
+      throw new Error(
+        `patch path key ${JSON.stringify(segment.Key)} not found`,
+      );
+    return {
+      ...value,
+      [segment.Key]: updatePath(value[segment.Key], rest, update),
+    };
+  }
+  if (!Array.isArray(value)) throw new Error("patch path expected an array");
+  if (segment.Index < 0 || segment.Index >= value.length)
+    throw new Error(
+      `patch path index ${segment.Index} out of bounds (len ${value.length})`,
+    );
+  const next = [...value];
+  next[segment.Index] = updatePath(next[segment.Index], rest, update);
+  return next;
+}
+
+function applyPlainOp(
+  current: unknown,
+  path: PathSeg[],
+  op: PatchOp,
+  codec: ValueCodec,
+): unknown {
+  if ("Set" in op)
+    return updatePath(current, path, () => codec.fromValue(op.Set.value));
+  if ("Remove" in op) {
+    if (!path.length) return undefined;
+    const segment = path[path.length - 1];
+    if (!segment || !("Key" in segment))
+      throw new Error("remove path must end in an object key");
+    return updatePath(current, path.slice(0, -1), (container) => {
+      if (!isObj(container)) throw new Error("remove path expected an object");
+      const next = { ...container };
+      delete next[segment.Key];
+      return next;
+    });
+  }
+  if ("Insert" in op) {
+    return updatePath(current, path, (container) => {
+      if (!Array.isArray(container))
+        throw new Error("insert path expected an array");
+      if (op.Insert.index < 0 || op.Insert.index > container.length)
+        throw new Error(
+          `insert index ${op.Insert.index} out of bounds (len ${container.length})`,
+        );
+      const next = [...container];
+      next.splice(op.Insert.index, 0, codec.fromValue(op.Insert.value));
+      return next;
+    });
+  }
+  return updatePath(current, path, (container) => {
+    if (!Array.isArray(container))
+      throw new Error("remove path expected an array");
+    if (op.RemoveAt.index < 0 || op.RemoveAt.index >= container.length)
+      throw new Error(
+        `remove index ${op.RemoveAt.index} out of bounds (len ${container.length})`,
+      );
+    const next = [...container];
+    next.splice(op.RemoveAt.index, 1);
+    return next;
+  });
+}
+
 /**
  * Bidirectionally sync a `Store` with a transports-mirrored model. Model fields map by name to store
  * fields — and a nested sub-model flattens to dotted `parent.child` fields: inbound frames pull them
@@ -91,39 +175,88 @@ export function connectStore(
   const wired = new Set<string>();
   const unsubs: Array<() => void> = [];
 
+  const wireField = (field: string) => {
+    const key = namespace ? `${namespace}.${field}` : field;
+    if (wired.has(key)) return;
+    wired.add(key);
+    unsubs.push(
+      store.subscribe(key, (value) => {
+        if (inbound || id === undefined) return;
+        const decoded = codec.fromValue(client.value(id));
+        const current = isObj(decoded) ? decoded : {};
+        send(
+          client.edit(
+            id,
+            codec.toValue(setPath(current, field.split("."), value)),
+          ),
+        );
+      }),
+    );
+  };
+
+  const receiveSnapshot = () => {
+    if (id === undefined) return;
+    const decoded = codec.fromValue(client.value(id));
+    if (!isObj(decoded)) return;
+    const entries = flatten ? leaves(decoded) : Object.entries(decoded);
+    for (const [field, value] of entries) {
+      const key = namespace ? `${namespace}.${field}` : field;
+      store.set(key, value);
+      wireField(field.split(".")[0]);
+    }
+  };
+
+  const receivePatch = (change: Extract<ReceiveChange, { t: "patch" }>) => {
+    const staged = new Map<string, { field: string; value: unknown }>();
+    try {
+      for (const op of change.patch.ops) {
+        const body =
+          "Set" in op
+            ? op.Set
+            : "Remove" in op
+              ? op.Remove
+              : "Insert" in op
+                ? op.Insert
+                : op.RemoveAt;
+        const [head, ...rest] = body.path;
+        if (!head) {
+          receiveSnapshot();
+          return;
+        }
+        if (!("Key" in head))
+          throw new Error("model patch path must start with a map key");
+        const field = head.Key;
+        const key = namespace ? `${namespace}.${field}` : field;
+        const current = staged.has(key)
+          ? staged.get(key)!.value
+          : store.get(key);
+        staged.set(key, {
+          field,
+          value: applyPlainOp(current, rest, op, codec),
+        });
+      }
+    } catch {
+      receiveSnapshot();
+      return;
+    }
+    for (const [key, update] of staged) {
+      store.set(key, update.value);
+      wireField(update.field);
+    }
+  };
+
   return {
     receive(data) {
-      client.recv(data);
+      const change = client.recv(data);
       if (id === undefined) id = client.ids()[0];
       if (id === undefined) return; // no model yet (snapshot not received)
-      const model = codec.fromValue(client.value(id));
-      if (!model) return;
       inbound = true;
-      // flatten=true recurses sub-models to dotted leaves (a form's `schedule.start`); flatten=false
-      // keeps each top-level field whole, so an opaque map (a chart's time-keyed `data`) is one field.
-      const entries = flatten ? leaves(model) : Object.entries(model);
-      for (const [field, value] of entries) {
-        // store under the namespace (so models on one Store don't collide), but the outbound edit must
-        // carry the BARE model field — keep the loop-local `field` for it, never slice the namespaced key.
-        const key = namespace ? `${namespace}.${field}` : field;
-        store.set(key, value); // model → store (→ any bound props); nested → a dotted field
-        if (!wired.has(key)) {
-          wired.add(key);
-          unsubs.push(
-            store.subscribe(key, (v) => {
-              if (inbound || id === undefined) return; // ignore echoes of an inbound update
-              const current = codec.fromValue(client.value(id)) ?? {};
-              send(
-                client.edit(
-                  id,
-                  codec.toValue(setPath(current, field.split("."), v)),
-                ),
-              );
-            }),
-          );
-        }
+      try {
+        if (change?.t === "patch" && change.id === id) receivePatch(change);
+        else if (!change || change.t === "snapshot") receiveSnapshot();
+      } finally {
+        inbound = false;
       }
-      inbound = false;
     },
     dispose() {
       for (const unsub of unsubs) unsub();

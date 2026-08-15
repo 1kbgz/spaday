@@ -51,7 +51,7 @@ export { mount, applyPatch, hydrate } from "./runtime";
 export type { Binding, Node } from "./runtime";
 
 // Reactive engine: a signal store whose fields back the tree's reactive `bindings` (prop ↔ field).
-export { Store } from "./signals";
+export { Scope, Store } from "./signals";
 export type { Field } from "./signals";
 
 // The transports seam: bidirectionally sync a Store with a transports-mirrored model. Imports nothing

@@ -160,6 +160,20 @@ fn diff_node(path: &Path, old: &Node, new: &Node, ops: &mut Vec<Op>) {
         return;
     }
 
+    // Structural wrappers own their rendered children. Their serialized slots are templates rather
+    // than addressable live DOM, so changing a template must replace the wrapper as one opaque unit.
+    // `spa-each` configuration also determines item identity and scope, and cannot be patched in place.
+    let structural_template_changed =
+        matches!(old.tag.as_str(), "spa-show" | "spa-each") && old.slots != new.slots;
+    let each_config_changed = old.tag == "spa-each" && old.props != new.props;
+    if structural_template_changed || each_config_changed {
+        ops.push(Op::Replace {
+            path: path.to_vec(),
+            node: new.clone(),
+        });
+        return;
+    }
+
     if old.key != new.key {
         ops.push(Op::SetKey {
             path: path.to_vec(),
@@ -531,6 +545,36 @@ mod diff_tests {
         let new = Node::new("wa-card").prop("y", 2i64);
         let patch = assert_round_trip(&old, &new);
         assert!(matches!(patch.ops.as_slice(), [Op::Replace { .. }]));
+    }
+
+    #[test]
+    fn test_structural_template_change_replaces_wrapper() {
+        for tag in ["spa-show", "spa-each"] {
+            let old = Node::new(tag).child(Node::new("span").prop("text", "old"));
+            let new = Node::new(tag).child(Node::new("span").prop("text", "new"));
+            let patch = assert_round_trip(&old, &new);
+            assert!(matches!(patch.ops.as_slice(), [Op::Replace { .. }]));
+        }
+    }
+
+    #[test]
+    fn test_each_binding_change_remains_incremental() {
+        use crate::node::{BindMode, Binding};
+        let binding = |field: &str| Binding {
+            field: Some(field.into()),
+            compute: None,
+            mode: BindMode::OneWay,
+        };
+        let old = Node::new("spa-each")
+            .prop("itemKey", "id")
+            .bind("items", binding("old"))
+            .child(Node::new("span"));
+        let new = Node::new("spa-each")
+            .prop("itemKey", "id")
+            .bind("items", binding("new"))
+            .child(Node::new("span"));
+        let patch = assert_round_trip(&old, &new);
+        assert!(matches!(patch.ops.as_slice(), [Op::SetBinding { .. }]));
     }
 
     #[test]

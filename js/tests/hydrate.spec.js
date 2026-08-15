@@ -103,3 +103,40 @@ test("client-mounts spa-show children on hydrate (rendered empty by SSR)", async
   });
   expect(text).toBe("shown"); // the structural subtree was mounted client-side
 });
+
+test("client-mounts spa-each instances on hydrate", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const { hydrate, Store } = window.__spaday;
+    const container = document.createElement("div");
+    container.innerHTML =
+      '<spa-each style="display:contents" itemkey="id"></spa-each>';
+    const original = container.firstElementChild;
+    const root = hydrate(
+      container,
+      {
+        tag: "spa-each",
+        props: {
+          style: { Str: "display:contents" },
+          itemKey: { Str: "id" },
+        },
+        bindings: { items: { field: "rows", mode: "one-way" } },
+        slots: {
+          default: [
+            {
+              tag: "span",
+              bindings: {
+                textContent: {
+                  compute: { expr: "item", path: "name" },
+                  mode: "one-way",
+                },
+              },
+            },
+          ],
+        },
+      },
+      new Store({ rows: [{ id: 1, name: "hydrated" }] }),
+    );
+    return { adopted: root === original, text: root.textContent };
+  });
+  expect(result).toEqual({ adopted: true, text: "hydrated" });
+});

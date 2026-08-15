@@ -151,6 +151,46 @@ test("Emit dispatches a bubbling custom event", async ({ page }) => {
   expect(detail).toBe("hi");
 });
 
+test("All and Any expressions evaluate through the action interpreter", async ({
+  page,
+}) => {
+  const detail = await page.evaluate(() => {
+    const button = window.__spaday.mount(document.body, {
+      tag: "button",
+      events: {
+        click: {
+          kind: "emit",
+          event: "logic",
+          detail: {
+            expr: "obj",
+            fields: {
+              all: {
+                expr: "all",
+                of: [
+                  { expr: "lit", value: true },
+                  { expr: "lit", value: 1 },
+                ],
+              },
+              any: {
+                expr: "any",
+                of: [
+                  { expr: "lit", value: false },
+                  { expr: "lit", value: "yes" },
+                ],
+              },
+            },
+          },
+        },
+      },
+    });
+    return new Promise((resolve) => {
+      button.addEventListener("logic", (event) => resolve(event.detail));
+      button.click();
+    });
+  });
+  expect(detail).toEqual({ all: true, any: true });
+});
+
 test("SendPatch fires a routable spaday:patch intent carrying the event value", async ({
   page,
 }) => {
@@ -355,6 +395,64 @@ test("CallEndpoint composes a body from the signal store via field exprs", async
   });
   await page.waitForTimeout(150);
   expect(JSON.parse(seen[0])).toEqual({ symbol: "AAPL", qty: 250 });
+});
+
+test("actions resolve item and named ancestor scope expressions", async ({
+  page,
+}) => {
+  const seen = [];
+  await page.route("**/api/record", (route) => {
+    seen.push(route.request().postData());
+    return route.fulfill({ status: 200, body: "ok" });
+  });
+  await page.evaluate(() => {
+    const { mount, Scope, Store } = window.__spaday;
+    const staging = new Scope({ channel: "orders" }, "staging");
+    const record = new Scope({ id: 42, ready: true }, "record", staging);
+    const btn = mount(
+      document.body,
+      {
+        tag: "button",
+        events: {
+          click: {
+            kind: "call",
+            method: "POST",
+            url: "/api/record",
+            body: {
+              expr: "obj",
+              fields: {
+                id: { expr: "item", path: "id" },
+                channel: {
+                  expr: "scope",
+                  name: "staging",
+                  path: "channel",
+                },
+                state: {
+                  expr: "cond",
+                  test: {
+                    expr: "eq",
+                    a: { expr: "item", path: "ready" },
+                    b: { expr: "lit", value: true },
+                  },
+                  then: { expr: "lit", value: "ready" },
+                  else: { expr: "lit", value: "waiting" },
+                },
+              },
+            },
+          },
+        },
+      },
+      new Store(),
+      record,
+    );
+    btn.click();
+  });
+  await page.waitForTimeout(150);
+  expect(JSON.parse(seen[0])).toEqual({
+    id: 42,
+    channel: "orders",
+    state: "ready",
+  });
 });
 
 test("CallEndpoint composes its URL from signal-store fields", async ({

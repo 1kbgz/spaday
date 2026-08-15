@@ -64,6 +64,7 @@ with `python -m`, then open its listed URL.
 | Present rich content           | [`webawesome_content.py`](./webawesome_content.py)       | <http://127.0.0.1:8013> | cards, carousel, comparison, formatters, Markdown, QR code, split and scroller layouts   |
 | Use browser utility components | [`webawesome_observers.py`](./webawesome_observers.py)   | <http://127.0.0.1:8014> | include, mutation, intersection and resize observers, zoomable frame                     |
 | Build a local data dashboard   | [`data_dashboard.py`](./data_dashboard.py)               | <http://127.0.0.1:8015> | shell regions, reactive table, tabs, conditional chart, local theme                      |
+| Build a live actionable list   | [`keyed_records.py`](./keyed_records.py)                 | <http://127.0.0.1:8017> | nested keyed collections, item-scoped actions, server CRUD, identity-preserving moves    |
 
 Run one, for example:
 
@@ -76,23 +77,25 @@ The five `webawesome_*` modules collectively instantiate every generated compone
 
 ## Focused data and rendering examples
 
-| Goal                                          | Module                         | Extra         | Run                                                           |
-| --------------------------------------------- | ------------------------------ | ------------- | ------------------------------------------------------------- |
-| Bind controls to a server-authoritative model | [`reactive.py`](./reactive.py) | `examples`    | `python -m spaday.examples.reactive`                          |
-| Generate a bound form from a Pydantic model   | [`form.py`](./form.py)         | `examples`    | `python -m spaday.examples.form`                              |
-| Share one live chart across multiple workers  | [`cluster.py`](./cluster.py)   | `cluster`     | `uvicorn spaday.examples.cluster:app --workers 4 --port 8003` |
-| Server-render and hydrate a themed tree       | [`ssr.py`](./ssr.py)           | `examples`    | `python -m spaday.examples.ssr`                               |
-| Build a REST and Perspective gateway UI       | [`gateway.py`](./gateway.py)   | `perspective` | `python -m spaday.examples.gateway`                           |
+| Goal                                          | Module                                   | Extra         | Run                                                           |
+| --------------------------------------------- | ---------------------------------------- | ------------- | ------------------------------------------------------------- |
+| Bind controls to a server-authoritative model | [`reactive.py`](./reactive.py)           | `examples`    | `python -m spaday.examples.reactive`                          |
+| Generate a bound form from a Pydantic model   | [`form.py`](./form.py)                   | `examples`    | `python -m spaday.examples.form`                              |
+| Share one live chart across multiple workers  | [`cluster.py`](./cluster.py)             | `cluster`     | `uvicorn spaday.examples.cluster:app --workers 4 --port 8003` |
+| Server-render and hydrate a themed tree       | [`ssr.py`](./ssr.py)                     | `examples`    | `python -m spaday.examples.ssr`                               |
+| Build a REST and Perspective gateway UI       | [`gateway.py`](./gateway.py)             | `perspective` | `python -m spaday.examples.gateway`                           |
+| Build a keyed server-driven staging queue     | [`keyed_records.py`](./keyed_records.py) | `examples`    | `python -m spaday.examples.keyed_records`                     |
 
 The applications listen on:
 
-| Module        | URL                     | Key behavior to verify                                                |
-| ------------- | ----------------------- | --------------------------------------------------------------------- |
-| `reactive.py` | <http://127.0.0.1:8001> | edits synchronize between two tabs through `connectStore`             |
-| `form.py`     | <http://127.0.0.1:8002> | generated controls edit the hosted Pydantic model                     |
-| `cluster.py`  | <http://127.0.0.1:8003> | clients connected to different workers receive the same bounded chart |
-| `ssr.py`      | <http://127.0.0.1:8005> | page source contains rendered elements that the browser hydrates      |
-| `gateway.py`  | <http://127.0.0.1:8006> | validated REST orders appear in the Perspective blotter               |
+| Module             | URL                     | Key behavior to verify                                                |
+| ------------------ | ----------------------- | --------------------------------------------------------------------- |
+| `reactive.py`      | <http://127.0.0.1:8001> | edits synchronize between two tabs through `connectStore`             |
+| `form.py`          | <http://127.0.0.1:8002> | generated controls edit the hosted Pydantic model                     |
+| `cluster.py`       | <http://127.0.0.1:8003> | clients connected to different workers receive the same bounded chart |
+| `ssr.py`           | <http://127.0.0.1:8005> | page source contains rendered elements that the browser hydrates      |
+| `gateway.py`       | <http://127.0.0.1:8006> | validated REST orders appear in the Perspective blotter               |
+| `keyed_records.py` | <http://127.0.0.1:8017> | per-record actions patch nested lists without replacing live row DOM  |
 
 `cluster.py` uses `tcp://127.0.0.1:5599` and `tcp://127.0.0.1:5600` for its default ZeroMQ backplane.
 Set `SPADAY_CLUSTER_FRONT` and `SPADAY_CLUSTER_BACK` when running multiple independent clusters.
@@ -178,3 +181,4 @@ pn.panel(widget)
 | [`webawesome_content.py`](./webawesome_content.py)       | rich content                          |
 | [`webawesome_observers.py`](./webawesome_observers.py)   | browser observers and utilities       |
 | [`data_dashboard.py`](./data_dashboard.py)               | shell, table, and chart dashboard     |
+| [`keyed_records.py`](./keyed_records.py)                 | keyed server-driven record actions    |

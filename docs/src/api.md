@@ -12,6 +12,8 @@ The Python surface of spaday. Peer-package component classes are not listed here
    :member-order: bysource
 
 .. autofunction:: spaday.element
+
+.. autoclass:: spaday.components.shell.Each
 ```
 
 ## Action DSL
@@ -39,6 +41,8 @@ Behavior attached to a component with `Component.on`; see [Add behavior and reac
 .. autofunction:: spaday.not_
 .. autofunction:: spaday.prop
 .. autofunction:: spaday.field
+.. autofunction:: spaday.item
+.. autofunction:: spaday.scope
 .. autofunction:: spaday.eq
 .. autofunction:: spaday.all_
 .. autofunction:: spaday.any_

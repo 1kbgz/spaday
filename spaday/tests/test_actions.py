@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from spaday import apply, diff, element
 from spaday.actions import (
     CallEndpoint,
@@ -20,10 +22,12 @@ from spaday.actions import (
     cond,
     event_value,
     field,
+    item,
     lit,
     not_,
     obj,
     prop,
+    scope,
     this,
 )
 
@@ -75,6 +79,22 @@ def test_cond_wire_shape_coerces_branches_to_literals():
         "then": {"expr": "lit", "value": "dark"},
         "else": {"expr": "lit", "value": "light"},
     }
+
+
+def test_item_and_named_scope_wire_shapes():
+    assert item("record.id").to_dict() == {"expr": "item", "path": "record.id"}
+    assert item().to_dict() == {"expr": "item", "path": ""}
+    assert scope("staging.channel").to_dict() == {
+        "expr": "scope",
+        "name": "staging",
+        "path": "channel",
+    }
+    assert scope("staging").to_dict() == {"expr": "scope", "name": "staging", "path": ""}
+
+
+def test_scope_requires_a_name():
+    with pytest.raises(ValueError, match="start with a name"):
+        scope("")
 
 
 def test_logical_combinators_coerce_values_to_expressions():

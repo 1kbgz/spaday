@@ -266,6 +266,79 @@ test("a concat expr composes strings from fields reactively", async ({
   expect(result).toEqual({ initial: "Basket A", after: "Basket B" });
 });
 
+test("item and named scope expressions resolve lexically and update reactively", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Scope, Store } = window.__spaday;
+    const store = new Store({ prefix: "Row" });
+    const staging = new Scope({ channel: "alpha", enabled: true }, "staging");
+    const record = new Scope({ id: 7, ready: true }, "record", staging);
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "span",
+        bindings: {
+          textContent: {
+            compute: {
+              expr: "concat",
+              parts: [
+                { expr: "field", name: "prefix" },
+                { expr: "lit", value: ":" },
+                { expr: "scope", name: "staging", path: "channel" },
+                { expr: "lit", value: ":" },
+                {
+                  expr: "cond",
+                  test: {
+                    expr: "all",
+                    of: [
+                      { expr: "item", path: "ready" },
+                      {
+                        expr: "scope",
+                        name: "staging",
+                        path: "enabled",
+                      },
+                    ],
+                  },
+                  then: { expr: "item", path: "id" },
+                  else: { expr: "lit", value: "waiting" },
+                },
+              ],
+            },
+            mode: "one-way",
+          },
+        },
+      },
+      store,
+      record,
+    );
+    const values = [root.textContent];
+    staging.set({ channel: "beta", enabled: true });
+    values.push(root.textContent);
+    record.set({ id: 8, ready: false });
+    values.push(root.textContent);
+    store.set("prefix", "Item");
+    values.push(root.textContent);
+    const shadow = new Scope({ channel: "nearest" }, "staging", record);
+    return {
+      values,
+      missingItem: record.get("missing"),
+      missingScope: record.resolve("missing")?.get(),
+      shadowedScope: shadow.resolve("staging")?.get("channel"),
+    };
+  });
+
+  expect(result.values).toEqual([
+    "Row:alpha:7",
+    "Row:beta:7",
+    "Row:beta:waiting",
+    "Item:beta:waiting",
+  ]);
+  expect(result.missingItem).toBeUndefined();
+  expect(result.missingScope).toBeUndefined();
+  expect(result.shadowedScope).toBe("nearest");
+});
+
 test("a root-class binding toggles a class on <html> from a field", async ({
   page,
 }) => {
@@ -317,6 +390,54 @@ test("nested-path fields: set/get a dotted path; notify the leaf and its ancesto
   expect(result.leaf).toEqual(["Oak"]);
   expect(result.parentFired).toBe(1);
   expect(result.siblingFired).toBe(0);
+});
+
+test("subscriber paths retain ancestor and descendant notifications after index pruning", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({
+      profile: { name: { first: "Ada", last: "Lovelace" } },
+      unrelated: 0,
+    });
+    const seen = { parent: 0, leaf: 0, descendant: 0, unrelated: 0 };
+    store.subscribe("profile", () => (seen.parent += 1));
+    const unsubscribe = store.subscribe("profile.name", () => (seen.leaf += 1));
+    store.subscribe("profile.name.first", () => (seen.descendant += 1));
+    store.subscribe("unrelated", () => (seen.unrelated += 1));
+
+    store.set("profile.name", { first: "Grace", last: "Hopper" });
+    unsubscribe();
+    store.set("profile.name.first", "Rear Admiral Grace");
+    return seen;
+  });
+
+  expect(result).toEqual({
+    parent: 2,
+    leaf: 1,
+    descendant: 2,
+    unrelated: 0,
+  });
+});
+
+test("a notification can unsubscribe a related descendant", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ profile: { name: "Ada" } });
+    let descendant = 0;
+    const unsubscribe = store.subscribe(
+      "profile.name",
+      () => (descendant += 1),
+    );
+    store.subscribe("profile", unsubscribe);
+    store.set("profile", { name: "Grace" });
+    return descendant;
+  });
+
+  expect(result).toBe(0);
 });
 
 test("a binding to a dotted path reacts to nested state, two-way", async ({

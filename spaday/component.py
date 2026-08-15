@@ -13,6 +13,8 @@ the runtime interprets the action in the browser on the DOM event, with no round
 import json
 from typing import Any, Union
 
+from .actions import Expr
+
 #: The conventional name of a component's unnamed (default) slot (matches the Rust core).
 DEFAULT_SLOT = "default"
 
@@ -95,12 +97,15 @@ class Component:
         self._slots.setdefault(slot, []).append(element("span", textContent=node) if isinstance(node, str) else node)
         return self
 
-    def text(self, value: str) -> "Component":
-        """Set the element's text content (e.g. a button or option label).
+    def text(self, value: str | Expr) -> "Component":
+        """Set the element's literal or reactive text content (e.g. a button or option label).
 
         Text is set as the ``textContent`` DOM property by the runtime, so this is for leaf elements
-        whose label *is* their text (don't combine it with child nodes).
+        whose label *is* their text (don't combine it with child nodes). An expression such as
+        ``item("name")`` becomes a computed binding.
         """
+        if isinstance(value, Expr):
+            return self.compute("textContent", value)
         self._props["textContent"] = value
         return self
 
@@ -159,8 +164,8 @@ class Component:
         """Reactively set ``prop`` to a value *computed* from state fields (one-way).
 
         ``expr`` is a field expression (:func:`~spaday.actions.field` / ``eq`` / ``not_`` / ``all_`` /
-        ``any_`` / ``lit``) evaluated in the browser against the signal store and recomputed whenever any
-        field it reads changes, e.g. ``compute("disabled", not_(field("enabled")))``.
+        ``any_`` / ``lit`` / ``item`` / ``scope``) evaluated in the browser and recomputed whenever any
+        global field or repeater scope it reads changes, e.g. ``compute("disabled", not_(field("enabled")))``.
         """
         self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
         return self
@@ -222,16 +227,16 @@ def element(tag: str, *children: Child, key: str | None = None, **props: Any) ->
     return node
 
 
-def Text(text: str, **props: Any) -> Component:
+def Text(text: str | Expr, **props: Any) -> Component:
     """An inline text node — a ``<span>``. ``Row("Echo: ", echo)`` does the same via a bare string child."""
-    return element("span", textContent=text, **props)
+    return element("span", **props).text(text)
 
 
-def Strong(text: str, **props: Any) -> Component:
+def Strong(text: str | Expr, **props: Any) -> Component:
     """Bold inline text — a ``<strong>``."""
-    return element("strong", textContent=text, **props)
+    return element("strong", **props).text(text)
 
 
-def Paragraph(text: str, **props: Any) -> Component:
+def Paragraph(text: str | Expr, **props: Any) -> Component:
     """A paragraph — a ``<p>``."""
-    return element("p", textContent=text, **props)
+    return element("p", **props).text(text)
