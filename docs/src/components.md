@@ -188,11 +188,11 @@ collection with `field=`, identify items with `key=`, and read the current recor
 
 ```python
 from spaday import CallEndpoint, Strong, concat, element, item, obj, scope
-from spaday.components.shell import Column, Each, Row, Show
+from spaday.components import Column, Each, Row, Show
 
 records = Each(
     Row(
-        Strong().compute("textContent", item("name")),
+        Strong(item("name")),
         Show(element("span").text("Ready"), when=item("ready")),
         element("button").text("X").on(
             "click",
@@ -223,6 +223,10 @@ Keys must be unique strings or finite numbers. Replacing, inserting, removing, o
 collection updates at most once per animation frame. Existing keys retain their live root element,
 focus, cursor position, local properties, bindings, and action scope. Item scopes are read-only; use an
 action to update global state, send a model patch, or call an endpoint.
+
+Run the complete [keyed records example](../../spaday/examples/keyed_records.py) to try nested channels,
+server-driven add/update/remove/reorder operations, per-record endpoint payloads, and preserved local
+input state without page-specific JavaScript.
 
 ## Reach for a raw element
 

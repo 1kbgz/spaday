@@ -16,6 +16,7 @@ const EXAMPLES = [
   { name: "form", selector: "wa-input" },
   { name: "fragment", selector: "#spaday-root wa-button" },
   { name: "gateway", selector: "perspective-panel" },
+  { name: "keyed_records", selector: "spa-each .record" },
   { name: "reactive", selector: "spa-main" },
   { name: "ssr", selector: "spa-app" },
   { name: "webawesome_content", selector: "wa-card" },
@@ -143,6 +144,39 @@ test.describe("example visual smoke tests", () => {
           );
           expect(after.from).toBeCloseTo(before.from);
           expect(after.to).toBeCloseTo(before.to);
+        }
+
+        if (example.name === "keyed_records") {
+          const stable = page.locator(".channel").filter({
+            has: page.getByRole("heading", { name: "stable" }),
+          });
+          const spaday = stable
+            .locator(".record")
+            .filter({ hasText: "spaday" });
+          const note = spaday.getByRole("textbox", { name: "Local note" });
+          await note.fill("preserved across a move");
+          await stable.getByRole("button", { name: "Reverse order" }).click();
+          await expect(note).toHaveValue("preserved across a move");
+
+          const transports = stable
+            .locator(".record")
+            .filter({ hasText: "transports" });
+          await transports
+            .getByRole("button", { name: "Toggle ready" })
+            .click();
+          await expect(
+            transports.getByText("Ready", { exact: true }),
+          ).toBeVisible();
+
+          const before = await stable.locator(".record").count();
+          await stable.getByRole("button", { name: "Add record" }).click();
+          await expect(stable.locator(".record")).toHaveCount(before + 1);
+          await stable
+            .locator(".record")
+            .last()
+            .getByRole("button", { name: "Remove" })
+            .click();
+          await expect(stable.locator(".record")).toHaveCount(before);
         }
       } catch (error) {
         throw new Error(

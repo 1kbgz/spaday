@@ -39,6 +39,25 @@ def test_serve_reactive_generates_a_bootstrap_page():
         assert page.status_code == 200 and "mount(document.body, node, store)" in page.text
 
 
+def test_keyed_records_example_serves_scoped_actions_and_crud_routes():
+    example = pytest.importorskip("spaday.examples.keyed_records", reason="needs transports + starlette")
+    from spaday.bootstrap import tree_json
+
+    tree = tree_json(example.build_page)
+    assert '"tag": "spa-each"' in tree
+    assert '"expr": "item"' in tree
+    assert '"expr": "scope"' in tree
+
+    with _client(example.create_app()) as client:
+        assert client.get("/").status_code == 200
+        added = client.post("/api/channels/stable/records").json()
+        assert added["package"]
+        toggled = client.post(f"/api/channels/stable/records/{added['id']}")
+        assert toggled.status_code == 200
+        removed = client.request("DELETE", f"/api/channels/stable/records/{added['id']}", json={"id": added["id"]})
+        assert removed.status_code == 200
+
+
 # ── Some HTML: mount() a wired panel into an existing app ─────────────────────────────────────────
 
 

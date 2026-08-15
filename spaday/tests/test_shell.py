@@ -75,6 +75,12 @@ def test_component_keys_primitives_and_prop_validation():
         element("x-data", value=object()).to_node()
 
 
+def test_text_helpers_accept_reactive_expressions():
+    expected = {"textContent": {"compute": {"expr": "item", "path": "name"}, "mode": "one-way"}}
+    for component in (Text(item("name")), Strong(item("name")), Paragraph(item("name")), element("code").text(item("name"))):
+        assert component.to_node()["bindings"] == expected
+
+
 def test_app_shell_composes_named_regions_into_the_frame():
     shell = (
         AppShell()
@@ -185,7 +191,7 @@ def test_show_requires_a_condition():
 
 
 def test_each_authors_a_keyed_collection_template():
-    node = Each(element("span").compute("textContent", item("name")), field="rows", key="id", scope="row").to_node()
+    node = Each(Text(item("name")), field="rows", key="id", scope="row").to_node()
 
     assert node["tag"] == "spa-each"
     assert node["props"] == {
