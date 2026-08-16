@@ -35,27 +35,12 @@ const DEFAULT_BUILD = {
 };
 
 export const bundle = async (config) => {
-<<<<<<< before updating
-    const result = await esbuild.build({
-        ...DEFAULT_BUILD,
-        ...config,
-        // merge (don't replace) the loader map so a bundle can override one extension, e.g. inline the
-        // wasm as bytes for the self-contained widget instead of emitting it as a file.
-        loader: { ...COMMON_LOADER, ...(config.loader || {}) },
-    });
-
-    if (result.metafile) {
-        for (const output of Object.keys(result.metafile.outputs)) {
-            const { inputs, bytes } = result.metafile.outputs[output];
-            for (const input of Object.keys(inputs)) {
-                if (inputs[input].bytesInOutput / bytes < CUTOFF_PERCENT) {
-                    delete inputs[input];
-                }
-            }
-=======
   const result = await esbuild.build({
     ...DEFAULT_BUILD,
     ...config,
+    // merge (don't replace) the loader map so a bundle can override one extension, e.g. inline the
+    // wasm as bytes for the self-contained widget instead of emitting it as a file.
+    loader: { ...COMMON_LOADER, ...config.loader },
   });
 
   if (result.metafile) {
@@ -64,7 +49,6 @@ export const bundle = async (config) => {
       for (const input of Object.keys(inputs)) {
         if (inputs[input].bytesInOutput / bytes < CUTOFF_PERCENT) {
           delete inputs[input];
->>>>>>> after updating
         }
       }
     }
