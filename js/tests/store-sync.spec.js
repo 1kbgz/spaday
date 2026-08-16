@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 // The spaday ↔ transports seam (connectStore): bind a Store to a transports model through a fake Client
-// (recv/ids/value/edit) with an identity codec. This exercises spaday's adapter — the mapping of model
-// fields ↔ store fields ↔ bound props, and the echo guard — without transports itself, which is exactly
-// the point: the adapter's whole view of the wire is the ModelClient interface.
+// (recv/onChange/ids/value/edit) with an identity codec. This exercises spaday's adapter — the mapping
+// of model fields ↔ store fields ↔ bound props, and the echo guard — without transports itself, which
+// is exactly the point: the adapter's whole view of the wire is the ModelClient interface.
 
 // In-page: a transports-Client-shaped fake holding a plain model (recv merges an inbound frame, value
 // returns it, edit records the outbound frame), plus an identity codec since the fake stores plain JS.
@@ -37,6 +37,48 @@ const PATCH_FAKE = () => {
       const change = JSON.parse(data);
       if (change.t === "snapshot") this.model = change.value;
       return change;
+    },
+    ids() {
+      return [1];
+    },
+    value() {
+      this.valueCalls += 1;
+      return this.model;
+    },
+    edit(_id, value) {
+      return JSON.stringify(value);
+    },
+  };
+  const codec = {
+    fromCalls: 0,
+    fromValue(value) {
+      this.fromCalls += 1;
+      return value;
+    },
+    toValue: (value) => value,
+  };
+  return { client, codec };
+};
+
+const LISTENER_FAKE = () => {
+  const listeners = [];
+  const client = {
+    model: {},
+    valueCalls: 0,
+    recv(data) {
+      const change = JSON.parse(data);
+      if (change.t === "snapshot") this.model = change.value;
+      if (change.t !== "snapshot" && change.t !== "patch") return undefined;
+      if (change.stale) return undefined;
+      for (const listener of [...listeners]) listener(change);
+      return change;
+    },
+    onChange(listener) {
+      listeners.push(listener);
+      return () => listeners.splice(listeners.indexOf(listener), 1);
+    },
+    emit(change) {
+      for (const listener of [...listeners]) listener(change);
     },
     ids() {
       return [1];
@@ -251,6 +293,89 @@ test("inbound patch applies list insertion and removal without a model read", as
   expect(result).toEqual({
     rows: [5, 2],
     status: null,
+    valueCalls: 0,
+    decodedValues: 1,
+  });
+});
+
+test("onChange drives accepted updates and ignores non-change frames", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        rev: 0,
+        value: { profile: { name: "old" }, rows: [1, 2] },
+      }),
+    );
+    const rows = store.get("rows");
+    let notifications = 0;
+    store.subscribe("profile.name", () => {
+      notifications += 1;
+    });
+    client.valueCalls = 0;
+    codec.fromCalls = 0;
+
+    link.receive(JSON.stringify({ t: "reject", id: 1, rev: 0, error: "bad" }));
+    link.receive(JSON.stringify({ t: "presence", id: 1 }));
+    link.receive(
+      JSON.stringify({
+        t: "patch",
+        id: 1,
+        stale: true,
+        patch: { rev: 0, ops: [] },
+      }),
+    );
+    client.emit({
+      t: "patch",
+      id: 1,
+      patch: {
+        rev: 1,
+        ops: [
+          {
+            Set: {
+              path: [{ Key: "profile" }, { Key: "name" }],
+              value: "new",
+            },
+          },
+        ],
+      },
+    });
+    link.dispose();
+    client.emit({
+      t: "patch",
+      id: 1,
+      patch: {
+        rev: 2,
+        ops: [
+          {
+            Set: {
+              path: [{ Key: "profile" }, { Key: "name" }],
+              value: "disposed",
+            },
+          },
+        ],
+      },
+    });
+    return {
+      name: store.get("profile.name"),
+      rowsPreserved: store.get("rows") === rows,
+      notifications,
+      valueCalls: client.valueCalls,
+      decodedValues: codec.fromCalls,
+    };
+  }, LISTENER_FAKE.toString());
+
+  expect(result).toEqual({
+    name: "new",
+    rowsPreserved: true,
+    notifications: 1,
     valueCalls: 0,
     decodedValues: 1,
   });

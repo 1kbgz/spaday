@@ -37,9 +37,9 @@ dependencies = []
 widget = ["anywidget"]
 webawesome = ["spaday-webawesome>=0.1.0"]
 lightweight-charts = ["spaday-lightweight-charts>=0.1.0"]
-examples = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "spaday-webawesome>=0.1.0", "spaday-lightweight-charts>=0.1.0"]
-cluster = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
-perspective = ["pydantic>=2", "transports", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6", "spaday-perspective>=0.1.0", "superstore>=0.3.1"]  # external panel + Mode B server; superstore generates the orders + chart series
+examples = ["pydantic>=2", "transports>=0.6,<0.7", "starlette", "uvicorn", "websockets", "spaday-webawesome>=0.1.0", "spaday-lightweight-charts>=0.1.0"]
+cluster = ["pydantic>=2", "transports>=0.6,<0.7", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
+perspective = ["pydantic>=2", "transports>=0.6,<0.7", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6", "spaday-perspective>=0.1.0", "superstore>=0.3.1"]  # external panel + Mode B server; superstore generates the orders + chart series
 aiohttp = ["aiohttp"]  # the aiohttp backend (spaday.backends.aiohttp)
 flask = ["flask"]  # the Flask backend (spaday.backends.flask)
 tornado = ["tornado"]  # the Tornado backend (spaday.backends.tornado)
@@ -64,11 +64,13 @@ develop = [
     "pytest",
     "pytest-cov",
     "ruff",
+    "spaday-lightweight-charts>=0.1.0",  # example gallery browser tests
     "spaday-perspective>=0.1.0",  # gateway + omnibus browser example tests
+    "spaday-webawesome>=0.1.0",  # form and example gallery browser tests
     "starlette",  # the Starlette backend — covered by test_backend_starlette (import spaday stays starlette-free)
     "superstore>=0.3.1",  # the omnibus example's data generator (orders + chart series)
     "tornado",  # the Tornado backend — covered by test_backend_tornado
-    "transports",  # reactive, form, cluster, embed, gateway, and omnibus example tests
+    "transports>=0.6,<0.7",  # reactive, form, cluster, embed, gateway, and omnibus example tests
     "twine",
     "ty",
     "uv",

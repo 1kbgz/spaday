@@ -5,7 +5,7 @@
 // authoritative model and exposes a `Client` to read/edit it. It knows nothing about UI.
 //
 // `connectStore` marries them WITHOUT importing transports: it speaks to the client through the small
-// `ModelClient` interface below — spaday's entire view of "the wire" is these four methods — and
+// `ModelClient` interface below — spaday's entire view of "the wire" — and
 // converts between the wire's tagged values and plain JS via an injected `ValueCodec` (transports'
 // `fromValue`/`toValue`). So the boundary is enforced in the types: bind a `Store` to a transports
 // model and inbound patches flow model → fields → bound props, while a two-way control's change becomes
@@ -26,6 +26,8 @@ type ReceiveChange =
 
 export interface ModelClient {
   recv(data: string | Uint8Array): ReceiveChange | undefined | void;
+  /** Accepted-change listener provided by current transports clients. Optional for older clients. */
+  onChange?(listener: (change: ReceiveChange) => void): () => void;
   ids(): number[];
   value(id: number): unknown; // the model as a tagged core Value
   edit(id: number, value: unknown): string; // an encoded edit frame to send back
@@ -161,6 +163,10 @@ function applyPlainOp(
  * form binds to. Set it false when a top-level field is an **opaque map/dict** (a chart's time-keyed
  * `data`, a Perspective layout): the field is mirrored whole, so replacing it is one store set + one edit
  * (not one per key), and `compute`/`bind` read the whole value.
+ *
+ * Current transports clients expose accepted snapshots and patches through `onChange`; `connectStore`
+ * subscribes automatically, including when the client owns the connection. With an older client,
+ * `StoreLink.receive` falls back to the value mirrored by `recv`.
  */
 export function connectStore(
   store: Store,
@@ -245,15 +251,37 @@ export function connectStore(
     }
   };
 
+  const accept = (change: ReceiveChange) => {
+    if (id === undefined) id = change.id;
+    if (change.id !== id) return;
+    inbound = true;
+    try {
+      if (change.t === "patch") receivePatch(change);
+      else receiveSnapshot();
+    } finally {
+      inbound = false;
+    }
+  };
+
+  const listensForChanges = client.onChange !== undefined;
+  if (client.onChange) unsubs.push(client.onChange(accept));
+
   return {
     receive(data) {
       const change = client.recv(data);
+      // Current transports clients deliver only accepted snapshots/patches through onChange. A stale
+      // patch, reject, or future message type therefore does no store work. Older clients have no
+      // listener API, so retain their recv-return/full-snapshot compatibility paths below.
+      if (listensForChanges) return;
+      if (change) {
+        accept(change);
+        return;
+      }
       if (id === undefined) id = client.ids()[0];
       if (id === undefined) return; // no model yet (snapshot not received)
       inbound = true;
       try {
-        if (change?.t === "patch" && change.id === id) receivePatch(change);
-        else if (!change || change.t === "snapshot") receiveSnapshot();
+        receiveSnapshot();
       } finally {
         inbound = false;
       }

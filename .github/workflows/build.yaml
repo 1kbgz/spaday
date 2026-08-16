@@ -53,12 +53,6 @@ jobs:
       - name: Install dependencies
         run: make develop
 
-      - name: Install component integrations
-        run: >-
-          uv pip install
-          "spaday-webawesome @ git+https://github.com/1kbgz/spaday-webawesome.git@907c70dfed6750f5cfa208c275950f7f07b115e0"
-          "spaday-lightweight-charts @ git+https://github.com/1kbgz/spaday-lightweight-charts.git@89fe26dc163b4db4e20584b23c4d2b30f3c03451"
-
       - name: Lint
         run: make lint
         if: matrix.os == 'ubuntu-latest'
