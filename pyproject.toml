@@ -91,6 +91,11 @@ current_version = "0.4.1"
 commit = true
 tag = false 
 commit_args = "-s"
+pre_commit_hooks = [
+    "cargo update --workspace",
+    "pnpm --dir js install --lockfile-only --no-frozen-lockfile --ignore-scripts",
+    "git add Cargo.lock js/pnpm-lock.yaml",
+]
 
 [[tool.bumpversion.files]]
 filename = "spaday/__init__.py"
