@@ -79,9 +79,15 @@ comm, in JSON or MessagePack, with multi-tenant sessions, without spaday reimple
 
 The boundary is strict and enforced in the types: spaday owns the UI (the tree, bindings, the signal
 store) and knows nothing about the wire; transports owns the wire (a `Client` that mirrors a model and
-sends edits) and knows nothing about UI. A single small adapter marries them — it sees transports only
-through a four-method interface. So you can back the same reactive store with a transports session on a
-webserver, or with the synced state of a Jupyter widget, and the UI code is identical.
+sends edits) and knows nothing about UI. A single small adapter marries them through the client's model
+access, edit, and accepted-change surface. So you can back the same reactive store with a transports
+session on a webserver, or with the synced state of a Jupyter widget, and the UI code is identical.
+
+Accepted patch paths flow directly into the affected store branches, preserving unchanged object identity
+and avoiding a full model decode. Rejected edits arrive with an authoritative snapshot that restores the
+UI; their separate rejection notification, stale revisions, and message types from newer servers do not
+cause redundant store refreshes. This keeps high-frequency updates narrow while allowing the transports
+protocol to evolve independently of the rendering runtime.
 
 ## The page generates itself
 
