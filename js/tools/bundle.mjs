@@ -11,30 +11,31 @@ const COMMON_DEFINE = {
 };
 
 const COMMON_LOADER = {
-    ".css": "text",
-    ".html": "text",
-    ".jsx": "jsx",
-    ".png": "file",
-    ".ttf": "file",
-    ".wasm": "file",
+  ".css": "text",
+  ".html": "text",
+  ".jsx": "jsx",
+  ".png": "file",
+  ".ttf": "file",
+  ".wasm": "file",
 };
 
 const DEFAULT_BUILD = {
-    target: ["es2022"],
-    bundle: true,
-    format: "esm",
-    minify: DEBUG,
-    sourcemap: true,
-    metafile: true,
-    entryNames: "[name]",
-    chunkNames: "[name]",
-    assetNames: "[name]",
-    define: COMMON_DEFINE,
-    loader: COMMON_LOADER,
-    plugins: [],
+  target: ["es2022"],
+  bundle: true,
+  format: "esm",
+  minify: DEBUG,
+  sourcemap: true,
+  metafile: true,
+  entryNames: "[name]",
+  chunkNames: "[name]",
+  assetNames: "[name]",
+  define: COMMON_DEFINE,
+  loader: COMMON_LOADER,
+  plugins: [],
 };
 
 export const bundle = async (config) => {
+<<<<<<< before updating
     const result = await esbuild.build({
         ...DEFAULT_BUILD,
         ...config,
@@ -51,12 +52,27 @@ export const bundle = async (config) => {
                     delete inputs[input];
                 }
             }
+=======
+  const result = await esbuild.build({
+    ...DEFAULT_BUILD,
+    ...config,
+  });
+
+  if (result.metafile) {
+    for (const output of Object.keys(result.metafile.outputs)) {
+      const { inputs, bytes } = result.metafile.outputs[output];
+      for (const input of Object.keys(inputs)) {
+        if (inputs[input].bytesInOutput / bytes < CUTOFF_PERCENT) {
+          delete inputs[input];
+>>>>>>> after updating
         }
-
-        const text = await esbuild.analyzeMetafile(result.metafile, {
-            color: true,
-        });
-
-        console.log(text);
+      }
     }
+
+    const text = await esbuild.analyzeMetafile(result.metafile, {
+      color: true,
+    });
+
+    console.log(text);
+  }
 };
