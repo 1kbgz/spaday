@@ -58,7 +58,9 @@ async function build() {
   await cpy("dist/**/*", "../spaday/extension", {
     filter: (file) =>
       !file.relativePath.startsWith("esm/") &&
-      !file.relativePath.startsWith("dist/esm/"),
+      !file.relativePath.startsWith("dist/esm/") &&
+      !file.relativePath.startsWith("pyodide/") &&
+      !file.relativePath.startsWith("dist/pyodide/"),
   });
   await cpy(
     "node_modules/@1kbgz/transports/dist/cdn/index.js*",

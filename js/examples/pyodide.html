@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spaday in Pyodide</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: #0b1020;
+        color: #e8ecf7;
+      }
+      body { display: grid; min-height: 100vh; margin: 0; place-items: center; }
+      main { width: min(42rem, calc(100% - 2rem)); }
+      #status { color: #aab4cc; }
+      #counter-card {
+        padding: 2rem;
+        border: 1px solid #26304a;
+        border-radius: 1rem;
+        background: #121a2f;
+        box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 25%);
+      }
+      .eyebrow { margin: 0; color: #78dce8; font-size: 0.75rem; letter-spacing: 0.1em; }
+      h1 { margin: 0.5rem 0 0.75rem; font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1; }
+      .intro { color: #aab4cc; line-height: 1.6; }
+      .counter { display: flex; align-items: baseline; justify-content: space-between; margin: 2rem 0 1rem; padding: 1rem; border-radius: 0.75rem; background: #0b1020; }
+      .label { color: #7f8aa3; }
+      #count { color: #61d095; font-size: 2rem; }
+      button { padding: 0.75rem 1rem; border: 1px solid #394563; border-radius: 0.6rem; background: #1a2540; color: inherit; cursor: pointer; font: inherit; }
+      button:hover { border-color: #78dce8; }
+      #error { color: #ff8f9c; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p id="status">Loading Python worker…</p>
+      <div id="app"></div>
+      <p id="error" hidden></p>
+    </main>
+    <script type="module">
+      import { connectWorker, init } from "../dist/esm/index.js";
+
+      const params = new URLSearchParams(location.search);
+      const workerUrl = new URL("./pyodide-worker.js", location.href);
+      if (params.has("wheel")) workerUrl.searchParams.set("wheel", params.get("wheel"));
+
+      try {
+        await init({ module_or_path: "../dist/pkg/spaday_bg.wasm" });
+        const worker = new Worker(workerUrl, { type: "module" });
+        worker.addEventListener("message", (event) => {
+          if (event.data.type === "status") {
+            document.querySelector("#status").textContent = event.data.message;
+          }
+        });
+        const link = connectWorker(document.querySelector("#app"), worker);
+        await link.ready;
+        document.documentElement.dataset.ready = "true";
+        document.querySelector("#status").textContent = "Python worker ready";
+      } catch (error) {
+        document.documentElement.dataset.error = "true";
+        document.querySelector("#status").textContent = "Unable to start";
+        const output = document.querySelector("#error");
+        output.hidden = false;
+        output.textContent = String(error);
+      }
+    </script>
+  </body>
+</html>

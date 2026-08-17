@@ -29,6 +29,10 @@ Notebook examples need:
 pip install -e ".[widget]"
 ```
 
+The [Pyodide example](../../js/examples/pyodide.html) runs
+[`pyodide.py`](./pyodide.py) inside a Web Worker. Follow
+[Run a spaday app in Pyodide](../../docs/src/pyodide.md) to build its wheel and browser runtime.
+
 ## Omnibus: the complete application
 
 [`__main__.py`](./__main__.py) combines the major spaday features in one Python-authored application:

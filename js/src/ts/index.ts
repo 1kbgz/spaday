@@ -67,6 +67,10 @@ export type { ActionContext } from "./actions";
 export { registerHandler } from "./handlers";
 export type { NamedHandler } from "./handlers";
 
+// Web Worker host: Python owns tree state while this main-thread link owns and patches the DOM.
+export { connectWorker } from "./worker";
+export type { WorkerLink } from "./worker";
+
 // High-level layout/shell primitives — defines the spa-* custom elements on import.
 export { SHELL_TAGS } from "./shell";
 

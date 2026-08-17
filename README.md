@@ -62,6 +62,7 @@ Select an installed integration by its entry-point name, for example `serve(page
   [add behavior and reactivity](docs/src/behavior.md),
   [serve and embed an app](docs/src/serving.md),
   [use it in a notebook](docs/src/notebook.md),
+  [run Python UI logic in Pyodide](docs/src/pyodide.md),
   [sync to a server over transports](docs/src/transports.md),
   [wrap an imperative JS library](docs/src/wrappers.md),
   [generate typed classes from a manifest](docs/src/cem.md).

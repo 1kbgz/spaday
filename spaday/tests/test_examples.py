@@ -104,6 +104,19 @@ def test_ssr_ships_server_rendered_markup_to_hydrate():
         assert client.get("/js/cdn/index.js").status_code == 200
 
 
+def test_pyodide_example_round_trips_a_transports_edit_into_a_tree_patch():
+    pyodide = pytest.importorskip("spaday.examples.pyodide", reason="needs transports")
+
+    snapshot = pyodide.app.start()
+    assert snapshot["type"] == "snapshot"
+    assert pyodide.authoritative.count == 0
+
+    message = pyodide.app.dispatch({"type": "spaday:patch", "detail": {"model": "counter", "field": "increment", "value": 1}})
+
+    assert pyodide.authoritative.count == 1
+    assert message["patch"]["ops"]
+
+
 # ── Notebook / anywidget: a reusable component builder + a demo wrapper ────────────────────────────
 
 
