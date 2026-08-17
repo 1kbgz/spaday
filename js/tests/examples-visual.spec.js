@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO = fileURLToPath(new URL("../..", import.meta.url));
 const EXAMPLES_DIR = path.join(REPO, "spaday", "examples");
+const SPECIALIZED_EXAMPLES = new Set(["pyodide.py"]);
 const EXAMPLES = [
   { name: "__main__", selector: "spa-app" },
   { name: "cluster", selector: "lightweight-chart" },
@@ -88,7 +89,12 @@ async function stopExample(server) {
 function exampleFiles() {
   return fs
     .readdirSync(EXAMPLES_DIR)
-    .filter((name) => name.endsWith(".py") && name !== "__init__.py")
+    .filter(
+      (name) =>
+        name.endsWith(".py") &&
+        name !== "__init__.py" &&
+        !SPECIALIZED_EXAMPLES.has(name),
+    )
     .map((name) => name.slice(0, -3))
     .sort();
 }

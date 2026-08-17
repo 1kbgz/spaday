@@ -378,9 +378,9 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "transports"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b4d6698122a3614b8d51bf5ebbd906c3931837cc154bdd40ac633747fdf86c1"
+checksum = "e37cd628dace67d7abeab8ae56fc9131dd4f839420759eec6a06f1c4a06c455a"
 dependencies = [
  "ciborium",
  "rmp-serde",

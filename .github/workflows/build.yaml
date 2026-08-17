@@ -25,11 +25,32 @@ permissions:
 
 jobs:
   build:
+    name: build (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - name: ubuntu-latest
+            dist_path: dist
+            os: ubuntu-latest
+            python: "3.11"
+            target: native
+          - name: macos-latest
+            dist_path: dist
+            os: macos-latest
+            python: "3.11"
+            target: native
+          - name: windows-latest
+            dist_path: dist
+            os: windows-latest
+            python: "3.11"
+            target: native
+          - name: pyodide
+            dist_path: dist/pyodide
+            os: ubuntu-latest
+            python: "3.14"
+            target: pyodide
 
     steps:
       - name: Checkout
@@ -40,7 +61,7 @@ jobs:
       - name: Setup Python
         uses: actions-ext/python/setup@6e1b91a408ea89f49bc8aff8724f83826f7b5446
         with:
-          version: "3.11"
+          version: ${{ matrix.python }}
 
       - name: Setup Rust
         uses: actions-ext/rust/setup@2db8e3e4c56beb7320c7d730bd2c2d6a6447bf6b
@@ -52,51 +73,68 @@ jobs:
 
       - name: Install dependencies
         run: make develop
+        if: matrix.target == 'native'
+
+      - name: Install Pyodide browser dependencies
+        run: |
+          make develop-js
+          rustup target add wasm32-unknown-unknown
+          cd js
+          pnpm setup
+          pnpm build
+        if: matrix.target == 'pyodide'
 
       - name: Lint
         run: make lint
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.name == 'ubuntu-latest'
 
       - name: Checks
         run: make checks
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.name == 'ubuntu-latest'
 
       - name: Build
         run: make build
+        if: matrix.target == 'native'
 
       - name: Test
         run: make coverage
+        if: matrix.target == 'native'
+
+      - name: Build and test Pyodide wheel
+        run: make test-pyodide test-pyodide-browser
+        if: matrix.target == 'pyodide'
 
       - name: Upload test results (Python)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: test-results-${{ matrix.os }}
+          name: test-results-${{ matrix.name }}
           path: '**/junit.xml'
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.name == 'ubuntu-latest'
 
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3  # v2.24.0
         with:
           files: '**/junit.xml'
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.name == 'ubuntu-latest'
 
       - name: Upload coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v7.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+        if: matrix.target == 'native'
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8  # v4.2.0
         with:
           platforms: all
-        if: runner.os == 'Linux' && runner.arch == 'X64'
+        if: matrix.name == 'ubuntu-latest' && runner.arch == 'X64'
 
       - name: Free disk space
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/share/swift
           df -h /
         shell: bash
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.name == 'ubuntu-latest'
 
       - name: Build distributions (Linux)
         run: |
@@ -106,7 +144,7 @@ jobs:
           make dist-py-wheel
           make dist-check
         shell: bash
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.name == 'ubuntu-latest'
 
       - name: Build distributions (macOS/Windows)
         run: |
@@ -116,22 +154,22 @@ jobs:
         shell: bash
         env:
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=11.0
-        if: matrix.os != 'ubuntu-latest'
+        if: matrix.target == 'native' && matrix.name != 'ubuntu-latest'
 
       - name: Test wheel
         uses: actions-ext/python/test-wheel@6e1b91a408ea89f49bc8aff8724f83826f7b5446
         with:
           module: spaday
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.name == 'ubuntu-latest'
 
       - name: Test source distribution
         uses: actions-ext/python/test-sdist@6e1b91a408ea89f49bc8aff8724f83826f7b5446
         with:
           module: spaday
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.name == 'ubuntu-latest'
 
       - name: Upload distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: dist-${{ matrix.os }}
-          path: dist
+          name: dist-${{ matrix.name }}
+          path: ${{ matrix.dist_path }}

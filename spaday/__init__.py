@@ -35,6 +35,7 @@ from .render import render_html
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
 from .theme import SHELL_TOKENS
 from .validate import ValidationError, validate
+from .worker import WorkerApp
 
 __version__ = "0.5.0"
 
@@ -58,6 +59,7 @@ __all__ = [
     "Toggle",
     "ToggleField",
     "ValidationError",
+    "WorkerApp",
     # anywidget host (optional; requires the `widget` extra)
     "Widget",
     # a typed transports wire spec for a multi-model page (serve/bootstrap wire=[…])

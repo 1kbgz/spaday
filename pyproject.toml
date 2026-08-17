@@ -2,7 +2,7 @@
 requires = [
     "hatchling",
     "hatch-js",
-    "hatch-rs",
+    "hatch-rs>=0.3.0",
 ]
 build-backend = "hatchling.build"
 
@@ -37,9 +37,9 @@ dependencies = []
 widget = ["anywidget"]
 webawesome = ["spaday-webawesome>=0.1.0"]
 lightweight-charts = ["spaday-lightweight-charts>=0.1.0"]
-examples = ["pydantic>=2", "transports>=0.6,<0.7", "starlette", "uvicorn", "websockets", "spaday-webawesome>=0.1.0", "spaday-lightweight-charts>=0.1.0"]
-cluster = ["pydantic>=2", "transports>=0.6,<0.7", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
-perspective = ["pydantic>=2", "transports>=0.6,<0.7", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6", "spaday-perspective>=0.1.0", "superstore>=0.3.1"]  # external panel + Mode B server; superstore generates the orders + chart series
+examples = ["pydantic>=2", "transports>=0.7,<0.8", "starlette", "uvicorn", "websockets", "spaday-webawesome>=0.1.0", "spaday-lightweight-charts>=0.1.0"]
+cluster = ["pydantic>=2", "transports>=0.7,<0.8", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
+perspective = ["pydantic>=2", "transports>=0.7,<0.8", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6", "spaday-perspective>=0.1.0", "superstore>=0.3.1"]  # external panel + Mode B server; superstore generates the orders + chart series
 aiohttp = ["aiohttp"]  # the aiohttp backend (spaday.backends.aiohttp)
 flask = ["flask"]  # the Flask backend (spaday.backends.flask)
 tornado = ["tornado"]  # the Tornado backend (spaday.backends.tornado)
@@ -53,7 +53,7 @@ develop = [
     "codespell",
     "flask",  # the Flask backend — covered by test_backend_flask
     "hatch-js",
-    "hatch-rs",
+    "hatch-rs>=0.3.0",
     "hatchling",
     "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
@@ -70,7 +70,7 @@ develop = [
     "starlette",  # the Starlette backend — covered by test_backend_starlette (import spaday stays starlette-free)
     "superstore>=0.3.1",  # the omnibus example's data generator (orders + chart series)
     "tornado",  # the Tornado backend — covered by test_backend_tornado
-    "transports>=0.6,<0.7",  # reactive, form, cluster, embed, gateway, and omnibus example tests
+    "transports>=0.7,<0.8",  # reactive, form, cluster, embed, gateway, and omnibus example tests
     "twine",
     "ty",
     "uv",
@@ -149,6 +149,13 @@ archs = "arm64"
 environment = {PATH="$UserProfile\\.cargo\bin;$PATH", CARGO_TERM_COLOR="always"}
 skip = "*win32 *arm_64"
 
+[tool.cibuildwheel.pyodide]
+environment = {SKIP_HATCH_JS="1"}
+test-command = "python -m pytest {project}/spaday/tests/test_pyodide.py -v"
+test-extras = []
+test-requires = ["pytest", "transports==0.7.0"]
+xbuild-tools = ["cargo", "rustc", "rustup"]
+
 [tool.coverage.run]
 branch = true
 omit = [
@@ -168,9 +175,6 @@ fail_under = 50
 
 [tool.hatch.build]
 artifacts = [
-    "spaday/*.dll",
-    "spaday/*.dylib",
-    "spaday/*.so",
     "spaday/extension",
 ]
 
@@ -278,6 +282,7 @@ pages = [
     "docs/src/serving.md",
     "docs/src/transports.md",
     "docs/src/notebook.md",
+    "docs/src/pyodide.md",
     "docs/src/wrappers.md",
     "docs/src/cem.md",
     "docs/src/api.md",
