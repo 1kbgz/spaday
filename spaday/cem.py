@@ -17,6 +17,7 @@ import keyword
 from pathlib import Path
 from typing import Any, overload
 
+from .catalog import ComponentSchema
 from .component import Child, Component
 from .spaday import parse_cem as _parse_cem
 
@@ -64,7 +65,16 @@ def _make_class(schema: dict) -> type[Component]:
         typed = {attr_of[p]: props.pop(p) for p in list(props) if p in attr_of}
         Component.__init__(self, *children, key=key, props=typed, **props)
 
-    return type(name, (Component,), {"tag": tag, "__doc__": schema.get("summary"), "__init__": __init__})
+    return type(
+        name,
+        (Component,),
+        {
+            "tag": tag,
+            "schema": ComponentSchema.from_cem(schema),
+            "__doc__": schema.get("summary"),
+            "__init__": __init__,
+        },
+    )
 
 
 def generate(manifest_path: str, out_path: str | None = None, *, source: str | None = None) -> str:
@@ -89,6 +99,7 @@ def render(component_schemas: list[dict], *, source: str = "a manifest") -> str:
     if typing_imports:
         lines.append(f"from typing import {', '.join(typing_imports)}")
         lines.append("")
+    lines.append("from spaday.catalog import ComponentSchema, PropertySchema")
     lines.append("from spaday.component import Child, Component")
     lines.append("")
     names = ", ".join(repr(name) for name in sorted(b.name for b in bodies))
@@ -129,6 +140,7 @@ def _render_class(schema: dict) -> _ClassBody:
     if doc:
         head.append(f'    """{doc}"""')
     head.append(f"    tag = {json.dumps(schema['tag_name'])}")
+    head.append(f"    schema = {ComponentSchema.from_cem(schema)!r}")
     head.append("")
     params.append("**props: Any")
     sig = ",\n        ".join(params)

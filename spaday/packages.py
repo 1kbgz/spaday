@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib import import_module
 from importlib.metadata import entry_points
 from pathlib import Path, PurePosixPath
+
+from .catalog import ComponentSchema
+from .component import Component
 
 ENTRY_POINT_GROUP = "spaday.component_packages"
 _PACKAGE_NAME = re.compile(r"[a-z0-9][a-z0-9._-]*\Z")
@@ -15,17 +18,21 @@ _PACKAGE_NAME = re.compile(r"[a-z0-9][a-z0-9._-]*\Z")
 
 @dataclass(frozen=True)
 class ComponentPackage:
-    """Assets that register one external component library in the browser.
+    """Assets and catalog metadata for one external component library.
 
     ``assets`` contains ``("css" | "js", relative_path)`` pairs under
     ``assets_dir``. Backends serve that directory at
     ``{prefix}/components/{name}``; :func:`spaday.bootstrap.bootstrap` emits
-    the matching tags.
+    the matching tags. ``components`` contains the package's public
+    :class:`~spaday.component.Component` subclasses. Generated CEM classes
+    already carry schemas; hand-authored classes set ``Component.schema``.
+    ``catalog`` returns those schemas without constructing components.
     """
 
     name: str
     assets_dir: Path
     assets: Sequence[tuple[str, str]]
+    components: Sequence[type[Component]] = ()
 
     def __post_init__(self) -> None:
         if not _PACKAGE_NAME.fullmatch(self.name):
@@ -40,6 +47,24 @@ class ComponentPackage:
             normalized.append((kind, asset_path.as_posix()))
         object.__setattr__(self, "assets_dir", Path(self.assets_dir))
         object.__setattr__(self, "assets", tuple(normalized))
+        components = tuple(self.components)
+        seen: set[str] = set()
+        for component in components:
+            if not isinstance(component, type) or not issubclass(component, Component):
+                raise TypeError("component package components must be Component subclasses")
+            if component.schema is None:
+                raise ValueError(f"component {component.__name__!r} does not define catalog schema")
+            if component.schema.tag != component.tag:
+                raise ValueError(f"component {component.__name__!r} schema tag does not match {component.tag!r}")
+            if component.tag in seen:
+                raise ValueError(f"component package contains duplicate tag {component.tag!r}")
+            seen.add(component.tag)
+        object.__setattr__(self, "components", components)
+
+    @property
+    def catalog(self) -> tuple[ComponentSchema, ...]:
+        """Schemas for the package's public component classes."""
+        return tuple(replace(component.schema, class_name=component.__name__) for component in self.components if component.schema is not None)
 
 
 PackageRef = ComponentPackage | str
@@ -101,3 +126,8 @@ def discover_component_packages() -> tuple[ComponentPackage, ...]:
         _require_package(candidate.load(), f"component package entry point {candidate.name!r}")
         for candidate in sorted(_installed_entry_points(), key=lambda candidate: candidate.name)
     )
+
+
+def discover_component_package_names() -> tuple[str, ...]:
+    """Return installed component-package entry-point names without loading them."""
+    return tuple(sorted({candidate.name for candidate in _installed_entry_points()}))

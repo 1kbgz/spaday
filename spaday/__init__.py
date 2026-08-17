@@ -28,9 +28,10 @@ from .actions import (
     this,
 )
 from .bootstrap import Wire
+from .catalog import ComponentSchema, PropertyKind, PropertySchema
 from .cem import classes, generate
 from .component import Component, Paragraph, Strong, Text, element
-from .packages import ComponentPackage, discover_component_packages, resolve_component_packages
+from .packages import ComponentPackage, discover_component_package_names, discover_component_packages, resolve_component_packages
 from .render import render_html
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
 from .theme import SHELL_TOKENS
@@ -46,10 +47,13 @@ __all__ = [
     "Component",
     # external component-package assets (direct descriptor, Python path, or entry point)
     "ComponentPackage",
+    "ComponentSchema",
     "Emit",
     "If",
     "NamedJs",
     "Paragraph",
+    "PropertyKind",
+    "PropertySchema",
     "SendPatch",
     "Sequence",
     "SetField",
@@ -79,6 +83,7 @@ __all__ = [
     # component-tree diff/patch (compiled core)
     "diff",
     "discover_component_packages",
+    "discover_component_package_names",
     "element",
     # framed wire (tree/patch over transports' Frame + JSON/msgpack codecs)
     "encode_frame",
