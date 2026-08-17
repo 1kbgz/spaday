@@ -113,6 +113,13 @@ Generate a page and deliver it on any backend; see [Serve and embed](serving.md)
    :members: update, state, on_state, on_intent
 ```
 
+## Web Worker host
+
+```{eval-rst}
+.. autoclass:: spaday.WorkerApp
+   :members: start, dispatch, start_json, dispatch_json
+```
+
 ## Core diff / apply
 
 The low-level component-tree engine (JSON wire form), shared byte-for-byte with the browser runtime.

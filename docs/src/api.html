@@ -204,6 +204,7 @@
 <li class="toctree-l1"><a class="reference internal" href="serving.html">Serve and embed a spaday app</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pyodide.html">How to run a spaday app in Pyodide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cem.html">Generate typed classes from a manifest</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">API reference</a></li>
@@ -771,6 +772,40 @@ never injects assets into unrelated applications.</p>
 <section id="notebook-host">
 <h2>Notebook host<a class="headerlink" href="#notebook-host" title="Link to this heading">¶</a></h2>
 </section>
+<section id="web-worker-host">
+<h2>Web Worker host<a class="headerlink" href="#web-worker-host" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.WorkerApp">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">WorkerApp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">render</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_intent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/worker.html#WorkerApp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.WorkerApp" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Adapt a render function and intent handler to spaday’s worker message protocol.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.WorkerApp.dispatch">
+<span class="sig-name descname"><span class="pre">dispatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">intent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../../_modules/spaday/worker.html#WorkerApp.dispatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.WorkerApp.dispatch" title="Link to this definition">¶</a></dt>
+<dd><p>Handle one browser intent and return its incremental tree patch message.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.WorkerApp.dispatch_json">
+<span class="sig-name descname"><span class="pre">dispatch_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">intent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../_modules/spaday/worker.html#WorkerApp.dispatch_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.WorkerApp.dispatch_json" title="Link to this definition">¶</a></dt>
+<dd><p>Decode a JSON intent and return <a class="reference internal" href="#spaday.WorkerApp.dispatch" title="spaday.WorkerApp.dispatch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dispatch()</span></code></a> as JSON.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.WorkerApp.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../../_modules/spaday/worker.html#WorkerApp.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.WorkerApp.start" title="Link to this definition">¶</a></dt>
+<dd><p>Render and return the initial tree snapshot message.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.WorkerApp.start_json">
+<span class="sig-name descname"><span class="pre">start_json</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../_modules/spaday/worker.html#WorkerApp.start_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.WorkerApp.start_json" title="Link to this definition">¶</a></dt>
+<dd><p>Return <a class="reference internal" href="#spaday.WorkerApp.start" title="spaday.WorkerApp.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> as JSON for a JavaScript worker boundary.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="core-diff-apply">
 <h2>Core diff / apply<a class="headerlink" href="#core-diff-apply" title="Link to this heading">¶</a></h2>
 <p>The low-level component-tree engine (JSON wire form), shared byte-for-byte with the browser runtime.
@@ -951,6 +986,16 @@ package maps its theme tokens onto those variables.</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#notebook-host">Notebook host</a></li>
+<li><a class="reference internal" href="#web-worker-host">Web Worker host</a><ul>
+<li><a class="reference internal" href="#spaday.WorkerApp"><code class="docutils literal notranslate"><span class="pre">WorkerApp</span></code></a><ul>
+<li><a class="reference internal" href="#spaday.WorkerApp.dispatch"><code class="docutils literal notranslate"><span class="pre">WorkerApp.dispatch()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.WorkerApp.dispatch_json"><code class="docutils literal notranslate"><span class="pre">WorkerApp.dispatch_json()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.WorkerApp.start"><code class="docutils literal notranslate"><span class="pre">WorkerApp.start()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.WorkerApp.start_json"><code class="docutils literal notranslate"><span class="pre">WorkerApp.start_json()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a class="reference internal" href="#core-diff-apply">Core diff / apply</a><ul>
 <li><a class="reference internal" href="#spaday.diff"><code class="docutils literal notranslate"><span class="pre">diff()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.apply"><code class="docutils literal notranslate"><span class="pre">apply()</span></code></a></li>

@@ -202,6 +202,7 @@
 <li class="toctree-l1"><a class="reference internal" href="docs/src/serving.html">Serve and embed a spaday app</a></li>
 <li class="toctree-l1"><a class="reference internal" href="docs/src/transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="docs/src/notebook.html">Use spaday in a Jupyter notebook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docs/src/pyodide.html">How to run a spaday app in Pyodide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="docs/src/wrappers.html">Wrap an imperative JS library</a></li>
 <li class="toctree-l1"><a class="reference internal" href="docs/src/cem.html">Generate typed classes from a manifest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="docs/src/api.html">API reference</a></li>
@@ -320,11 +321,15 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.decode_frame">decode_frame() (in module spaday)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.diff">diff() (in module spaday)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.discover_component_packages">discover_component_packages() (in module spaday)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.WorkerApp.dispatch">dispatch() (spaday.WorkerApp method)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.WorkerApp.dispatch_json">dispatch_json() (spaday.WorkerApp method)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -486,11 +491,15 @@
 </li>
         <li><a href="docs/src/api.html#spaday.Sequence">Sequence (class in spaday)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.backends.starlette.serve">serve() (in module spaday.backends.starlette)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.SetProp">SetProp (class in spaday)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.WorkerApp.start">start() (spaday.WorkerApp method)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.WorkerApp.start_json">start_json() (spaday.WorkerApp method)</a>
 </li>
         <li><a href="docs/src/api.html#spaday.Component.style">style() (spaday.Component method)</a>
 </li>
@@ -541,6 +550,10 @@
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.Wire">Wire (class in spaday)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.WorkerApp">WorkerApp (class in spaday)</a>
 </li>
     </ul></td>
   </tr></table>

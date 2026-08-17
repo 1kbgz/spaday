@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="API reference" href="api.html"><link rel="prev" title="Wrap an imperative JS library" href="wrappers.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Wrap an imperative JS library" href="wrappers.html"><link rel="prev" title="Use spaday in a Jupyter notebook" href="notebook.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Generate typed classes from a manifest - spaday v0.5.0</title>
+        <title>How to run a spaday app in Pyodide - spaday v0.5.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -204,9 +204,9 @@
 <li class="toctree-l1"><a class="reference internal" href="serving.html">Serve and embed a spaday app</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pyodide.html">How to run a spaday app in Pyodide</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">How to run a spaday app in Pyodide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Generate typed classes from a manifest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cem.html">Generate typed classes from a manifest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
 </ul>
 
@@ -228,7 +228,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../../_sources/docs/src/cem.md.txt" title="View this page">
+  <a class="muted-link" href="../../_sources/docs/src/pyodide.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -246,44 +246,79 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="generate-typed-classes-from-a-manifest">
-<h1>Generate typed classes from a manifest<a class="headerlink" href="#generate-typed-classes-from-a-manifest" title="Link to this heading">¶</a></h1>
-<p>spaday’s typed component classes are generated from a <a class="reference external" href="https://github.com/webcomponents/custom-elements-manifest">Custom Elements Manifest</a>
-(<code class="docutils literal notranslate"><span class="pre">custom-elements.json</span></code>) — the standard description web-component libraries publish. This guide shows
-you how to generate classes for any such library. (For a library that is <em>not</em> a web component, see
-<a class="reference internal" href="wrappers.html"><span class="std std-doc">Wrap an imperative library</span></a>.)</p>
-<section id="generate-a-committed-module">
-<h2>Generate a committed module<a class="headerlink" href="#generate-a-committed-module" title="Link to this heading">¶</a></h2>
-<p>For typed classes you check into your project, use the <code class="docutils literal notranslate"><span class="pre">spaday-cem</span></code> CLI or <code class="docutils literal notranslate"><span class="pre">spaday.generate</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>spaday-cem<span class="w"> </span>path/to/custom-elements.json<span class="w"> </span>-o<span class="w"> </span>my_components.py
+          <section class="tex2jax_ignore mathjax_ignore" id="how-to-run-a-spaday-app-in-pyodide">
+<h1>How to run a spaday app in Pyodide<a class="headerlink" href="#how-to-run-a-spaday-app-in-pyodide" title="Link to this heading">¶</a></h1>
+<p>This guide shows you how to run Python UI logic in a Web Worker and apply its component-tree patches
+on the browser’s main thread.</p>
+<section id="build-the-wheel-and-browser-runtime">
+<h2>Build the wheel and browser runtime<a class="headerlink" href="#build-the-wheel-and-browser-runtime" title="Link to this heading">¶</a></h2>
+<p>Install the development dependencies once, then build the runtime and Pyodide wheel:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>develop
+make<span class="w"> </span>build-js
+make<span class="w"> </span>test-pyodide
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">spaday</span>
-
-<span class="n">code</span> <span class="o">=</span> <span class="n">spaday</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="s2">&quot;custom-elements.json&quot;</span><span class="p">)</span>   <span class="c1"># returns the module source (typed classes)</span>
-</pre></div>
-</div>
-<p>Peer packages use this workflow for committed catalogs. For example, <code class="docutils literal notranslate"><span class="pre">spaday-webawesome</span></code> generates
-<code class="docutils literal notranslate"><span class="pre">spaday_webawesome/components.py</span></code> from its committed manifest and checks AST drift in its test suite.</p>
+<p>The Python 3.14 WebAssembly wheel is written to <code class="docutils literal notranslate"><span class="pre">dist/pyodide/</span></code>.</p>
 </section>
-<section id="build-classes-at-runtime">
-<h2>Build classes at runtime<a class="headerlink" href="#build-classes-at-runtime" title="Link to this heading">¶</a></h2>
-<p>For a one-off or experimental manifest, <code class="docutils literal notranslate"><span class="pre">spaday.classes</span></code> builds the classes in memory instead — no file,
-no static types, but it still validates keyword names:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">spaday</span>
-
-<span class="n">ns</span> <span class="o">=</span> <span class="n">spaday</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;custom-elements.json&quot;</span><span class="p">)</span>                    <span class="c1"># {&quot;WaSwitch&quot;: &lt;class&gt;, ...}</span>
-<span class="n">WaSwitch</span> <span class="o">=</span> <span class="n">spaday</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;custom-elements.json&quot;</span><span class="p">,</span> <span class="s2">&quot;WaSwitch&quot;</span><span class="p">)</span>  <span class="c1"># or one class by name</span>
-<span class="n">WaSwitch</span><span class="p">(</span><span class="n">checked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_node</span><span class="p">()</span>
+<section id="open-the-example">
+<h2>Open the example<a class="headerlink" href="#open-the-example" title="Link to this heading">¶</a></h2>
+<p>Serve the repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>http.server<span class="w"> </span><span class="m">8000</span>
 </pre></div>
 </div>
+<p>Open the example with the wheel URL in its query string, replacing <code class="docutils literal notranslate"><span class="pre">&lt;wheel&gt;</span></code> with the filename in
+<code class="docutils literal notranslate"><span class="pre">dist/pyodide/</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>http://127.0.0.1:8000/js/examples/pyodide.html?wheel=/dist/pyodide/&lt;wheel&gt;
+</pre></div>
+</div>
+<p>Click <strong>Increment in Python</strong>. The Python handler sends a transports client proposal through its
+authoritative session, renders the accepted model as a new component tree, and returns the diff.
+<code class="docutils literal notranslate"><span class="pre">connectWorker</span></code> applies that patch without replacing the button.</p>
+<p>The Python application is in <a class="reference download internal" download="" href="../../_downloads/1b763c54adfd0035c3103fdbcd5952e5/pyodide.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">spaday/examples/pyodide.py</span></code></span></a>. The
+worker loader is in <a class="reference download internal" download="" href="../../_downloads/04e036214c2a5ff0d299ac1c45ec1e6a/pyodide-worker.js"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">js/examples/pyodide-worker.js</span></code></span></a>, and the page
+is in <a class="reference download internal" download="" href="../../_downloads/55d1aed90994b058487c22aa354eb4c6/pyodide.html"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">js/examples/pyodide.html</span></code></span></a>.</p>
 </section>
-<section id="one-manifest-both-bindings">
-<h2>One manifest, both bindings<a class="headerlink" href="#one-manifest-both-bindings" title="Link to this heading">¶</a></h2>
-<p>The parse that produces the Python classes (<a class="reference internal" href="api.html#spaday.parse_cem" title="spaday.parse_cem"><code class="xref py py-func docutils literal notranslate"><span class="pre">spaday.parse_cem()</span></code></a>, in the Rust core) also drives
-the JavaScript runtime’s registry — how each prop is set, which events to bind, the slot names. So a
-single manifest yields both the typed Python authoring API and the browser binding, with no chance of
-the two disagreeing.</p>
+<section id="connect-your-own-worker">
+<h2>Connect your own worker<a class="headerlink" href="#connect-your-own-worker" title="Link to this heading">¶</a></h2>
+<p>Wrap a render function and intent handler with <code class="docutils literal notranslate"><span class="pre">WorkerApp</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">SendPatch</span><span class="p">,</span> <span class="n">WorkerApp</span><span class="p">,</span> <span class="n">element</span><span class="p">,</span> <span class="n">lit</span>
+
+<span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">count</span><span class="p">))</span><span class="o">.</span><span class="n">on</span><span class="p">(</span>
+        <span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">SendPatch</span><span class="p">(</span><span class="s2">&quot;counter&quot;</span><span class="p">,</span> <span class="s2">&quot;increment&quot;</span><span class="p">,</span> <span class="n">lit</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">on_intent</span><span class="p">(</span><span class="n">intent</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">count</span>
+    <span class="n">count</span> <span class="o">+=</span> <span class="n">intent</span><span class="p">[</span><span class="s2">&quot;detail&quot;</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">WorkerApp</span><span class="p">(</span><span class="n">render</span><span class="p">,</span> <span class="n">on_intent</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The worker must send <code class="docutils literal notranslate"><span class="pre">app.start_json()</span></code> after receiving <code class="docutils literal notranslate"><span class="pre">{type:</span> <span class="pre">&quot;start&quot;}</span></code> and pass later messages to
+<code class="docutils literal notranslate"><span class="pre">app.dispatch_json(...)</span></code>. On the main thread, initialize spaday’s browser runtime and connect the
+worker:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">connectWorker</span><span class="p">,</span><span class="w"> </span><span class="nx">init</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;/js/dist/esm/index.js&quot;</span><span class="p">;</span>
+
+<span class="k">await</span><span class="w"> </span><span class="nx">init</span><span class="p">({</span><span class="w"> </span><span class="nx">module_or_path</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;/js/dist/pkg/spaday_bg.wasm&quot;</span><span class="w"> </span><span class="p">});</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">worker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Worker</span><span class="p">(</span><span class="s2">&quot;/worker.js&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;module&quot;</span><span class="w"> </span><span class="p">});</span>
+<span class="k">await</span><span class="w"> </span><span class="nx">connectWorker</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="s2">&quot;#app&quot;</span><span class="p">),</span><span class="w"> </span><span class="nx">worker</span><span class="p">).</span><span class="nx">ready</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Keep DOM and custom-element work on the main thread. Keep Python rendering, state changes, and
+tree diffing in the worker.</p>
+</section>
+<section id="run-the-browser-test">
+<h2>Run the browser test<a class="headerlink" href="#run-the-browser-test" title="Link to this heading">¶</a></h2>
+<p>Run the focused Playwright test against the wheel already in <code class="docutils literal notranslate"><span class="pre">dist/pyodide/</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>test-pyodide-browser
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -292,23 +327,23 @@ the two disagreeing.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="api.html">
+          <a class="next-page" href="wrappers.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">API reference</div>
+                <div class="title">Wrap an imperative JS library</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="wrappers.html">
+          <a class="prev-page" href="notebook.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Wrap an imperative JS library</div>
+                <div class="title">Use spaday in a Jupyter notebook</div>
                 
               </div>
             </a>
@@ -342,10 +377,11 @@ the two disagreeing.</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Generate typed classes from a manifest</a><ul>
-<li><a class="reference internal" href="#generate-a-committed-module">Generate a committed module</a></li>
-<li><a class="reference internal" href="#build-classes-at-runtime">Build classes at runtime</a></li>
-<li><a class="reference internal" href="#one-manifest-both-bindings">One manifest, both bindings</a></li>
+<li><a class="reference internal" href="#">How to run a spaday app in Pyodide</a><ul>
+<li><a class="reference internal" href="#build-the-wheel-and-browser-runtime">Build the wheel and browser runtime</a></li>
+<li><a class="reference internal" href="#open-the-example">Open the example</a></li>
+<li><a class="reference internal" href="#connect-your-own-worker">Connect your own worker</a></li>
+<li><a class="reference internal" href="#run-the-browser-test">Run the browser test</a></li>
 </ul>
 </li>
 </ul>
