@@ -2,24 +2,23 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Literal, Mapping
+
+from pydantic import BaseModel, ConfigDict
 
 PropertyKind = Literal["string", "boolean", "number", "enum", "json"]
 
 
-@dataclass(frozen=True)
-class PropertySchema:
+class PropertySchema(BaseModel):
     """One editable DOM property exposed by a component."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
     name: str
     kind: PropertyKind
     choices: tuple[str, ...] = ()
     default: str | None = None
     description: str | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "choices", tuple(self.choices))
 
     def to_dict(self) -> dict[str, Any]:
         """Return JSON-serializable catalog data."""
@@ -33,9 +32,10 @@ class PropertySchema:
         return value
 
 
-@dataclass(frozen=True)
-class ComponentSchema:
+class ComponentSchema(BaseModel):
     """Catalog metadata for one component class and custom-element tag."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
     tag: str
     class_name: str
@@ -43,11 +43,6 @@ class ComponentSchema:
     props: tuple[PropertySchema, ...] = ()
     events: tuple[str, ...] = ()
     slots: tuple[str, ...] = ()
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "props", tuple(self.props))
-        object.__setattr__(self, "events", tuple(self.events))
-        object.__setattr__(self, "slots", tuple(self.slots))
 
     @classmethod
     def from_cem(cls, schema: Mapping[str, Any]) -> ComponentSchema:

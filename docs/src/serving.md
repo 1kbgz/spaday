@@ -77,6 +77,9 @@ package = ComponentPackage(
 
 Classes generated with `spaday-cem` already contain property, event, and slot schemas. Add the public
 classes to `components` so editors and other tools can read `package.catalog` without constructing them.
+`ComponentSchema` and `PropertySchema` are frozen Pydantic models, so catalog consumers can validate
+external data with `model_validate()`, serialize it with `model_dump()`, and generate JSON Schema with
+`model_json_schema()`.
 For a hand-authored component, define the same metadata explicitly:
 
 ```python

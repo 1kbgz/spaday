@@ -2,8 +2,9 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
-from spaday import Component, ComponentSchema, apply, classes, diff, generate, parse_cem
+from spaday import Component, ComponentSchema, PropertySchema, apply, classes, diff, generate, parse_cem
 
 FIXTURES = Path(__file__).parent / "fixtures"
 FIXTURE = str(FIXTURES / "webawesome.cem.json")
@@ -73,6 +74,27 @@ def test_catalog_schema_maps_all_normalized_property_kinds():
         ("config", "json"),
         ("optional", "boolean"),
     ]
+
+
+def test_catalog_schema_validates_and_serializes_with_pydantic():
+    schema = ComponentSchema.model_validate(
+        {
+            "tag": "demo-card",
+            "class_name": "DemoCard",
+            "props": [{"name": "appearance", "kind": "enum", "choices": ["filled", "outlined"]}],
+            "events": ["change"],
+            "slots": [""],
+        }
+    )
+
+    assert schema.props[0].choices == ("filled", "outlined")
+    assert schema.model_dump(mode="json")["props"][0]["choices"] == ["filled", "outlined"]
+    assert ComponentSchema.model_json_schema()["properties"]["props"]["type"] == "array"
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        PropertySchema.model_validate({"name": "value", "kind": "number", "unknown": True})
+    with pytest.raises(ValidationError, match="Instance is frozen"):
+        schema.tag = "changed"  # type: ignore[misc]
 
 
 def test_typed_signatures_rendered():

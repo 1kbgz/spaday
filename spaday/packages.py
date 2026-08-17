@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from importlib import import_module
 from importlib.metadata import entry_points
 from pathlib import Path, PurePosixPath
@@ -64,7 +64,9 @@ class ComponentPackage:
     @property
     def catalog(self) -> tuple[ComponentSchema, ...]:
         """Schemas for the package's public component classes."""
-        return tuple(replace(component.schema, class_name=component.__name__) for component in self.components if component.schema is not None)
+        return tuple(
+            component.schema.model_copy(update={"class_name": component.__name__}) for component in self.components if component.schema is not None
+        )
 
 
 PackageRef = ComponentPackage | str
