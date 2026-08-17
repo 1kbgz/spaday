@@ -38,7 +38,7 @@ from .theme import SHELL_TOKENS
 from .validate import ValidationError, validate
 from .worker import WorkerApp
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     # theming token reference (css custom properties are set via Component.css)
