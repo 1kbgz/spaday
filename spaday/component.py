@@ -10,10 +10,13 @@ Behavior is attached with :meth:`Component.on` — the declarative action DSL (s
 the runtime interprets the action in the browser on the DOM event, with no round-trip to Python.
 """
 
+from __future__ import annotations
+
 import json
-from typing import Any, Union
+from typing import Any, ClassVar, Union
 
 from .actions import Expr
+from .catalog import ComponentSchema
 
 #: The conventional name of a component's unnamed (default) slot (matches the Rust core).
 DEFAULT_SLOT = "default"
@@ -64,10 +67,12 @@ class Component:
     props as keywords — ``App(Nav("title"), Body(...), id="root")`` — or build it up fluently with
     ``.child()`` / ``.prop()``. A string child becomes a text node. Subclasses set the class attribute
     ``tag`` and forward their typed props via ``props=`` (only the ones the author set — ``None`` means
-    "leave the element's own default").
+    "leave the element's own default"). CEM-generated subclasses also set the class-level ``schema``
+    used by component catalogs; hand-authored catalog components may set it explicitly.
     """
 
     tag: str = ""
+    schema: ClassVar[ComponentSchema | None] = None
 
     def __init__(self, *children: Child, key: str | None = None, props: dict[str, Any] | None = None, **attrs: Any) -> None:
         self._key = key

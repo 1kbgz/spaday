@@ -21,6 +21,8 @@ code = spaday.generate("custom-elements.json")   # returns the module source (ty
 
 Peer packages use this workflow for committed catalogs. For example, `spaday-webawesome` generates
 `spaday_webawesome/components.py` from its committed manifest and checks AST drift in its test suite.
+Generated classes expose their normalized CEM metadata through `Component.schema`, ready for inclusion
+in a [`ComponentPackage` catalog](serving.md).
 
 ## Build classes at runtime
 
@@ -34,6 +36,8 @@ ns = spaday.classes("custom-elements.json")                    # {"WaSwitch": <c
 WaSwitch = spaday.classes("custom-elements.json", "WaSwitch")  # or one class by name
 WaSwitch(checked=True).to_node()
 ```
+
+Runtime-generated classes expose the same `Component.schema` metadata as committed classes.
 
 ## One manifest, both bindings
 

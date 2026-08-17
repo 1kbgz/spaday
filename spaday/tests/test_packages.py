@@ -4,16 +4,19 @@ from types import ModuleType
 import pytest
 
 import spaday.packages as package_registry
+from spaday import Component, ComponentSchema, PropertySchema
 from spaday.bootstrap import bootstrap
-from spaday.packages import ComponentPackage, discover_component_packages, resolve_component_packages
+from spaday.packages import ComponentPackage, discover_component_package_names, discover_component_packages, resolve_component_packages
 
 
 class EntryPoint:
     def __init__(self, name, package):
         self.name = name
         self.package = package
+        self.loaded = False
 
     def load(self):
+        self.loaded = True
         return self.package
 
 
@@ -40,6 +43,55 @@ def test_resolves_and_discovers_installed_entry_points(monkeypatch):
 
     assert resolve_component_packages("z-second") == (second,)
     assert discover_component_packages() == (first, second)
+
+
+def test_discovers_installed_names_without_loading_entry_points(monkeypatch):
+    candidates = [EntryPoint("z-second", object()), EntryPoint("a-first", object()), EntryPoint("a-first", object())]
+    monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: candidates)
+
+    assert discover_component_package_names() == ("a-first", "z-second")
+    assert not any(candidate.loaded for candidate in candidates)
+
+
+def test_package_exposes_component_catalog():
+    class GeneratedCard(Component):
+        tag = "demo-card"
+        schema = ComponentSchema(
+            tag="demo-card",
+            class_name="GeneratedCard",
+            props=(PropertySchema(name="appearance", kind="enum", choices=("filled", "outlined")),),
+            slots=("", "header"),
+        )
+
+    class Card(GeneratedCard):
+        def __init__(self):
+            raise AssertionError("catalog discovery must not construct components")
+
+    package = ComponentPackage("demo", ".", (("js", "index.js"),), components=(Card,))
+
+    assert package.components == (Card,)
+    assert package.catalog[0].class_name == "Card"
+    assert package.catalog[0].to_dict() == {
+        "tag": "demo-card",
+        "class_name": "Card",
+        "props": [{"name": "appearance", "kind": "enum", "choices": ["filled", "outlined"]}],
+        "events": [],
+        "slots": ["", "header"],
+    }
+
+
+def test_package_rejects_components_without_matching_schema():
+    class MissingSchema(Component):
+        tag = "missing-schema"
+
+    class WrongSchema(Component):
+        tag = "wrong-schema"
+        schema = ComponentSchema(tag="another-tag", class_name="WrongSchema")
+
+    with pytest.raises(ValueError, match="does not define catalog schema"):
+        ComponentPackage("missing", ".", (), components=(MissingSchema,))
+    with pytest.raises(ValueError, match="schema tag does not match"):
+        ComponentPackage("wrong", ".", (), components=(WrongSchema,))
 
 
 def test_bootstrap_uses_the_same_descriptor_for_package_asset_urls(python_path_package):

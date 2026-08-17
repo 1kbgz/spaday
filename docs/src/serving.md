@@ -65,12 +65,35 @@ An integration package defines that descriptor beside its built assets:
 from pathlib import Path
 
 from spaday import ComponentPackage
+from .components import SpadayTree
 
 package = ComponentPackage(
     name="trees",
     assets_dir=Path(__file__).parent / "extension",
     assets=(("css", "trees.css"), ("js", "trees.js")),
+    components=(SpadayTree,),
 )
+```
+
+Classes generated with `spaday-cem` already contain property, event, and slot schemas. Add the public
+classes to `components` so editors and other tools can read `package.catalog` without constructing them.
+`ComponentSchema` and `PropertySchema` are frozen Pydantic models, so catalog consumers can validate
+external data with `model_validate()`, serialize it with `model_dump()`, and generate JSON Schema with
+`model_json_schema()`.
+For a hand-authored component, define the same metadata explicitly:
+
+```python
+from spaday import Component, ComponentSchema, PropertySchema
+
+class DemoGauge(Component):
+    tag = "demo-gauge"
+    schema = ComponentSchema(
+        tag=tag,
+        class_name="DemoGauge",
+        props=(PropertySchema(name="value", kind="number"),),
+        events=("change",),
+        slots=("",),
+    )
 ```
 
 To make the short form `packages=["trees"]` available, publish the same object as a Python packaging
@@ -86,6 +109,9 @@ installed integration. All four backends serve each selected descriptor's `asset
 `{prefix}/components/{name}/`; `bootstrap` emits its CSS and module-script URLs from the same `assets`
 list. This registration is host-side only: component tags and props already cross the generic spaday
 tree, so an integration needs no Rust plugin.
+
+Use `discover_component_package_names()` when listing installed integrations without importing them.
+Use `resolve_component_packages()` for explicitly selected names and read each descriptor's `catalog`.
 
 ## Embed in an existing app
 

@@ -2,8 +2,9 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
-from spaday import Component, apply, classes, diff, generate, parse_cem
+from spaday import Component, ComponentSchema, PropertySchema, apply, classes, diff, generate, parse_cem
 
 FIXTURES = Path(__file__).parent / "fixtures"
 FIXTURE = str(FIXTURES / "webawesome.cem.json")
@@ -34,6 +35,66 @@ def test_generated_class_builds_a_node():
     assert node["props"]["size"] == {"Str": "large"}
     # unset props are omitted so the element keeps its own defaults
     assert "name" not in node["props"]
+
+
+def test_generated_class_exposes_catalog_schema():
+    schema = _module()["WaSwitch"].schema
+    assert isinstance(schema, ComponentSchema)
+    assert schema.tag == "wa-switch"
+    assert schema.class_name == "WaSwitch"
+    assert schema.summary == "Switches allow the user to toggle an option on or off."
+    assert schema.events == ("change", "input")
+    assert schema.slots == ("", "hint")
+
+    props = {prop.name: prop for prop in schema.props}
+    assert props["checked"].kind == "boolean"
+    assert props["checked"].default == "false"
+    assert props["checked"].description == "Draws the switch in a checked state."
+    assert props["size"].kind == "enum"
+    assert props["size"].choices == ("small", "medium", "large")
+    assert props["name"].kind == "string"
+    assert schema.to_dict()["props"][2]["choices"] == ["small", "medium", "large"]
+
+
+def test_catalog_schema_maps_all_normalized_property_kinds():
+    schema = ComponentSchema.from_cem(
+        {
+            "tag_name": "demo-values",
+            "class_name": "DemoValues",
+            "props": [
+                {"name": "count", "ty": "Number"},
+                {"name": "config", "ty": "Any"},
+                {"name": "optional", "ty": {"Optional": "Bool"}},
+            ],
+        }
+    )
+
+    assert [(prop.name, prop.kind) for prop in schema.props] == [
+        ("count", "number"),
+        ("config", "json"),
+        ("optional", "boolean"),
+    ]
+
+
+def test_catalog_schema_validates_and_serializes_with_pydantic():
+    schema = ComponentSchema.model_validate(
+        {
+            "tag": "demo-card",
+            "class_name": "DemoCard",
+            "props": [{"name": "appearance", "kind": "enum", "choices": ["filled", "outlined"]}],
+            "events": ["change"],
+            "slots": [""],
+        }
+    )
+
+    assert schema.props[0].choices == ("filled", "outlined")
+    assert schema.model_dump(mode="json")["props"][0]["choices"] == ["filled", "outlined"]
+    assert ComponentSchema.model_json_schema()["properties"]["props"]["type"] == "array"
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        PropertySchema.model_validate({"name": "value", "kind": "number", "unknown": True})
+    with pytest.raises(ValidationError, match="Instance is frozen"):
+        schema.tag = "changed"  # type: ignore[misc]
 
 
 def test_typed_signatures_rendered():
@@ -72,6 +133,8 @@ def test_classes_builds_components_at_runtime():
     klasses = classes(FIXTURE)
     assert set(klasses) == {"WaSwitch", "WaButton", "WaCard"}
     assert issubclass(klasses["WaSwitch"], Component)
+    schema = klasses["WaSwitch"].schema
+    assert schema is not None and schema.tag == "wa-switch"
 
     node = klasses["WaSwitch"](checked=True, size="large").to_node()
     assert node["tag"] == "wa-switch"

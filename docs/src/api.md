@@ -76,6 +76,16 @@ state bindings prefer `Component.bind` / `Component.compute` (above).
 .. autofunction:: spaday.classes
 ```
 
+### Component catalog schemas
+
+```{eval-rst}
+.. autoclass:: spaday.ComponentSchema
+   :members:
+
+.. autoclass:: spaday.PropertySchema
+   :members:
+```
+
 ## Serving
 
 Generate a page and deliver it on any backend; see [Serve and embed](serving.md) and
@@ -98,6 +108,7 @@ Generate a page and deliver it on any backend; see [Serve and embed](serving.md)
 .. autoclass:: spaday.ComponentPackage
 .. autofunction:: spaday.resolve_component_packages
 .. autofunction:: spaday.discover_component_packages
+.. autofunction:: spaday.discover_component_package_names
 ```
 
 ## Server-side rendering
