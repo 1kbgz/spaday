@@ -1,11 +1,10 @@
 {
-  "name": "spaday",
+  "name": "@1kbgz/spaday",
   "version": "0.7.0",
   "description": "",
   "repository": "git@github.com:1kbgz/spaday.git",
   "author": "1kbgz <dev@1kbgz.com>",
   "license": "Apache-2.0",
-  "private": true,
   "type": "module",
   "unpkg": "dist/cdn/index.js",
   "jsdelivr": "dist/cdn/index.js",
