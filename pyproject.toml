@@ -59,8 +59,10 @@ develop = [
     "mdformat",
     "mdformat-tables>=1",
     "perspective-python>=4.5,<4.6",  # gateway + omnibus browser example tests
+    "playwright",  # browser-backed Each performance benchmarks
     "pyzmq",  # clustered chart browser example test
     "pytest",
+    "pytest-benchmark",
     "pytest-cov",
     "ruff",
     "spaday-lightweight-charts>=0.1.0",  # example gallery browser tests
