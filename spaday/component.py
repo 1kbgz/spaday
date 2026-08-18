@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 from typing import Any, ClassVar, Union
 
-from .actions import Expr
+from .actions import Action, Expr
 from .catalog import ComponentSchema
 
 #: The conventional name of a component's unnamed (default) slot (matches the Rust core).
@@ -99,6 +99,8 @@ class Component:
 
     def child_in(self, slot: str, node: Child) -> "Component":
         """Append a child to a named slot (a string becomes a ``<span>`` text node)."""
+        if not isinstance(node, (Component, dict, str)):
+            raise TypeError(f"child must be a Component, node dict, or string, got {type(node).__name__}")
         self._slots.setdefault(slot, []).append(element("span", textContent=node) if isinstance(node, str) else node)
         return self
 
@@ -144,12 +146,14 @@ class Component:
         self._classes.extend(n for n in names if n)
         return self
 
-    def on(self, event: str, action: Any) -> "Component":
+    def on(self, event: str, action: Action) -> "Component":
         """Bind a declarative :class:`~spaday.actions.Action` to a DOM event (e.g. ``"click"``).
 
         The action is serialized as data and interpreted in the browser when the event fires — no
         round-trip to Python.
         """
+        if not isinstance(action, Action):
+            raise TypeError(f"event action must be an Action, got {type(action).__name__}")
         self._events[event] = action.to_dict()
         return self
 
@@ -165,13 +169,15 @@ class Component:
         self._bindings[prop] = {"field": field, "mode": mode}
         return self
 
-    def compute(self, prop: str, expr: Any) -> "Component":
+    def compute(self, prop: str, expr: Expr) -> "Component":
         """Reactively set ``prop`` to a value *computed* from state fields (one-way).
 
         ``expr`` is a field expression (:func:`~spaday.actions.field` / ``eq`` / ``not_`` / ``all_`` /
         ``any_`` / ``lit`` / ``item`` / ``scope``) evaluated in the browser and recomputed whenever any
         global field or repeater scope it reads changes, e.g. ``compute("disabled", not_(field("enabled")))``.
         """
+        if not isinstance(expr, Expr):
+            raise TypeError(f"computed binding must use an Expr, got {type(expr).__name__}")
         self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
         return self
 

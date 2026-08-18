@@ -55,6 +55,11 @@ def test_compute_with_cond_selects_a_value_by_a_field():
     assert json.loads(spaday.apply(j, spaday.diff(j, j))) == json.loads(j)  # rides the core diff/apply
 
 
+def test_compute_rejects_non_expression_at_authoring_time():
+    with pytest.raises(TypeError, match="computed binding must use an Expr"):
+        element("span").compute("textContent", 3)
+
+
 def test_bind_root_class_targets_the_document_root():
     # page-level theming outside the tree: a field toggles a class on <html> (e.g. WebAwesome's wa-dark)
     node = element("spa-app").bind_root_class("wa-dark", "dark").to_node()

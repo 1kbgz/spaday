@@ -368,6 +368,7 @@ type PreparedEachDelta =
   | { kind: "insert"; identity: string; index: number; item: unknown }
   | { kind: "update"; identity: string; item: unknown }
   | { kind: "move"; identity: string; index: number }
+  | { kind: "reorder"; order: string[] }
   | { kind: "remove"; identity: string };
 
 function prepareEachDeltas(
@@ -390,6 +391,22 @@ function prepareEachDeltas(
       nextOrder = items.map(([identity]) => identity);
       values = new Map(items);
       prepared.push({ kind: "reset", items });
+      continue;
+    }
+    if (delta.kind === "reorder") {
+      const sequence = currentOrder();
+      const reordered = delta.keys.map((key) => eachKeyIdentity(key, itemKey));
+      const identities = new Set(reordered);
+      if (
+        reordered.length !== sequence.length ||
+        identities.size !== reordered.length ||
+        sequence.some((identity) => !identities.has(identity))
+      )
+        throw new Error(
+          "spa-each collection reorder must contain every current key exactly once",
+        );
+      nextOrder = reordered;
+      prepared.push({ kind: "reorder", order: [...reordered] });
       continue;
     }
     const identity = eachKeyIdentity(delta.key, itemKey);
@@ -455,15 +472,18 @@ function preserveEachFocus(el: Element, mutate: () => void): void {
     el.contains(document.activeElement)
       ? document.activeElement
       : undefined;
-  const selection =
-    focused instanceof HTMLInputElement ||
-    focused instanceof HTMLTextAreaElement
-      ? ([
-          focused.selectionStart,
-          focused.selectionEnd,
-          focused.selectionDirection,
-        ] as const)
-      : undefined;
+  let selection: readonly [number, number, string | null] | undefined;
+  if (
+    (focused instanceof HTMLInputElement ||
+      focused instanceof HTMLTextAreaElement) &&
+    focused.selectionStart !== null &&
+    focused.selectionEnd !== null
+  )
+    selection = [
+      focused.selectionStart,
+      focused.selectionEnd,
+      focused.selectionDirection,
+    ];
   mutate();
   if (focused) {
     focused.focus({ preventScroll: true });
@@ -589,6 +609,10 @@ function wireEach(
           order.splice(index, 1);
           order.splice(delta.index, 0, delta.identity);
           placeAt(instances.get(delta.identity)!, delta.index, index);
+        } else if (delta.kind === "reorder") {
+          for (const [index, identity] of delta.order.entries())
+            placeAt(instances.get(identity)!, index);
+          order = [...delta.order];
         } else {
           const instance = instances.get(delta.identity)!;
           teardownTree(instance.element);

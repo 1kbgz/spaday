@@ -117,8 +117,9 @@ def test_rejects_unsafe_descriptors_and_duplicate_selection():
 
 
 def test_unknown_entry_point_has_a_useful_error(monkeypatch):
-    monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: ())
-    with pytest.raises(ValueError, match="spaday.component_packages"):
+    available = ComponentPackage("available", ".", ())
+    monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: (EntryPoint("available", available),))
+    with pytest.raises(ValueError, match="available packages: available"):
         resolve_component_packages("missing")
 
 
@@ -128,6 +129,10 @@ def test_rejects_invalid_python_paths_and_entry_points(monkeypatch, python_path_
 
     with pytest.raises(ValueError, match="expected 'module:attribute'"):
         resolve_component_packages(":package")
+    with pytest.raises(ValueError, match="Python path 'missing_module:package'"):
+        resolve_component_packages("missing_module:package")
+    with pytest.raises(ValueError, match="Python path 'spaday_package_fixture:missing' does not exist"):
+        resolve_component_packages("spaday_package_fixture:missing")
     with pytest.raises(TypeError, match="must expose a ComponentPackage"):
         resolve_component_packages("spaday_package_fixture:invalid")
 

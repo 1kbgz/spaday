@@ -19,6 +19,7 @@ export type CollectionDelta<Item = unknown> =
       value: unknown;
     }
   | { kind: "move"; key: CollectionKey; index: number }
+  | { kind: "reorder"; keys: readonly CollectionKey[] }
   | { kind: "remove"; key: CollectionKey };
 
 type Subscriber = (value: unknown) => void;

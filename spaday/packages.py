@@ -87,7 +87,14 @@ def _from_python_path(spec: str) -> ComponentPackage:
     module_name, separator, attribute = spec.partition(":")
     if not separator or not module_name or not attribute:
         raise ValueError(f"invalid component package Python path {spec!r}; expected 'module:attribute'")
-    value = getattr(import_module(module_name), attribute)
+    try:
+        module = import_module(module_name)
+    except ImportError as error:
+        raise ValueError(f"could not import component package Python path {spec!r}: {error}") from error
+    try:
+        value = getattr(module, attribute)
+    except AttributeError as error:
+        raise ValueError(f"component package Python path {spec!r} does not exist") from error
     return _require_package(value, f"component package Python path {spec!r}")
 
 
@@ -96,9 +103,12 @@ def _installed_entry_points():
 
 
 def _from_entry_point(name: str) -> ComponentPackage:
-    matches = [candidate for candidate in _installed_entry_points() if candidate.name == name]
+    candidates = _installed_entry_points()
+    matches = [candidate for candidate in candidates if candidate.name == name]
     if not matches:
-        raise ValueError(f"unknown component package {name!r}; no {ENTRY_POINT_GROUP!r} entry point is installed")
+        available = sorted({candidate.name for candidate in candidates})
+        choices = f"; available packages: {', '.join(available)}" if available else "; no component packages are installed"
+        raise ValueError(f"unknown component package {name!r}{choices}")
     if len(matches) > 1:
         raise ValueError(f"multiple {ENTRY_POINT_GROUP!r} entry points are named {name!r}")
     return _require_package(matches[0].load(), f"component package entry point {name!r}")
