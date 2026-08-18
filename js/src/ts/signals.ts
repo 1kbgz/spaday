@@ -22,6 +22,11 @@ export type CollectionDelta<Item = unknown> =
   | { kind: "remove"; key: CollectionKey };
 
 type Subscriber = (value: unknown) => void;
+type CollectionSubscriber = (delta: CollectionDelta) => void;
+interface CollectionSubscription {
+  key: string;
+  subscriber: CollectionSubscriber;
+}
 type SubscriberIndex = {
   field?: Field;
   children: Map<string, SubscriberIndex>;
@@ -98,6 +103,8 @@ function setPath(
 export class Store {
   private values: Map<Field, unknown>;
   private subscribers: Map<Field, Set<Subscriber>> = new Map();
+  private collectionSubscribers: Map<Field, Set<CollectionSubscription>> =
+    new Map();
   private subscriberIndex: SubscriberIndex = { children: new Map() };
 
   constructor(initial: Record<Field, unknown> = {}) {
@@ -174,15 +181,18 @@ export class Store {
     return related;
   }
 
-  /**
-   * Set a field and notify subscribers; a no-op if unchanged. A dotted `field` sets a nested leaf,
-   * rebuilding its parents immutably, and notifies the leaf plus its ancestors (whose identity changed)
-   * and any subscribed descendant whose value changed.
-   */
-  set(field: Field, value: unknown): void {
+  private hasSubscribers(field: Field): boolean {
+    return this.subscribers.has(field) || this.collectionSubscribers.has(field);
+  }
+
+  private write(
+    field: Field,
+    value: unknown,
+    deltas?: readonly CollectionDelta[],
+  ): void {
     if (Object.is(this.get(field), value)) return;
     const related = this.related(field);
-    const before = new Map(related.map((k) => [k, this.get(k)]));
+    const before = new Map(related.map((key) => [key, this.get(key)]));
     const parts = field.split(".");
     if (parts.length === 1) {
       this.values.set(field, value);
@@ -194,12 +204,47 @@ export class Store {
         setPath(root as Record<string, unknown>, parts.slice(1), value),
       );
     }
-    for (const k of related) {
-      const now = this.get(k);
-      const subscribers = this.subscribers.get(k);
-      if (!Object.is(before.get(k), now) && subscribers)
-        for (const cb of [...subscribers]) cb(now);
+    for (const key of related) {
+      const now = this.get(key);
+      if (Object.is(before.get(key), now)) continue;
+      const subscribers = this.subscribers.get(key);
+      if (subscribers) for (const cb of [...subscribers]) cb(now);
+      const collectionSubscribers = this.collectionSubscribers.get(key);
+      if (!collectionSubscribers) continue;
+      const changes =
+        key === field && deltas
+          ? deltas
+          : [{ kind: "reset", items: Array.isArray(now) ? now : [] } as const];
+      for (const delta of changes) {
+        for (const subscription of [...collectionSubscribers])
+          subscription.subscriber(delta);
+      }
     }
+  }
+
+  /**
+   * Set a field and notify subscribers; a no-op if unchanged. A dotted `field` sets a nested leaf,
+   * rebuilding its parents immutably, and notifies the leaf plus its ancestors (whose identity changed)
+   * and any subscribed descendant whose value changed.
+   */
+  set(field: Field, value: unknown): void {
+    this.write(field, value);
+  }
+
+  /**
+   * Store an already-updated collection and publish its granular changes to structural subscribers.
+   * Ordinary field subscribers still receive the final collection once.
+   */
+  setCollection<Item>(
+    field: Field,
+    items: readonly Item[],
+    deltas: readonly CollectionDelta<Item>[],
+  ): void {
+    this.write(
+      field,
+      items,
+      deltas.length ? deltas : [{ kind: "reset", items }],
+    );
   }
 
   /** Subscribe to a field; returns an unsubscribe function. */
@@ -214,7 +259,42 @@ export class Store {
       subs!.delete(cb);
       if (!subs!.size && this.subscribers.get(field) === subs) {
         this.subscribers.delete(field);
-        this.unindex(field);
+        if (!this.hasSubscribers(field)) this.unindex(field);
+      }
+    };
+  }
+
+  /** Return the shared item key for a field's structural subscribers, if they agree on one. */
+  collectionKey(field: Field): string | undefined {
+    const subscriptions = this.collectionSubscribers.get(field);
+    if (!subscriptions?.size) return undefined;
+    let key: string | undefined;
+    for (const subscription of subscriptions) {
+      if (key !== undefined && key !== subscription.key) return undefined;
+      key = subscription.key;
+    }
+    return key;
+  }
+
+  /** Subscribe to keyed structural changes; ordinary `set` calls arrive as a reset. */
+  subscribeCollection<Item>(
+    field: Field,
+    key: string,
+    cb: (delta: CollectionDelta<Item>) => void,
+  ): () => void {
+    const subscriber = cb as CollectionSubscriber;
+    const subscription = { key, subscriber };
+    let subs = this.collectionSubscribers.get(field);
+    if (!subs) {
+      this.collectionSubscribers.set(field, (subs = new Set()));
+      this.index(field);
+    }
+    subs.add(subscription);
+    return () => {
+      subs!.delete(subscription);
+      if (!subs!.size && this.collectionSubscribers.get(field) === subs) {
+        this.collectionSubscribers.delete(field);
+        if (!this.hasSubscribers(field)) this.unindex(field);
       }
     };
   }

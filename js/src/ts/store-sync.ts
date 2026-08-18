@@ -11,7 +11,12 @@
 // model and inbound patches flow model → fields → bound props, while a two-way control's change becomes
 // a server-authoritative `edit`. Swap in any object satisfying `ModelClient` and spaday is none the wiser.
 
-import { Store } from "./signals";
+import {
+  type CollectionDelta,
+  type CollectionKey,
+  type CollectionPathSegment,
+  Store,
+} from "./signals";
 
 /** Spaday's whole view of a transports `Client`: receive a frame, find the model, read it, edit it. */
 type PathSeg = { Key: string } | { Index: number };
@@ -149,6 +154,86 @@ function applyPlainOp(
   });
 }
 
+function readSegments(value: unknown, path: readonly PathSeg[]): unknown {
+  let current = value;
+  for (const segment of path) {
+    if ("Key" in segment) {
+      if (!isObj(current)) return undefined;
+      current = current[segment.Key];
+    } else {
+      if (!Array.isArray(current)) return undefined;
+      current = current[segment.Index];
+    }
+  }
+  return current;
+}
+
+function readCollectionKey(
+  item: unknown,
+  field: string,
+): CollectionKey | undefined {
+  let current = item;
+  for (const part of field.split(".")) {
+    if (Array.isArray(current)) {
+      const index = Number(part);
+      if (!Number.isSafeInteger(index) || index < 0 || index >= current.length)
+        return undefined;
+      current = current[index];
+    } else if (isObj(current)) {
+      current = current[part];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof current === "string" ||
+    (typeof current === "number" && Number.isFinite(current))
+    ? current
+    : undefined;
+}
+
+function collectionPath(path: readonly PathSeg[]): CollectionPathSegment[] {
+  return path.map((segment) =>
+    "Key" in segment ? segment.Key : segment.Index,
+  );
+}
+
+function collectionDelta(
+  current: unknown,
+  next: unknown,
+  path: PathSeg[],
+  op: PatchOp,
+  itemKey: string,
+): CollectionDelta | undefined {
+  if (!Array.isArray(current) || !Array.isArray(next)) return undefined;
+  if ("Insert" in op && path.length === 0) {
+    const item = next[op.Insert.index];
+    const key = readCollectionKey(item, itemKey);
+    return key === undefined
+      ? undefined
+      : { kind: "insert", key, index: op.Insert.index, item };
+  }
+  if ("RemoveAt" in op && path.length === 0) {
+    const key = readCollectionKey(current[op.RemoveAt.index], itemKey);
+    return key === undefined ? undefined : { kind: "remove", key };
+  }
+  const [row, ...itemPath] = path;
+  if (!row || !("Index" in row)) return undefined;
+  const oldItem = current[row.Index];
+  const newItem = next[row.Index];
+  const key = readCollectionKey(oldItem, itemKey);
+  if (key === undefined || !Object.is(key, readCollectionKey(newItem, itemKey)))
+    return undefined;
+
+  let changedPath = itemPath;
+  if ("Remove" in op) changedPath = itemPath.slice(0, -1);
+  return {
+    kind: "update",
+    key,
+    path: collectionPath(changedPath),
+    value: readSegments(newItem, changedPath),
+  };
+}
+
 /**
  * Bidirectionally sync a `Store` with a transports-mirrored model. Model fields map by name to store
  * fields — and a nested sub-model flattens to dotted `parent.child` fields: inbound frames pull them
@@ -213,7 +298,14 @@ export function connectStore(
   };
 
   const receivePatch = (change: Extract<ReceiveChange, { t: "patch" }>) => {
-    const staged = new Map<string, { field: string; value: unknown }>();
+    const staged = new Map<
+      string,
+      {
+        field: string;
+        value: unknown;
+        deltas?: CollectionDelta[];
+      }
+    >();
     try {
       for (const op of change.patch.ops) {
         const body =
@@ -236,9 +328,22 @@ export function connectStore(
         const current = staged.has(key)
           ? staged.get(key)!.value
           : store.get(key);
+        const value = applyPlainOp(current, rest, op, codec);
+        const itemKey = store.collectionKey(key);
+        let deltas = staged.has(key)
+          ? staged.get(key)!.deltas
+          : itemKey
+            ? []
+            : undefined;
+        if (deltas && itemKey) {
+          const delta = collectionDelta(current, value, rest, op, itemKey);
+          if (delta) deltas.push(delta);
+          else deltas = undefined;
+        }
         staged.set(key, {
           field,
-          value: applyPlainOp(current, rest, op, codec),
+          value,
+          deltas,
         });
       }
     } catch {
@@ -246,7 +351,9 @@ export function connectStore(
       return;
     }
     for (const [key, update] of staged) {
-      store.set(key, update.value);
+      if (update.deltas && Array.isArray(update.value))
+        store.setCollection(key, update.value, update.deltas);
+      else store.set(key, update.value);
       wireField(update.field);
     }
   };

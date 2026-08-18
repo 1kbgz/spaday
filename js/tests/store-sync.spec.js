@@ -298,6 +298,110 @@ test("inbound patch applies list insertion and removal without a model read", as
   });
 });
 
+test("inbound list patches reach Each as keyed collection deltas", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async (makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { mount, Store, connectStore } = window.__spaday;
+    class SyncProbe extends HTMLElement {
+      set label(value) {
+        this.updates = (this.updates ?? 0) + 1;
+        this.textContent = value;
+      }
+    }
+    if (!customElements.get("sync-probe"))
+      customElements.define("sync-probe", SyncProbe);
+    const store = new Store({ rows: [] });
+    const root = mount(
+      document.body,
+      {
+        tag: "spa-each",
+        props: { itemKey: { Str: "id" } },
+        bindings: { items: { field: "rows", mode: "one-way" } },
+        slots: {
+          default: [
+            {
+              tag: "sync-probe",
+              bindings: {
+                label: {
+                  compute: { expr: "item", path: "name" },
+                  mode: "one-way",
+                },
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: {
+          rows: [
+            { id: 1, name: "A" },
+            { id: 2, name: "B" },
+          ],
+        },
+      }),
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const retained = root.children[1];
+    client.valueCalls = 0;
+    codec.fromCalls = 0;
+
+    link.receive(
+      JSON.stringify({
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 1,
+          ops: [
+            {
+              Set: {
+                path: [{ Key: "rows" }, { Index: 1 }, { Key: "name" }],
+                value: "Bee",
+              },
+            },
+            {
+              Insert: {
+                path: [{ Key: "rows" }],
+                index: 2,
+                value: { id: 3, name: "C" },
+              },
+            },
+            { RemoveAt: { path: [{ Key: "rows" }], index: 0 } },
+          ],
+        },
+      }),
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      rows: store.get("rows"),
+      values: [...root.children].map((element) => element.textContent),
+      updates: [...root.children].map((element) => element.updates),
+      retained: root.children[0] === retained,
+      valueCalls: client.valueCalls,
+      decodedValues: codec.fromCalls,
+    };
+  }, PATCH_FAKE.toString());
+
+  expect(result).toEqual({
+    rows: [
+      { id: 2, name: "Bee" },
+      { id: 3, name: "C" },
+    ],
+    values: ["Bee", "C"],
+    updates: [2, 1],
+    retained: true,
+    valueCalls: 0,
+    decodedValues: 2,
+  });
+});
+
 test("onChange drives accepted updates and ignores non-change frames", async ({
   page,
 }) => {

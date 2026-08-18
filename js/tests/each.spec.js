@@ -80,6 +80,122 @@ test("spa-each reconciles keyed instances without losing live state", async ({
   });
 });
 
+test("spa-each applies granular collection changes without resetting unchanged scopes", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    class DeltaProbe extends HTMLElement {
+      set label(value) {
+        this.updates = (this.updates ?? 0) + 1;
+        this.textContent = value;
+      }
+    }
+    if (!customElements.get("delta-probe"))
+      customElements.define("delta-probe", DeltaProbe);
+    const one = { id: 1, label: "A" };
+    const two = { id: 2, label: "B" };
+    const three = { id: 3, label: "C" };
+    const store = new Store({ rows: [one, two, three] });
+    const root = mount(
+      document.body,
+      {
+        tag: "spa-each",
+        props: { itemKey: { Str: "id" } },
+        bindings: { items: { field: "rows", mode: "one-way" } },
+        slots: {
+          default: [
+            {
+              tag: "delta-probe",
+              bindings: {
+                label: {
+                  compute: { expr: "item", path: "label" },
+                  mode: "one-way",
+                },
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    const original = [...root.children];
+    const updatedOne = { id: 1, label: "AA" };
+    const four = { id: 4, label: "D" };
+    store.setCollection(
+      "rows",
+      [three, updatedOne, four],
+      [
+        { kind: "update", key: 1, path: ["label"], value: "AA" },
+        { kind: "move", key: 1, index: 2 },
+        { kind: "remove", key: 2 },
+        { kind: "insert", key: 4, index: 2, item: four },
+      ],
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      values: [...root.children].map((element) => element.textContent),
+      updates: [...root.children].map((element) => element.updates),
+      movedIdentity: root.children[0] === original[2],
+      updatedIdentity: root.children[1] === original[0],
+      removed: !original[1].isConnected,
+    };
+  });
+
+  expect(result).toEqual({
+    values: ["C", "AA", "D"],
+    updates: [1, 2, 1],
+    movedIdentity: true,
+    updatedIdentity: true,
+    removed: true,
+  });
+});
+
+test("invalid granular collection batches leave existing DOM unchanged", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ rows: [{ id: 1 }, { id: 2 }] });
+    const errors = [];
+    window.addEventListener("error", (event) => {
+      errors.push(event.error?.message ?? event.message);
+      event.preventDefault();
+    });
+    const root = mount(
+      document.body,
+      {
+        tag: "spa-each",
+        props: { itemKey: { Str: "id" } },
+        bindings: { items: { field: "rows", mode: "one-way" } },
+        slots: { default: [{ tag: "div" }] },
+      },
+      store,
+    );
+    const original = [...root.children];
+    store.setCollection(
+      "rows",
+      [{ id: 2 }],
+      [
+        { kind: "remove", key: 1 },
+        { kind: "update", key: 99, path: ["name"], value: "invalid" },
+      ],
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      same: [...root.children].every(
+        (element, index) => element === original[index],
+      ),
+      count: root.children.length,
+      error: errors[0],
+    };
+  });
+
+  expect(result.same).toBe(true);
+  expect(result.count).toBe(2);
+  expect(result.error).toContain("references unknown key 99");
+});
+
 test("native moves preserve custom-element connection state", async ({
   page,
 }) => {

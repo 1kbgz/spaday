@@ -392,6 +392,114 @@ test("nested-path fields: set/get a dotted path; notify the leaf and its ancesto
   expect(result.siblingFired).toBe(0);
 });
 
+test("collection subscribers receive resets while ordinary subscribers keep value semantics", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ rows: [{ id: 1 }] });
+    const values = [];
+    const deltas = [];
+    store.subscribe("rows", (value) => values.push(value));
+    store.subscribeCollection("rows", "id", (delta) => deltas.push(delta));
+
+    const rows = [{ id: 1 }, { id: 2 }];
+    store.set("rows", rows);
+    store.set("rows", rows);
+    return { values, deltas };
+  });
+
+  expect(result.values).toEqual([[{ id: 1 }, { id: 2 }]]);
+  expect(result.deltas).toEqual([
+    { kind: "reset", items: [{ id: 1 }, { id: 2 }] },
+  ]);
+});
+
+test("setCollection publishes exact deltas after storing the final collection", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ rows: [{ id: 1, name: "A" }] });
+    const values = [];
+    const changes = [];
+    store.subscribe("rows", (value) => values.push(value));
+    store.subscribeCollection("rows", "id", (delta) => {
+      changes.push({ delta, visible: store.get("rows") });
+    });
+
+    const rows = [
+      { id: 1, name: "AA" },
+      { id: 2, name: "B" },
+    ];
+    store.setCollection("rows", rows, [
+      { kind: "update", key: 1, path: ["name"], value: "AA" },
+      { kind: "insert", key: 2, index: 1, item: rows[1] },
+    ]);
+    return { values, changes };
+  });
+
+  const rows = [
+    { id: 1, name: "AA" },
+    { id: 2, name: "B" },
+  ];
+  expect(result.values).toEqual([rows]);
+  expect(result.changes).toEqual([
+    {
+      delta: { kind: "update", key: 1, path: ["name"], value: "AA" },
+      visible: rows,
+    },
+    {
+      delta: { kind: "insert", key: 2, index: 1, item: rows[1] },
+      visible: rows,
+    },
+  ]);
+});
+
+test("collection-only dotted subscriptions stay indexed until unsubscribe", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ model: { rows: [] } });
+    const deltas = [];
+    const unsubscribe = store.subscribeCollection("model.rows", "id", (delta) =>
+      deltas.push(delta),
+    );
+    store.set("model", { rows: [{ id: 1 }] });
+    unsubscribe();
+    store.set("model", { rows: [{ id: 2 }] });
+    return deltas;
+  });
+
+  expect(result).toEqual([{ kind: "reset", items: [{ id: 1 }] }]);
+});
+
+test("collection subscribers expose a key only while all repeaters agree", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store();
+    const first = store.subscribeCollection("rows", "id", () => {});
+    const shared = store.collectionKey("rows");
+    const second = store.subscribeCollection("rows", "slug", () => {});
+    const conflicted = store.collectionKey("rows") ?? null;
+    second();
+    const restored = store.collectionKey("rows");
+    first();
+    const absent = store.collectionKey("rows") ?? null;
+    return { shared, conflicted, restored, absent };
+  });
+
+  expect(result).toEqual({
+    shared: "id",
+    conflicted: null,
+    restored: "id",
+    absent: null,
+  });
+});
+
 test("subscriber paths retain ancestor and descendant notifications after index pruning", async ({
   page,
 }) => {

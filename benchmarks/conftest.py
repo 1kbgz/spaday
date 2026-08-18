@@ -104,32 +104,45 @@ _INSTALL_BENCHMARK = """
       mountPrepared();
       return metrics(started);
     },
-    async update(workload) {
+    async update(workload, granular = false) {
       const started = performance.now();
       const size = state.rows.length;
       const middle = Math.floor(size / 2);
+      const publish = (rows, deltas) => {
+        state.rows = rows;
+        if (granular) state.store.setCollection("rows", rows, deltas);
+        else state.store.set("rows", rows);
+      };
       if (workload === "append") {
-        state.rows = [...state.rows, { id: size, label: `row-${size}`, value: size }];
-        state.store.set("rows", state.rows);
+        const item = { id: size, label: `row-${size}`, value: size };
+        publish([...state.rows, item], [
+          { kind: "insert", key: size, index: size, item },
+        ]);
       } else if (workload === "front-insert") {
-        state.rows = [{ id: -1, label: "row--1", value: -1 }, ...state.rows];
-        state.store.set("rows", state.rows);
+        const item = { id: -1, label: "row--1", value: -1 };
+        publish([item, ...state.rows], [
+          { kind: "insert", key: -1, index: 0, item },
+        ]);
       } else if (workload === "random-update") {
-        state.rows = state.rows.with(middle, {
+        const item = {
           ...state.rows[middle],
           label: `updated-${middle}`,
-        });
-        state.store.set("rows", state.rows);
+        };
+        publish(state.rows.with(middle, item), [
+          { kind: "update", key: middle, path: ["label"], value: item.label },
+        ]);
       } else if (workload === "reorder") {
-        state.rows = state.rows.toReversed();
-        state.store.set("rows", state.rows);
+        if (granular) throw new Error("reorder has no granular transport operation");
+        publish(state.rows.toReversed(), []);
       } else if (workload === "burst") {
         for (let revision = 0; revision < 10; revision += 1) {
-          state.rows = state.rows.with(middle, {
+          const item = {
             ...state.rows[middle],
             label: `burst-${revision}`,
-          });
-          state.store.set("rows", state.rows);
+          };
+          publish(state.rows.with(middle, item), [
+            { kind: "update", key: middle, path: ["label"], value: item.label },
+          ]);
         }
       } else {
         throw new Error(`unknown workload: ${workload}`);
