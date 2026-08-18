@@ -401,7 +401,7 @@ test("collection subscribers receive resets while ordinary subscribers keep valu
     const values = [];
     const deltas = [];
     store.subscribe("rows", (value) => values.push(value));
-    store.subscribeCollection("rows", (delta) => deltas.push(delta));
+    store.subscribeCollection("rows", "id", (delta) => deltas.push(delta));
 
     const rows = [{ id: 1 }, { id: 2 }];
     store.set("rows", rows);
@@ -424,7 +424,7 @@ test("setCollection publishes exact deltas after storing the final collection", 
     const values = [];
     const changes = [];
     store.subscribe("rows", (value) => values.push(value));
-    store.subscribeCollection("rows", (delta) => {
+    store.subscribeCollection("rows", "id", (delta) => {
       changes.push({ delta, visible: store.get("rows") });
     });
 
@@ -463,7 +463,7 @@ test("collection-only dotted subscriptions stay indexed until unsubscribe", asyn
     const { Store } = window.__spaday;
     const store = new Store({ model: { rows: [] } });
     const deltas = [];
-    const unsubscribe = store.subscribeCollection("model.rows", (delta) =>
+    const unsubscribe = store.subscribeCollection("model.rows", "id", (delta) =>
       deltas.push(delta),
     );
     store.set("model", { rows: [{ id: 1 }] });
@@ -473,6 +473,31 @@ test("collection-only dotted subscriptions stay indexed until unsubscribe", asyn
   });
 
   expect(result).toEqual([{ kind: "reset", items: [{ id: 1 }] }]);
+});
+
+test("collection subscribers expose a key only while all repeaters agree", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store();
+    const first = store.subscribeCollection("rows", "id", () => {});
+    const shared = store.collectionKey("rows");
+    const second = store.subscribeCollection("rows", "slug", () => {});
+    const conflicted = store.collectionKey("rows") ?? null;
+    second();
+    const restored = store.collectionKey("rows");
+    first();
+    const absent = store.collectionKey("rows") ?? null;
+    return { shared, conflicted, restored, absent };
+  });
+
+  expect(result).toEqual({
+    shared: "id",
+    conflicted: null,
+    restored: "id",
+    absent: null,
+  });
 });
 
 test("subscriber paths retain ancestor and descendant notifications after index pruning", async ({

@@ -23,6 +23,10 @@ export type CollectionDelta<Item = unknown> =
 
 type Subscriber = (value: unknown) => void;
 type CollectionSubscriber = (delta: CollectionDelta) => void;
+interface CollectionSubscription {
+  key: string;
+  subscriber: CollectionSubscriber;
+}
 type SubscriberIndex = {
   field?: Field;
   children: Map<string, SubscriberIndex>;
@@ -99,7 +103,7 @@ function setPath(
 export class Store {
   private values: Map<Field, unknown>;
   private subscribers: Map<Field, Set<Subscriber>> = new Map();
-  private collectionSubscribers: Map<Field, Set<CollectionSubscriber>> =
+  private collectionSubscribers: Map<Field, Set<CollectionSubscription>> =
     new Map();
   private subscriberIndex: SubscriberIndex = { children: new Map() };
 
@@ -212,7 +216,8 @@ export class Store {
           ? deltas
           : [{ kind: "reset", items: Array.isArray(now) ? now : [] } as const];
       for (const delta of changes) {
-        for (const cb of [...collectionSubscribers]) cb(delta);
+        for (const subscription of [...collectionSubscribers])
+          subscription.subscriber(delta);
       }
     }
   }
@@ -259,20 +264,34 @@ export class Store {
     };
   }
 
+  /** Return the shared item key for a field's structural subscribers, if they agree on one. */
+  collectionKey(field: Field): string | undefined {
+    const subscriptions = this.collectionSubscribers.get(field);
+    if (!subscriptions?.size) return undefined;
+    let key: string | undefined;
+    for (const subscription of subscriptions) {
+      if (key !== undefined && key !== subscription.key) return undefined;
+      key = subscription.key;
+    }
+    return key;
+  }
+
   /** Subscribe to keyed structural changes; ordinary `set` calls arrive as a reset. */
   subscribeCollection<Item>(
     field: Field,
+    key: string,
     cb: (delta: CollectionDelta<Item>) => void,
   ): () => void {
     const subscriber = cb as CollectionSubscriber;
+    const subscription = { key, subscriber };
     let subs = this.collectionSubscribers.get(field);
     if (!subs) {
       this.collectionSubscribers.set(field, (subs = new Set()));
       this.index(field);
     }
-    subs.add(subscriber);
+    subs.add(subscription);
     return () => {
-      subs!.delete(subscriber);
+      subs!.delete(subscription);
       if (!subs!.size && this.collectionSubscribers.get(field) === subs) {
         this.collectionSubscribers.delete(field);
         if (!this.hasSubscribers(field)) this.unindex(field);

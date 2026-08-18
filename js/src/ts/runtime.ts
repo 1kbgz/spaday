@@ -631,7 +631,7 @@ function wireEach(
     for (const dependency of exprScopes(source.compute, parentScope))
       subs.push(dependency.subscribe(scheduleReconcile));
   } else if (source?.field && store) {
-    subs.push(store.subscribeCollection(source.field, scheduleDelta));
+    subs.push(store.subscribeCollection(source.field, itemKey, scheduleDelta));
   }
   let map = bindings.get(el);
   if (!map) bindings.set(el, (map = new Map()));
