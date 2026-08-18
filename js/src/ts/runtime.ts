@@ -7,7 +7,15 @@
 // handlers, rebinding/detaching them as incremental `SetEvent`/`RemoveEvent` patches arrive.
 
 import { interpret } from "./actions";
-import { evalExpr, exprFields, exprScopes, Scope, Store } from "./signals";
+import {
+  type CollectionDelta,
+  type CollectionPathSegment,
+  evalExpr,
+  exprFields,
+  exprScopes,
+  Scope,
+  Store,
+} from "./signals";
 import { untag, Value } from "./value";
 
 export interface Binding {
@@ -286,8 +294,7 @@ interface EachInstance {
   scope: Scope;
 }
 
-function eachIdentity(item: unknown, key: string): string {
-  const value = new Scope(item).get(key);
+function eachKeyIdentity(value: unknown, key: string): string {
   if (typeof value === "string") return `string:${value}`;
   if (typeof value === "number" && Number.isFinite(value))
     return `number:${value}`;
@@ -296,7 +303,14 @@ function eachIdentity(item: unknown, key: string): string {
   );
 }
 
-function keyedItems(items: unknown[], key: string): Array<[string, unknown]> {
+function eachIdentity(item: unknown, key: string): string {
+  return eachKeyIdentity(new Scope(item).get(key), key);
+}
+
+function keyedItems(
+  items: readonly unknown[],
+  key: string,
+): Array<[string, unknown]> {
   const seen = new Set<string>();
   return items.map((item) => {
     const identity = eachIdentity(item, key);
@@ -307,6 +321,163 @@ function keyedItems(items: unknown[], key: string): Array<[string, unknown]> {
     seen.add(identity);
     return [identity, item];
   });
+}
+
+function collectionIndex(index: number, length: number, insert = false): void {
+  const maximum = insert ? length : length - 1;
+  if (!Number.isSafeInteger(index) || index < 0 || index > maximum)
+    throw new Error(
+      `spa-each collection index ${index} is outside 0..${maximum}`,
+    );
+}
+
+function updateCollectionPath(
+  current: unknown,
+  path: readonly CollectionPathSegment[],
+  value: unknown,
+): unknown {
+  if (!path.length) return value;
+  const [head, ...rest] = path;
+  if (typeof head === "number") {
+    if (
+      !Array.isArray(current) ||
+      !Number.isSafeInteger(head) ||
+      head < 0 ||
+      head >= current.length
+    )
+      throw new Error(
+        `spa-each collection update has invalid path segment ${head}`,
+      );
+    const next = [...current];
+    next[head] = updateCollectionPath(next[head], rest, value);
+    return next;
+  }
+  if (current == null || typeof current !== "object" || Array.isArray(current))
+    throw new Error(
+      `spa-each collection update has invalid path segment ${JSON.stringify(head)}`,
+    );
+  const next = { ...(current as Record<string, unknown>) };
+  next[head] = rest.length
+    ? updateCollectionPath(next[head], rest, value)
+    : value;
+  return next;
+}
+
+type PreparedEachDelta =
+  | { kind: "reset"; items: Array<[string, unknown]> }
+  | { kind: "insert"; identity: string; index: number; item: unknown }
+  | { kind: "update"; identity: string; item: unknown }
+  | { kind: "move"; identity: string; index: number }
+  | { kind: "remove"; identity: string };
+
+function prepareEachDeltas(
+  deltas: readonly CollectionDelta[],
+  itemKey: string,
+  order: readonly string[],
+  instances: ReadonlyMap<string, EachInstance>,
+): PreparedEachDelta[] {
+  let nextOrder: string[] | undefined;
+  let values = new Map<string, unknown>();
+  const currentOrder = (): string[] => (nextOrder ??= [...order]);
+  const currentValue = (identity: string): unknown =>
+    values.has(identity)
+      ? values.get(identity)
+      : instances.get(identity)?.scope.get();
+  const prepared: PreparedEachDelta[] = [];
+  for (const delta of deltas) {
+    if (delta.kind === "reset") {
+      const items = keyedItems(delta.items, itemKey);
+      nextOrder = items.map(([identity]) => identity);
+      values = new Map(items);
+      prepared.push({ kind: "reset", items });
+      continue;
+    }
+    const identity = eachKeyIdentity(delta.key, itemKey);
+    const exists = nextOrder
+      ? nextOrder.includes(identity)
+      : instances.has(identity);
+    if (delta.kind === "insert") {
+      const sequence = currentOrder();
+      collectionIndex(delta.index, sequence.length, true);
+      if (exists)
+        throw new Error(
+          `spa-each collection insert contains duplicate key ${JSON.stringify(delta.key)}`,
+        );
+      if (eachIdentity(delta.item, itemKey) !== identity)
+        throw new Error(
+          `spa-each collection insert key ${JSON.stringify(delta.key)} does not match its item`,
+        );
+      sequence.splice(delta.index, 0, identity);
+      values.set(identity, delta.item);
+      prepared.push({
+        kind: "insert",
+        identity,
+        index: delta.index,
+        item: delta.item,
+      });
+      continue;
+    }
+    if (!exists)
+      throw new Error(
+        `spa-each collection ${delta.kind} references unknown key ${JSON.stringify(delta.key)}`,
+      );
+    if (delta.kind === "update") {
+      const item = updateCollectionPath(
+        currentValue(identity),
+        delta.path,
+        delta.value,
+      );
+      if (eachIdentity(item, itemKey) !== identity)
+        throw new Error("spa-each collection update cannot change an item key");
+      values.set(identity, item);
+      prepared.push({ kind: "update", identity, item });
+    } else if (delta.kind === "move") {
+      const sequence = currentOrder();
+      collectionIndex(delta.index, sequence.length);
+      const index = sequence.indexOf(identity);
+      sequence.splice(index, 1);
+      sequence.splice(delta.index, 0, identity);
+      prepared.push({ kind: "move", identity, index: delta.index });
+    } else {
+      const sequence = currentOrder();
+      const index = sequence.indexOf(identity);
+      sequence.splice(index, 1);
+      values.delete(identity);
+      prepared.push({ kind: "remove", identity });
+    }
+  }
+  return prepared;
+}
+
+function preserveEachFocus(el: Element, mutate: () => void): void {
+  const focused =
+    document.activeElement instanceof HTMLElement &&
+    el.contains(document.activeElement)
+      ? document.activeElement
+      : undefined;
+  const selection =
+    focused instanceof HTMLInputElement ||
+    focused instanceof HTMLTextAreaElement
+      ? ([
+          focused.selectionStart,
+          focused.selectionEnd,
+          focused.selectionDirection,
+        ] as const)
+      : undefined;
+  mutate();
+  if (focused) {
+    focused.focus({ preventScroll: true });
+    if (
+      selection &&
+      (focused instanceof HTMLInputElement ||
+        focused instanceof HTMLTextAreaElement)
+    )
+      focused.setSelectionRange(
+        selection[0],
+        selection[1],
+        selection[2] ?? undefined,
+      );
+  }
 }
 
 // `spa-each`: a client-owned keyed reconciler. The serialized default child is a template definition,
@@ -329,7 +500,9 @@ function wireEach(
     throw new Error("spa-each requires exactly one component template");
 
   let instances = new Map<string, EachInstance>();
+  let order: string[] = [];
   let frame: number | undefined;
+  let pendingDeltas: CollectionDelta[] | undefined;
   const evaluate = (): unknown[] => {
     const value = source?.compute
       ? evalExpr(source.compute, store, parentScope)
@@ -338,23 +511,7 @@ function wireEach(
         : [];
     return Array.isArray(value) ? value : [];
   };
-  const reconcile = (): void => {
-    frame = undefined;
-    const items = keyedItems(evaluate(), itemKey); // validate the full key set before any mutation
-    const focused =
-      document.activeElement instanceof HTMLElement &&
-      el.contains(document.activeElement)
-        ? document.activeElement
-        : undefined;
-    const selection =
-      focused instanceof HTMLInputElement ||
-      focused instanceof HTMLTextAreaElement
-        ? ([
-            focused.selectionStart,
-            focused.selectionEnd,
-            focused.selectionDirection,
-          ] as const)
-        : undefined;
+  const reconcileItems = (items: Array<[string, unknown]>): void => {
     const stale = new Map(instances);
     const next = new Map<string, EachInstance>();
     for (const [index, [identity, item]] of items.entries()) {
@@ -387,35 +544,94 @@ function wireEach(
       teardownTree(instance.element);
       instance.element.remove();
     }
-    if (focused) {
-      focused.focus({ preventScroll: true });
-      if (
-        selection &&
-        (focused instanceof HTMLInputElement ||
-          focused instanceof HTMLTextAreaElement)
-      )
-        focused.setSelectionRange(
-          selection[0],
-          selection[1],
-          selection[2] ?? undefined,
-        );
-    }
     instances = next;
+    order = items.map(([identity]) => identity);
+  };
+  const placeAt = (
+    instance: EachInstance,
+    index: number,
+    previousIndex?: number,
+  ): void => {
+    if (previousIndex === index) return;
+    const current =
+      el.children[
+        previousIndex !== undefined && previousIndex < index ? index + 1 : index
+      ] ?? null;
+    const movable = el as Element & {
+      moveBefore?: (node: Element, child: Element | null) => void;
+    };
+    if (
+      instance.element.parentElement === el &&
+      typeof movable.moveBefore === "function"
+    )
+      movable.moveBefore(instance.element, current);
+    else el.insertBefore(instance.element, current);
+  };
+  const applyDeltas = (deltas: readonly CollectionDelta[]): void => {
+    const prepared = prepareEachDeltas(deltas, itemKey, order, instances);
+    preserveEachFocus(el, () => {
+      for (const delta of prepared) {
+        if (delta.kind === "reset") {
+          reconcileItems(delta.items);
+        } else if (delta.kind === "insert") {
+          const itemScope = new Scope(delta.item, scopeName, parentScope);
+          const instance = {
+            element: build(template[0], store, itemScope),
+            scope: itemScope,
+          };
+          instances.set(delta.identity, instance);
+          order.splice(delta.index, 0, delta.identity);
+          placeAt(instance, delta.index);
+        } else if (delta.kind === "update") {
+          instances.get(delta.identity)!.scope.set(delta.item);
+        } else if (delta.kind === "move") {
+          const index = order.indexOf(delta.identity);
+          order.splice(index, 1);
+          order.splice(delta.index, 0, delta.identity);
+          placeAt(instances.get(delta.identity)!, delta.index, index);
+        } else {
+          const instance = instances.get(delta.identity)!;
+          teardownTree(instance.element);
+          instance.element.remove();
+          instances.delete(delta.identity);
+          order.splice(order.indexOf(delta.identity), 1);
+        }
+      }
+    });
+  };
+  const flush = (): void => {
+    frame = undefined;
+    const deltas = pendingDeltas;
+    pendingDeltas = undefined;
+    if (deltas) applyDeltas(deltas);
+    else
+      preserveEachFocus(el, () =>
+        reconcileItems(keyedItems(evaluate(), itemKey)),
+      );
   };
   const schedule = (): void => {
-    if (frame === undefined) frame = requestAnimationFrame(reconcile);
+    if (frame === undefined) frame = requestAnimationFrame(flush);
+  };
+  const scheduleReconcile = (): void => {
+    pendingDeltas = undefined;
+    schedule();
+  };
+  const scheduleDelta = (delta: CollectionDelta): void => {
+    if (delta.kind === "reset") pendingDeltas = [delta];
+    else (pendingDeltas ??= []).push(delta);
+    schedule();
   };
 
-  reconcile();
+  reconcileItems(keyedItems(evaluate(), itemKey));
   const subs: Array<() => void> = [];
   if (source?.compute !== undefined) {
     if (store)
       for (const field of exprFields(source.compute))
-        subs.push(store.subscribe(field, schedule));
+        subs.push(store.subscribe(field, scheduleReconcile));
     for (const dependency of exprScopes(source.compute, parentScope))
-      subs.push(dependency.subscribe(schedule));
+      subs.push(dependency.subscribe(scheduleReconcile));
   } else if (source?.field && store) {
-    subs.push(store.subscribe(source.field, schedule));
+    subs.push(store.subscribeCollection(source.field, scheduleDelta));
   }
   let map = bindings.get(el);
   if (!map) bindings.set(el, (map = new Map()));
