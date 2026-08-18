@@ -5,6 +5,22 @@
 // state and app/server state mirror.
 
 export type Field = string; // a field name, or a dotted path into nested state (e.g. "address.street")
+
+/** Internal keyed-collection changes consumed by structural subscribers. */
+export type CollectionKey = string | number;
+export type CollectionPathSegment = string | number;
+export type CollectionDelta<Item = unknown> =
+  | { kind: "reset"; items: readonly Item[]; revision?: number }
+  | { kind: "insert"; key: CollectionKey; index: number; item: Item }
+  | {
+      kind: "update";
+      key: CollectionKey;
+      path: readonly CollectionPathSegment[];
+      value: unknown;
+    }
+  | { kind: "move"; key: CollectionKey; index: number }
+  | { kind: "remove"; key: CollectionKey };
+
 type Subscriber = (value: unknown) => void;
 type SubscriberIndex = {
   field?: Field;
