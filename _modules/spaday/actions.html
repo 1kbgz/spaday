@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.actions - spaday v0.5.0</title>
+        <title>spaday.actions - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -240,7 +240,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for spaday.actions</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;The declarative action DSL: behavior authored in Python, executed in the browser.</span>
+<span></span><span class="sd">"""The declarative action DSL: behavior authored in Python, executed in the browser.</span>
 
 <span class="sd">An :class:`Action` is *serializable data, not code* — it carries no Python callable. Attach one to a</span>
 <span class="sd">component with :meth:`~spaday.component.Component.on` and the spaday runtime interprets it directly on</span>
@@ -249,11 +249,11 @@
 <span class="sd">    from spaday.actions import SetProp, Toggle, by_id, event_value, not_</span>
 <span class="sd">    from spaday_webawesome import WaButton, WaSwitch</span>
 
-<span class="sd">    WaButton(variant=&quot;neutral&quot;).text(&quot;Toggle&quot;).on(&quot;click&quot;, Toggle(by_id(&quot;panel&quot;), &quot;hidden&quot;))</span>
-<span class="sd">    WaSwitch().text(&quot;Show&quot;).on(&quot;change&quot;, SetProp(by_id(&quot;panel&quot;), &quot;hidden&quot;, not_(event_value())))</span>
+<span class="sd">    WaButton(variant="neutral").text("Toggle").on("click", Toggle(by_id("panel"), "hidden"))</span>
+<span class="sd">    WaSwitch().text("Show").on("change", SetProp(by_id("panel"), "hidden", not_(event_value())))</span>
 
-<span class="sd">This is the &quot;configure in Python, run in JS&quot; core: the server holds session state, but an `onClick`</span>
-<span class="sd">toggle or a prop binding runs client-side. The interpreter dispatches on each action&#39;s ``kind`` — there</span>
+<span class="sd">This is the "configure in Python, run in JS" core: the server holds session state, but an `onClick`</span>
+<span class="sd">toggle or a prop binding runs client-side. The interpreter dispatches on each action's ``kind`` — there</span>
 <span class="sd">is no ``eval`` — so actions are safe to ship to untrusted, multi-tenant clients.</span>
 
 <span class="sd">Actions: ``SetProp`` / ``Toggle`` / ``Sequence`` / ``Emit`` (client-side); ``SetField`` / ``ToggleField``</span>
@@ -263,14 +263,14 @@
 <span class="sd">``lit`` / ``event_value`` / ``field`` / ``item`` / ``scope`` / ``not_`` / ``prop`` / ``obj`` /</span>
 <span class="sd">``concat``; targets ``this`` / ``by_id``.</span>
 <span class="sd">``bind`` here is a one-way event-driven helper; reactive prop↔state bindings (one- or two-way) are</span>
-<span class="sd">authored with ``Component.bind`` and interpreted by the runtime&#39;s signal store.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">authored with ``Component.bind`` and interpreted by the runtime's signal store.</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A value computed in the browser at event time (a literal, the event&#39;s value, ...).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""A value computed in the browser at event time (a literal, the event's value, ...)."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
@@ -281,12 +281,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;lit&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"lit"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">}</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_EventValue</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;event&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"event"</span><span class="p">}</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_Not</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
@@ -294,13 +294,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">of</span> <span class="o">=</span> <span class="n">of</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;not&quot;</span><span class="p">,</span> <span class="s2">&quot;of&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">of</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"not"</span><span class="p">,</span> <span class="s2">"of"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">of</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
 
 
 <div class="viewcode-block" id="lit">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.lit">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">lit</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A literal value.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""A literal value."""</span>
     <span class="k">return</span> <span class="n">_Lit</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
 
 
@@ -308,7 +308,7 @@
 <div class="viewcode-block" id="event_value">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.event_value">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">event_value</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;The triggering event&#39;s value — a control&#39;s ``checked`` (booleans) else ``value`` else ``detail``.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""The triggering event's value — a control's ``checked`` (booleans) else ``value`` else ``detail``."""</span>
     <span class="k">return</span> <span class="n">_EventValue</span><span class="p">()</span></div>
 
 
@@ -316,29 +316,29 @@
 <div class="viewcode-block" id="not_">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.not_">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">not_</span><span class="p">(</span><span class="n">of</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Boolean negation of an expression (or a literal).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Boolean negation of an expression (or a literal)."""</span>
     <span class="k">return</span> <span class="n">_Not</span><span class="p">(</span><span class="n">of</span><span class="p">)</span></div>
 
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_expr</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coerce a plain Python value to a literal expression; pass an `Expr` through.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Coerce a plain Python value to a literal expression; pass an `Expr` through."""</span>
     <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Expr</span><span class="p">)</span> <span class="k">else</span> <span class="n">_Lit</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_Prop</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">&quot;Ref&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"Ref"</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">name</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;prop&quot;</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"prop"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="prop">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.prop">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">prop</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="s2">&quot;Ref&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;The current value of a ``name`` prop on ``target`` — reads live element state, e.g.</span>
-<span class="sd">    ``prop(by_id(&quot;sw&quot;), &quot;checked&quot;)`` for use as a condition.&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">prop</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="s2">"Ref"</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The current value of a ``name`` prop on ``target`` — reads live element state, e.g.</span>
+<span class="sd">    ``prop(by_id("sw"), "checked")`` for use as a condition."""</span>
     <span class="k">return</span> <span class="n">_Prop</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
 
 
@@ -348,14 +348,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;field&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"field"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="field">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.field">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">field</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;The current value of a reactive state field — for a *computed* binding (``Component.compute``),</span>
-<span class="sd">    evaluated against the signal store in the browser, e.g. ``not_(field(&quot;enabled&quot;))``.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""The current value of a reactive state field — for a *computed* binding (``Component.compute``),</span>
+<span class="sd">    evaluated against the signal store in the browser, e.g. ``not_(field("enabled"))``."""</span>
     <span class="k">return</span> <span class="n">_Field</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
 
@@ -365,16 +365,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;item&quot;</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"item"</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="item">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.item">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">item</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read ``path`` from the innermost ``Each`` item.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">item</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Read ``path`` from the innermost ``Each`` item.</span>
 
 <span class="sd">    An empty path returns the complete item. Missing paths evaluate to ``undefined`` in the browser.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">_Item</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
 
 
@@ -384,20 +384,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;scope&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"scope"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="scope">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.scope">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">scope</span><span class="p">(</span><span class="n">reference</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a named current or ancestor item scope.</span>
+<span class="w">    </span><span class="sd">"""Read a named current or ancestor item scope.</span>
 
-<span class="sd">    ``scope(&quot;staging.channel&quot;)`` reads ``channel`` from the nearest scope named ``staging``;</span>
-<span class="sd">    ``scope(&quot;staging&quot;)`` returns that scope&#39;s complete item.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">reference</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+<span class="sd">    ``scope("staging.channel")`` reads ``channel`` from the nearest scope named ``staging``;</span>
+<span class="sd">    ``scope("staging")`` returns that scope's complete item.</span>
+<span class="sd">    """</span>
+    <span class="n">name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">reference</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;scope reference must start with a name&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"scope reference must start with a name"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_Scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
 
 
@@ -407,13 +407,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;eq&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"eq"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"b"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
 
 
 <div class="viewcode-block" id="eq">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.eq">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">eq</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;True when two expressions are equal, e.g. ``eq(field(&quot;mode&quot;), &quot;advanced&quot;)``.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""True when two expressions are equal, e.g. ``eq(field("mode"), "advanced")``."""</span>
     <span class="k">return</span> <span class="n">_Eq</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span></div>
 
 
@@ -423,13 +423,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">exprs</span> <span class="o">=</span> <span class="n">exprs</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span> <span class="s2">&quot;of&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exprs</span><span class="p">]}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"all"</span><span class="p">,</span> <span class="s2">"of"</span><span class="p">:</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exprs</span><span class="p">]}</span>
 
 
 <div class="viewcode-block" id="all_">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.all_">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">all_</span><span class="p">(</span><span class="o">*</span><span class="n">exprs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;True when every expression is truthy (logical AND).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""True when every expression is truthy (logical AND)."""</span>
     <span class="k">return</span> <span class="n">_All</span><span class="p">(</span><span class="o">*</span><span class="n">exprs</span><span class="p">)</span></div>
 
 
@@ -439,13 +439,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">exprs</span> <span class="o">=</span> <span class="n">exprs</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;any&quot;</span><span class="p">,</span> <span class="s2">&quot;of&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exprs</span><span class="p">]}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"any"</span><span class="p">,</span> <span class="s2">"of"</span><span class="p">:</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exprs</span><span class="p">]}</span>
 
 
 <div class="viewcode-block" id="any_">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.any_">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">any_</span><span class="p">(</span><span class="o">*</span><span class="n">exprs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;True when any expression is truthy (logical OR).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""True when any expression is truthy (logical OR)."""</span>
     <span class="k">return</span> <span class="n">_Any</span><span class="p">(</span><span class="o">*</span><span class="n">exprs</span><span class="p">)</span></div>
 
 
@@ -456,22 +456,22 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;cond&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-            <span class="s2">&quot;then&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">then</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-            <span class="s2">&quot;else&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">otherwise</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+            <span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"cond"</span><span class="p">,</span>
+            <span class="s2">"test"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+            <span class="s2">"then"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">then</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+            <span class="s2">"else"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">otherwise</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
         <span class="p">}</span>
 
 
 <div class="viewcode-block" id="cond">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.cond">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">cond</span><span class="p">(</span><span class="n">test</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">then</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A ternary for a *computed* binding (:meth:`~spaday.component.Component.compute`): ``then`` when</span>
+<span class="w">    </span><span class="sd">"""A ternary for a *computed* binding (:meth:`~spaday.component.Component.compute`): ``then`` when</span>
 <span class="sd">    ``test`` is truthy, else ``otherwise`` (each a plain value or an :class:`Expr`). Evaluated against the</span>
 <span class="sd">    signal store in the browser — e.g. a boolean ``dark`` field driving a string theme prop::</span>
 
-<span class="sd">        chart.compute(&quot;theme&quot;, cond(field(&quot;dark&quot;), &quot;dark&quot;, &quot;light&quot;))</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        chart.compute("theme", cond(field("dark"), "dark", "light"))</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">_Cond</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">then</span><span class="p">,</span> <span class="n">otherwise</span><span class="p">)</span></div>
 
 
@@ -481,21 +481,21 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;obj&quot;</span><span class="p">,</span> <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"obj"</span><span class="p">,</span> <span class="s2">"fields"</span><span class="p">:</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}}</span>
 
 
 <div class="viewcode-block" id="obj">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.obj">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">obj</span><span class="p">(</span><span class="n">fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compose a JSON object from named sub-expressions (each value a plain value or an :class:`Expr`).</span>
+<span class="w">    </span><span class="sd">"""Compose a JSON object from named sub-expressions (each value a plain value or an :class:`Expr`).</span>
 <span class="sd">    Lets a whole model be POSTed declaratively as a :class:`CallEndpoint` body — composing live control</span>
 <span class="sd">    values without a hand-written handler::</span>
 
-<span class="sd">        CallEndpoint(&quot;POST&quot;, &quot;/api/order&quot;, obj({</span>
-<span class="sd">            &quot;symbol&quot;: prop(by_id(&quot;symbol&quot;), &quot;value&quot;),</span>
-<span class="sd">            &quot;qty&quot;: prop(by_id(&quot;qty&quot;), &quot;value&quot;),</span>
+<span class="sd">        CallEndpoint("POST", "/api/order", obj({</span>
+<span class="sd">            "symbol": prop(by_id("symbol"), "value"),</span>
+<span class="sd">            "qty": prop(by_id("qty"), "value"),</span>
 <span class="sd">        }))</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">_Obj</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span></div>
 
 
@@ -505,19 +505,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">parts</span> <span class="o">=</span> <span class="n">parts</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;expr&quot;</span><span class="p">:</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span> <span class="s2">&quot;parts&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">part</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parts</span><span class="p">]}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"concat"</span><span class="p">,</span> <span class="s2">"parts"</span><span class="p">:</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">part</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parts</span><span class="p">]}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">concat</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concatenate expressions as strings, e.g. a state-derived endpoint URL::</span>
+<span class="w">    </span><span class="sd">"""Concatenate expressions as strings, e.g. a state-derived endpoint URL::</span>
 
-<span class="sd">    CallEndpoint(&quot;POST&quot;, concat(&quot;/send/basket/&quot;, field(&quot;key&quot;)), body)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    CallEndpoint("POST", concat("/send/basket/", field("key")), body)</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">_Concat</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Ref</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A reference to a DOM element an action targets.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""A reference to a DOM element an action targets."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
@@ -525,7 +525,7 @@
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_This</span><span class="p">(</span><span class="n">Ref</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ref&quot;</span><span class="p">:</span> <span class="s2">&quot;this&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"ref"</span><span class="p">:</span> <span class="s2">"this"</span><span class="p">}</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_Id</span><span class="p">(</span><span class="n">Ref</span><span class="p">):</span>
@@ -533,13 +533,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ref&quot;</span><span class="p">:</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"ref"</span><span class="p">:</span> <span class="s2">"id"</span><span class="p">,</span> <span class="s2">"id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="this">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.this">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">this</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Ref</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;The element the event fired on (the listener&#39;s element).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""The element the event fired on (the listener's element)."""</span>
     <span class="k">return</span> <span class="n">_This</span><span class="p">()</span></div>
 
 
@@ -547,13 +547,13 @@
 <div class="viewcode-block" id="by_id">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.by_id">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">by_id</span><span class="p">(</span><span class="nb">id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Ref</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;The element with this ``id`` within the mounted tree.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""The element with this ``id`` within the mounted tree."""</span>
     <span class="k">return</span> <span class="n">_Id</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span></div>
 
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Action</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Declarative behavior, interpreted in the browser. Serializes to the component&#39;s ``events`` map.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Declarative behavior, interpreted in the browser. Serializes to the component's ``events`` map."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
@@ -562,118 +562,118 @@
 <div class="viewcode-block" id="SetProp">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.SetProp">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SetProp</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set ``prop`` on ``target`` to ``value`` (an :class:`Expr` or a plain literal).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Set ``prop`` on ``target`` to ``value`` (an :class:`Expr` or a plain literal)."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">,</span> <span class="n">prop</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">value</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;set&quot;</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">&quot;prop&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"set"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"prop"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span></div>
 
 
 
 <div class="viewcode-block" id="Toggle">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Toggle">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Toggle</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Flip a boolean ``prop`` on ``target`` (e.g. ``hidden``, ``checked``, ``open``).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Flip a boolean ``prop`` on ``target`` (e.g. ``hidden``, ``checked``, ``open``)."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">,</span> <span class="n">prop</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">prop</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;toggle&quot;</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">&quot;prop&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span><span class="p">}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"toggle"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"prop"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span><span class="p">}</span></div>
 
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">SetField</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write ``value`` (an :class:`Expr` or a plain literal) to reactive state ``field`` in the signal</span>
+<span class="w">    </span><span class="sd">"""Write ``value`` (an :class:`Expr` or a plain literal) to reactive state ``field`` in the signal</span>
 <span class="sd">    store the tree was mounted with — the store-writing counterpart of :func:`field`. Lets a plain</span>
 <span class="sd">    control drive reactive state declaratively::</span>
 
-<span class="sd">        WaButton().text(&quot;Clear&quot;).on(&quot;click&quot;, SetField(&quot;symbol&quot;, &quot;&quot;))</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        WaButton().text("Clear").on("click", SetField("symbol", ""))</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;set-field&quot;</span><span class="p">,</span> <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"set-field"</span><span class="p">,</span> <span class="s2">"field"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">ToggleField</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Flip a boolean reactive state ``field`` in the signal store — e.g. an icon button toggling a</span>
+<span class="w">    </span><span class="sd">"""Flip a boolean reactive state ``field`` in the signal store — e.g. an icon button toggling a</span>
 <span class="sd">    ``dark`` theme flag::</span>
 
-<span class="sd">        WaButton(appearance=&quot;plain&quot;).text(&quot;🌙&quot;).on(&quot;click&quot;, ToggleField(&quot;dark&quot;))</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        WaButton(appearance="plain").text("🌙").on("click", ToggleField("dark"))</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">field</span> <span class="o">=</span> <span class="n">field</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;toggle-field&quot;</span><span class="p">,</span> <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"toggle-field"</span><span class="p">,</span> <span class="s2">"field"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="Sequence">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Sequence">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Sequence</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run several actions in order.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Run several actions in order."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">actions</span><span class="p">:</span> <span class="n">Action</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Action</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;seq&quot;</span><span class="p">,</span> <span class="s2">&quot;actions&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="p">]}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"seq"</span><span class="p">,</span> <span class="s2">"actions"</span><span class="p">:</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="p">]}</span></div>
 
 
 
 <div class="viewcode-block" id="Emit">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Emit">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Emit</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dispatch a (bubbling) custom DOM event named ``event`` with an optional ``detail`` expression.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Dispatch a (bubbling) custom DOM event named ``event`` with an optional ``detail`` expression."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">detail</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">event</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">detail</span> <span class="o">=</span> <span class="n">event</span><span class="p">,</span> <span class="n">detail</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">detail</span> <span class="o">=</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">detail</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">detail</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;emit&quot;</span><span class="p">,</span> <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">event</span><span class="p">,</span> <span class="s2">&quot;detail&quot;</span><span class="p">:</span> <span class="n">detail</span><span class="p">}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"emit"</span><span class="p">,</span> <span class="s2">"event"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">event</span><span class="p">,</span> <span class="s2">"detail"</span><span class="p">:</span> <span class="n">detail</span><span class="p">}</span></div>
 
 
 
 <div class="viewcode-block" id="SendPatch">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.SendPatch">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SendPatch</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set ``field`` to ``value`` on a host-routed ``model`` (e.g. a transports model).</span>
+<span class="w">    </span><span class="sd">"""Set ``field`` to ``value`` on a host-routed ``model`` (e.g. a transports model).</span>
 
 <span class="sd">    The runtime surfaces this as a patch *intent* (a bubbling ``spaday:patch`` DOM event carrying</span>
 <span class="sd">    ``{model, field, value}``); the app routes it to the actual wire. This is how a control edit is</span>
 <span class="sd">    authored declaratively instead of with a hand-written transports listener.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">model</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;patch&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"patch"</span><span class="p">,</span> <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">"field"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span></div>
 
 
 
 <div class="viewcode-block" id="If">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.If">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">If</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run ``then`` if ``cond`` is truthy, else ``els`` (if given) — branch on live state, e.g.</span>
-<span class="sd">    ``If(prop(by_id(&quot;sw&quot;), &quot;checked&quot;), SetProp(...), SetProp(...))``.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Run ``then`` if ``cond`` is truthy, else ``els`` (if given) — branch on live state, e.g.</span>
+<span class="sd">    ``If(prop(by_id("sw"), "checked"), SetProp(...), SetProp(...))``."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cond</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">then</span><span class="p">:</span> <span class="n">Action</span><span class="p">,</span> <span class="n">els</span><span class="p">:</span> <span class="n">Action</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cond</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">then</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">els</span> <span class="o">=</span> <span class="n">cond</span><span class="p">,</span> <span class="n">then</span><span class="p">,</span> <span class="n">els</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;if&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;cond&quot;</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cond</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-            <span class="s2">&quot;then&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">then</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
-            <span class="s2">&quot;else&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">els</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">els</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"if"</span><span class="p">,</span>
+            <span class="s2">"cond"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cond</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+            <span class="s2">"then"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">then</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+            <span class="s2">"else"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">els</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">els</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span></div>
 
 
@@ -681,18 +681,18 @@
 <div class="viewcode-block" id="CallEndpoint">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.CallEndpoint">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CallEndpoint</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A REST round-trip: ``method`` ``url`` with an optional JSON ``body``. ``url`` may be a static</span>
+<span class="w">    </span><span class="sd">"""A REST round-trip: ``method`` ``url`` with an optional JSON ``body``. ``url`` may be a static</span>
 <span class="sd">    string or an :class:`Expr`; ``body`` may be an expression or a plain value. The runtime performs the</span>
 <span class="sd">    call with ``fetch``.</span>
 
 <span class="sd">    Pass ``result`` (a signal-store field name) to capture the outcome: on completion the runtime writes</span>
-<span class="sd">    ``{&quot;status&quot;: &lt;int&gt;, &quot;ok&quot;: &lt;bool&gt;, &quot;body&quot;: &lt;parsed JSON or text&gt;}`` to that field, so success/error</span>
+<span class="sd">    ``{"status": &lt;int&gt;, "ok": &lt;bool&gt;, "body": &lt;parsed JSON or text&gt;}`` to that field, so success/error</span>
 <span class="sd">    feedback stays declarative (bind or :class:`~spaday.components.shell.Show` on it)::</span>
 
-<span class="sd">        CallEndpoint(&quot;POST&quot;, &quot;/api/order&quot;, obj({&quot;symbol&quot;: field(&quot;symbol&quot;)}), result=&quot;order_result&quot;)</span>
+<span class="sd">        CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol")}), result="order_result")</span>
 
 <span class="sd">    Without ``result`` the call is fire-and-forget.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Expr</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">result</span>
@@ -700,38 +700,38 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">Expr</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span>
         <span class="n">body</span> <span class="o">=</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;call&quot;</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span> <span class="s2">&quot;body&quot;</span><span class="p">:</span> <span class="n">body</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"call"</span><span class="p">,</span> <span class="s2">"method"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">:</span> <span class="n">url</span><span class="p">,</span> <span class="s2">"body"</span><span class="p">:</span> <span class="n">body</span><span class="p">,</span> <span class="s2">"result"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">}</span></div>
 
 
 
 <div class="viewcode-block" id="NamedJs">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.NamedJs">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">NamedJs</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;The escape hatch: invoke a pre-registered named JS handler (no arbitrary ``eval``). Register it</span>
-<span class="sd">    on the JS side with ``registerHandler(name, fn)``; use only for the rare irreducible case.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""The escape hatch: invoke a pre-registered named JS handler (no arbitrary ``eval``). Register it</span>
+<span class="sd">    on the JS side with ``registerHandler(name, fn)``; use only for the rare irreducible case."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">handler</span> <span class="o">=</span> <span class="n">handler</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;handler&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">handler</span><span class="p">}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"js"</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">handler</span><span class="p">}</span></div>
 
 
 
 <div class="viewcode-block" id="bind">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.bind">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">transform</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;One-way reactive binding: when ``source`` (a control component) changes, set ``target_prop`` on</span>
-<span class="sd">    ``target`` (a :class:`Ref`, e.g. ``by_id(&quot;panel&quot;)``) to the source&#39;s value — optionally passed</span>
+<span class="w">    </span><span class="sd">"""One-way reactive binding: when ``source`` (a control component) changes, set ``target_prop`` on</span>
+<span class="sd">    ``target`` (a :class:`Ref`, e.g. ``by_id("panel")``) to the source's value — optionally passed</span>
 <span class="sd">    through ``transform`` (e.g. :func:`not_`). Returns ``source`` so it composes in a tree::</span>
 
-<span class="sd">        bind(WaSwitch().text(&quot;Show&quot;), by_id(&quot;panel&quot;), &quot;hidden&quot;, transform=not_)</span>
+<span class="sd">        bind(WaSwitch().text("Show"), by_id("panel"), "hidden", transform=not_)</span>
 
-<span class="sd">    Event-driven (sugar over ``SetProp`` on the source&#39;s ``change``); the signal-graph reactive engine</span>
+<span class="sd">    Event-driven (sugar over ``SetProp`` on the source's ``change``); the signal-graph reactive engine</span>
 <span class="sd">    and two-way binding are future work.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">value</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">event_value</span><span class="p">())</span> <span class="k">if</span> <span class="n">transform</span> <span class="k">else</span> <span class="n">event_value</span><span class="p">()</span>
-    <span class="n">source</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;change&quot;</span><span class="p">,</span> <span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+    <span class="n">source</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">source</span></div>
 
 </pre></div>
@@ -766,7 +766,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

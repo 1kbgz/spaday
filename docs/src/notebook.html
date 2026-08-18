@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="How to run a spaday app in Pyodide" href="pyodide.html"><link rel="prev" title="Sync a UI to a server over transports" href="transports.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Use spaday in a Jupyter notebook - spaday v0.5.0</title>
+        <title>Use spaday in a Jupyter notebook - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -252,7 +252,7 @@
 server. It works in Jupyter (Lab / Notebook / Colab / VS Code) and the wider
 <a class="reference external" href="https://anywidget.dev">anywidget</a> ecosystem (Marimo, Shiny-for-Python, Solara, Panel).</p>
 <p>Install the host:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;spaday[widget]&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"spaday[widget]"</span>
 </pre></div>
 </div>
 <section id="render-a-tree">
@@ -260,7 +260,7 @@ server. It works in Jupyter (Lab / Notebook / Colab / VS Code) and the wider
 <p>Wrap any component tree in <code class="docutils literal notranslate"><span class="pre">Widget</span></code> and return it from a cell:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
 
-<span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Run&quot;</span><span class="p">))</span>
+<span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"button"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Run"</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>The widget bundles the spaday runtime and wasm core. It renders core <code class="docutils literal notranslate"><span class="pre">spa-*</span></code> components and native HTML
@@ -270,10 +270,10 @@ elements; component-package browser assets are loaded by web backends through <c
 <h2>Update the rendered tree<a class="headerlink" href="#update-the-rendered-tree" title="Link to this heading">¶</a></h2>
 <p>Keep a reference and call <code class="docutils literal notranslate"><span class="pre">update</span></code> to replace the tree; the browser applies a minimal diff (live
 elements are preserved, not rebuilt):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"div"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">))</span>
 <span class="n">w</span>  <span class="c1"># display it</span>
 
-<span class="n">w</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Fan&quot;</span><span class="p">)))</span>
+<span class="n">w</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"div"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"div"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Fan"</span><span class="p">)))</span>
 </pre></div>
 </div>
 </section>
@@ -283,16 +283,16 @@ elements are preserved, not rebuilt):</p>
 updates the state from the browser, and assigning <code class="docutils literal notranslate"><span class="pre">w.state</span></code> updates the control:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
 
-<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"checked"</span><span class="p">,</span> <span class="s2">"lamp"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">"lamp"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 <span class="n">w</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">state</span>                 <span class="c1"># -&gt; {&#39;lamp&#39;: True}; flip the switch, then re-read -&gt; {&#39;lamp&#39;: False}</span>
-<span class="n">w</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>  <span class="c1"># turns the switch back on</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">state</span>                 <span class="c1"># -&gt; {'lamp': True}; flip the switch, then re-read -&gt; {'lamp': False}</span>
+<span class="n">w</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"lamp"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>  <span class="c1"># turns the switch back on</span>
 </pre></div>
 </div>
 <p>React to changes (including browser-driven ones) with <code class="docutils literal notranslate"><span class="pre">on_state</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_state</span><span class="p">(</span><span class="k">lambda</span> <span class="n">state</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;state:&quot;</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_state</span><span class="p">(</span><span class="k">lambda</span> <span class="n">state</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"state:"</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
 </pre></div>
 </div>
 </section>
@@ -300,7 +300,7 @@ updates the state from the browser, and assigning <code class="docutils literal 
 <h2>Handle a SendPatch intent<a class="headerlink" href="#handle-a-sendpatch-intent" title="Link to this heading">¶</a></h2>
 <p>A <a class="reference internal" href="behavior.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code></span></a> action surfaces an <em>intent</em> the host forwards to Python. Register a handler
 with <code class="docutils literal notranslate"><span class="pre">on_intent</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_intent</span><span class="p">(</span><span class="k">lambda</span> <span class="n">content</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;intent:&quot;</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>   <span class="c1"># content is {&quot;type&quot;: &quot;spaday:patch&quot;, &quot;detail&quot;: {...}}</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_intent</span><span class="p">(</span><span class="k">lambda</span> <span class="n">content</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"intent:"</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>   <span class="c1"># content is {"type": "spaday:patch", "detail": {...}}</span>
 </pre></div>
 </div>
 <p>For most cases prefer a two-way binding over <code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> + <code class="docutils literal notranslate"><span class="pre">on_intent</span></code> — the binding already carries the
@@ -311,7 +311,7 @@ control→state edit.</p>
 <p>Because the widget is an anywidget, Panel renders it directly:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">panel</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pn</span>
 <span class="n">pn</span><span class="o">.</span><span class="n">extension</span><span class="p">()</span>
-<span class="n">pn</span><span class="o">.</span><span class="n">panel</span><span class="p">(</span><span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Run&quot;</span><span class="p">)))</span>
+<span class="n">pn</span><span class="o">.</span><span class="n">panel</span><span class="p">(</span><span class="n">Widget</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"button"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Run"</span><span class="p">)))</span>
 </pre></div>
 </div>
 </section>
@@ -389,7 +389,7 @@ control→state edit.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

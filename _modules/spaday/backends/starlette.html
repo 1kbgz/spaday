@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.backends.starlette - spaday v0.5.0</title>
+        <title>spaday.backends.starlette - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -240,9 +240,9 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for spaday.backends.starlette</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Starlette (and FastAPI, which is Starlette) backend.</span>
+<span></span><span class="sd">"""Starlette (and FastAPI, which is Starlette) backend.</span>
 
-<span class="sd">- ``mount(app, page, *, prefix=&quot;&quot;, …)`` — add spaday&#39;s routes to an **existing** app, at ``{prefix}/`` ·</span>
+<span class="sd">- ``mount(app, page, *, prefix="", …)`` — add spaday's routes to an **existing** app, at ``{prefix}/`` ·</span>
 <span class="sd">  ``{prefix}/tree[.json]`` · ``{prefix}/js`` (so spaday drops into a bigger app, optionally under a</span>
 <span class="sd">  sub-path). This is the primitive.</span>
 <span class="sd">- ``serve(page, …) -&gt; Starlette`` — create an app (with a lifespan for ``background`` coroutines) and</span>
@@ -250,7 +250,7 @@
 
 <span class="sd">Starlette is the optional ``examples`` extra; it is imported inside the functions so ``import spaday``</span>
 <span class="sd">stays light.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -268,9 +268,9 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_prefixed</span><span class="p">(</span><span class="n">routes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prefix each supplied ``Route``/``WebSocketRoute`` path with ``prefix`` so it lines up with the wire</span>
+<span class="w">    </span><span class="sd">"""Prefix each supplied ``Route``/``WebSocketRoute`` path with ``prefix`` so it lines up with the wire</span>
 <span class="sd">    URLs :func:`bootstrap` generates under the same prefix (a ``wire`` ws at ``{prefix}/ws`` must match its</span>
-<span class="sd">    ``WebSocketRoute``). Other route types (``Mount``/``Host``) pass through — prefix those yourself.&quot;&quot;&quot;</span>
+<span class="sd">    ``WebSocketRoute``). Other route types (``Mount``/``Host``) pass through — prefix those yourself."""</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">prefix</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">routes</span><span class="p">)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Route</span><span class="p">,</span> <span class="n">WebSocketRoute</span>
@@ -278,9 +278,9 @@
     <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">routes</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">WebSocketRoute</span><span class="p">):</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">WebSocketRoute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">r</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">WebSocketRoute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">r</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">Route</span><span class="p">):</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">r</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">methods</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">r</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">methods</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span>
@@ -292,35 +292,35 @@
     <span class="n">app</span><span class="p">:</span> <span class="n">Starlette</span><span class="p">,</span>
     <span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
     <span class="n">routes</span><span class="p">:</span> <span class="n">Sequence</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">html</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">js</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">layout</span><span class="p">:</span> <span class="n">AssetLayout</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;spaday&quot;</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"spaday"</span><span class="p">,</span>
     <span class="n">packages</span><span class="p">:</span> <span class="n">PackageRef</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PackageRef</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/ws&quot;</span><span class="p">,</span>
-    <span class="n">tree</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+    <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/ws"</span><span class="p">,</span>
+    <span class="n">tree</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"json"</span><span class="p">,</span>
     <span class="n">reconnect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">scripts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
-    <span class="n">head</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">head</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
     <span class="n">store</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Starlette</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add spaday&#39;s routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under</span>
+<span class="w">    </span><span class="sd">"""Add spaday's routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under</span>
 <span class="sd">    ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``</span>
-<span class="sd">    becomes ``{prefix}/ws``), so a wired panel&#39;s generated ws URL and its endpoint line up — pass the</span>
-<span class="sd">    *unprefixed* path (``WebSocketRoute(&quot;/ws&quot;, …)``) and let ``mount`` add the prefix. Generation options</span>
+<span class="sd">    becomes ``{prefix}/ws``), so a wired panel's generated ws URL and its endpoint line up — pass the</span>
+<span class="sd">    *unprefixed* path (``WebSocketRoute("/ws", …)``) and let ``mount`` add the prefix. Generation options</span>
 <span class="sd">    pass to :func:`spaday.bootstrap.bootstrap` (incl. ``store`` and ``nonce``, a CSP nonce for the</span>
 <span class="sd">    generated scripts); ``html`` serves a hand-authored bootstrap instead; ``js`` overrides the bundle dir.</span>
-<span class="sd">    ``mount`` only adds routes — **the host owns the app&#39;s lifespan**, so run any ``transports.autosync``</span>
-<span class="sd">    in your own lifespan (see ``examples/embed.py``). Returns ``app`` for chaining.&quot;&quot;&quot;</span>
+<span class="sd">    ``mount`` only adds routes — **the host owns the app's lifespan**, so run any ``transports.autosync``</span>
+<span class="sd">    in your own lifespan (see ``examples/embed.py``). Returns ``app`` for chaining."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileResponse</span><span class="p">,</span> <span class="n">HTMLResponse</span><span class="p">,</span> <span class="n">Response</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mount</span><span class="p">,</span> <span class="n">Route</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.staticfiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticFiles</span>
 
-    <span class="n">asset_layout</span> <span class="o">=</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">&quot;source&quot;</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">asset_layout</span> <span class="o">=</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"source"</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
     <span class="n">body</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span>
         <span class="n">base</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
@@ -342,20 +342,20 @@
         <span class="k">return</span> <span class="n">FileResponse</span><span class="p">(</span><span class="n">html</span><span class="p">)</span> <span class="k">if</span> <span class="n">html</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">tree_route_json</span><span class="p">(</span><span class="n">_request</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;application/json&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">tree_route_frame</span><span class="p">(</span><span class="n">_request</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_frame</span><span class="p">(</span><span class="n">page</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;application/octet-stream&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_frame</span><span class="p">(</span><span class="n">page</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/octet-stream"</span><span class="p">)</span>
 
-    <span class="n">tree_route</span> <span class="o">=</span> <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree&quot;</span><span class="p">,</span> <span class="n">tree_route_frame</span><span class="p">)</span> <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">&quot;frame&quot;</span> <span class="k">else</span> <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree.json&quot;</span><span class="p">,</span> <span class="n">tree_route_json</span><span class="p">)</span>
+    <span class="n">tree_route</span> <span class="o">=</span> <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree"</span><span class="p">,</span> <span class="n">tree_route_frame</span><span class="p">)</span> <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"frame"</span> <span class="k">else</span> <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree.json"</span><span class="p">,</span> <span class="n">tree_route_json</span><span class="p">)</span>
     <span class="n">package_mounts</span> <span class="o">=</span> <span class="p">[</span><span class="n">Mount</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span> <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">component_packages</span><span class="p">]</span>
     <span class="n">app</span><span class="o">.</span><span class="n">routes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
         <span class="p">[</span>
-            <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/&quot;</span><span class="p">,</span> <span class="n">homepage</span><span class="p">),</span>
+            <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/"</span><span class="p">,</span> <span class="n">homepage</span><span class="p">),</span>
             <span class="n">tree_route</span><span class="p">,</span>
             <span class="o">*</span><span class="n">_prefixed</span><span class="p">(</span><span class="n">routes</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span>
             <span class="o">*</span><span class="n">package_mounts</span><span class="p">,</span>
-            <span class="n">Mount</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/js&quot;</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">js_dir</span><span class="p">)),</span>
+            <span class="n">Mount</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/js"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">js_dir</span><span class="p">)),</span>
         <span class="p">]</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">app</span></div>
@@ -365,10 +365,10 @@
 <div class="viewcode-block" id="serve">
 <a class="viewcode-back" href="../../../docs/src/api.html#spaday.backends.starlette.serve">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">serve</span><span class="p">(</span><span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">background</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Awaitable</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span> <span class="n">lifespan</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">opts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Starlette</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a Starlette app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the</span>
-<span class="sd">    app&#39;s lifetime (or pass a custom ``lifespan`` for ordered startup, e.g. a clustering relay); all other</span>
-<span class="sd">    keyword options are :func:`mount`&#39;s (``prefix``/``routes``/``html``/``js``/``title``/``packages``/</span>
-<span class="sd">    ``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``store``/``nonce``).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Create a Starlette app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the</span>
+<span class="sd">    app's lifetime (or pass a custom ``lifespan`` for ordered startup, e.g. a clustering relay); all other</span>
+<span class="sd">    keyword options are :func:`mount`'s (``prefix``/``routes``/``html``/``js``/``title``/``packages``/</span>
+<span class="sd">    ``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``store``/``nonce``)."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.applications</span><span class="w"> </span><span class="kn">import</span> <span class="n">Starlette</span>
 
     <span class="nd">@asynccontextmanager</span>
@@ -415,7 +415,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Tutorial: build your first interactive UI" href="docs/src/tutorial.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday v0.5.0</title>
+        <title>spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="#"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="#"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="#">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -272,16 +272,16 @@ authors the tree) and <strong>wasm</strong> (the browser runs it). One core, two
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
 
 <span class="c1"># a checkbox two-way-bound to a state field, rendered in a Jupyter cell</span>
-<span class="n">ui</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;on&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">)</span>
-<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">ui</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;on&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
-<span class="n">w</span>  <span class="c1"># flip the switch → w.state[&quot;on&quot;] flips in Python; set w.state → the switch follows</span>
+<span class="n">ui</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"checked"</span><span class="p">,</span> <span class="s2">"on"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">)</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">ui</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">"on"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">w</span>  <span class="c1"># flip the switch → w.state["on"] flips in Python; set w.state → the switch follows</span>
 </pre></div>
 </div>
 </section>
 <section id="install">
 <h2>Install<a class="headerlink" href="#install" title="Link to this heading">¶</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>spaday<span class="w">            </span><span class="c1"># core: author + serialize component trees</span>
-pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;spaday[widget]&quot;</span><span class="w">  </span><span class="c1"># + the Jupyter / anywidget host</span>
+pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"spaday[widget]"</span><span class="w">  </span><span class="c1"># + the Jupyter / anywidget host</span>
 </pre></div>
 </div>
 </section>
@@ -361,7 +361,7 @@ registers its browser assets with spaday:</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

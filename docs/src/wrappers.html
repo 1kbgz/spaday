@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Generate typed classes from a manifest" href="cem.html"><link rel="prev" title="How to run a spaday app in Pyodide" href="pyodide.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Wrap an imperative JS library - spaday v0.5.0</title>
+        <title>Wrap an imperative JS library - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -258,7 +258,7 @@ internally, then <a class="reference internal" href="cem.html"><span class="std 
 <p>Write an element that creates the library object on connect and exposes the config you want from Python
 as <strong>properties</strong> whose setters call the library:</p>
 <div class="highlight-ts notranslate"><div class="highlight"><pre><span></span><span class="c1">// spaday-lightweight-charts/js/src/ts/index.ts (abridged)</span>
-<span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">createChart</span><span class="p">,</span><span class="w"> </span><span class="nx">LineSeries</span><span class="w"> </span><span class="cm">/* … */</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;lightweight-charts&quot;</span><span class="p">;</span>
+<span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">createChart</span><span class="p">,</span><span class="w"> </span><span class="nx">LineSeries</span><span class="w"> </span><span class="cm">/* … */</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"lightweight-charts"</span><span class="p">;</span>
 
 <span class="k">export</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nx">LightweightChart</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="nx">HTMLElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nx">connectedCallback</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -271,7 +271,7 @@ as <strong>properties</strong> whose setters call the library:</p>
 <span class="w">    </span><span class="k">this</span><span class="p">.</span><span class="nx">series</span><span class="o">?</span><span class="p">.</span><span class="nx">setData</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_data</span><span class="p">);</span><span class="w"> </span><span class="c1">// ← the imperative call</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
-<span class="nx">customElements</span><span class="p">.</span><span class="nx">define</span><span class="p">(</span><span class="s2">&quot;lightweight-chart&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">LightweightChart</span><span class="p">);</span>
+<span class="nx">customElements</span><span class="p">.</span><span class="nx">define</span><span class="p">(</span><span class="s2">"lightweight-chart"</span><span class="p">,</span><span class="w"> </span><span class="nx">LightweightChart</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Bundle it self-contained (the library included) so consumers just load it; nothing else to install.</p>
@@ -287,8 +287,8 @@ as <strong>properties</strong> whose setters call the library:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_lightweight_charts</span><span class="w"> </span><span class="kn">import</span> <span class="n">LightweightChart</span>
 
 <span class="n">LightweightChart</span><span class="p">(</span>
-    <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">,</span>
-    <span class="n">data</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="s2">&quot;2019-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="s2">&quot;2019-01-02&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">}],</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s2">"line"</span><span class="p">,</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">[{</span><span class="s2">"time"</span><span class="p">:</span> <span class="s2">"2019-01-01"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span> <span class="p">{</span><span class="s2">"time"</span><span class="p">:</span> <span class="s2">"2019-01-02"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="mi">12</span><span class="p">}],</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -379,7 +379,7 @@ wrapper element exposes serializable properties whose setters call the library.<
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

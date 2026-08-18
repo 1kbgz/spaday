@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Author a component tree" href="components.html"><link rel="prev" title="How spaday works" href="concepts.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Add behavior and reactivity - spaday v0.5.0</title>
+        <title>Add behavior and reactivity - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -257,7 +257,7 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">Toggle</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
-<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Details&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;info&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Details"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"info"</span><span class="p">),</span> <span class="s2">"hidden"</span><span class="p">))</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">Toggle(target,</span> <span class="pre">prop)</span></code> flips a boolean prop. Target an element with <code class="docutils literal notranslate"><span class="pre">by_id(&quot;info&quot;)</span></code> (an element whose
@@ -277,8 +277,8 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">event_value</span><span class="p">,</span> <span class="n">not_</span><span class="p">,</span> <span class="n">SetProp</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSwitch</span>
 
-<span class="c1"># set the panel&#39;s `hidden` to the *negation* of the switch&#39;s new value</span>
-<span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;change&quot;</span><span class="p">,</span> <span class="n">SetProp</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;panel&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">event_value</span><span class="p">())))</span>
+<span class="c1"># set the panel's `hidden` to the *negation* of the switch's new value</span>
+<span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="n">SetProp</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"panel"</span><span class="p">),</span> <span class="s2">"hidden"</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">event_value</span><span class="p">())))</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -293,7 +293,7 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 field with <code class="docutils literal notranslate"><span class="pre">.bind(prop,</span> <span class="pre">field,</span> <span class="pre">mode=...)</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSwitch</span>
 
-<span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">)</span>
+<span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"checked"</span><span class="p">,</span> <span class="s2">"lamp"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">)</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -309,8 +309,8 @@ icon button flipping a theme flag, or “Clear” resetting a form’s fields �
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetField</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">ToggleField</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
-<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;🌙&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">ToggleField</span><span class="p">(</span><span class="s2">&quot;dark&quot;</span><span class="p">))</span>
-<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Clear&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">(</span><span class="n">SetField</span><span class="p">(</span><span class="s2">&quot;symbol&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="n">SetField</span><span class="p">(</span><span class="s2">&quot;qty&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"🌙"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">ToggleField</span><span class="p">(</span><span class="s2">"dark"</span><span class="p">))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Clear"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">(</span><span class="n">SetField</span><span class="p">(</span><span class="s2">"symbol"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span> <span class="n">SetField</span><span class="p">(</span><span class="s2">"qty"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
 </pre></div>
 </div>
 </section>
@@ -322,13 +322,13 @@ expression. It recomputes whenever any field it reads changes (one-way by nature
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaCallout</span>
 
 <span class="c1"># disabled = not(enabled)</span>
-<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;disabled&quot;</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;enabled&quot;</span><span class="p">)))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"disabled"</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"enabled"</span><span class="p">)))</span>
 
-<span class="c1"># hidden unless mode == &quot;advanced&quot;</span>
-<span class="n">WaCallout</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;hidden&quot;</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;mode&quot;</span><span class="p">),</span> <span class="s2">&quot;advanced&quot;</span><span class="p">)))</span>
+<span class="c1"># hidden unless mode == "advanced"</span>
+<span class="n">WaCallout</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"hidden"</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"mode"</span><span class="p">),</span> <span class="s2">"advanced"</span><span class="p">)))</span>
 
 <span class="c1"># ready = a and b</span>
-<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;disabled&quot;</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">all_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">),</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;b&quot;</span><span class="p">))))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"disabled"</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">all_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"a"</span><span class="p">),</span> <span class="n">field</span><span class="p">(</span><span class="s2">"b"</span><span class="p">))))</span>
 </pre></div>
 </div>
 <p>The field-expression helpers: <code class="docutils literal notranslate"><span class="pre">field(name)</span></code>, <code class="docutils literal notranslate"><span class="pre">lit(value)</span></code>, <code class="docutils literal notranslate"><span class="pre">not_(e)</span></code>, <code class="docutils literal notranslate"><span class="pre">eq(a,</span> <span class="pre">b)</span></code>, <code class="docutils literal notranslate"><span class="pre">all_(*es)</span></code> (AND),
@@ -341,17 +341,17 @@ expression. It recomputes whenever any field it reads changes (one-way by nature
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaSelect</span>
 
 <span class="c1"># mutate a transports model field — the app routes the edit to the wire (server-authoritative)</span>
-<span class="n">WaSelect</span><span class="p">()</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;change&quot;</span><span class="p">,</span> <span class="n">SendPatch</span><span class="p">(</span><span class="s2">&quot;chart&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="n">event_value</span><span class="p">()))</span>
+<span class="n">WaSelect</span><span class="p">()</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="n">SendPatch</span><span class="p">(</span><span class="s2">"chart"</span><span class="p">,</span> <span class="s2">"type"</span><span class="p">,</span> <span class="n">event_value</span><span class="p">()))</span>
 
 <span class="c1"># the one explicit server round-trip: a REST call</span>
-<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Save&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/save&quot;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">event_value</span><span class="p">()))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Save"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/save"</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">event_value</span><span class="p">()))</span>
 </pre></div>
 </div>
 <p>The body can be any expression — use <code class="docutils literal notranslate"><span class="pre">obj({name:</span> <span class="pre">field(name)})</span></code> to compose a whole request from state
 fields, so a generated <a class="reference internal" href="components.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">form</span></code></span></a> POSTs declaratively with no handler:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallEndpoint</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">obj</span>
 
-<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Send&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/api/order&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;symbol&quot;</span><span class="p">),</span> <span class="s2">&quot;qty&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;qty&quot;</span><span class="p">)})))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Send"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/api/order"</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span><span class="s2">"symbol"</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">"symbol"</span><span class="p">),</span> <span class="s2">"qty"</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">"qty"</span><span class="p">)})))</span>
 </pre></div>
 </div>
 <p>By default the call is fire-and-forget. To react to the response — show a success message, surface a
@@ -361,8 +361,8 @@ reactive UI like any other state:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallEndpoint</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">not_</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Show</span>
 
-<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Send&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/api/order&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;symbol&quot;</span><span class="p">)}),</span> <span class="n">result</span><span class="o">=</span><span class="s2">&quot;sent&quot;</span><span class="p">))</span>
-<span class="n">Show</span><span class="p">(</span><span class="n">WaCallout</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;textContent&quot;</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;sent.body&quot;</span><span class="p">)),</span> <span class="n">when</span><span class="o">=</span><span class="n">not_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;sent.ok&quot;</span><span class="p">)))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Send"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/api/order"</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span><span class="s2">"symbol"</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">"symbol"</span><span class="p">)}),</span> <span class="n">result</span><span class="o">=</span><span class="s2">"sent"</span><span class="p">))</span>
+<span class="n">Show</span><span class="p">(</span><span class="n">WaCallout</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"textContent"</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="s2">"sent.body"</span><span class="p">)),</span> <span class="n">when</span><span class="o">=</span><span class="n">not_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"sent.ok"</span><span class="p">)))</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> is usually unnecessary once you use a two-way binding (above) — the binding carries the
@@ -462,7 +462,7 @@ time:</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

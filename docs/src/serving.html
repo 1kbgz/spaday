@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Author a component tree" href="components.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Serve and embed a spaday app - spaday v0.5.0</title>
+        <title>Serve and embed a spaday app - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -293,14 +293,14 @@ tree at <code class="docutils literal notranslate"><span class="pre">/tree.json<
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span>
-    <span class="k">lambda</span><span class="p">:</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Hi&quot;</span><span class="p">),</span>
-    <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">],</span>          <span class="c1"># pull WebAwesome&#39;s styles + catalog into &lt;head&gt;</span>
-    <span class="n">head</span><span class="o">=</span><span class="s2">&quot;&lt;style&gt;body{margin:2rem}&lt;/style&gt;&quot;</span><span class="p">,</span>
-    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;my app&quot;</span><span class="p">,</span>
+    <span class="k">lambda</span><span class="p">:</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">"brand"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Hi"</span><span class="p">),</span>
+    <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">],</span>          <span class="c1"># pull WebAwesome's styles + catalog into &lt;head&gt;</span>
+    <span class="n">head</span><span class="o">=</span><span class="s2">"&lt;style&gt;body{margin:2rem}&lt;/style&gt;"</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"my app"</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
-    <span class="n">uvicorn</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">uvicorn</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">"127.0.0.1"</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Component integrations are peer packages: <code class="docutils literal notranslate"><span class="pre">spaday-webawesome</span></code>, <code class="docutils literal notranslate"><span class="pre">spaday-lightweight-charts</span></code>,
@@ -318,25 +318,46 @@ An application can pass the descriptor directly or select it by Python path:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_trees</span><span class="w"> </span><span class="kn">import</span> <span class="n">package</span> <span class="k">as</span> <span class="n">trees</span>
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">trees</span><span class="p">])</span>
-<span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;spaday_trees:package&quot;</span><span class="p">])</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"spaday_trees:package"</span><span class="p">])</span>
 </pre></div>
 </div>
 <p>An integration package defines that descriptor beside its built assets:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentPackage</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.components</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpadayTree</span>
 
 <span class="n">package</span> <span class="o">=</span> <span class="n">ComponentPackage</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;trees&quot;</span><span class="p">,</span>
-    <span class="n">assets_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;extension&quot;</span><span class="p">,</span>
-    <span class="n">assets</span><span class="o">=</span><span class="p">((</span><span class="s2">&quot;css&quot;</span><span class="p">,</span> <span class="s2">&quot;trees.css&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;js&quot;</span><span class="p">,</span> <span class="s2">&quot;trees.js&quot;</span><span class="p">)),</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"trees"</span><span class="p">,</span>
+    <span class="n">assets_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">"extension"</span><span class="p">,</span>
+    <span class="n">assets</span><span class="o">=</span><span class="p">((</span><span class="s2">"css"</span><span class="p">,</span> <span class="s2">"trees.css"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"js"</span><span class="p">,</span> <span class="s2">"trees.js"</span><span class="p">)),</span>
+    <span class="n">components</span><span class="o">=</span><span class="p">(</span><span class="n">SpadayTree</span><span class="p">,),</span>
 <span class="p">)</span>
+</pre></div>
+</div>
+<p>Classes generated with <code class="docutils literal notranslate"><span class="pre">spaday-cem</span></code> already contain property, event, and slot schemas. Add the public
+classes to <code class="docutils literal notranslate"><span class="pre">components</span></code> so editors and other tools can read <code class="docutils literal notranslate"><span class="pre">package.catalog</span></code> without constructing them.
+<code class="docutils literal notranslate"><span class="pre">ComponentSchema</span></code> and <code class="docutils literal notranslate"><span class="pre">PropertySchema</span></code> are frozen Pydantic models, so catalog consumers can validate
+external data with <code class="docutils literal notranslate"><span class="pre">model_validate()</span></code>, serialize it with <code class="docutils literal notranslate"><span class="pre">model_dump()</span></code>, and generate JSON Schema with
+<code class="docutils literal notranslate"><span class="pre">model_json_schema()</span></code>.
+For a hand-authored component, define the same metadata explicitly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span><span class="p">,</span> <span class="n">ComponentSchema</span><span class="p">,</span> <span class="n">PropertySchema</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DemoGauge</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"demo-gauge"</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">ComponentSchema</span><span class="p">(</span>
+        <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">,</span>
+        <span class="n">class_name</span><span class="o">=</span><span class="s2">"DemoGauge"</span><span class="p">,</span>
+        <span class="n">props</span><span class="o">=</span><span class="p">(</span><span class="n">PropertySchema</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"value"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"number"</span><span class="p">),),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,),</span>
+        <span class="n">slots</span><span class="o">=</span><span class="p">(</span><span class="s2">""</span><span class="p">,),</span>
+    <span class="p">)</span>
 </pre></div>
 </div>
 <p>To make the short form <code class="docutils literal notranslate"><span class="pre">packages=[&quot;trees&quot;]</span></code> available, publish the same object as a Python packaging
 entry point:</p>
-<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[project.entry-points.</span><span class="s2">&quot;spaday.component_packages&quot;</span><span class="k">]</span>
-<span class="n">trees</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;spaday_trees:package&quot;</span>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[project.entry-points.</span><span class="s2">"spaday.component_packages"</span><span class="k">]</span>
+<span class="n">trees</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"spaday_trees:package"</span>
 </pre></div>
 </div>
 <p>Entry-point packages are opt-in: spaday loads only names selected by the application, never every
@@ -344,6 +365,8 @@ installed integration. All four backends serve each selected descriptor’s <cod
 <code class="docutils literal notranslate"><span class="pre">{prefix}/components/{name}/</span></code>; <code class="docutils literal notranslate"><span class="pre">bootstrap</span></code> emits its CSS and module-script URLs from the same <code class="docutils literal notranslate"><span class="pre">assets</span></code>
 list. This registration is host-side only: component tags and props already cross the generic spaday
 tree, so an integration needs no Rust plugin.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">discover_component_package_names()</span></code> when listing installed integrations without importing them.
+Use <code class="docutils literal notranslate"><span class="pre">resolve_component_packages()</span></code> for explicitly selected names and read each descriptor’s <code class="docutils literal notranslate"><span class="pre">catalog</span></code>.</p>
 </section>
 <section id="embed-in-an-existing-app">
 <h2>Embed in an existing app<a class="headerlink" href="#embed-in-an-existing-app" title="Link to this heading">¶</a></h2>
@@ -355,8 +378,8 @@ only adds routes — <strong>the host owns the app’s lifespan</strong>, so run
 <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Route</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">mount</span>
 
-<span class="n">app</span> <span class="o">=</span> <span class="n">Starlette</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">Route</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">my_own_homepage</span><span class="p">)])</span>   <span class="c1"># your app, your routes</span>
-<span class="n">mount</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">page</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/panel&quot;</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;webawesome&quot;</span><span class="p">])</span>   <span class="c1"># spaday lives only under /panel</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">Starlette</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">Route</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">my_own_homepage</span><span class="p">)])</span>   <span class="c1"># your app, your routes</span>
+<span class="n">mount</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">page</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">"/panel"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">])</span>   <span class="c1"># spaday lives only under /panel</span>
 </pre></div>
 </div>
 <p>Backends ship for <strong>Starlette/FastAPI</strong>, <strong>aiohttp</strong>, <strong>Flask</strong>, and <strong>Tornado</strong> — import <code class="docutils literal notranslate"><span class="pre">serve</span></code>/<code class="docutils literal notranslate"><span class="pre">mount</span></code>
@@ -374,21 +397,21 @@ provides. The host serves the tree, core <code class="docutils literal notransla
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_json</span>
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">home</span><span class="p">(</span><span class="n">_request</span><span class="p">):</span>
-    <span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;#spaday-root&quot;</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">webawesome</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;!doctype html&gt;… &lt;div id=&#39;spaday-root&#39;&gt;&lt;/div&gt; </span><span class="si">{</span><span class="n">fragment</span><span class="si">}</span><span class="s2"> …&quot;</span><span class="p">)</span>
+    <span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">"#spaday-root"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">webawesome</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="sa">f</span><span class="s2">"&lt;!doctype html&gt;… &lt;div id='spaday-root'&gt;&lt;/div&gt; </span><span class="si">{</span><span class="n">fragment</span><span class="si">}</span><span class="s2"> …"</span><span class="p">)</span>
 
 <span class="n">routes</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">Route</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">home</span><span class="p">),</span>
-    <span class="n">Route</span><span class="p">(</span><span class="s2">&quot;/tree.json&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_r</span><span class="p">:</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;application/json&quot;</span><span class="p">)),</span>
-    <span class="n">Mount</span><span class="p">(</span><span class="s2">&quot;/js&quot;</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">bundles_dir</span><span class="p">())),</span>
-    <span class="n">Mount</span><span class="p">(</span><span class="s2">&quot;/components/webawesome&quot;</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">webawesome</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">)),</span>
+    <span class="n">Route</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">home</span><span class="p">),</span>
+    <span class="n">Route</span><span class="p">(</span><span class="s2">"/tree.json"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_r</span><span class="p">:</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">)),</span>
+    <span class="n">Mount</span><span class="p">(</span><span class="s2">"/js"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">bundles_dir</span><span class="p">())),</span>
+    <span class="n">Mount</span><span class="p">(</span><span class="s2">"/components/webawesome"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">webawesome</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">)),</span>
 <span class="p">]</span>
 </pre></div>
 </div>
 <p>The mounting script is inline, so a host with a strict <code class="docutils literal notranslate"><span class="pre">script-src</span></code> Content-Security-Policy passes a
 per-request <strong><code class="docutils literal notranslate"><span class="pre">nonce</span></code></strong> — it stamps the generated <code class="docutils literal notranslate"><span class="pre">&lt;script&gt;</span></code>/<code class="docutils literal notranslate"><span class="pre">&lt;link&gt;</span></code> tags so the policy can allow them:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;#spaday-root&quot;</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">webawesome</span><span class="p">],</span> <span class="n">nonce</span><span class="o">=</span><span class="n">request_nonce</span><span class="p">)</span>
-<span class="c1"># ...and set `Content-Security-Policy: script-src &#39;self&#39; &#39;nonce-&lt;request_nonce&gt;&#39; &#39;wasm-unsafe-eval&#39;`</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">"#spaday-root"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">webawesome</span><span class="p">],</span> <span class="n">nonce</span><span class="o">=</span><span class="n">request_nonce</span><span class="p">)</span>
+<span class="c1"># ...and set `Content-Security-Policy: script-src 'self' 'nonce-&lt;request_nonce&gt;' 'wasm-unsafe-eval'`</span>
 </pre></div>
 </div>
 </section>
@@ -396,7 +419,7 @@ per-request <strong><code class="docutils literal notranslate"><span class="pre"
 <h2>Seed reactive state without a server<a class="headerlink" href="#seed-reactive-state-without-a-server" title="Link to this heading">¶</a></h2>
 <p>For client-side reactive UI (two-way bindings, <code class="docutils literal notranslate"><span class="pre">field</span></code> actions) that needs no server model, seed a local
 signal store with <code class="docutils literal notranslate"><span class="pre">store=</span></code> — the page mounts with that state, no wire required:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;dark&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;view&quot;</span><span class="p">:</span> <span class="s2">&quot;list&quot;</span><span class="p">})</span>   <span class="c1"># the tree&#39;s bindings read/write these fields</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="p">{</span><span class="s2">"dark"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"view"</span><span class="p">:</span> <span class="s2">"list"</span><span class="p">})</span>   <span class="c1"># the tree's bindings read/write these fields</span>
 </pre></div>
 </div>
 </section>
@@ -410,8 +433,8 @@ the store; you supply the websocket route and run <code class="docutils literal 
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span>
     <span class="n">page</span><span class="p">,</span>
-    <span class="n">wire</span><span class="o">=</span><span class="s2">&quot;transports&quot;</span><span class="p">,</span>
-    <span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">WebSocketRoute</span><span class="p">(</span><span class="s2">&quot;/ws&quot;</span><span class="p">,</span> <span class="n">transports</span><span class="o">.</span><span class="n">ws_endpoint</span><span class="p">(</span><span class="n">server</span><span class="p">))],</span>
+    <span class="n">wire</span><span class="o">=</span><span class="s2">"transports"</span><span class="p">,</span>
+    <span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">WebSocketRoute</span><span class="p">(</span><span class="s2">"/ws"</span><span class="p">,</span> <span class="n">transports</span><span class="o">.</span><span class="n">ws_endpoint</span><span class="p">(</span><span class="n">server</span><span class="p">))],</span>
     <span class="n">background</span><span class="o">=</span><span class="p">[</span><span class="n">transports</span><span class="o">.</span><span class="n">autosync</span><span class="p">(</span><span class="n">server</span><span class="p">)],</span>
 <span class="p">)</span>
 </pre></div>
@@ -524,7 +547,7 @@ the store; you supply the websocket route and run <code class="docutils literal 
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

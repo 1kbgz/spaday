@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.worker - spaday v0.5.0</title>
+        <title>spaday.worker - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -240,11 +240,11 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for spaday.worker</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Run a Python-owned component tree behind a browser Web Worker.</span>
+<span></span><span class="sd">"""Run a Python-owned component tree behind a browser Web Worker.</span>
 
 <span class="sd">The worker transports snapshots and intents; the browser runtime owns the DOM. ``WorkerApp`` keeps</span>
 <span class="sd">the last rendered tree and returns core-generated incremental patches after Python handles an intent.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
@@ -263,7 +263,7 @@
 <div class="viewcode-block" id="WorkerApp">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.WorkerApp">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">WorkerApp</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adapt a render function and intent handler to spaday&#39;s worker message protocol.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Adapt a render function and intent handler to spaday's worker message protocol."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">render</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Tree</span><span class="p">],</span> <span class="n">on_intent</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Intent</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_render</span> <span class="o">=</span> <span class="n">render</span>
@@ -273,39 +273,39 @@
 <div class="viewcode-block" id="WorkerApp.start">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.WorkerApp.start">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Render and return the initial tree snapshot message.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Render and return the initial tree snapshot message."""</span>
         <span class="n">tree</span> <span class="o">=</span> <span class="n">_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_render</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tree</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;snapshot&quot;</span><span class="p">,</span> <span class="s2">&quot;tree&quot;</span><span class="p">:</span> <span class="n">tree</span><span class="p">}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"snapshot"</span><span class="p">,</span> <span class="s2">"tree"</span><span class="p">:</span> <span class="n">tree</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="WorkerApp.dispatch">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.WorkerApp.dispatch">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dispatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">intent</span><span class="p">:</span> <span class="n">Intent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle one browser intent and return its incremental tree patch message.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Handle one browser intent and return its incremental tree patch message."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tree</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;start() must be called before dispatch()&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">intent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;spaday:patch&quot;</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unsupported worker intent: </span><span class="si">{</span><span class="n">intent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"start() must be called before dispatch()"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">intent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"spaday:patch"</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unsupported worker intent: </span><span class="si">{</span><span class="n">intent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'type'</span><span class="p">)</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="n">old</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tree</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_on_intent</span><span class="p">(</span><span class="n">intent</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tree</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">_node</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_render</span><span class="p">()))</span>
         <span class="n">patch</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">diff</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tree</span><span class="p">))</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;patch&quot;</span><span class="p">,</span> <span class="s2">&quot;patch&quot;</span><span class="p">:</span> <span class="n">patch</span><span class="p">}</span></div>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"patch"</span><span class="p">,</span> <span class="s2">"patch"</span><span class="p">:</span> <span class="n">patch</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="WorkerApp.start_json">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.WorkerApp.start_json">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">start_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return :meth:`start` as JSON for a JavaScript worker boundary.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Return :meth:`start` as JSON for a JavaScript worker boundary."""</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">())</span></div>
 
 
 <div class="viewcode-block" id="WorkerApp.dispatch_json">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.WorkerApp.dispatch_json">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">dispatch_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">intent</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode a JSON intent and return :meth:`dispatch` as JSON.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Decode a JSON intent and return :meth:`dispatch` as JSON."""</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">intent</span><span class="p">)))</span></div>
 </div>
 
@@ -341,7 +341,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

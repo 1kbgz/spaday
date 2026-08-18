@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="#"><link rel="search" title="Search" href="search.html">
 
-    <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 --><title>Index - spaday v0.5.0</title>
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 --><title>Index - spaday v0.6.0</title>
 <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -165,7 +165,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -186,7 +186,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -305,6 +305,8 @@
 </li>
         <li><a href="docs/src/api.html#spaday.ComponentPackage">ComponentPackage (class in spaday)</a>
 </li>
+        <li><a href="docs/src/api.html#spaday.ComponentSchema">ComponentSchema (class in spaday)</a>
+</li>
         <li><a href="docs/src/api.html#spaday.Component.compute">compute() (spaday.Component method)</a>
 </li>
         <li><a href="docs/src/api.html#spaday.cond">cond() (in module spaday)</a>
@@ -322,6 +324,8 @@
         <li><a href="docs/src/api.html#spaday.decode_frame">decode_frame() (in module spaday)</a>
 </li>
         <li><a href="docs/src/api.html#spaday.diff">diff() (in module spaday)</a>
+</li>
+        <li><a href="docs/src/api.html#spaday.discover_component_package_names">discover_component_package_names() (in module spaday)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
@@ -362,6 +366,10 @@
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.field">field() (in module spaday)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.ComponentSchema.from_cem">from_cem() (spaday.ComponentSchema class method)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -415,6 +423,14 @@
   <h2>M</h2>
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.ComponentSchema.model_config">model_config (spaday.ComponentSchema attribute)</a>
+
+        <ul>
+          <li><a href="docs/src/api.html#spaday.PropertySchema.model_config">(spaday.PropertySchema attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.backends.starlette.mount">mount() (in module spaday.backends.starlette)</a>
 </li>
     </ul></td>
@@ -455,14 +471,16 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.parse_cem">parse_cem() (in module spaday)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="docs/src/api.html#spaday.prop">prop() (in module spaday)</a>
 
         <ul>
           <li><a href="docs/src/api.html#spaday.Component.prop">(spaday.Component method)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.PropertySchema">PropertySchema (class in spaday)</a>
+</li>
     </ul></td>
   </tr></table>
 </section>
@@ -515,10 +533,16 @@
 </li>
         <li><a href="docs/src/api.html#spaday.this">this() (in module spaday)</a>
 </li>
-        <li><a href="docs/src/api.html#spaday.Component.to_json">to_json() (spaday.Component method)</a>
+        <li><a href="docs/src/api.html#spaday.ComponentSchema.to_dict">to_dict() (spaday.ComponentSchema method)</a>
+
+        <ul>
+          <li><a href="docs/src/api.html#spaday.PropertySchema.to_dict">(spaday.PropertySchema method)</a>
 </li>
+        </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="docs/src/api.html#spaday.Component.to_json">to_json() (spaday.Component method)</a>
+</li>
         <li><a href="docs/src/api.html#spaday.Component.to_node">to_node() (spaday.Component method)</a>
 </li>
         <li><a href="docs/src/api.html#spaday.Toggle">Toggle (class in spaday)</a>
@@ -591,7 +615,7 @@
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

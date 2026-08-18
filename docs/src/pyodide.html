@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Wrap an imperative JS library" href="wrappers.html"><link rel="prev" title="Use spaday in a Jupyter notebook" href="notebook.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>How to run a spaday app in Pyodide - spaday v0.5.0</title>
+        <title>How to run a spaday app in Pyodide - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -287,14 +287,14 @@ is in <a class="reference download internal" download="" href="../../_downloads/
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">count</span><span class="p">))</span><span class="o">.</span><span class="n">on</span><span class="p">(</span>
-        <span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">SendPatch</span><span class="p">(</span><span class="s2">&quot;counter&quot;</span><span class="p">,</span> <span class="s2">&quot;increment&quot;</span><span class="p">,</span> <span class="n">lit</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">element</span><span class="p">(</span><span class="s2">"button"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">count</span><span class="p">))</span><span class="o">.</span><span class="n">on</span><span class="p">(</span>
+        <span class="s2">"click"</span><span class="p">,</span> <span class="n">SendPatch</span><span class="p">(</span><span class="s2">"counter"</span><span class="p">,</span> <span class="s2">"increment"</span><span class="p">,</span> <span class="n">lit</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
     <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">on_intent</span><span class="p">(</span><span class="n">intent</span><span class="p">):</span>
     <span class="k">global</span> <span class="n">count</span>
-    <span class="n">count</span> <span class="o">+=</span> <span class="n">intent</span><span class="p">[</span><span class="s2">&quot;detail&quot;</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+    <span class="n">count</span> <span class="o">+=</span> <span class="n">intent</span><span class="p">[</span><span class="s2">"detail"</span><span class="p">][</span><span class="s2">"value"</span><span class="p">]</span>
 
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">WorkerApp</span><span class="p">(</span><span class="n">render</span><span class="p">,</span> <span class="n">on_intent</span><span class="p">)</span>
@@ -303,11 +303,11 @@ is in <a class="reference download internal" download="" href="../../_downloads/
 <p>The worker must send <code class="docutils literal notranslate"><span class="pre">app.start_json()</span></code> after receiving <code class="docutils literal notranslate"><span class="pre">{type:</span> <span class="pre">&quot;start&quot;}</span></code> and pass later messages to
 <code class="docutils literal notranslate"><span class="pre">app.dispatch_json(...)</span></code>. On the main thread, initialize spaday’s browser runtime and connect the
 worker:</p>
-<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">connectWorker</span><span class="p">,</span><span class="w"> </span><span class="nx">init</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;/js/dist/esm/index.js&quot;</span><span class="p">;</span>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">connectWorker</span><span class="p">,</span><span class="w"> </span><span class="nx">init</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"/js/dist/esm/index.js"</span><span class="p">;</span>
 
-<span class="k">await</span><span class="w"> </span><span class="nx">init</span><span class="p">({</span><span class="w"> </span><span class="nx">module_or_path</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;/js/dist/pkg/spaday_bg.wasm&quot;</span><span class="w"> </span><span class="p">});</span>
-<span class="kd">const</span><span class="w"> </span><span class="nx">worker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Worker</span><span class="p">(</span><span class="s2">&quot;/worker.js&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;module&quot;</span><span class="w"> </span><span class="p">});</span>
-<span class="k">await</span><span class="w"> </span><span class="nx">connectWorker</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="s2">&quot;#app&quot;</span><span class="p">),</span><span class="w"> </span><span class="nx">worker</span><span class="p">).</span><span class="nx">ready</span><span class="p">;</span>
+<span class="k">await</span><span class="w"> </span><span class="nx">init</span><span class="p">({</span><span class="w"> </span><span class="nx">module_or_path</span><span class="o">:</span><span class="w"> </span><span class="s2">"/js/dist/pkg/spaday_bg.wasm"</span><span class="w"> </span><span class="p">});</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">worker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Worker</span><span class="p">(</span><span class="s2">"/worker.js"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">type</span><span class="o">:</span><span class="w"> </span><span class="s2">"module"</span><span class="w"> </span><span class="p">});</span>
+<span class="k">await</span><span class="w"> </span><span class="nx">connectWorker</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="s2">"#app"</span><span class="p">),</span><span class="w"> </span><span class="nx">worker</span><span class="p">).</span><span class="nx">ready</span><span class="p">;</span>
 </pre></div>
 </div>
 <p>Keep DOM and custom-element work on the main thread. Keep Python rendering, state changes, and
@@ -393,7 +393,7 @@ tree diffing in the worker.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Serve and embed a spaday app" href="serving.html"><link rel="prev" title="Add behavior and reactivity" href="behavior.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Author a component tree - spaday v0.5.0</title>
+        <title>Author a component tree - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -256,7 +256,7 @@ laying out with shell components, and serializing the result. To attach behavior
 <p>Install <code class="docutils literal notranslate"><span class="pre">spaday-webawesome</span></code>, then import a generated component and set its attributes as keyword arguments:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
-<span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;large&quot;</span><span class="p">)</span>
+<span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">"brand"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">"large"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Every attribute is a typed keyword (<code class="docutils literal notranslate"><span class="pre">variant:</span> <span class="pre">Optional[Literal[&quot;brand&quot;,</span> <span class="pre">&quot;neutral&quot;,</span> <span class="pre">...]]</span></code>,
@@ -271,7 +271,7 @@ An independently distributed integration can also register its browser assets th
 <p>Compose a tree with <code class="docutils literal notranslate"><span class="pre">.child(...)</span></code> for the default slot and <code class="docutils literal notranslate"><span class="pre">.child_in(&quot;slot&quot;,</span> <span class="pre">...)</span></code> for a named one:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaCard</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaSwitch</span>
 
-<span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="s2">&quot;header&quot;</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">())</span>
+<span class="n">WaCard</span><span class="p">()</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="s2">"header"</span><span class="p">,</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">"brand"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">())</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">.child</span></code> returns the parent, so calls chain. Children are other components (or a raw element — below).</p>
@@ -279,7 +279,7 @@ An independently distributed integration can also register its browser assets th
 <section id="set-text">
 <h2>Set text<a class="headerlink" href="#set-text" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">.text(...)</span></code> sets a leaf’s text content — use it for labels, not alongside child nodes:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;brand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Save&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">"brand"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Save"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -299,7 +299,7 @@ a sidebar), compose the shell from <strong>named regions</strong> with <code cla
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppShell</span><span class="p">,</span> <span class="n">Region</span>
 
 <span class="n">shell</span> <span class="o">=</span> <span class="n">AppShell</span><span class="p">()</span>
-<span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">HEADER_LEFT</span><span class="p">,</span> <span class="s2">&quot;My app&quot;</span><span class="p">)</span>
+<span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">HEADER_LEFT</span><span class="p">,</span> <span class="s2">"My app"</span><span class="p">)</span>
 <span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">HEADER_RIGHT</span><span class="p">,</span> <span class="n">theme_toggle</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>   <span class="c1"># lower order sorts earlier within a region</span>
 <span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">GUTTER_LEFT</span><span class="p">,</span> <span class="n">nav_menu</span><span class="p">)</span>
 <span class="n">shell</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Region</span><span class="o">.</span><span class="n">MAIN</span><span class="p">,</span> <span class="n">chart</span><span class="p">)</span>
@@ -320,9 +320,9 @@ nav components):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tabs</span>
 
 <span class="n">Tabs</span><span class="p">()</span>
-<span class="o">.</span><span class="n">tab</span><span class="p">(</span><span class="s2">&quot;Overview&quot;</span><span class="p">,</span> <span class="n">overview_panel</span><span class="p">)</span>
-<span class="o">.</span><span class="n">tab</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">,</span> <span class="n">settings_panel</span><span class="p">)</span>
-<span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;active&quot;</span><span class="p">,</span> <span class="s2">&quot;view&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">)</span>   <span class="c1"># state &lt;-&gt; active tab; seed/read &quot;view&quot; via a store or a wire</span>
+<span class="o">.</span><span class="n">tab</span><span class="p">(</span><span class="s2">"Overview"</span><span class="p">,</span> <span class="n">overview_panel</span><span class="p">)</span>
+<span class="o">.</span><span class="n">tab</span><span class="p">(</span><span class="s2">"Settings"</span><span class="p">,</span> <span class="n">settings_panel</span><span class="p">)</span>
+<span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"active"</span><span class="p">,</span> <span class="s2">"view"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">)</span>   <span class="c1"># state &lt;-&gt; active tab; seed/read "view" via a store or a wire</span>
 </pre></div>
 </div>
 <p>Each panel’s <code class="docutils literal notranslate"><span class="pre">name</span></code> defaults to a slug of its label; pass <code class="docutils literal notranslate"><span class="pre">name=</span></code> to bind against a stable value. The other
@@ -340,11 +340,11 @@ to dotted <code class="docutils literal notranslate"><span class="pre">parent.ch
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">FormField</span><span class="p">,</span> <span class="n">form</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Size</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
-    <span class="n">small</span> <span class="o">=</span> <span class="s2">&quot;small&quot;</span>
-    <span class="n">large</span> <span class="o">=</span> <span class="s2">&quot;large&quot;</span>
+    <span class="n">small</span> <span class="o">=</span> <span class="s2">"small"</span>
+    <span class="n">large</span> <span class="o">=</span> <span class="s2">"large"</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Settings</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lamp&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"lamp"</span>
     <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">size</span><span class="p">:</span> <span class="n">Size</span> <span class="o">=</span> <span class="n">Size</span><span class="o">.</span><span class="n">small</span>
 
@@ -364,7 +364,7 @@ a seeded <a class="reference internal" href="serving.html"><span class="std std-
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
 
-<span class="n">Table</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;symbol&quot;</span><span class="p">,</span> <span class="s2">&quot;qty&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">],</span> <span class="n">row_key</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;rows&quot;</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;orders&quot;</span><span class="p">))</span>
+<span class="n">Table</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"id"</span><span class="p">,</span> <span class="s2">"symbol"</span><span class="p">,</span> <span class="s2">"qty"</span><span class="p">,</span> <span class="s2">"price"</span><span class="p">],</span> <span class="n">row_key</span><span class="o">=</span><span class="s2">"id"</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"rows"</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="s2">"orders"</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>Set <code class="docutils literal notranslate"><span class="pre">row_key</span></code> to a field whose value is a unique string or number. When reactive <code class="docutils literal notranslate"><span class="pre">rows</span></code> changes, the
@@ -379,22 +379,22 @@ text. A static cell can instead contain any spaday component, including a button
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span>
 
 <span class="n">inspect</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">WaButton</span><span class="p">(</span><span class="n">appearance</span><span class="o">=</span><span class="s2">&quot;plain&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Inspect&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;data-symbol&quot;</span><span class="p">,</span> <span class="s2">&quot;AAPL&quot;</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">NamedJs</span><span class="p">(</span><span class="s2">&quot;inspect-order&quot;</span><span class="p">))</span>
+    <span class="n">WaButton</span><span class="p">(</span><span class="n">appearance</span><span class="o">=</span><span class="s2">"plain"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Inspect"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">"data-symbol"</span><span class="p">,</span> <span class="s2">"AAPL"</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">NamedJs</span><span class="p">(</span><span class="s2">"inspect-order"</span><span class="p">))</span>
 <span class="p">)</span>
 <span class="n">Table</span><span class="p">(</span>
-    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;symbol&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;action&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">}],</span>
-    <span class="n">rows</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="n">inspect</span><span class="p">}],</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"symbol"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"key"</span><span class="p">:</span> <span class="s2">"action"</span><span class="p">,</span> <span class="s2">"label"</span><span class="p">:</span> <span class="s2">""</span><span class="p">}],</span>
+    <span class="n">rows</span><span class="o">=</span><span class="p">[{</span><span class="s2">"symbol"</span><span class="p">:</span> <span class="s2">"AAPL"</span><span class="p">,</span> <span class="s2">"action"</span><span class="p">:</span> <span class="n">inspect</span><span class="p">}],</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <p>Register the named handler in a JavaScript module loaded through <code class="docutils literal notranslate"><span class="pre">scripts=</span></code>:</p>
-<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">registerHandler</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;/js/dist/esm/index.js&quot;</span><span class="p">;</span>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">registerHandler</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"/js/dist/esm/index.js"</span><span class="p">;</span>
 
-<span class="nx">registerHandler</span><span class="p">(</span><span class="s2">&quot;inspect-order&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">_event</span><span class="p">,</span><span class="w"> </span><span class="nx">button</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nb">window</span><span class="p">.</span><span class="nx">inspectOrder</span><span class="p">(</span><span class="nx">button</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s2">&quot;data-symbol&quot;</span><span class="p">));</span>
+<span class="nx">registerHandler</span><span class="p">(</span><span class="s2">"inspect-order"</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">_event</span><span class="p">,</span><span class="w"> </span><span class="nx">button</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nb">window</span><span class="p">.</span><span class="nx">inspectOrder</span><span class="p">(</span><span class="nx">button</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s2">"data-symbol"</span><span class="p">));</span>
 <span class="p">});</span>
 </pre></div>
 </div>
@@ -415,27 +415,27 @@ collection with <code class="docutils literal notranslate"><span class="pre">fie
 
 <span class="n">records</span> <span class="o">=</span> <span class="n">Each</span><span class="p">(</span>
     <span class="n">Row</span><span class="p">(</span>
-        <span class="n">Strong</span><span class="p">(</span><span class="n">item</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)),</span>
-        <span class="n">Show</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;span&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Ready&quot;</span><span class="p">),</span> <span class="n">when</span><span class="o">=</span><span class="n">item</span><span class="p">(</span><span class="s2">&quot;ready&quot;</span><span class="p">)),</span>
-        <span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span>
-            <span class="s2">&quot;click&quot;</span><span class="p">,</span>
+        <span class="n">Strong</span><span class="p">(</span><span class="n">item</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)),</span>
+        <span class="n">Show</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"span"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Ready"</span><span class="p">),</span> <span class="n">when</span><span class="o">=</span><span class="n">item</span><span class="p">(</span><span class="s2">"ready"</span><span class="p">)),</span>
+        <span class="n">element</span><span class="p">(</span><span class="s2">"button"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"X"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span>
+            <span class="s2">"click"</span><span class="p">,</span>
             <span class="n">CallEndpoint</span><span class="p">(</span>
-                <span class="s2">&quot;DELETE&quot;</span><span class="p">,</span>
-                <span class="n">concat</span><span class="p">(</span><span class="s2">&quot;/stage/&quot;</span><span class="p">,</span> <span class="n">scope</span><span class="p">(</span><span class="s2">&quot;staging.channel&quot;</span><span class="p">)),</span>
-                <span class="n">obj</span><span class="p">({</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)}),</span>
+                <span class="s2">"DELETE"</span><span class="p">,</span>
+                <span class="n">concat</span><span class="p">(</span><span class="s2">"/stage/"</span><span class="p">,</span> <span class="n">scope</span><span class="p">(</span><span class="s2">"staging.channel"</span><span class="p">)),</span>
+                <span class="n">obj</span><span class="p">({</span><span class="s2">"id"</span><span class="p">:</span> <span class="n">item</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)}),</span>
             <span class="p">),</span>
         <span class="p">),</span>
     <span class="p">),</span>
-    <span class="n">items</span><span class="o">=</span><span class="n">item</span><span class="p">(</span><span class="s2">&quot;records&quot;</span><span class="p">),</span>
-    <span class="n">key</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span>
-    <span class="n">scope</span><span class="o">=</span><span class="s2">&quot;record&quot;</span><span class="p">,</span>
+    <span class="n">items</span><span class="o">=</span><span class="n">item</span><span class="p">(</span><span class="s2">"records"</span><span class="p">),</span>
+    <span class="n">key</span><span class="o">=</span><span class="s2">"id"</span><span class="p">,</span>
+    <span class="n">scope</span><span class="o">=</span><span class="s2">"record"</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">staging_panel</span> <span class="o">=</span> <span class="n">Each</span><span class="p">(</span>
     <span class="n">Column</span><span class="p">(</span><span class="n">records</span><span class="p">),</span>
-    <span class="n">field</span><span class="o">=</span><span class="s2">&quot;stagings&quot;</span><span class="p">,</span>
-    <span class="n">key</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span>
-    <span class="n">scope</span><span class="o">=</span><span class="s2">&quot;staging&quot;</span><span class="p">,</span>
+    <span class="n">field</span><span class="o">=</span><span class="s2">"stagings"</span><span class="p">,</span>
+    <span class="n">key</span><span class="o">=</span><span class="s2">"id"</span><span class="p">,</span>
+    <span class="n">scope</span><span class="o">=</span><span class="s2">"staging"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -454,8 +454,8 @@ input state without page-specific JavaScript.</p>
 <p>For text or a structural tag a typed class doesn’t cover, use <code class="docutils literal notranslate"><span class="pre">element</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span>
 
-<span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">)</span>
-<span class="n">element</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">href</span><span class="o">=</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;docs&quot;</span><span class="p">)</span>
+<span class="n">element</span><span class="p">(</span><span class="s2">"strong"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Settings"</span><span class="p">)</span>
+<span class="n">element</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">href</span><span class="o">=</span><span class="s2">"https://example.com"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"docs"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>A trailing underscore on a prop name is stripped, so reserved words work: <code class="docutils literal notranslate"><span class="pre">element(&quot;label&quot;,</span> <span class="pre">for_=&quot;x&quot;)</span></code>.</p>
@@ -464,7 +464,7 @@ input state without page-specific JavaScript.</p>
 <h2>Set a prop a typed class doesn’t expose<a class="headerlink" href="#set-a-prop-a-typed-class-doesn-t-expose" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">.prop(name,</span> <span class="pre">value)</span></code> is the escape hatch for an attribute the generated class doesn’t have (a custom
 attribute, <code class="docutils literal notranslate"><span class="pre">style</span></code>, <code class="docutils literal notranslate"><span class="pre">id</span></code>, …):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;save&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">&quot;style&quot;</span><span class="p">,</span> <span class="s2">&quot;margin-left:auto&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">"id"</span><span class="p">,</span> <span class="s2">"save"</span><span class="p">)</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">"style"</span><span class="p">,</span> <span class="s2">"margin-left:auto"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -472,7 +472,7 @@ attribute, <code class="docutils literal notranslate"><span class="pre">style</s
 <h2>Key for stable updates<a class="headerlink" href="#key-for-stable-updates" title="Link to this heading">¶</a></h2>
 <p>Give a node a stable <code class="docutils literal notranslate"><span class="pre">key</span></code> so the diff engine reconciles it by identity across updates (so a reordered
 list moves live elements instead of rebuilding them):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">key</span><span class="p">(</span><span class="s2">&quot;lamp&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">key</span><span class="p">(</span><span class="s2">"lamp"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -567,7 +567,7 @@ they are served as the tree the browser mounts.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

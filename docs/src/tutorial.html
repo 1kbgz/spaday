@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="How spaday works" href="concepts.html"><link rel="prev" title="spaday" href="../../index.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Tutorial: build your first interactive UI - spaday v0.5.0</title>
+        <title>Tutorial: build your first interactive UI - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -256,7 +256,7 @@ learn here applies unchanged to a web app (see <a class="reference internal" hre
 <section id="setup">
 <h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
 <p>Install spaday with the notebook host, and start a notebook:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;spaday[widget]&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"spaday[widget]"</span>
 jupyter<span class="w"> </span>lab
 </pre></div>
 </div>
@@ -266,7 +266,7 @@ jupyter<span class="w"> </span>lab
 <p>In a cell, build a card containing a switch and display it:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">)</span>
 <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -280,11 +280,11 @@ children out vertically:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span><span class="p">,</span> <span class="n">Widget</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;section&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;border:1px solid #bbb;padding:1rem&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">"border:1px solid #bbb;padding:1rem"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
     <span class="n">Stack</span><span class="p">()</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Notifications&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"strong"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Settings"</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Notifications"</span><span class="p">))</span>
 <span class="p">)</span>
 <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
 </pre></div>
@@ -299,12 +299,12 @@ Python. Attach a declarative action with <code class="docutils literal notransla
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">element</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">,</span> <span class="n">Widget</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;section&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;border:1px solid #bbb;padding:1rem&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">"border:1px solid #bbb;padding:1rem"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
     <span class="n">Stack</span><span class="p">()</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;button&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Details&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;info&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">)))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Runs entirely client-side.&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"strong"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Settings"</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"button"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Details"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"info"</span><span class="p">),</span> <span class="s2">"hidden"</span><span class="p">)))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"div"</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"info"</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Runs entirely client-side."</span><span class="p">))</span>
 <span class="p">)</span>
 <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
 </pre></div>
@@ -319,16 +319,16 @@ switch’s <code class="docutils literal notranslate"><span class="pre">checked<
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span><span class="p">,</span> <span class="n">Widget</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;section&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;border:1px solid #bbb;padding:1rem&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">"border:1px solid #bbb;padding:1rem"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
     <span class="n">Stack</span><span class="p">()</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;strong&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Settings&quot;</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"strong"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Settings"</span><span class="p">))</span>
     <span class="o">.</span><span class="n">child</span><span class="p">(</span>
-        <span class="n">element</span><span class="p">(</span><span class="s2">&quot;label&quot;</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;checkbox&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">&quot;checked&quot;</span><span class="p">,</span> <span class="s2">&quot;lamp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;two-way&quot;</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">&quot;Lamp&quot;</span><span class="p">)</span>
+        <span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"checked"</span><span class="p">,</span> <span class="s2">"lamp"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">)</span>
     <span class="p">)</span>
 <span class="p">)</span>
-<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">"lamp"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 <span class="n">w</span>
 </pre></div>
 </div>
@@ -339,7 +339,7 @@ in a new cell:</p>
 </div>
 <p>Flip the switch in the rendered widget, then re-run <code class="docutils literal notranslate"><span class="pre">w.state</span></code>. You should see <code class="docutils literal notranslate"><span class="pre">{'lamp':</span> <span class="pre">False}</span></code>. The
 control wrote the field. It works the other way too — set the field from Python:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;lamp&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"lamp"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
 </pre></div>
 </div>
 <p>The switch turns back on. The binding keeps the control and the state field in sync in both directions.</p>
@@ -347,7 +347,7 @@ control wrote the field. It works the other way too — set the field from Pytho
 <section id="step-5-react-to-changes-in-python">
 <h2>Step 5 — react to changes in Python<a class="headerlink" href="#step-5-react-to-changes-in-python" title="Link to this heading">¶</a></h2>
 <p>Register a callback to run whenever the state changes (including from a click in the browser):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_state</span><span class="p">(</span><span class="k">lambda</span> <span class="n">state</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;settings:&quot;</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_state</span><span class="p">(</span><span class="k">lambda</span> <span class="n">state</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"settings:"</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>Now flip the switch in the widget. Your cell prints <code class="docutils literal notranslate"><span class="pre">settings:</span> <span class="pre">{'lamp':</span> <span class="pre">False}</span></code>. You have a UI whose
@@ -450,7 +450,7 @@ fragment in a page you already own.</p></li>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

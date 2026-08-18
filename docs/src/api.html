@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="Generate typed classes from a manifest" href="cem.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>API reference - spaday v0.5.0</title>
+        <title>API reference - spaday v0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.5.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.6.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -262,7 +262,8 @@
 props as keywords — <code class="docutils literal notranslate"><span class="pre">App(Nav(&quot;title&quot;),</span> <span class="pre">Body(...),</span> <span class="pre">id=&quot;root&quot;)</span></code> — or build it up fluently with
 <code class="docutils literal notranslate"><span class="pre">.child()</span></code> / <code class="docutils literal notranslate"><span class="pre">.prop()</span></code>. A string child becomes a text node. Subclasses set the class attribute
 <code class="docutils literal notranslate"><span class="pre">tag</span></code> and forward their typed props via <code class="docutils literal notranslate"><span class="pre">props=</span></code> (only the ones the author set — <code class="docutils literal notranslate"><span class="pre">None</span></code> means
-“leave the element’s own default”).</p>
+“leave the element’s own default”). CEM-generated subclasses also set the class-level <code class="docutils literal notranslate"><span class="pre">schema</span></code>
+used by component catalogs; hand-authored catalog components may set it explicitly.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="spaday.Component.key">
 <span class="sig-name descname"><span class="pre">key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.key" title="Link to this definition">¶</a></dt>
@@ -387,7 +388,7 @@ work (<code class="docutils literal notranslate"><span class="pre">class_</span>
 <p><code class="docutils literal notranslate"><span class="pre">field</span></code> reads a global store collection. <code class="docutils literal notranslate"><span class="pre">items</span></code> accepts an expression, including
 <code class="xref py py-func docutils literal notranslate"><span class="pre">item()</span></code> for a nested collection. Inside <code class="docutils literal notranslate"><span class="pre">template</span></code>, <code class="docutils literal notranslate"><span class="pre">item()</span></code> reads the
 current item and <code class="docutils literal notranslate"><span class="pre">scope(&quot;name.path&quot;)</span></code> reads a named current or ancestor repeater scope:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Each</span><span class="p">(</span><span class="n">Row</span><span class="p">(</span><span class="n">Strong</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;textContent&quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">))),</span> <span class="n">field</span><span class="o">=</span><span class="s2">&quot;rows&quot;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s2">&quot;row&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Each</span><span class="p">(</span><span class="n">Row</span><span class="p">(</span><span class="n">Strong</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"textContent"</span><span class="p">,</span> <span class="n">item</span><span class="p">(</span><span class="s2">"name"</span><span class="p">))),</span> <span class="n">field</span><span class="o">=</span><span class="s2">"rows"</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">"id"</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s2">"row"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The first release supports one component template root and read-only item scopes. Item keys must be
@@ -456,7 +457,7 @@ call with <code class="docutils literal notranslate"><span class="pre">fetch</sp
 <p>Pass <code class="docutils literal notranslate"><span class="pre">result</span></code> (a signal-store field name) to capture the outcome: on completion the runtime writes
 <code class="docutils literal notranslate"><span class="pre">{&quot;status&quot;:</span> <span class="pre">&lt;int&gt;,</span> <span class="pre">&quot;ok&quot;:</span> <span class="pre">&lt;bool&gt;,</span> <span class="pre">&quot;body&quot;:</span> <span class="pre">&lt;parsed</span> <span class="pre">JSON</span> <span class="pre">or</span> <span class="pre">text&gt;}</span></code> to that field, so success/error
 feedback stays declarative (bind or <code class="xref py py-class docutils literal notranslate"><span class="pre">Show</span></code> on it):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/api/order&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">&quot;symbol&quot;</span><span class="p">)}),</span> <span class="n">result</span><span class="o">=</span><span class="s2">&quot;order_result&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/api/order"</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span><span class="s2">"symbol"</span><span class="p">:</span> <span class="n">field</span><span class="p">(</span><span class="s2">"symbol"</span><span class="p">)}),</span> <span class="n">result</span><span class="o">=</span><span class="s2">"order_result"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Without <code class="docutils literal notranslate"><span class="pre">result</span></code> the call is fire-and-forget.</p>
@@ -544,7 +545,7 @@ evaluated against the signal store in the browser, e.g. <code class="docutils li
 <dd><p>A ternary for a <em>computed</em> binding (<code class="xref py py-meth docutils literal notranslate"><span class="pre">compute()</span></code>): <code class="docutils literal notranslate"><span class="pre">then</span></code> when
 <code class="docutils literal notranslate"><span class="pre">test</span></code> is truthy, else <code class="docutils literal notranslate"><span class="pre">otherwise</span></code> (each a plain value or an <code class="xref py py-class docutils literal notranslate"><span class="pre">Expr</span></code>). Evaluated against the
 signal store in the browser — e.g. a boolean <code class="docutils literal notranslate"><span class="pre">dark</span></code> field driving a string theme prop:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">chart</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">&quot;theme&quot;</span><span class="p">,</span> <span class="n">cond</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;dark&quot;</span><span class="p">),</span> <span class="s2">&quot;dark&quot;</span><span class="p">,</span> <span class="s2">&quot;light&quot;</span><span class="p">))</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">chart</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"theme"</span><span class="p">,</span> <span class="n">cond</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"dark"</span><span class="p">),</span> <span class="s2">"dark"</span><span class="p">,</span> <span class="s2">"light"</span><span class="p">))</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -555,9 +556,9 @@ signal store in the browser — e.g. a boolean <code class="docutils literal not
 <dd><p>Compose a JSON object from named sub-expressions (each value a plain value or an <code class="xref py py-class docutils literal notranslate"><span class="pre">Expr</span></code>).
 Lets a whole model be POSTed declaratively as a <a class="reference internal" href="#spaday.CallEndpoint" title="spaday.CallEndpoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">CallEndpoint</span></code></a> body — composing live control
 values without a hand-written handler:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span> <span class="s2">&quot;/api/order&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span>
-    <span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">prop</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;symbol&quot;</span><span class="p">),</span> <span class="s2">&quot;value&quot;</span><span class="p">),</span>
-    <span class="s2">&quot;qty&quot;</span><span class="p">:</span> <span class="n">prop</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;qty&quot;</span><span class="p">),</span> <span class="s2">&quot;value&quot;</span><span class="p">),</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/api/order"</span><span class="p">,</span> <span class="n">obj</span><span class="p">({</span>
+    <span class="s2">"symbol"</span><span class="p">:</span> <span class="n">prop</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"symbol"</span><span class="p">),</span> <span class="s2">"value"</span><span class="p">),</span>
+    <span class="s2">"qty"</span><span class="p">:</span> <span class="n">prop</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"qty"</span><span class="p">),</span> <span class="s2">"value"</span><span class="p">),</span>
 <span class="p">}))</span>
 </pre></div>
 </div>
@@ -586,7 +587,7 @@ state bindings prefer <code class="docutils literal notranslate"><span class="pr
 <dd><p>One-way reactive binding: when <code class="docutils literal notranslate"><span class="pre">source</span></code> (a control component) changes, set <code class="docutils literal notranslate"><span class="pre">target_prop</span></code> on
 <code class="docutils literal notranslate"><span class="pre">target</span></code> (a <code class="xref py py-class docutils literal notranslate"><span class="pre">Ref</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">by_id(&quot;panel&quot;)</span></code>) to the source’s value — optionally passed
 through <code class="docutils literal notranslate"><span class="pre">transform</span></code> (e.g. <a class="reference internal" href="#spaday.not_" title="spaday.not_"><code class="xref py py-func docutils literal notranslate"><span class="pre">not_()</span></code></a>). Returns <code class="docutils literal notranslate"><span class="pre">source</span></code> so it composes in a tree:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bind</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Show&quot;</span><span class="p">),</span> <span class="n">by_id</span><span class="p">(</span><span class="s2">&quot;panel&quot;</span><span class="p">),</span> <span class="s2">&quot;hidden&quot;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">not_</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bind</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Show"</span><span class="p">),</span> <span class="n">by_id</span><span class="p">(</span><span class="s2">"panel"</span><span class="p">),</span> <span class="s2">"hidden"</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">not_</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Event-driven (sugar over <code class="docutils literal notranslate"><span class="pre">SetProp</span></code> on the source’s <code class="docutils literal notranslate"><span class="pre">change</span></code>); the signal-graph reactive engine
@@ -641,6 +642,53 @@ signatures — though they still validate keyword names at call time. Reach for 
 (committed codegen) when you want typing.</p>
 </dd></dl>
 
+<section id="component-catalog-schemas">
+<h3>Component catalog schemas<a class="headerlink" href="#component-catalog-schemas" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.ComponentSchema">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">ComponentSchema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">props</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#spaday.PropertySchema" title="spaday.catalog.PropertySchema"><span class="pre">PropertySchema</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/catalog.html#ComponentSchema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.ComponentSchema" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Catalog metadata for one component class and custom-element tag.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.ComponentSchema.from_cem">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_cem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#spaday.ComponentSchema" title="spaday.catalog.ComponentSchema"><span class="pre">ComponentSchema</span></a></span></span><a class="reference internal" href="../../_modules/spaday/catalog.html#ComponentSchema.from_cem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.ComponentSchema.from_cem" title="Link to this definition">¶</a></dt>
+<dd><p>Build catalog metadata from spaday’s normalized CEM schema.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="spaday.ComponentSchema.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></em><a class="headerlink" href="#spaday.ComponentSchema.model_config" title="Link to this definition">¶</a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.ComponentSchema.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/spaday/catalog.html#ComponentSchema.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.ComponentSchema.to_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Return JSON-serializable catalog data.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.PropertySchema">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">PropertySchema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'string'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'boolean'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'number'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'enum'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'json'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/catalog.html#PropertySchema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.PropertySchema" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>One editable DOM property exposed by a component.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="spaday.PropertySchema.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></em><a class="headerlink" href="#spaday.PropertySchema.model_config" title="Link to this definition">¶</a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.PropertySchema.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/spaday/catalog.html#PropertySchema.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.PropertySchema.to_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Return JSON-serializable catalog data.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 </section>
 <section id="serving">
 <h2>Serving<a class="headerlink" href="#serving" title="Link to this heading">¶</a></h2>
@@ -735,13 +783,16 @@ directory with a backend’s <code class="docutils literal notranslate"><span cl
 <h3>External component packages<a class="headerlink" href="#external-component-packages" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="spaday.ComponentPackage">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">ComponentPackage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assets_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/packages.html#ComponentPackage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.ComponentPackage" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">ComponentPackage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assets_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">components</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/packages.html#ComponentPackage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.ComponentPackage" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Assets that register one external component library in the browser.</p>
+<p>Assets and catalog metadata for one external component library.</p>
 <p><code class="docutils literal notranslate"><span class="pre">assets</span></code> contains <code class="docutils literal notranslate"><span class="pre">(&quot;css&quot;</span> <span class="pre">|</span> <span class="pre">&quot;js&quot;,</span> <span class="pre">relative_path)</span></code> pairs under
 <code class="docutils literal notranslate"><span class="pre">assets_dir</span></code>. Backends serve that directory at
 <code class="docutils literal notranslate"><span class="pre">{prefix}/components/{name}</span></code>; <a class="reference internal" href="#spaday.bootstrap.bootstrap" title="spaday.bootstrap.bootstrap"><code class="xref py py-func docutils literal notranslate"><span class="pre">spaday.bootstrap.bootstrap()</span></code></a> emits
-the matching tags.</p>
+the matching tags. <code class="docutils literal notranslate"><span class="pre">components</span></code> contains the package’s public
+<a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a> subclasses. Generated CEM classes
+already carry schemas; hand-authored classes set <code class="docutils literal notranslate"><span class="pre">Component.schema</span></code>.
+<code class="docutils literal notranslate"><span class="pre">catalog</span></code> returns those schemas without constructing components.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -756,6 +807,12 @@ never injects assets into unrelated applications.</p>
 <dt class="sig sig-object py" id="spaday.discover_component_packages">
 <span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">discover_component_packages</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#spaday.ComponentPackage" title="spaday.packages.ComponentPackage"><span class="pre">ComponentPackage</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/spaday/packages.html#discover_component_packages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.discover_component_packages" title="Link to this definition">¶</a></dt>
 <dd><p>Load every installed component-package entry point, sorted by entry-point name.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="spaday.discover_component_package_names">
+<span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">discover_component_package_names</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/spaday/packages.html#discover_component_package_names"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.discover_component_package_names" title="Link to this definition">¶</a></dt>
+<dd><p>Return installed component-package entry-point names without loading them.</p>
 </dd></dl>
 
 </section>
@@ -963,6 +1020,20 @@ package maps its theme tokens onto those variables.</p>
 <li><a class="reference internal" href="#spaday.parse_cem"><code class="docutils literal notranslate"><span class="pre">parse_cem()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.generate"><code class="docutils literal notranslate"><span class="pre">generate()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.classes"><code class="docutils literal notranslate"><span class="pre">classes()</span></code></a></li>
+<li><a class="reference internal" href="#component-catalog-schemas">Component catalog schemas</a><ul>
+<li><a class="reference internal" href="#spaday.ComponentSchema"><code class="docutils literal notranslate"><span class="pre">ComponentSchema</span></code></a><ul>
+<li><a class="reference internal" href="#spaday.ComponentSchema.from_cem"><code class="docutils literal notranslate"><span class="pre">ComponentSchema.from_cem()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.ComponentSchema.model_config"><code class="docutils literal notranslate"><span class="pre">ComponentSchema.model_config</span></code></a></li>
+<li><a class="reference internal" href="#spaday.ComponentSchema.to_dict"><code class="docutils literal notranslate"><span class="pre">ComponentSchema.to_dict()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#spaday.PropertySchema"><code class="docutils literal notranslate"><span class="pre">PropertySchema</span></code></a><ul>
+<li><a class="reference internal" href="#spaday.PropertySchema.model_config"><code class="docutils literal notranslate"><span class="pre">PropertySchema.model_config</span></code></a></li>
+<li><a class="reference internal" href="#spaday.PropertySchema.to_dict"><code class="docutils literal notranslate"><span class="pre">PropertySchema.to_dict()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#serving">Serving</a><ul>
@@ -977,6 +1048,7 @@ package maps its theme tokens onto those variables.</p>
 <li><a class="reference internal" href="#spaday.ComponentPackage"><code class="docutils literal notranslate"><span class="pre">ComponentPackage</span></code></a></li>
 <li><a class="reference internal" href="#spaday.resolve_component_packages"><code class="docutils literal notranslate"><span class="pre">resolve_component_packages()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.discover_component_packages"><code class="docutils literal notranslate"><span class="pre">discover_component_packages()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.discover_component_package_names"><code class="docutils literal notranslate"><span class="pre">discover_component_package_names()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1015,7 +1087,7 @@ package maps its theme tokens onto those variables.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
