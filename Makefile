@@ -47,8 +47,8 @@ install:  ## install python library
 #########
 .PHONY: lint-py lint-js lint-rs lint-docs lint lints
 lint-py:  ## run python linter with ruff
-	python -m ruff check spaday
-	python -m ruff format --check spaday
+	python -m ruff check spaday benchmarks
+	python -m ruff format --check spaday benchmarks
 
 lint-js:  ## run js linter
 	cd js; pnpm lint
@@ -67,8 +67,8 @@ lints: lint
 
 .PHONY: fix-py fix-js fix-rs fix-docs fix format
 fix-py:  ## fix python formatting with ruff
-	python -m ruff check --fix spaday
-	python -m ruff format spaday
+	python -m ruff check --fix spaday benchmarks
+	python -m ruff format spaday benchmarks
 
 fix-js:  ## fix js formatting
 	cd js; pnpm fix
@@ -104,7 +104,7 @@ check: checks
 #########
 # TESTS #
 #########
-.PHONY: test-py tests-py coverage-py
+.PHONY: test-py tests-py coverage-py benchmark-py
 test-py:  ## run python tests
 	python -m pytest -v spaday/tests
 
@@ -113,6 +113,10 @@ tests-py: test-py
 
 coverage-py:  ## run python tests and collect test coverage
 	python -m pytest -v spaday/tests --cov=spaday --cov-report term-missing --cov-report xml
+
+benchmark-py: build-js  ## benchmark browser collection rendering and emit pytest-benchmark JSON
+	python -m playwright install chromium
+	python -m pytest benchmarks --benchmark-only --benchmark-json=.benchmarks/pytest-benchmark.json
 
 .PHONY: test-js tests-js coverage-js
 test-js:  ## run js tests
