@@ -328,6 +328,9 @@ class Sequence(Action):
     """Run several actions in order."""
 
     def __init__(self, *actions: Action) -> None:
+        for action in actions:
+            if not isinstance(action, Action):
+                raise TypeError(f"Sequence entries must be Actions, got {type(action).__name__}")
         self.actions: list[Action] = list(actions)
 
     def to_dict(self) -> dict[str, Any]:
@@ -365,6 +368,10 @@ class If(Action):
     ``If(prop(by_id("sw"), "checked"), SetProp(...), SetProp(...))``."""
 
     def __init__(self, cond: Any, then: Action, els: Action | None = None) -> None:
+        if not isinstance(then, Action):
+            raise TypeError(f"If then branch must be an Action, got {type(then).__name__}")
+        if els is not None and not isinstance(els, Action):
+            raise TypeError(f"If else branch must be an Action or None, got {type(els).__name__}")
         self.cond, self.then, self.els = cond, then, els
 
     def to_dict(self) -> dict[str, Any]:

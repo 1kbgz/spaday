@@ -97,6 +97,17 @@ def test_scope_requires_a_name():
         scope("")
 
 
+def test_composite_actions_reject_non_actions_at_authoring_time():
+    with pytest.raises(TypeError, match="Sequence entries must be Actions"):
+        Sequence(Emit("ready"), 3)
+    with pytest.raises(TypeError, match="Sequence entries must be Actions"):
+        Sequence(None)
+    with pytest.raises(TypeError, match="then branch must be an Action"):
+        If(True, 3)
+    with pytest.raises(TypeError, match="else branch must be an Action"):
+        If(True, Emit("ready"), 3)
+
+
 def test_logical_combinators_coerce_values_to_expressions():
     assert all_(field("ready"), True).to_dict() == {
         "expr": "all",

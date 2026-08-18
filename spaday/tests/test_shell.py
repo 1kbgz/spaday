@@ -65,6 +65,13 @@ def test_constructor_children_and_string_text_and_generic_props():
     assert Nav().child("Title").to_node() == nav
 
 
+def test_component_rejects_invalid_children_and_actions_at_authoring_time():
+    with pytest.raises(TypeError, match="child must be a Component, node dict, or string"):
+        element("div").child(3)
+    with pytest.raises(TypeError, match="event action must be an Action"):
+        element("button").on("click", 3)
+
+
 def test_component_keys_primitives_and_prop_validation():
     assert element("article").key("story").to_node()["key"] == "story"
     assert Text("plain").tag == "span"
@@ -188,6 +195,8 @@ def test_show_when_authors_a_compute_binding():
 def test_show_requires_a_condition():
     with pytest.raises(ValueError):
         Show()
+    with pytest.raises(TypeError, match="Show when must be an Expr"):
+        Show(when=True)
 
 
 def test_each_authors_a_keyed_collection_template():

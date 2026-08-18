@@ -20,6 +20,7 @@ import math
 from enum import Enum
 from typing import Any
 
+from ..actions import Expr
 from ..component import Child, Component, element
 
 __all__ = ["App", "AppShell", "Body", "Column", "Each", "Footer", "Gutter", "Main", "Nav", "Region", "Row", "Show", "Stack", "Table", "Toolbar"]
@@ -223,6 +224,8 @@ class Show(Component):
         if field is not None:
             self._bindings["when"] = {"field": field, "mode": "one-way"}
         elif when is not None:
+            if not isinstance(when, Expr):
+                raise TypeError(f"Show when must be an Expr, got {type(when).__name__}")
             self._bindings["when"] = {"compute": when.to_dict(), "mode": "one-way"}
         else:
             raise ValueError("Show requires field= (a store field) or when= (a field-expression)")
