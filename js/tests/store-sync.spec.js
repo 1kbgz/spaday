@@ -245,7 +245,7 @@ test("inbound patch updates only its changed store branch", async ({
   });
 });
 
-test("inbound patch applies list insertion and removal without a model read", async ({
+test("inbound patch applies list insertion, removal, and moves without a model read", async ({
   page,
 }) => {
   const result = await page.evaluate((makeFake) => {
@@ -277,6 +277,7 @@ test("inbound patch applies list insertion and removal without a model read", as
               },
             },
             { RemoveAt: { path: [{ Key: "rows" }], index: 0 } },
+            { Move: { path: [{ Key: "rows" }], from: 0, to: 1 } },
             { Remove: { path: [{ Key: "status" }] } },
           ],
         },
@@ -291,7 +292,7 @@ test("inbound patch applies list insertion and removal without a model read", as
   }, PATCH_FAKE.toString());
 
   expect(result).toEqual({
-    rows: [5, 2],
+    rows: [2, 5],
     status: null,
     valueCalls: 0,
     decodedValues: 1,
@@ -373,7 +374,34 @@ test("inbound list patches reach Each as keyed collection deltas", async ({
                 value: { id: 3, name: "C" },
               },
             },
-            { RemoveAt: { path: [{ Key: "rows" }], index: 0 } },
+            {
+              Reorder: {
+                path: [{ Key: "rows" }],
+                order: [1, 0, 2],
+              },
+            },
+            { RemoveAt: { path: [{ Key: "rows" }], index: 1 } },
+          ],
+        },
+      }),
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const inserted = root.children[1];
+    link.receive(
+      JSON.stringify({
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 2,
+          ops: [
+            {
+              Insert: {
+                path: [{ Key: "rows" }],
+                index: 0,
+                value: { id: 3, name: "See" },
+              },
+            },
+            { RemoveAt: { path: [{ Key: "rows" }], index: 2 } },
           ],
         },
       }),
@@ -382,8 +410,8 @@ test("inbound list patches reach Each as keyed collection deltas", async ({
     return {
       rows: store.get("rows"),
       values: [...root.children].map((element) => element.textContent),
-      updates: [...root.children].map((element) => element.updates),
-      retained: root.children[0] === retained,
+      retained: root.children[1] === retained,
+      changedMoveRetained: root.children[0] === inserted,
       valueCalls: client.valueCalls,
       decodedValues: codec.fromCalls,
     };
@@ -391,14 +419,14 @@ test("inbound list patches reach Each as keyed collection deltas", async ({
 
   expect(result).toEqual({
     rows: [
+      { id: 3, name: "See" },
       { id: 2, name: "Bee" },
-      { id: 3, name: "C" },
     ],
-    values: ["Bee", "C"],
-    updates: [2, 1],
+    values: ["See", "Bee"],
     retained: true,
+    changedMoveRetained: true,
     valueCalls: 0,
-    decodedValues: 2,
+    decodedValues: 3,
   });
 });
 
@@ -485,60 +513,75 @@ test("onChange drives accepted updates and ignores non-change frames", async ({
   });
 });
 
-test("an invalid patch falls back atomically to the client snapshot", async ({
-  page,
-}) => {
-  const result = await page.evaluate((makeFake) => {
-    const { client, codec } = eval(`(${makeFake})()`);
-    const { Store, connectStore } = window.__spaday;
-    const store = new Store();
-    const link = connectStore(store, client, () => {}, codec, undefined, false);
-    link.receive(
-      JSON.stringify({
-        t: "snapshot",
-        id: 1,
-        value: { profile: { name: "old" }, rows: [1] },
-      }),
-    );
-    let profileNotifications = 0;
-    store.subscribe("profile", () => {
-      profileNotifications += 1;
-    });
-    client.model = { profile: { name: "server" }, rows: [9] };
-    client.valueCalls = 0;
-    link.receive(
-      JSON.stringify({
-        t: "patch",
-        id: 1,
-        patch: {
-          rev: 1,
-          ops: [
-            {
-              Set: {
-                path: [{ Key: "profile" }, { Key: "name" }],
-                value: "transient",
-              },
+for (const [name, invalidOp] of [
+  ["fractional move", { Move: { path: [{ Key: "rows" }], from: 0.5, to: 0 } }],
+  ["invalid reorder", { Reorder: { path: [{ Key: "rows" }], order: [0, 0] } }],
+]) {
+  test(`${name} falls back atomically to the client snapshot`, async ({
+    page,
+  }) => {
+    const result = await page.evaluate(
+      ({ makeFake, invalidOp }) => {
+        const { client, codec } = eval(`(${makeFake})()`);
+        const { Store, connectStore } = window.__spaday;
+        const store = new Store();
+        const link = connectStore(
+          store,
+          client,
+          () => {},
+          codec,
+          undefined,
+          false,
+        );
+        link.receive(
+          JSON.stringify({
+            t: "snapshot",
+            id: 1,
+            value: { profile: { name: "old" }, rows: [1] },
+          }),
+        );
+        let profileNotifications = 0;
+        store.subscribe("profile", () => {
+          profileNotifications += 1;
+        });
+        client.model = { profile: { name: "server" }, rows: [9] };
+        client.valueCalls = 0;
+        link.receive(
+          JSON.stringify({
+            t: "patch",
+            id: 1,
+            patch: {
+              rev: 1,
+              ops: [
+                {
+                  Set: {
+                    path: [{ Key: "profile" }, { Key: "name" }],
+                    value: "transient",
+                  },
+                },
+                invalidOp,
+              ],
             },
-            { RemoveAt: { path: [{ Key: "rows" }], index: 5 } },
-          ],
-        },
-      }),
+          }),
+        );
+        return {
+          profile: store.get("profile"),
+          rows: store.get("rows"),
+          profileNotifications,
+          valueCalls: client.valueCalls,
+        };
+      },
+      { makeFake: PATCH_FAKE.toString(), invalidOp },
     );
-    return {
-      profile: store.get("profile"),
-      rows: store.get("rows"),
-      profileNotifications,
-      valueCalls: client.valueCalls,
-    };
-  }, PATCH_FAKE.toString());
 
-  expect(result).toEqual({
-    profile: { name: "server" },
-    rows: [9],
-    profileNotifications: 1,
-    valueCalls: 1,
+    expect(result).toEqual({
+      profile: { name: "server" },
+      rows: [9],
+      profileNotifications: 1,
+      valueCalls: 1,
+    });
   });
-});
+}
 
 test("inbound: a nested sub-model field flows to a dotted-path binding", async ({
   page,

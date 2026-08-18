@@ -24,7 +24,9 @@ type PatchOp =
   | { Set: { path: PathSeg[]; value: unknown } }
   | { Remove: { path: PathSeg[] } }
   | { Insert: { path: PathSeg[]; index: number; value: unknown } }
-  | { RemoveAt: { path: PathSeg[]; index: number } };
+  | { RemoveAt: { path: PathSeg[]; index: number } }
+  | { Move: { path: PathSeg[]; from: number; to: number } }
+  | { Reorder: { path: PathSeg[]; order: number[] } };
 type ReceiveChange =
   | { t: "snapshot"; id: number }
   | { t: "patch"; id: number; patch: { rev: number; ops: PatchOp[] } };
@@ -99,7 +101,11 @@ function updatePath(
     };
   }
   if (!Array.isArray(value)) throw new Error("patch path expected an array");
-  if (segment.Index < 0 || segment.Index >= value.length)
+  if (
+    !Number.isSafeInteger(segment.Index) ||
+    segment.Index < 0 ||
+    segment.Index >= value.length
+  )
     throw new Error(
       `patch path index ${segment.Index} out of bounds (len ${value.length})`,
     );
@@ -132,7 +138,11 @@ function applyPlainOp(
     return updatePath(current, path, (container) => {
       if (!Array.isArray(container))
         throw new Error("insert path expected an array");
-      if (op.Insert.index < 0 || op.Insert.index > container.length)
+      if (
+        !Number.isSafeInteger(op.Insert.index) ||
+        op.Insert.index < 0 ||
+        op.Insert.index > container.length
+      )
         throw new Error(
           `insert index ${op.Insert.index} out of bounds (len ${container.length})`,
         );
@@ -141,10 +151,58 @@ function applyPlainOp(
       return next;
     });
   }
+  if ("Move" in op) {
+    return updatePath(current, path, (container) => {
+      if (!Array.isArray(container))
+        throw new Error("move path expected an array");
+      if (
+        !Number.isSafeInteger(op.Move.from) ||
+        op.Move.from < 0 ||
+        op.Move.from >= container.length
+      )
+        throw new Error(
+          `move source ${op.Move.from} out of bounds (len ${container.length})`,
+        );
+      if (
+        !Number.isSafeInteger(op.Move.to) ||
+        op.Move.to < 0 ||
+        op.Move.to >= container.length
+      )
+        throw new Error(
+          `move destination ${op.Move.to} out of bounds (len ${container.length})`,
+        );
+      const next = [...container];
+      const [item] = next.splice(op.Move.from, 1);
+      next.splice(op.Move.to, 0, item);
+      return next;
+    });
+  }
+  if ("Reorder" in op) {
+    return updatePath(current, path, (container) => {
+      if (!Array.isArray(container))
+        throw new Error("reorder path expected an array");
+      if (
+        op.Reorder.order.length !== container.length ||
+        op.Reorder.order.some(
+          (index) =>
+            !Number.isSafeInteger(index) ||
+            index < 0 ||
+            index >= container.length,
+        ) ||
+        new Set(op.Reorder.order).size !== container.length
+      )
+        throw new Error("reorder order must be a complete array permutation");
+      return op.Reorder.order.map((index) => container[index]);
+    });
+  }
   return updatePath(current, path, (container) => {
     if (!Array.isArray(container))
       throw new Error("remove path expected an array");
-    if (op.RemoveAt.index < 0 || op.RemoveAt.index >= container.length)
+    if (
+      !Number.isSafeInteger(op.RemoveAt.index) ||
+      op.RemoveAt.index < 0 ||
+      op.RemoveAt.index >= container.length
+    )
       throw new Error(
         `remove index ${op.RemoveAt.index} out of bounds (len ${container.length})`,
       );
@@ -191,6 +249,74 @@ function readCollectionKey(
     : undefined;
 }
 
+function collectionDeltasMatch(
+  current: readonly unknown[],
+  next: readonly unknown[],
+  deltas: readonly CollectionDelta[],
+  itemKey: string,
+): boolean {
+  const identity = (item: unknown): string | undefined => {
+    const key = readCollectionKey(item, itemKey);
+    return key === undefined ? undefined : `${typeof key}:${key}`;
+  };
+  const order = current.map(identity);
+  const target = next.map(identity);
+  if (
+    order.includes(undefined) ||
+    target.includes(undefined) ||
+    new Set(order).size !== order.length ||
+    new Set(target).size !== target.length
+  )
+    return false;
+  for (const delta of deltas) {
+    if (delta.kind === "reset") return false;
+    if (delta.kind === "reorder") {
+      const reordered = delta.keys.map((key) => `${typeof key}:${key}`);
+      const currentKeys = new Set(order);
+      if (
+        reordered.length !== order.length ||
+        new Set(reordered).size !== reordered.length ||
+        reordered.some((key) => !currentKeys.has(key))
+      )
+        return false;
+      order.splice(0, order.length, ...reordered);
+      continue;
+    }
+    const key = `${typeof delta.key}:${delta.key}`;
+    const index = order.indexOf(key);
+    if (delta.kind === "insert") {
+      if (
+        index !== -1 ||
+        !Number.isSafeInteger(delta.index) ||
+        delta.index < 0 ||
+        delta.index > order.length ||
+        identity(delta.item) !== key
+      )
+        return false;
+      order.splice(delta.index, 0, key);
+    } else if (delta.kind === "update") {
+      if (index === -1) return false;
+    } else if (delta.kind === "move") {
+      if (
+        index === -1 ||
+        !Number.isSafeInteger(delta.index) ||
+        delta.index < 0 ||
+        delta.index >= order.length
+      )
+        return false;
+      order.splice(index, 1);
+      order.splice(delta.index, 0, key);
+    } else {
+      if (index === -1) return false;
+      order.splice(index, 1);
+    }
+  }
+  return (
+    order.length === target.length &&
+    order.every((key, index) => key === target[index])
+  );
+}
+
 function collectionPath(path: readonly PathSeg[]): CollectionPathSegment[] {
   return path.map((segment) =>
     "Key" in segment ? segment.Key : segment.Index,
@@ -215,6 +341,19 @@ function collectionDelta(
   if ("RemoveAt" in op && path.length === 0) {
     const key = readCollectionKey(current[op.RemoveAt.index], itemKey);
     return key === undefined ? undefined : { kind: "remove", key };
+  }
+  if ("Move" in op && path.length === 0) {
+    const key = readCollectionKey(current[op.Move.from], itemKey);
+    return key === undefined ||
+      !Object.is(key, readCollectionKey(next[op.Move.to], itemKey))
+      ? undefined
+      : { kind: "move", key, index: op.Move.to };
+  }
+  if ("Reorder" in op && path.length === 0) {
+    const keys = next.map((item) => readCollectionKey(item, itemKey));
+    return keys.includes(undefined)
+      ? undefined
+      : { kind: "reorder", keys: keys as CollectionKey[] };
   }
   const [row, ...itemPath] = path;
   if (!row || !("Index" in row)) return undefined;
@@ -315,7 +454,11 @@ export function connectStore(
               ? op.Remove
               : "Insert" in op
                 ? op.Insert
-                : op.RemoveAt;
+                : "RemoveAt" in op
+                  ? op.RemoveAt
+                  : "Move" in op
+                    ? op.Move
+                    : op.Reorder;
         const [head, ...rest] = body.path;
         if (!head) {
           receiveSnapshot();
@@ -351,7 +494,19 @@ export function connectStore(
       return;
     }
     for (const [key, update] of staged) {
-      if (update.deltas && Array.isArray(update.value))
+      const itemKey = store.collectionKey(key);
+      if (
+        update.deltas &&
+        itemKey &&
+        Array.isArray(update.value) &&
+        Array.isArray(store.get(key)) &&
+        collectionDeltasMatch(
+          store.get(key),
+          update.value,
+          update.deltas,
+          itemKey,
+        )
+      )
         store.setCollection(key, update.value, update.deltas);
       else store.set(key, update.value);
       wireField(update.field);

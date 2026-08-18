@@ -80,6 +80,37 @@ test("spa-each reconciles keyed instances without losing live state", async ({
   });
 });
 
+test("spa-each preserves focus on non-text inputs during a move", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ rows: [{ id: 1 }, { id: 2 }] });
+    const root = mount(
+      document.body,
+      {
+        tag: "spa-each",
+        props: { itemKey: { Str: "id" } },
+        bindings: { items: { field: "rows", mode: "one-way" } },
+        slots: {
+          default: [{ tag: "input", props: { type: { Str: "number" } } }],
+        },
+      },
+      store,
+    );
+    const focused = root.children[0];
+    focused.focus();
+    store.set("rows", [{ id: 2 }, { id: 1 }]);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      moved: root.children[1] === focused,
+      focused: document.activeElement === focused,
+    };
+  });
+
+  expect(result).toEqual({ moved: true, focused: true });
+});
+
 test("spa-each applies granular collection changes without resetting unchanged scopes", async ({
   page,
 }) => {
@@ -127,7 +158,7 @@ test("spa-each applies granular collection changes without resetting unchanged s
       [three, updatedOne, four],
       [
         { kind: "update", key: 1, path: ["label"], value: "AA" },
-        { kind: "move", key: 1, index: 2 },
+        { kind: "reorder", keys: [3, 1, 2] },
         { kind: "remove", key: 2 },
         { kind: "insert", key: 4, index: 2, item: four },
       ],
