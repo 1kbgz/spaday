@@ -60,6 +60,8 @@ def mount(
     tree: str = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
+    stylesheets: Sequence[str] = (),
+    styles: Sequence[str] = (),
     head: str = "",
     store: dict | None = None,
     nonce: str | None = None,
@@ -86,6 +88,8 @@ def mount(
         tree=tree,
         reconnect=reconnect,
         scripts=scripts,
+        stylesheets=stylesheets,
+        styles=styles,
         head=head,
         title=title,
         store=store,
@@ -121,7 +125,8 @@ def serve(page: Page, *, background: Sequence[Awaitable] = (), lifespan: Callabl
     """Create a Starlette app and :func:`mount` ``page`` onto it. ``background`` coroutines run for the
     app's lifetime (or pass a custom ``lifespan`` for ordered startup, e.g. a clustering relay); all other
     keyword options are :func:`mount`'s (``prefix``/``routes``/``html``/``js``/``title``/``packages``/
-    ``wire``/``ws``/``tree``/``reconnect``/``scripts``/``head``/``store``/``nonce``)."""
+    ``wire``/``ws``/``tree``/``reconnect``/``scripts``/``stylesheets``/``styles``/``head``/``store``/
+    ``nonce``)."""
     from starlette.applications import Starlette
 
     @asynccontextmanager

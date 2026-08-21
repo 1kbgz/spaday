@@ -37,6 +37,8 @@ def mount(
     tree: str = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
+    stylesheets: Sequence[str] = (),
+    styles: Sequence[str] = (),
     head: str = "",
 ) -> Flask:
     """Add spaday's routes to an existing Flask ``app`` under ``prefix``. ``routes`` is a list of
@@ -54,6 +56,8 @@ def mount(
         tree=tree,
         reconnect=reconnect,
         scripts=scripts,
+        stylesheets=stylesheets,
+        styles=styles,
         head=head,
         title=title,
         layout=asset_layout,

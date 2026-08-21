@@ -150,5 +150,19 @@ The `spa-*` shell components are re-themed by setting their `--spa-*` CSS custom
 `Component.css` (e.g. `App().css(spa_surface="#111", spa_border="#333")`, which cascades to the whole
 shell). `spaday.SHELL_TOKENS` maps each `css()` keyword to the CSS custom property it drives and what it
 controls — `spa_surface`, `spa_surface_2`, `spa_border`, `spa_muted`, `spa_gap`, `spa_align`,
-`spa_justify`, `spa_gutter_width`. Shell elements use neutral defaults unless an application or component
-package maps its theme tokens onto those variables.
+`spa_justify`, `spa_gutter_width`. The shell ships neutral light and dark defaults — the dark palette is
+keyed off WebAwesome's `wa-dark` class (`wa-light` flips a nested island back), so
+`App(...).bind_root_class("wa-dark", "dark")` alone re-themes the whole page. Both palettes are emitted
+at zero specificity, so an application or component package overrides them by mapping its own theme
+tokens onto those variables.
+
+`wa-dark`/`wa-light` on the root is spaday's page-mode convention, and component packages join it
+through whichever channel themes them:
+
+- a package themed by **CSS tokens** ships mode-keyed rules in its own package stylesheet (its `css`
+  assets land in `<head>` via `packages=`, and custom properties cascade into its shadow roots) — key
+  them off the same classes, at low specificity (`:where(.wa-dark) { --my-token: … }`), exactly as the
+  shell does;
+- a package themed by a **prop or constructor options** (Perspective's `theme`, Lightweight Charts)
+  binds that prop to the same field that drives the root class:
+  `component.compute("theme", cond(field("dark"), "dark", "light"))`.

@@ -109,6 +109,16 @@ def test_mount_stamps_a_csp_nonce_on_generated_tags(tmp_path):
     assert 'nonce="abc123"' in page and "/components/fixture/fixture.js" in page
 
 
+def test_mount_threads_stylesheets_and_styles(tmp_path):
+    from starlette.applications import Starlette
+
+    app = Starlette()
+    mount(app, Main("hi"), prefix="/dash", js=tmp_path, stylesheets=["/static/theme.css"], styles=["body{margin:0}"], nonce="abc123")
+    page = TestClient(app).get("/dash/").text
+    assert '<link rel="stylesheet" nonce="abc123" href="/static/theme.css" />' in page
+    assert '<style nonce="abc123">body{margin:0}</style>' in page
+
+
 def test_serve_custom_html_and_background(tmp_path):
     html_file = tmp_path / "page.html"
     html_file.write_text("<!doctype html><title>custom</title>", encoding="utf-8")

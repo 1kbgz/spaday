@@ -39,6 +39,8 @@ def mount(
     tree: str = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
+    stylesheets: Sequence[str] = (),
+    styles: Sequence[str] = (),
     head: str = "",
 ) -> web.Application:
     """Add spaday's routes to an existing aiohttp ``app`` under ``prefix``. ``routes`` is a list of
@@ -56,6 +58,8 @@ def mount(
         tree=tree,
         reconnect=reconnect,
         scripts=scripts,
+        stylesheets=stylesheets,
+        styles=styles,
         head=head,
         title=title,
         layout=asset_layout,
