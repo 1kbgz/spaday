@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "content": null,
+      "created": "2026-08-21T21:12:58.499694Z",
+      "format": null,
+      "hash": null,
+      "hash_algorithm": null,
+      "last_modified": "2026-08-21T21:09:03.244488Z",
+      "mimetype": null,
+      "name": "spaday-demo.ipynb",
+      "path": "spaday-demo.ipynb",
+      "size": 1924,
+      "type": "notebook",
+      "writable": true
+    }
+  ],
+  "created": "2026-08-21T21:12:58.499694Z",
+  "format": "json",
+  "hash": null,
+  "hash_algorithm": null,
+  "last_modified": "2026-08-21T21:12:58.499694Z",
+  "mimetype": null,
+  "name": "",
+  "path": "",
+  "size": null,
+  "type": "directory",
+  "writable": true
+}

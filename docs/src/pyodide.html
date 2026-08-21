@@ -320,6 +320,26 @@ tree diffing in the worker.</p>
 </pre></div>
 </div>
 </section>
+<section id="run-it-all-in-jupyterlite">
+<h2>Run it all in JupyterLite<a class="headerlink" href="#run-it-all-in-jupyterlite" title="Link to this heading">¶</a></h2>
+<p>Both ends WebAssembly: the Pyodide kernel runs your Python, and the <a class="reference internal" href="notebook.html"><span class="std std-doc">notebook widget</span></a>
+(which bundles the spaday runtime and wasm core) renders the tree in the notebook frontend — no
+server. A hosted build publishes with these docs at
+<a class="reference external" href="https://1kbgz.github.io/spaday/lite/">/spaday/lite/</a> — open <code class="docutils literal notranslate"><span class="pre">lab/index.html</span></code> → <code class="docutils literal notranslate"><span class="pre">spaday-demo.ipynb</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>jupyterlite<span class="w">        </span><span class="c1"># builds the site into dist/lite (wheel + demo notebook included)</span>
+make<span class="w"> </span>test-jupyterlite<span class="w">   </span><span class="c1"># or: drive the site's REPL in Chromium end-to-end</span>
+</pre></div>
+</div>
+<p>Serve <code class="docutils literal notranslate"><span class="pre">dist/lite</span></code> from any static host. The spaday wheel installs from the site’s own wheel index
+(<code class="docutils literal notranslate"><span class="pre">%pip</span> <span class="pre">install</span> <span class="pre">spaday</span> <span class="pre">anywidget</span></code>); <code class="docutils literal notranslate"><span class="pre">anywidget</span></code> and <code class="docutils literal notranslate"><span class="pre">pydantic</span></code> come from PyPI. Widget <strong>frontend</strong>
+extensions cannot be <code class="docutils literal notranslate"><span class="pre">%pip</span> <span class="pre">install</span></code>ed at runtime — the site build bundles them (<code class="docutils literal notranslate"><span class="pre">jupyterlab_widgets</span></code>
+for the ipywidgets manager plus <code class="docutils literal notranslate"><span class="pre">anywidget</span></code>; see the <code class="docutils literal notranslate"><span class="pre">jupyterlite</span></code> Make target). A Lite site built
+without them shows the widget’s text repr instead of the rendered tree.</p>
+<p><strong>If a previously visited site misbehaves after a redeploy</strong> (e.g. an old wheel version, or missing
+files): JupyterLite caches hard — a service worker plus browser storage can keep serving the previous
+build’s kernel and packages. Hard refresh (Cmd/Ctrl+Shift+R), or clear the site’s data (service
+worker + IndexedDB) and reload.</p>
+</section>
 </section>
 
         </article>
@@ -382,6 +402,7 @@ tree diffing in the worker.</p>
 <li><a class="reference internal" href="#open-the-example">Open the example</a></li>
 <li><a class="reference internal" href="#connect-your-own-worker">Connect your own worker</a></li>
 <li><a class="reference internal" href="#run-the-browser-test">Run the browser test</a></li>
+<li><a class="reference internal" href="#run-it-all-in-jupyterlite">Run it all in JupyterLite</a></li>
 </ul>
 </li>
 </ul>

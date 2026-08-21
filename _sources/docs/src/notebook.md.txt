@@ -2,7 +2,9 @@
 
 This guide shows you how to render a spaday UI in a notebook and round-trip its state with Python — no
 server. It works in Jupyter (Lab / Notebook / Colab / VS Code) and the wider
-[anywidget](https://anywidget.dev) ecosystem (Marimo, Shiny-for-Python, Solara, Panel).
+[anywidget](https://anywidget.dev) ecosystem (Marimo, Shiny-for-Python, Solara, Panel) — and with no
+install at all in [JupyterLite](pyodide.md), where the kernel itself is WebAssembly (hosted demo at
+[/spaday/lite/](https://1kbgz.github.io/spaday/lite/)).
 
 Install the host:
 
