@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Author a component tree" href="components.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Serve and embed a spaday app - spaday v0.7.0</title>
+        <title>Serve and embed a spaday app - spaday v0.7.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.1</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.1</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -295,7 +295,7 @@ tree at <code class="docutils literal notranslate"><span class="pre">/tree.json<
 <span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span>
     <span class="k">lambda</span><span class="p">:</span> <span class="n">WaButton</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">"brand"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Hi"</span><span class="p">),</span>
     <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">],</span>          <span class="c1"># pull WebAwesome's styles + catalog into &lt;head&gt;</span>
-    <span class="n">head</span><span class="o">=</span><span class="s2">"&lt;style&gt;body{margin:2rem}&lt;/style&gt;"</span><span class="p">,</span>
+    <span class="n">styles</span><span class="o">=</span><span class="p">[</span><span class="s2">"body{margin:2rem}"</span><span class="p">],</span>     <span class="c1"># inline &lt;style&gt; blocks; stylesheets=[...] adds &lt;link&gt; URLs</span>
     <span class="n">title</span><span class="o">=</span><span class="s2">"my app"</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -409,7 +409,9 @@ provides. The host serves the tree, core <code class="docutils literal notransla
 </pre></div>
 </div>
 <p>The mounting script is inline, so a host with a strict <code class="docutils literal notranslate"><span class="pre">script-src</span></code> Content-Security-Policy passes a
-per-request <strong><code class="docutils literal notranslate"><span class="pre">nonce</span></code></strong> — it stamps the generated <code class="docutils literal notranslate"><span class="pre">&lt;script&gt;</span></code>/<code class="docutils literal notranslate"><span class="pre">&lt;link&gt;</span></code> tags so the policy can allow them:</p>
+per-request <strong><code class="docutils literal notranslate"><span class="pre">nonce</span></code></strong> — it stamps the generated <code class="docutils literal notranslate"><span class="pre">&lt;script&gt;</span></code>/<code class="docutils literal notranslate"><span class="pre">&lt;link&gt;</span></code>/<code class="docutils literal notranslate"><span class="pre">&lt;style&gt;</span></code> tags so the policy can
+allow them. Application CSS belongs in <code class="docutils literal notranslate"><span class="pre">stylesheets=</span></code> (URLs) or <code class="docutils literal notranslate"><span class="pre">styles=</span></code> (inline blocks), which are
+stamped like every generated tag; raw <code class="docutils literal notranslate"><span class="pre">head=</span></code> markup is concatenated verbatim and is <em>not</em> stamped:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fragment</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">fragment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">"#spaday-root"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">webawesome</span><span class="p">],</span> <span class="n">nonce</span><span class="o">=</span><span class="n">request_nonce</span><span class="p">)</span>
 <span class="c1"># ...and set `Content-Security-Policy: script-src 'self' 'nonce-&lt;request_nonce&gt;' 'wasm-unsafe-eval'`</span>
 </pre></div>
@@ -547,7 +549,7 @@ the store; you supply the websocket route and run <code class="docutils literal 
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=fe7df9b0"></script>
+</div><script src="../../_static/documentation_options.js?v=5a057da9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

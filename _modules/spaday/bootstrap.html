@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.bootstrap - spaday v0.7.0</title>
+        <title>spaday.bootstrap - spaday v0.7.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.1</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.1</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -254,6 +254,8 @@
 <span class="sd">  one wire), decoded in the browser, instead of JSON at ``…/tree.json``.</span>
 <span class="sd">- ``reconnect=True`` — re-open the websocket on drop, re-syncing from the server snapshot.</span>
 <span class="sd">- ``scripts=[…]`` — extra ES-module URLs to load (e.g. ``NamedJs`` handlers).</span>
+<span class="sd">- ``stylesheets=[…]`` / ``styles=[…]`` — extra ``&lt;link rel="stylesheet"&gt;`` URLs / inline ``&lt;style&gt;``</span>
+<span class="sd">  blocks in ``&lt;head&gt;``, stamped with ``nonce`` like every generated tag (unlike raw ``head`` markup).</span>
 <span class="sd">- ``base="/dashboard"`` — mount the app under a path prefix, so it coexists with the host's other routes</span>
 <span class="sd">  (the tree / ``/js`` / ws URLs are all prefixed). Default ``""`` = served at the root.</span>
 <span class="sd">- ``fragment=True`` + ``target="#widget"`` — return just the package tags + the module ``&lt;script&gt;`` (not a</span>
@@ -536,6 +538,8 @@
     <span class="n">tree</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"json"</span><span class="p">,</span>
     <span class="n">reconnect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">scripts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">stylesheets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">styles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">head</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
     <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"spaday"</span><span class="p">,</span>
     <span class="n">store</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -556,14 +560,18 @@
 <span class="sd">    module ``&lt;script&gt;`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is</span>
 <span class="sd">    one component among many rather than the whole page. Pass ``target`` (a CSS selector) to mount into a</span>
 <span class="sd">    specific element (e.g. ``"#widget"``) instead of ``document.body``; the host provides that element.</span>
-<span class="sd">    ``nonce`` stamps the generated ``&lt;script&gt;``/``&lt;link&gt;`` tags with a CSP nonce, so a host with a strict</span>
-<span class="sd">    ``script-src``/``style-src`` policy can allow the snippet. See the module docstring for the rest of the</span>
-<span class="sd">    options and the route contract. ``packages`` selects external :class:`~spaday.packages.ComponentPackage`</span>
+<span class="sd">    ``nonce`` stamps the generated ``&lt;script&gt;``/``&lt;link&gt;``/``&lt;style&gt;`` tags with a CSP nonce, so a host</span>
+<span class="sd">    with a strict ``script-src``/``style-src`` policy can allow the snippet. ``stylesheets`` adds</span>
+<span class="sd">    ``&lt;link rel="stylesheet"&gt;`` URLs and ``styles`` inline ``&lt;style&gt;`` blocks to ``&lt;head&gt;`` — both</span>
+<span class="sd">    nonce-stamped, unlike raw ``head`` markup, which is concatenated verbatim. See the module docstring</span>
+<span class="sd">    for the rest of the options and the route contract. ``packages`` selects external :class:`~spaday.packages.ComponentPackage`</span>
 <span class="sd">    descriptors directly, by ``module:attribute`` path, or by installed entry-point name. ``layout``</span>
 <span class="sd">    selects source-checkout or installed-wheel asset URLs; by default it follows :func:`bundles_dir`."""</span>
     <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">' nonce="</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">"'</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">""</span>
     <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
-    <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">    "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_package_head</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">),</span> <span class="n">head</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">style_tags</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">'&lt;link rel="stylesheet"</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> href="</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">" /&gt;'</span> <span class="k">for</span> <span class="n">url</span> <span class="ow">in</span> <span class="n">stylesheets</span><span class="p">]</span>
+    <span class="n">style_tags</span> <span class="o">+=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"&lt;style</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&gt;</span><span class="si">{</span><span class="n">css</span><span class="si">}</span><span class="s2">&lt;/style&gt;"</span> <span class="k">for</span> <span class="n">css</span> <span class="ow">in</span> <span class="n">styles</span><span class="p">]</span>
+    <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">    "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_package_head</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">),</span> <span class="o">*</span><span class="n">style_tags</span><span class="p">,</span> <span class="n">head</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">)</span>
     <span class="n">script</span> <span class="o">=</span> <span class="n">_script</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">wire</span><span class="p">,</span> <span class="n">scripts</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">tree</span><span class="p">,</span> <span class="n">reconnect</span><span class="p">,</span> <span class="n">store</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">layout</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment</span><span class="p">:</span>
         <span class="n">head_block</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">head_markup</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span> <span class="k">if</span> <span class="n">head_markup</span> <span class="k">else</span> <span class="s2">""</span>
@@ -616,7 +624,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=fe7df9b0"></script>
+</div><script src="../../_static/documentation_options.js?v=5a057da9"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
