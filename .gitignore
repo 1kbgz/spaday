@@ -161,3 +161,8 @@ AGENTS.md
 spaday/examples/*.json
 
 spaday-*
+
+# jupyterlite build inputs/state (site output goes to dist/lite)
+examples/lite/pypi/
+.jupyterlite.doit.db
+!examples/lite/files/spaday-demo.ipynb

@@ -84,3 +84,26 @@ Run the focused Playwright test against the wheel already in `dist/pyodide/`:
 ```bash
 make test-pyodide-browser
 ```
+
+## Run it all in JupyterLite
+
+Both ends WebAssembly: the Pyodide kernel runs your Python, and the [notebook widget](notebook.md)
+(which bundles the spaday runtime and wasm core) renders the tree in the notebook frontend — no
+server. A hosted build publishes with these docs at
+[/spaday/lite/](https://1kbgz.github.io/spaday/lite/) — open `lab/index.html` → `spaday-demo.ipynb`.
+
+```bash
+make jupyterlite        # builds the site into dist/lite (wheel + demo notebook included)
+make test-jupyterlite   # or: drive the site's REPL in Chromium end-to-end
+```
+
+Serve `dist/lite` from any static host. The spaday wheel installs from the site's own wheel index
+(`%pip install spaday anywidget`); `anywidget` and `pydantic` come from PyPI. Widget **frontend**
+extensions cannot be `%pip install`ed at runtime — the site build bundles them (`jupyterlab_widgets`
+for the ipywidgets manager plus `anywidget`; see the `jupyterlite` Make target). A Lite site built
+without them shows the widget's text repr instead of the rendered tree.
+
+**If a previously visited site misbehaves after a redeploy** (e.g. an old wheel version, or missing
+files): JupyterLite caches hard — a service worker plus browser storage can keep serving the previous
+build's kernel and packages. Hard refresh (Cmd/Ctrl+Shift+R), or clear the site's data (service
+worker + IndexedDB) and reload.

@@ -101,7 +101,14 @@ jobs:
         if: matrix.target == 'native'
 
       - name: Build and test Pyodide wheel
-        run: make test-pyodide test-pyodide-browser
+        run: make test-pyodide test-pyodide-browser test-jupyterlite
+        if: matrix.target == 'pyodide'
+
+      - name: Upload JupyterLite site
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: jupyterlite-site
+          path: dist/lite
         if: matrix.target == 'pyodide'
 
       - name: Upload test results (Python)
