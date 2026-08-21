@@ -52,6 +52,16 @@ jobs:
       - name: Build documentation
         run: yardang build
 
+      - name: Download JupyterLite site
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        with:
+          name: jupyterlite-site
+          path: docs/html/lite
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+        if: github.event_name == 'workflow_run'
+
       - name: Publish documentation
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453  # v4.1.0
         with:

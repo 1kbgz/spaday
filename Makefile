@@ -141,12 +141,25 @@ coverage-rs:  ## run rust tests and collect test coverage
 test: test-py test-js test-rs  ## run all tests
 test-pyodide:  ## build and test the Python package in Pyodide
 	rustup target add wasm32-unknown-emscripten
+	rm -rf dist/pyodide
 	uvx --from cibuildwheel==4.2.0 cibuildwheel --only cp314-pyodide_wasm32 --output-dir dist/pyodide .
 test-pyodide-browser:  ## test the Pyodide worker example in a browser
 	test -n "$(firstword $(wildcard dist/pyodide/*.whl))"
 	mkdir -p js/dist/pyodide
 	cp "$(firstword $(wildcard dist/pyodide/*.whl))" js/dist/pyodide/
 	cd js; SPADAY_PYODIDE_WHEEL="/dist/pyodide/$(notdir $(firstword $(wildcard dist/pyodide/*.whl)))" pnpm exec playwright test tests/pyodide.test.js
+
+.PHONY: jupyterlite test-jupyterlite
+jupyterlite:  ## build the JupyterLite demo site into dist/lite (needs the Pyodide wheel)
+	test -n "$(firstword $(wildcard dist/pyodide/*.whl))"
+	rm -rf examples/lite/pypi examples/lite/.cache dist/lite
+	mkdir -p examples/lite/pypi
+	cp dist/pyodide/*.whl examples/lite/pypi/
+	uvx --with jupyterlite-pyodide-kernel==0.8.3 --with jupyter-server --with jupyterlab-widgets==3.0.15 --with anywidget --from jupyterlite-core==0.8.2 jupyter lite build --lite-dir examples/lite --output-dir $(CURDIR)/dist/lite
+test-jupyterlite: jupyterlite  ## drive the JupyterLite demo in a browser
+	rm -rf js/dist/lite
+	cp -r dist/lite js/dist/lite
+	cd js; pnpm exec playwright test tests/jupyterlite.test.js
 coverage: coverage-py coverage-js coverage-rs  ## run all tests and collect test coverage
 
 # alias
