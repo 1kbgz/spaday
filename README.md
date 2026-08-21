@@ -1,4 +1,9 @@
-# spaday
+<a href="https://github.com/point72/nepenthe">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/1kbgz/spaday/raw/main/docs/img/logo-dark.png?raw=true">
+    <img alt="spaday logo, a face with a facemask and lemon slices bounded by a browser window" src="https://github.com/1kbgz/spaday/raw/main/docs/img/logo-light.png?raw=true" width="500">
+  </picture>
+</a>
 
 [![Build Status](https://github.com/1kbgz/spaday/actions/workflows/build.yaml/badge.svg?branch=main&event=push)](https://github.com/1kbgz/spaday/actions/workflows/build.yaml)
 [![codecov](https://codecov.io/gh/1kbgz/spaday/branch/main/graph/badge.svg)](https://codecov.io/gh/1kbgz/spaday)
