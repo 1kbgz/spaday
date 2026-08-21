@@ -7,8 +7,11 @@ a custom property set on a container cascades, so an **app-level** theme is just
 ``App`` root.
 
 ``SHELL_TOKENS`` documents the ``spa-*`` shell's own override tokens (the ``css()`` kwarg → the CSS
-custom property it drives and what it controls). Shell elements use neutral defaults until an
-application or component package maps its theme onto these variables::
+custom property it drives and what it controls). The shell ships neutral **light and dark** defaults —
+the dark palette is keyed off WebAwesome's ``wa-dark`` class (with ``wa-light`` flipping a nested
+island back), so ``App(...).bind_root_class("wa-dark", "dark")`` alone re-themes the whole page. Both
+palettes are emitted at zero specificity, so an application or component package overrides them by
+mapping its own theme onto these variables::
 
     from spaday.components.shell import App
     App().css(spa_surface="#111", spa_border="#333", spa_muted="#999")  # retheme the whole shell

@@ -55,6 +55,29 @@ test("layout primitives carry their own encapsulated layout CSS", async ({
   expect(r.row.alignItems).toBe("center"); // Row centers its items
 });
 
+test("the shell ships a dark palette keyed off wa-dark, with wa-light flipping a nested island back", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    const nav = window.__spaday.mount(document.body, { tag: "spa-nav" });
+    const bg = () => getComputedStyle(nav).backgroundColor;
+    const light = bg();
+    document.documentElement.classList.add("wa-dark"); // what bind_root_class("wa-dark", ...) toggles
+    const dark = bg();
+    const island = document.createElement("div");
+    island.className = "wa-light";
+    document.body.append(island);
+    const islandNav = window.__spaday.mount(island, { tag: "spa-nav" });
+    const islandBg = getComputedStyle(islandNav).backgroundColor;
+    document.documentElement.classList.remove("wa-dark");
+    return { light, dark, islandBg, back: bg() };
+  });
+  expect(r.light).toBe("rgb(255, 255, 255)"); // the light default
+  expect(r.dark).toBe("rgb(21, 25, 30)"); // --spa-surface under .wa-dark
+  expect(r.islandBg).toBe("rgb(255, 255, 255)"); // a light island inside a dark page
+  expect(r.back).toBe("rgb(255, 255, 255)"); // removing the class restores the light palette
+});
+
 test("spa-table renders rows under columns and re-renders when the bound field changes", async ({
   page,
 }) => {

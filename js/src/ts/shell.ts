@@ -14,6 +14,24 @@ const SURFACE = "var(--spa-surface, #fff)";
 const SURFACE_2 = "var(--spa-surface-2, #fafafa)";
 const MUTED = "var(--spa-muted, #666)";
 
+// The shell's own two palettes, keyed off WebAwesome's mode classes so
+// `App(...).bind_root_class("wa-dark", "dark")` alone re-themes the whole page. Custom properties
+// inherit through shadow boundaries, so one document-level rule reaches every `:host` style above.
+// `:where()` keeps specificity at zero: any application rule (or inline `.css(...)`) wins. The
+// explicit `.wa-light` values make a nested light island inside a dark page flip back.
+const THEME_CSS = `:where(.wa-dark) {
+  --spa-surface: #15191e;
+  --spa-surface-2: #1d232b;
+  --spa-border: #333b45;
+  --spa-muted: #9aa3ad;
+}
+:where(.wa-light) {
+  --spa-surface: #fff;
+  --spa-surface-2: #fafafa;
+  --spa-border: #e6e6e6;
+  --spa-muted: #666;
+}`;
+
 /** tag → the element's `:host` layout style. Each gets a shadow root with this style + a default slot. */
 const SHELL: Record<string, string> = {
   // page frame: nav (top) / body (fills) / footer (bottom), stacked
@@ -55,6 +73,12 @@ const ATTR_VARS: Record<string, string> = {
 // Guard so importing the runtime in a non-DOM context (e.g. the test runner / SSR in node) is a no-op
 // rather than touching `customElements`/`HTMLElement`, which only exist in the browser.
 if (typeof customElements !== "undefined") {
+  if (!document.querySelector("style[data-spaday-shell-theme]")) {
+    const theme = document.createElement("style");
+    theme.setAttribute("data-spaday-shell-theme", "");
+    theme.textContent = THEME_CSS;
+    document.head.append(theme);
+  }
   for (const [tag, css] of Object.entries(SHELL)) {
     if (customElements.get(tag)) continue;
     customElements.define(
