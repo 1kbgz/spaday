@@ -12,6 +12,8 @@ What an app would otherwise hand-write in HTML is declared in Python:
   one wire), decoded in the browser, instead of JSON at ``…/tree.json``.
 - ``reconnect=True`` — re-open the websocket on drop, re-syncing from the server snapshot.
 - ``scripts=[…]`` — extra ES-module URLs to load (e.g. ``NamedJs`` handlers).
+- ``stylesheets=[…]`` / ``styles=[…]`` — extra ``<link rel="stylesheet">`` URLs / inline ``<style>``
+  blocks in ``<head>``, stamped with ``nonce`` like every generated tag (unlike raw ``head`` markup).
 - ``base="/dashboard"`` — mount the app under a path prefix, so it coexists with the host's other routes
   (the tree / ``/js`` / ws URLs are all prefixed). Default ``""`` = served at the root.
 - ``fragment=True`` + ``target="#widget"`` — return just the package tags + the module ``<script>`` (not a
@@ -280,6 +282,8 @@ def bootstrap(
     tree: str = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
+    stylesheets: Sequence[str] = (),
+    styles: Sequence[str] = (),
     head: str = "",
     title: str = "spaday",
     store: dict | None = None,
@@ -300,14 +304,18 @@ def bootstrap(
     module ``<script>`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is
     one component among many rather than the whole page. Pass ``target`` (a CSS selector) to mount into a
     specific element (e.g. ``"#widget"``) instead of ``document.body``; the host provides that element.
-    ``nonce`` stamps the generated ``<script>``/``<link>`` tags with a CSP nonce, so a host with a strict
-    ``script-src``/``style-src`` policy can allow the snippet. See the module docstring for the rest of the
-    options and the route contract. ``packages`` selects external :class:`~spaday.packages.ComponentPackage`
+    ``nonce`` stamps the generated ``<script>``/``<link>``/``<style>`` tags with a CSP nonce, so a host
+    with a strict ``script-src``/``style-src`` policy can allow the snippet. ``stylesheets`` adds
+    ``<link rel="stylesheet">`` URLs and ``styles`` inline ``<style>`` blocks to ``<head>`` — both
+    nonce-stamped, unlike raw ``head`` markup, which is concatenated verbatim. See the module docstring
+    for the rest of the options and the route contract. ``packages`` selects external :class:`~spaday.packages.ComponentPackage`
     descriptors directly, by ``module:attribute`` path, or by installed entry-point name. ``layout``
     selects source-checkout or installed-wheel asset URLs; by default it follows :func:`bundles_dir`."""
     n = f' nonce="{nonce}"' if nonce else ""
     component_packages = resolve_component_packages(packages)
-    head_markup = "\n    ".join(p for p in (_package_head(component_packages, base, nonce), head) if p)
+    style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
+    style_tags += [f"<style{n}>{css}</style>" for css in styles]
+    head_markup = "\n    ".join(p for p in (_package_head(component_packages, base, nonce), *style_tags, head) if p)
     script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""

@@ -31,7 +31,7 @@ from spaday_webawesome import WaButton
 app = serve(
     lambda: WaButton(variant="brand").text("Hi"),
     packages=["webawesome"],          # pull WebAwesome's styles + catalog into <head>
-    head="<style>body{margin:2rem}</style>",
+    styles=["body{margin:2rem}"],     # inline <style> blocks; stylesheets=[...] adds <link> URLs
     title="my app",
 )
 
@@ -158,7 +158,9 @@ routes = [
 ```
 
 The mounting script is inline, so a host with a strict `script-src` Content-Security-Policy passes a
-per-request **`nonce`** — it stamps the generated `<script>`/`<link>` tags so the policy can allow them:
+per-request **`nonce`** — it stamps the generated `<script>`/`<link>`/`<style>` tags so the policy can
+allow them. Application CSS belongs in `stylesheets=` (URLs) or `styles=` (inline blocks), which are
+stamped like every generated tag; raw `head=` markup is concatenated verbatim and is *not* stamped:
 
 ```python
 fragment = bootstrap(fragment=True, target="#spaday-root", packages=[webawesome], nonce=request_nonce)

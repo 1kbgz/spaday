@@ -45,6 +45,23 @@ def test_scripts_are_injected():
     assert 'import "/static/handlers.js";' in bootstrap(scripts=["/static/handlers.js"])
 
 
+def test_stylesheets_and_styles_are_injected_with_the_nonce():
+    html = bootstrap(stylesheets=["/static/a.css", "/static/b.css"], styles=["body{margin:0}"], nonce="abc123")
+    assert '<link rel="stylesheet" nonce="abc123" href="/static/a.css" />' in html
+    assert '<link rel="stylesheet" nonce="abc123" href="/static/b.css" />' in html
+    assert '<style nonce="abc123">body{margin:0}</style>' in html
+    # without a nonce the tags are plain
+    plain = bootstrap(stylesheets=["/static/a.css"], styles=["body{margin:0}"])
+    assert '<link rel="stylesheet" href="/static/a.css" />' in plain
+    assert "<style>body{margin:0}</style>" in plain
+
+
+def test_stylesheets_land_in_fragment_snippets_too():
+    f = bootstrap(fragment=True, target="#widget", stylesheets=["/static/a.css"], nonce="abc123")
+    assert '<link rel="stylesheet" nonce="abc123" href="/static/a.css" />' in f
+    assert "<!doctype html>" not in f
+
+
 def test_tree_json_serializes_and_recomputes_per_call():
     page = Main("hi")
     assert json.loads(tree_json(page)) == page.to_node()
