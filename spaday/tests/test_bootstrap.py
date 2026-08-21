@@ -100,6 +100,19 @@ def test_invalid_asset_layout_raises():
         bootstrap(layout="other")
 
 
+def test_bare_js_dir_is_not_mistaken_for_a_source_checkout(tmp_path, monkeypatch):
+    # plotly installs its labextension data at top-level site-packages/js — a `js` dir next to an
+    # installed spaday must not flip layout detection to source (its URLs would 404)
+    import spaday.bootstrap as bs
+
+    monkeypatch.setattr(bs, "_SOURCE_DIR", tmp_path / "js")
+    (tmp_path / "js").mkdir()
+    (tmp_path / "js" / "install.json").write_text("{}", encoding="utf-8")
+    assert bundles_dir().name == "extension"
+    (tmp_path / "js" / "package.json").write_text("{}", encoding="utf-8")  # a real checkout marker
+    assert bundles_dir() == tmp_path / "js"
+
+
 def test_base_prefixes_the_tree_js_and_ws_urls():
     html = bootstrap(base="/dash", wire="transports", layout="source")
     assert 'fetch("/dash/tree.json")' in html  # tree
