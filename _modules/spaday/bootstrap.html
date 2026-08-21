@@ -345,7 +345,10 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">:</span> <span class="n">AssetLayout</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AssetLayout</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">layout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">layout</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_ASSETS</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"layout must be 'source' or 'installed'"</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"source"</span> <span class="k">if</span> <span class="n">_SOURCE_DIR</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"installed"</span><span class="p">)</span>
+    <span class="c1"># package.json distinguishes spaday's own js/ checkout from an unrelated sibling `js` dir —</span>
+    <span class="c1"># notably plotly's labextension data, which lands at top-level site-packages/js next to an</span>
+    <span class="c1"># installed spaday and would otherwise force source-layout URLs that 404</span>
+    <span class="k">return</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"source"</span> <span class="k">if</span> <span class="p">(</span><span class="n">_SOURCE_DIR</span> <span class="o">/</span> <span class="s2">"package.json"</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"installed"</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="bundles_dir">
