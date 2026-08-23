@@ -145,10 +145,7 @@ jobs:
 
       - name: Build distributions (Linux x86_64)
         run: |
-          # stale host-built extensions (spaday/transports/superstore .abi3.so from the develop and
-          # coverage steps) must not leak into the container-built wheel — auditwheel rejects their
-          # host-glibc symbols
-          rm -rf dist target spaday/*.abi3.so
+          rm -rf dist
           make dist-rs
           make dist-py-sdist
           make dist-py-wheel
@@ -160,7 +157,7 @@ jobs:
 
       - name: Build distributions (Linux ARM64)
         run: |
-          rm -rf dist target spaday/*.abi3.so
+          rm -rf dist
           make dist-py-wheel
           make dist-check
         shell: bash

@@ -223,6 +223,13 @@ exclude = [
     "js",
     "rust",
     "spaday/tests",
+    # stale in-tree builds (develop/coverage leave host-glibc extensions in the package dir, which
+    # auditwheel rejects); hatch-rs force-includes its fresh artifacts past these filters
+    "spaday/*.so",
+    "spaday/*.abi3.so",
+    "spaday/*.dylib",
+    "spaday/*.dll",
+    "spaday/*.pyd",
 ]
 # The JS build (hatch-js hook) emits the runtime/widget assets under spaday/extension, which is
 # git-ignored; include them as build artifacts so installed wheels ship the widget's _esm / _css /
