@@ -33,10 +33,6 @@ const BUNDLES = [
 ];
 
 async function build() {
-<<<<<<< before updating
-  fs.rmSync("dist/cdn", { recursive: true, force: true });
-  fs.rmSync("dist/css", { recursive: true, force: true });
-=======
   if (fs.existsSync("dist")) {
     for (const entry of fs.readdirSync("dist")) {
       if (entry !== "pkg") {
@@ -48,7 +44,6 @@ async function build() {
     recursive: true,
     force: true,
   });
->>>>>>> after updating
 
   // Bundle css
   await bundle_css();

@@ -472,7 +472,9 @@ function preserveEachFocus(el: Element, mutate: () => void): void {
     el.contains(document.activeElement)
       ? document.activeElement
       : undefined;
-  let selection: readonly [number, number, string | null] | undefined;
+  let selection:
+    | readonly [number, number, SelectionDirection | null]
+    | undefined;
   if (
     (focused instanceof HTMLInputElement ||
       focused instanceof HTMLTextAreaElement) &&

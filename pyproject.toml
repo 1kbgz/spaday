@@ -150,15 +150,12 @@ archs = "arm64"
 environment = {PATH="$UserProfile\\.cargo\bin;$PATH", CARGO_TERM_COLOR="always"}
 skip = "*win32 *arm_64"
 
-<<<<<<< before updating
 [tool.cibuildwheel.pyodide]
 environment = {SKIP_HATCH_JS="1"}
 test-command = "python -m pytest {project}/spaday/tests/test_pyodide.py -v"
 test-extras = []
 test-requires = ["pytest", "transports==0.8.0"]
 xbuild-tools = ["cargo", "rustc", "rustup"]
-=======
->>>>>>> after updating
 
 [tool.coverage.run]
 branch = true

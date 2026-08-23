@@ -137,7 +137,6 @@ coverage-rs:  ## run rust tests and collect test coverage
 
 .PHONY: test test-pyodide test-pyodide-browser coverage tests
 test: test-py test-js test-rs  ## run all tests
-<<<<<<< before updating
 test-pyodide:  ## build and test the Python package in Pyodide
 	rustup target add wasm32-unknown-emscripten
 	rm -rf dist/pyodide
@@ -159,9 +158,6 @@ test-jupyterlite: jupyterlite  ## drive the JupyterLite demo in a browser
 	rm -rf js/dist/lite
 	cp -r dist/lite js/dist/lite
 	cd js; pnpm exec playwright test tests/jupyterlite.test.js
-=======
-
->>>>>>> after updating
 coverage: coverage-py coverage-js coverage-rs  ## run all tests and collect test coverage
 
 # alias
