@@ -36,6 +36,11 @@ jobs:
             os: ubuntu-latest
             python: "3.11"
             target: native
+          - name: ubuntu-24.04-arm
+            dist_path: dist
+            os: ubuntu-24.04-arm
+            python: "3.11"
+            target: native
           - name: macos-latest
             dist_path: dist
             os: macos-latest
@@ -66,6 +71,7 @@ jobs:
       - name: Setup Rust
         uses: actions-ext/rust/setup@2db8e3e4c56beb7320c7d730bd2c2d6a6447bf6b
 
+      # unconditional: the pyodide leg needs pnpm too (browser deps + the JupyterLite site)
       - name: Setup Node.js
         uses: actions-ext/node/setup@0ea5bdcd24d2488b28e16bf611b446a2f8e1e12f
         with:
@@ -130,20 +136,14 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
         if: matrix.target == 'native'
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8  # v4.2.0
-        with:
-          platforms: all
-        if: matrix.name == 'ubuntu-latest' && runner.arch == 'X64'
-
       - name: Free disk space
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/share/swift
           df -h /
         shell: bash
-        if: matrix.name == 'ubuntu-latest'
+        if: matrix.target == 'native' && runner.os == 'Linux'
 
-      - name: Build distributions (Linux)
+      - name: Build distributions (Linux x86_64)
         run: |
           rm -rf dist
           make dist-rs
@@ -151,7 +151,19 @@ jobs:
           make dist-py-wheel
           make dist-check
         shell: bash
+        env:
+          CIBW_ARCHS_LINUX: native
         if: matrix.name == 'ubuntu-latest'
+
+      - name: Build distributions (Linux ARM64)
+        run: |
+          rm -rf dist
+          make dist-py-wheel
+          make dist-check
+        shell: bash
+        env:
+          CIBW_ARCHS_LINUX: native
+        if: matrix.name == 'ubuntu-24.04-arm'
 
       - name: Build distributions (macOS/Windows)
         run: |
@@ -161,13 +173,13 @@ jobs:
         shell: bash
         env:
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=11.0
-        if: matrix.target == 'native' && matrix.name != 'ubuntu-latest'
+        if: matrix.target == 'native' && runner.os != 'Linux'
 
       - name: Test wheel
         uses: actions-ext/python/test-wheel@6e1b91a408ea89f49bc8aff8724f83826f7b5446
         with:
           module: spaday
-        if: matrix.name == 'ubuntu-latest'
+        if: matrix.target == 'native' && runner.os == 'Linux'
 
       - name: Test source distribution
         uses: actions-ext/python/test-sdist@6e1b91a408ea89f49bc8aff8724f83826f7b5446

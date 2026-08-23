@@ -495,17 +495,13 @@ export function connectStore(
     }
     for (const [key, update] of staged) {
       const itemKey = store.collectionKey(key);
+      const current = store.get(key);
       if (
         update.deltas &&
         itemKey &&
         Array.isArray(update.value) &&
-        Array.isArray(store.get(key)) &&
-        collectionDeltasMatch(
-          store.get(key),
-          update.value,
-          update.deltas,
-          itemKey,
-        )
+        Array.isArray(current) &&
+        collectionDeltasMatch(current, update.value, update.deltas, itemKey)
       )
         store.setCollection(key, update.value, update.deltas);
       else store.set(key, update.value);
