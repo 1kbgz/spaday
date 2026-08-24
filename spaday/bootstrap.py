@@ -70,6 +70,38 @@ class Wire:
     flatten: bool = True
 
 
+@dataclass(frozen=True)
+class Js:
+    """A client-evaluated JavaScript expression, usable as a ``store`` seed value.
+
+    A plain ``store`` seed is a JSON literal fixed at page build, so it cannot express state only the
+    browser knows. A ``Js`` value is emitted verbatim (parenthesized) into the generated module script
+    and evaluated once at boot, before the tree mounts::
+
+        store={"dark": Js('matchMedia("(prefers-color-scheme: dark)").matches')}
+
+    The expression is app-authored code, trusted exactly like ``head``/``scripts``, and runs under the
+    page's CSP nonce with the rest of the module script.
+    """
+
+    code: str
+
+
+def _store_literal(value) -> str:
+    """Serialize a ``store`` seed to a JS object literal, inlining :class:`Js` expressions.
+
+    Matches ``json.dumps`` output exactly for plain data, so a seed with no ``Js`` values renders
+    byte-identically to the previous JSON encoding.
+    """
+    if isinstance(value, Js):
+        return f"({value.code})"
+    if isinstance(value, dict):
+        return "{" + ", ".join(f"{json.dumps(str(k))}: {_store_literal(v)}" for k, v in value.items()) + "}"
+    if isinstance(value, (list, tuple)):
+        return "[" + ", ".join(_store_literal(v) for v in value) + "]"
+    return json.dumps(value)
+
+
 AssetLayout = Literal["source", "installed"]
 
 _SOURCE_DIR = Path(__file__).parent.parent / "js"
@@ -192,14 +224,17 @@ def _script(
     store: dict | None = None,
     target: str | None = None,
     layout: AssetLayout | None = None,
+    persist: dict[str, str] | None = None,
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
     to transports. ``wire="transports"`` mirrors ONE model into the store (Store + Client + connectStore);
     a ``wire=[{…}, …]`` LIST mirrors SEVERAL models into one store, each under its own namespace (see
     :func:`_wire_block`), with one ``spaday:patch`` sink routing :class:`~spaday.actions.SendPatch` intents
-    into the store. ``store`` seeds local signal state even without a wire. Mounts into ``target`` (a CSS
-    selector) when given, else ``document.body``. (``ws``/``reconnect``/``tree="frame"`` apply to the
-    single-model string form only; a wire list carries each spec's own url and uses a snapshot per socket.)"""
+    into the store. ``store`` seeds local signal state even without a wire; ``persist`` (field ->
+    localStorage key) overrides a field's seed with its persisted value at boot and stores later writes.
+    Mounts into ``target`` (a CSS selector) when given, else ``document.body``. (``ws``/``reconnect``/
+    ``tree="frame"`` apply to the single-model string form only; a wire list carries each spec's own url
+    and uses a snapshot per socket.)"""
     js = _js(base)
     assets = _ASSETS[_layout(layout)]
     into = f'document.querySelector("{target}")' if target else "document.body"
@@ -208,9 +243,20 @@ def _script(
     wires = [asdict(w) if isinstance(w, Wire) else w for w in wire] if isinstance(wire, (list, tuple)) else None
     wired = transports or bool(wires)  # any transports wiring — a single string model or a list of specs
     frame = tree == "frame"
-    store_init = f"new Store({json.dumps(store)})" if store else "new Store()"
+    store_init = f"new Store({_store_literal(store)})" if store else "new Store()"
+    # `persist` wiring sits right after the store's creation: the localStorage override lands before
+    # the mount (and before any transports sync), so the tree renders with the persisted value; the
+    # subscribe stores every later write. Both sides are guarded — storage may be unavailable.
+    store_lines = [f"const store = {store_init};"]
+    for field_name, storage_key in (persist or {}).items():
+        f_js, k_js = json.dumps(str(field_name)), json.dumps(str(storage_key))
+        store_lines.append(f"try {{ const v = localStorage.getItem({k_js}); if (v !== null) store.set({f_js}, JSON.parse(v)); }} catch {{}}")
+        store_lines.append(f"store.subscribe({f_js}, (v) => {{ try {{ localStorage.setItem({k_js}, JSON.stringify(v)); }} catch {{}} }});")
     runtime_names = (
-        ["mount", "init"] + (["Store"] if (wired or store) else []) + (["connectStore"] if wired else []) + (["decodeFrame"] if frame else [])
+        ["mount", "init"]
+        + (["Store"] if (wired or store or persist) else [])
+        + (["connectStore"] if wired else [])
+        + (["decodeFrame"] if frame else [])
     )
     lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{assets["runtime"]}";']
     if wired:
@@ -227,7 +273,7 @@ def _script(
     if transports and reconnect:
         lines.extend(
             [
-                f"const store = {store_init};",
+                *store_lines,
                 "const client = new Client();",
                 "let socket = null;",
                 "const link = connectStore(store, client, (frame) => socket && socket.send(frame), { fromValue, toValue });",
@@ -246,7 +292,7 @@ def _script(
     elif transports:
         lines.extend(
             [
-                f"const store = {store_init};",
+                *store_lines,
                 "const client = new Client();",
                 f"const ws = new WebSocket(`ws://${{location.host}}{base}{ws}`);",
                 'ws.binaryType = "arraybuffer";',
@@ -258,7 +304,7 @@ def _script(
             ]
         )
     elif wires:  # several models share ONE store, each mirrored under its own namespace (see _wire_block)
-        lines.append(f"const store = {store_init};")
+        lines.extend(store_lines)
         for i, spec in enumerate(wires):
             lines.extend(_wire_block(spec, base, i))
         # a SendPatch fires `spaday:patch {model, field, value}`; route it into the namespaced store so the
@@ -269,8 +315,8 @@ def _script(
             "event.detail.value));"
         )
         lines.append(f"mount({into}, node, store);")
-    elif store:  # local reactive state (bindings/actions read it), no server wire
-        lines.extend([f"const store = {store_init};", f"mount({into}, node, store);"])
+    elif store or persist:  # local reactive state (bindings/actions read it), no server wire
+        lines.extend([*store_lines, f"mount({into}, node, store);"])
     else:
         lines.append(f"mount({into}, node);")
     return "\n      ".join(lines)
@@ -294,10 +340,14 @@ def bootstrap(
     target: str | None = None,
     nonce: str | None = None,
     layout: AssetLayout | None = None,
+    persist: dict[str, str] | None = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
-    (reactive UI state for two-way bindings + ``field`` actions) even without a ``wire``.
+    (reactive UI state for two-way bindings + ``field`` actions) even without a ``wire``. ``persist`` maps
+    store fields to localStorage keys: a persisted value overrides the field's seed at boot (before the
+    tree mounts) and every later write to the field is stored, so per-browser preferences (a theme toggle,
+    a chosen view) survive reloads.
 
     ``wire="transports"`` mirrors one model into the store over a websocket; ``wire=[{"url": …,
     "namespace": …, "session": …}, …]`` mirrors **several** models into one store, each namespaced so their
@@ -319,7 +369,7 @@ def bootstrap(
     style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
     style_tags += [f"<style{n}>{css}</style>" for css in styles]
     head_markup = "\n    ".join(p for p in (_package_head(component_packages, base, nonce), *style_tags, head) if p)
-    script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout)
+    script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout, persist)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
         return f'{head_block}<script type="module"{n}>\n  {script}\n</script>\n'

@@ -27,7 +27,7 @@ from .actions import (
     scope,
     this,
 )
-from .bootstrap import Wire
+from .bootstrap import Js, Wire
 from .catalog import ComponentSchema, PropertyKind, PropertySchema
 from .cem import classes, generate
 from .component import Component, Paragraph, Strong, Text, element

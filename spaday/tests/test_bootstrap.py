@@ -141,6 +141,32 @@ def test_store_seeds_a_local_signal_store_without_a_wire():
     assert "connectStore" not in html  # local reactive state only, no server wire
 
 
+def test_store_seed_js_expression_is_client_evaluated():
+    from spaday.bootstrap import Js
+
+    # A `Js` seed value is emitted verbatim (parenthesized) instead of a JSON literal, so state only
+    # the browser knows (e.g. prefers-color-scheme) can seed the store at boot.
+    html = bootstrap(store={"dark": Js('matchMedia("(prefers-color-scheme: dark)").matches'), "view": "blotter"})
+    assert 'new Store({"dark": (matchMedia("(prefers-color-scheme: dark)").matches), "view": "blotter"})' in html
+    assert "import { mount, init, Store }" in html  # still a plain seeded store, no wire
+
+
+def test_persist_round_trips_a_store_field_through_localstorage():
+    # `persist` maps a store field to a localStorage key: the persisted value overrides the seed at
+    # boot (before mount, so the tree renders with it), and later writes to the field are stored.
+    html = bootstrap(store={"dark": False}, persist={"dark": "app:dark"})
+    assert 'const v = localStorage.getItem("app:dark"); if (v !== null) store.set("dark", JSON.parse(v));' in html
+    assert 'store.subscribe("dark", (v) => { try { localStorage.setItem("app:dark", JSON.stringify(v)); } catch {} });' in html
+    assert html.index('localStorage.getItem("app:dark")') < html.index("mount(document.body, node, store)")
+
+
+def test_persist_alone_creates_a_store():
+    html = bootstrap(persist={"dark": "app:dark"})
+    assert "import { mount, init, Store }" in html  # Store imported for the persist-only page
+    assert "const store = new Store()" in html
+    assert "mount(document.body, node, store)" in html
+
+
 def test_store_and_fragment_compose():
     f = bootstrap(store={"n": 1}, fragment=True, target="#widget")
     assert "<!doctype html>" not in f  # still a snippet

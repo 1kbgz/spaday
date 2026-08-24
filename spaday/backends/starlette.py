@@ -65,6 +65,7 @@ def mount(
     head: str = "",
     store: dict | None = None,
     nonce: str | None = None,
+    persist: dict[str, str] | None = None,
 ) -> Starlette:
     """Add spaday's routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under
     ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``
@@ -95,6 +96,7 @@ def mount(
         store=store,
         nonce=nonce,
         layout=asset_layout,
+        persist=persist,
     )
     js_dir = Path(js) if js is not None else bundles_dir(asset_layout)
 
