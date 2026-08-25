@@ -135,6 +135,50 @@ control→model edit declaratively. Reach for `SendPatch` for an imperative edit
 isn't a simple control value. When several models share a page, a `SendPatch("ns", field, value)` is
 routed into the `ns`-namespaced store (see [transports](transports.md)).
 
+## Context menus and modals
+
+A context menu is a `Popup` — a floating shell surface that renders nothing while closed, places its
+children at viewport coordinates while open, and light-dismisses on an outside pointerdown or Escape.
+`open_popup` wires the whole gesture from existing actions: capture the event's context into a state
+field, position at the pointer, open. Binding `contextmenu` suppresses the native browser menu on
+exactly that element — nothing else on the page is affected:
+
+```python
+from spaday import by_id, close_popup, event_value, open_popup
+from spaday.components.shell import Popup
+from spaday_webawesome import WaDropdown, WaDropdownItem
+
+menu = Popup(
+    WaDropdown(
+        WaDropdownItem("Inspect").on("click", close_popup(by_id("node-menu"))),
+        open=True,
+    ),
+    id="node-menu",
+)
+graph.on("contextmenu", open_popup(by_id("node-menu"), context_field="menu_ctx"))
+```
+
+The menu's items read what was clicked from the captured field like any other state — e.g.
+`compute("textContent", concat("Inspect ", field("menu_ctx.id")))`. The default coordinates read the
+raw event's `clientX`/`clientY` via `event_prop`; for a component's re-dispatched event whose rich
+`detail` carries the position, point them at it instead (paths in `event_value` walk the detail):
+`open_popup(target, x=event_value("x"), y=event_value("y"), context=event_value())`.
+
+A modal is the same capture-then-open shape against any element with an `open` prop (`WaDialog`,
+`WaDrawer`, …):
+
+```python
+from spaday import by_id, close_modal, open_modal
+from spaday_webawesome import WaButton, WaDialog
+
+dialog = WaDialog(..., id="confirm", label="Confirm")
+row_button.on("click", open_modal(by_id("confirm"), context_field="modal_ctx"))
+WaButton().text("Cancel").on("click", close_modal(by_id("confirm")))
+```
+
+Popup and modal contents mount with the page; wrap a heavy subtree in `Show` keyed to a state field
+if it should only mount while open.
+
 ## The escape hatch
 
 For the rare irreducible case, `NamedJs("handler")` invokes a JavaScript handler you pre-registered in

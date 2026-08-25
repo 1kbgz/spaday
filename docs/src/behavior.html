@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Author a component tree" href="components.html"><link rel="prev" title="How spaday works" href="concepts.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Add behavior and reactivity - spaday v0.7.3</title>
+        <title>Add behavior and reactivity - spaday v0.7.4</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.3</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.4</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.3</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.4</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -370,6 +370,45 @@ control→model edit declaratively. Reach for <code class="docutils literal notr
 isn’t a simple control value. When several models share a page, a <code class="docutils literal notranslate"><span class="pre">SendPatch(&quot;ns&quot;,</span> <span class="pre">field,</span> <span class="pre">value)</span></code> is
 routed into the <code class="docutils literal notranslate"><span class="pre">ns</span></code>-namespaced store (see <a class="reference internal" href="transports.html"><span class="std std-doc">transports</span></a>).</p>
 </section>
+<section id="context-menus-and-modals">
+<h2>Context menus and modals<a class="headerlink" href="#context-menus-and-modals" title="Link to this heading">¶</a></h2>
+<p>A context menu is a <code class="docutils literal notranslate"><span class="pre">Popup</span></code> — a floating shell surface that renders nothing while closed, places its
+children at viewport coordinates while open, and light-dismisses on an outside pointerdown or Escape.
+<code class="docutils literal notranslate"><span class="pre">open_popup</span></code> wires the whole gesture from existing actions: capture the event’s context into a state
+field, position at the pointer, open. Binding <code class="docutils literal notranslate"><span class="pre">contextmenu</span></code> suppresses the native browser menu on
+exactly that element — nothing else on the page is affected:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">close_popup</span><span class="p">,</span> <span class="n">event_value</span><span class="p">,</span> <span class="n">open_popup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Popup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaDropdown</span><span class="p">,</span> <span class="n">WaDropdownItem</span>
+
+<span class="n">menu</span> <span class="o">=</span> <span class="n">Popup</span><span class="p">(</span>
+    <span class="n">WaDropdown</span><span class="p">(</span>
+        <span class="n">WaDropdownItem</span><span class="p">(</span><span class="s2">"Inspect"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">close_popup</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"node-menu"</span><span class="p">))),</span>
+        <span class="nb">open</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"node-menu"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">graph</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"contextmenu"</span><span class="p">,</span> <span class="n">open_popup</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"node-menu"</span><span class="p">),</span> <span class="n">context_field</span><span class="o">=</span><span class="s2">"menu_ctx"</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>The menu’s items read what was clicked from the captured field like any other state — e.g.
+<code class="docutils literal notranslate"><span class="pre">compute(&quot;textContent&quot;,</span> <span class="pre">concat(&quot;Inspect</span> <span class="pre">&quot;,</span> <span class="pre">field(&quot;menu_ctx.id&quot;)))</span></code>. The default coordinates read the
+raw event’s <code class="docutils literal notranslate"><span class="pre">clientX</span></code>/<code class="docutils literal notranslate"><span class="pre">clientY</span></code> via <code class="docutils literal notranslate"><span class="pre">event_prop</span></code>; for a component’s re-dispatched event whose rich
+<code class="docutils literal notranslate"><span class="pre">detail</span></code> carries the position, point them at it instead (paths in <code class="docutils literal notranslate"><span class="pre">event_value</span></code> walk the detail):
+<code class="docutils literal notranslate"><span class="pre">open_popup(target,</span> <span class="pre">x=event_value(&quot;x&quot;),</span> <span class="pre">y=event_value(&quot;y&quot;),</span> <span class="pre">context=event_value())</span></code>.</p>
+<p>A modal is the same capture-then-open shape against any element with an <code class="docutils literal notranslate"><span class="pre">open</span></code> prop (<code class="docutils literal notranslate"><span class="pre">WaDialog</span></code>,
+<code class="docutils literal notranslate"><span class="pre">WaDrawer</span></code>, …):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">close_modal</span><span class="p">,</span> <span class="n">open_modal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaButton</span><span class="p">,</span> <span class="n">WaDialog</span>
+
+<span class="n">dialog</span> <span class="o">=</span> <span class="n">WaDialog</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"confirm"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Confirm"</span><span class="p">)</span>
+<span class="n">row_button</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">open_modal</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"confirm"</span><span class="p">),</span> <span class="n">context_field</span><span class="o">=</span><span class="s2">"modal_ctx"</span><span class="p">))</span>
+<span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Cancel"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">close_modal</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"confirm"</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>Popup and modal contents mount with the page; wrap a heavy subtree in <code class="docutils literal notranslate"><span class="pre">Show</span></code> keyed to a state field
+if it should only mount while open.</p>
+</section>
 <section id="the-escape-hatch">
 <h2>The escape hatch<a class="headerlink" href="#the-escape-hatch" title="Link to this heading">¶</a></h2>
 <p>For the rare irreducible case, <code class="docutils literal notranslate"><span class="pre">NamedJs(&quot;handler&quot;)</span></code> invokes a JavaScript handler you pre-registered in
@@ -449,6 +488,7 @@ time:</p>
 <li><a class="reference internal" href="#bind-a-control-to-state">Bind a control to state</a></li>
 <li><a class="reference internal" href="#compute-a-prop-from-state">Compute a prop from state</a></li>
 <li><a class="reference internal" href="#send-a-model-edit-or-call-an-endpoint">Send a model edit or call an endpoint</a></li>
+<li><a class="reference internal" href="#context-menus-and-modals">Context menus and modals</a></li>
 <li><a class="reference internal" href="#the-escape-hatch">The escape hatch</a></li>
 <li><a class="reference internal" href="#validate-references-before-shipping">Validate references before shipping</a></li>
 </ul>
@@ -462,7 +502,7 @@ time:</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=c98573da"></script>
+</div><script src="../../_static/documentation_options.js?v=020ce317"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

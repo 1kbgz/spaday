@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.actions - spaday v0.7.3</title>
+        <title>spaday.actions - spaday v0.7.4</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.3</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.4</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.3</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.4</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -316,6 +316,21 @@
 <span class="sd">    CustomEvent, so one field of a structured detail can land in the store or an endpoint body."""</span>
     <span class="k">return</span> <span class="n">_EventValue</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
 
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_EventProp</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"event-prop"</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">event_prop</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A dot ``path`` read from the raw DOM event object itself — e.g. ``event_prop("clientX")`` for</span>
+<span class="sd">    the pointer position, or ``event_prop("shiftKey")`` for modifiers. :func:`event_value` walks the</span>
+<span class="sd">    event's smart-default *value* (``checked`` / ``value`` / ``detail``) instead."""</span>
+    <span class="k">return</span> <span class="n">_EventProp</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="not_">
@@ -730,6 +745,60 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">open_popup</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">context_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Action</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Open a :class:`~spaday.components.shell.Popup` at the pointer, optionally capturing event</span>
+<span class="sd">    context into reactive state first — the context-menu opener::</span>
+
+<span class="sd">        graph.on(</span>
+<span class="sd">            "spaday-dagre-node-contextmenu",</span>
+<span class="sd">            open_popup(by_id("node-menu"), context_field="menu_ctx", context=event_value("detail")),</span>
+<span class="sd">        )</span>
+
+<span class="sd">    ``x``/``y`` default to the raw event's ``clientX``/``clientY`` (via :func:`event_prop`); pass</span>
+<span class="sd">    expressions (e.g. ``event_value("x")`` against a component's rich ``detail``) when the</span>
+<span class="sd">    coordinates live elsewhere. When</span>
+<span class="sd">    ``context_field`` is given, ``context`` (default: the whole event value) is written to that store</span>
+<span class="sd">    field before the popup opens, so menu items can bind to what was clicked. Sugar over</span>
+<span class="sd">    ``Sequence``/``SetField``/``SetProp`` — no new wire semantics.</span>
+<span class="sd">    """</span>
+    <span class="n">actions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Action</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">context_field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SetField</span><span class="p">(</span><span class="n">context_field</span><span class="p">,</span> <span class="n">context</span> <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">event_value</span><span class="p">()))</span>
+    <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">,</span> <span class="n">x</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">event_prop</span><span class="p">(</span><span class="s2">"clientX"</span><span class="p">)))</span>
+    <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">,</span> <span class="n">y</span> <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">event_prop</span><span class="p">(</span><span class="s2">"clientY"</span><span class="p">)))</span>
+    <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">"open"</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">Sequence</span><span class="p">(</span><span class="o">*</span><span class="n">actions</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">close_popup</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Action</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Close a :class:`~spaday.components.shell.Popup` — e.g. from a menu item, after its own action::</span>
+
+<span class="sd">    item.on("click", Sequence(do_thing, close_popup(by_id("node-menu"))))</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">"open"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">open_modal</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">context_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Action</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Open a modal — any element with an ``open`` prop (``WaDialog``, ``WaDrawer``, …) — optionally</span>
+<span class="sd">    capturing event context into reactive state first, so the dialog's contents can bind to what</span>
+<span class="sd">    triggered it::</span>
+
+<span class="sd">        row_button.on("click", open_modal(by_id("confirm"), context_field="modal_ctx", context=item()))</span>
+
+<span class="sd">    Sugar over ``Sequence``/``SetField``/``SetProp`` — no new wire semantics.</span>
+<span class="sd">    """</span>
+    <span class="n">actions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Action</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">context_field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SetField</span><span class="p">(</span><span class="n">context_field</span><span class="p">,</span> <span class="n">context</span> <span class="k">if</span> <span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">event_value</span><span class="p">()))</span>
+    <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">"open"</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">actions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">Sequence</span><span class="p">(</span><span class="o">*</span><span class="n">actions</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">close_modal</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Action</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Close a modal opened with :func:`open_modal`."""</span>
+    <span class="k">return</span> <span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">"open"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="bind">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.bind">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">transform</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
@@ -778,7 +847,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=c98573da"></script>
+</div><script src="../../_static/documentation_options.js?v=020ce317"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

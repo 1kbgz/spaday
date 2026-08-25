@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.components.shell - spaday v0.7.3</title>
+        <title>spaday.components.shell - spaday v0.7.4</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.3</code></div></a>
+      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.4</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.3</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.4</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -265,7 +265,24 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">..actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Expr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Child</span><span class="p">,</span> <span class="n">Component</span><span class="p">,</span> <span class="n">element</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"App"</span><span class="p">,</span> <span class="s2">"AppShell"</span><span class="p">,</span> <span class="s2">"Body"</span><span class="p">,</span> <span class="s2">"Column"</span><span class="p">,</span> <span class="s2">"Each"</span><span class="p">,</span> <span class="s2">"Footer"</span><span class="p">,</span> <span class="s2">"Gutter"</span><span class="p">,</span> <span class="s2">"Main"</span><span class="p">,</span> <span class="s2">"Nav"</span><span class="p">,</span> <span class="s2">"Region"</span><span class="p">,</span> <span class="s2">"Row"</span><span class="p">,</span> <span class="s2">"Show"</span><span class="p">,</span> <span class="s2">"Stack"</span><span class="p">,</span> <span class="s2">"Table"</span><span class="p">,</span> <span class="s2">"Toolbar"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"App"</span><span class="p">,</span>
+    <span class="s2">"AppShell"</span><span class="p">,</span>
+    <span class="s2">"Body"</span><span class="p">,</span>
+    <span class="s2">"Column"</span><span class="p">,</span>
+    <span class="s2">"Each"</span><span class="p">,</span>
+    <span class="s2">"Footer"</span><span class="p">,</span>
+    <span class="s2">"Gutter"</span><span class="p">,</span>
+    <span class="s2">"Main"</span><span class="p">,</span>
+    <span class="s2">"Nav"</span><span class="p">,</span>
+    <span class="s2">"Popup"</span><span class="p">,</span>
+    <span class="s2">"Region"</span><span class="p">,</span>
+    <span class="s2">"Row"</span><span class="p">,</span>
+    <span class="s2">"Show"</span><span class="p">,</span>
+    <span class="s2">"Stack"</span><span class="p">,</span>
+    <span class="s2">"Table"</span><span class="p">,</span>
+    <span class="s2">"Toolbar"</span><span class="p">,</span>
+<span class="p">]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">App</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
@@ -443,6 +460,28 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="p">{</span><span class="s2">"gap"</span><span class="p">:</span> <span class="n">gap</span><span class="p">,</span> <span class="s2">"align"</span><span class="p">:</span> <span class="n">align</span><span class="p">,</span> <span class="s2">"justify"</span><span class="p">:</span> <span class="n">justify</span><span class="p">},</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">Popup</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A floating surface for context menus and other transient overlays.</span>
+
+<span class="sd">    Closed it renders nothing; open it places its children at viewport coordinates (``x``, ``y``),</span>
+<span class="sd">    clamped on-screen, and light-dismisses on an outside pointerdown or Escape (closing dispatches a</span>
+<span class="sd">    bubbling ``spa-popup-close``). Open it with :func:`~spaday.actions.open_popup`, whose defaults</span>
+<span class="sd">    read the pointer position off the triggering event — a bound ``contextmenu`` action suppresses</span>
+<span class="sd">    the native browser menu automatically::</span>
+
+<span class="sd">        menu = Popup(WaDropdown(...), id="node-menu")</span>
+<span class="sd">        graph.on("contextmenu", open_popup(by_id("node-menu"), context_field="menu_ctx"))</span>
+
+<span class="sd">    Children are ordinary components mounted with the page; wrap them in :class:`Show` keyed to a</span>
+<span class="sd">    store field if a heavy subtree should only mount while the popup is open.</span>
+<span class="sd">    """</span>
+
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"spa-popup"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="n">Child</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+
+
 <span class="k">class</span><span class="w"> </span><span class="nc">Show</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Conditionally render children from a reactive store field — they are *mounted* when the condition</span>
 <span class="sd">    is truthy and *removed* (not merely hidden) when it is falsy, so a toggle can create and destroy real</span>
@@ -604,7 +643,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=c98573da"></script>
+</div><script src="../../../_static/documentation_options.js?v=020ce317"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

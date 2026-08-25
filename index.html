@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Tutorial: build your first interactive UI" href="docs/src/tutorial.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday v0.7.3</title>
+        <title>spaday v0.7.4</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="#"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.3</code></div></a>
+      <a href="#"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.4</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="#">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.3</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.4</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -261,9 +261,9 @@
 <p>Build reactive web-component UIs <strong>configured in Python, executed in the browser</strong>.</p>
 <section id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h1>
-<p>You author a UI as a tree of typed Python components from opt-in packages or any library that ships a
+<p>Construct a UI as a tree of typed Python components from opt-in packages or any library that ships a
 <a class="reference external" href="https://github.com/webcomponents/custom-elements-manifest">Custom Elements Manifest</a>.
-You attach behavior as <strong>declarative data</strong>: an action DSL (toggle a prop, send a model edit, call an
+Attach behavior as <strong>declarative data</strong>: an action DSL (toggle a prop, send a model edit, call an
 endpoint) and reactive <strong>bindings</strong> (a control two-way-bound to a state field, or a prop computed from
 others). spaday’s JavaScript runtime renders the tree to real web components and interprets that
 behavior <strong>client-side</strong> — so a toggle or a derived value updates with no round-trip to Python.</p>
@@ -298,9 +298,11 @@ registers its browser assets with spaday:</p>
 <li><p><a class="reference external" href="https://github.com/1kbgz/spaday-spectrum">spaday-spectrum</a> — <a class="reference external" href="https://opensource.adobe.com/spectrum-web-components/">Adobe Spectrum Web Components</a>.</p></li>
 <li><p><a class="reference external" href="https://github.com/1kbgz/spaday-perspective">spaday-perspective</a> — live <a class="reference external" href="https://perspective-dev.github.io">Perspective</a> workspaces and datagrids.</p></li>
 <li><p><a class="reference external" href="https://github.com/1kbgz/spaday-webawesome">spaday-webawesome</a> — typed <a class="reference external" href="https://webawesome.com">WebAwesome</a> catalog, forms, and tabs.</p></li>
-<li><p><a class="reference external" href="https://github.com/1kbgz/spaday-lightweight-charts">spaday-lightweight-charts</a> — reactive TradingView Lightweight Charts.</p></li>
-<li><p><a class="reference external" href="https://github.com/1kbgz/spaday-regular-layout">spaday-regular-layout</a> — serializable resizable panel layouts.</p></li>
-<li><p><a class="reference external" href="https://github.com/1kbgz/spaday-regular-table">spaday-regular-table</a> — viewport-virtualized high-performance data tables.</p></li>
+<li><p><a class="reference external" href="https://github.com/1kbgz/spaday-lightweight-charts">spaday-lightweight-charts</a> — reactive <a class="reference external" href="https://github.com/tradingview/lightweight-charts">TradingView Lightweight Charts</a>.</p></li>
+<li><p><a class="reference external" href="https://github.com/1kbgz/spaday-dagre">spaday-dagre</a> — interactive directed-graph rendering with <a class="reference external" href="https://github.com/dagrejs/dagre">dagre</a> layout.</p></li>
+<li><p><a class="reference external" href="https://github.com/1kbgz/spaday-regular-layout">spaday-regular-layout</a> — <a class="reference external" href="https://github.com/texodus/regular-layout">serializable resizable panel layouts</a>.</p></li>
+<li><p><a class="reference external" href="https://github.com/1kbgz/spaday-regular-table">spaday-regular-table</a> — <a class="reference external" href="https://github.com/finos/regular-table">viewport-virtualized high-performance data tables</a>.</p></li>
+<li><p><a class="reference external" href="https://github.com/1kbgz/spaday-studio">spaday-studio</a> — AI-native visual development environment.</p></li>
 </ul>
 <p>Select an installed integration by its entry-point name, for example <code class="docutils literal notranslate"><span class="pre">serve(page,</span> <span class="pre">packages=[&quot;trees&quot;])</span></code>.</p>
 </section>
@@ -364,7 +366,7 @@ registers its browser assets with spaday:</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=c98573da"></script>
+</div><script src="_static/documentation_options.js?v=020ce317"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
