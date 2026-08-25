@@ -56,8 +56,8 @@ registers its browser assets with spaday:
 - [spaday-webawesome](https://github.com/1kbgz/spaday-webawesome) — typed [WebAwesome](https://webawesome.com) catalog, forms, and tabs.
 - [spaday-lightweight-charts](https://github.com/1kbgz/spaday-lightweight-charts) — reactive TradingView Lightweight Charts.
 - [spaday-dagre](https://github.com/1kbgz/spaday-dagre) — interactive directed-graph rendering with [dagre](https://github.com/dagrejs/dagre) layout.
-- [spaday-regular-layout](https://github.com/1kbgz/spaday-regular-layout) — serializable resizable panel layouts.
-- [spaday-regular-table](https://github.com/1kbgz/spaday-regular-table) — viewport-virtualized high-performance data tables.
+- [spaday-regular-layout](https://github.com/1kbgz/spaday-regular-layout) — [serializable resizable panel layouts](https://github.com/texodus/regular-layout).
+- [spaday-regular-table](https://github.com/1kbgz/spaday-regular-table) — [viewport-virtualized high-performance data tables](https://github.com/finos/regular-table).
 - [spaday-studio](https://github.com/1kbgz/spaday-studio) — AI-native visual development environment.
 
 Select an installed integration by its entry-point name, for example `serve(page, packages=["trees"])`.
