@@ -23,7 +23,24 @@ from typing import Any
 from ..actions import Expr
 from ..component import Child, Component, element
 
-__all__ = ["App", "AppShell", "Body", "Column", "Each", "Footer", "Gutter", "Main", "Nav", "Region", "Row", "Show", "Stack", "Table", "Toolbar"]
+__all__ = [
+    "App",
+    "AppShell",
+    "Body",
+    "Column",
+    "Each",
+    "Footer",
+    "Gutter",
+    "Main",
+    "Nav",
+    "Popup",
+    "Region",
+    "Row",
+    "Show",
+    "Stack",
+    "Table",
+    "Toolbar",
+]
 
 
 class App(Component):
@@ -199,6 +216,28 @@ class Toolbar(Component):
         **props: Any,
     ) -> None:
         super().__init__(*children, key=key, props={"gap": gap, "align": align, "justify": justify}, **props)
+
+
+class Popup(Component):
+    """A floating surface for context menus and other transient overlays.
+
+    Closed it renders nothing; open it places its children at viewport coordinates (``x``, ``y``),
+    clamped on-screen, and light-dismisses on an outside pointerdown or Escape (closing dispatches a
+    bubbling ``spa-popup-close``). Open it with :func:`~spaday.actions.open_popup`, whose defaults
+    read the pointer position off the triggering event — a bound ``contextmenu`` action suppresses
+    the native browser menu automatically::
+
+        menu = Popup(WaDropdown(...), id="node-menu")
+        graph.on("contextmenu", open_popup(by_id("node-menu"), context_field="menu_ctx"))
+
+    Children are ordinary components mounted with the page; wrap them in :class:`Show` keyed to a
+    store field if a heavy subtree should only mount while the popup is open.
+    """
+
+    tag = "spa-popup"
+
+    def __init__(self, *children: Child, key: str | None = None, **props: Any) -> None:
+        super().__init__(*children, key=key, **props)
 
 
 class Show(Component):

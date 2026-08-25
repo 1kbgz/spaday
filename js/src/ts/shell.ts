@@ -308,3 +308,113 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
     },
   );
 }
+
+// A floating surface (`spa-popup`) for context menus and other transient overlays. Closed it renders
+// nothing; open it places its slotted children at viewport coordinates (`x`, `y`), clamped so the
+// surface stays on-screen, and light-dismisses on an outside pointerdown or Escape — closing sets
+// `open` back to false and dispatches a bubbling `spa-popup-close`. Content is ordinary spaday
+// components (e.g. a WebAwesome menu); open it with `open_popup` from `spaday.actions`, whose
+// defaults read the pointer position off the triggering event.
+const POPUP_CSS = `:host{display:none;position:fixed;left:0;top:0;z-index:1000}
+:host([open]){display:block}`;
+
+if (typeof customElements !== "undefined" && !customElements.get("spa-popup")) {
+  customElements.define(
+    "spa-popup",
+    class extends HTMLElement {
+      #x = 0;
+      #y = 0;
+
+      constructor() {
+        super();
+        const root = this.attachShadow({ mode: "open" });
+        const style = document.createElement("style");
+        style.textContent = POPUP_CSS;
+        root.append(style, document.createElement("slot"));
+      }
+
+      disconnectedCallback(): void {
+        this.#undismiss();
+      }
+
+      get open(): boolean {
+        return this.hasAttribute("open");
+      }
+
+      set open(value: boolean) {
+        const next = Boolean(value);
+        if (next === this.open) return;
+        this.toggleAttribute("open", next);
+        if (next) {
+          this.#place();
+          this.#dismiss();
+        } else {
+          this.#undismiss();
+          this.dispatchEvent(
+            new CustomEvent("spa-popup-close", { bubbles: true }),
+          );
+        }
+      }
+
+      get x(): number {
+        return this.#x;
+      }
+
+      set x(value: number) {
+        this.#x = Number(value) || 0;
+        if (this.open) this.#place();
+      }
+
+      get y(): number {
+        return this.#y;
+      }
+
+      set y(value: number) {
+        this.#y = Number(value) || 0;
+        if (this.open) this.#place();
+      }
+
+      // Position at (x, y), then clamp into the viewport once the surface has a size.
+      #place(): void {
+        this.style.left = `${this.#x}px`;
+        this.style.top = `${this.#y}px`;
+        requestAnimationFrame(() => {
+          if (!this.open) return;
+          const rect = this.getBoundingClientRect();
+          const margin = 4;
+          const left = Math.max(
+            margin,
+            Math.min(this.#x, window.innerWidth - rect.width - margin),
+          );
+          const top = Math.max(
+            margin,
+            Math.min(this.#y, window.innerHeight - rect.height - margin),
+          );
+          this.style.left = `${left}px`;
+          this.style.top = `${top}px`;
+        });
+      }
+
+      #onPointerDown = (event: Event): void => {
+        if (!this.contains(event.target as Node)) this.open = false;
+      };
+
+      #onKeyDown = (event: KeyboardEvent): void => {
+        if (event.key === "Escape") this.open = false;
+      };
+
+      #dismiss(): void {
+        // Capture phase so a pointerdown swallowed by other content still dismisses. The gesture
+        // that opened the popup (contextmenu) fires after its own pointerdown, so it never
+        // self-dismisses; a later right-click elsewhere closes here, then reopens at the new spot.
+        document.addEventListener("pointerdown", this.#onPointerDown, true);
+        document.addEventListener("keydown", this.#onKeyDown, true);
+      }
+
+      #undismiss(): void {
+        document.removeEventListener("pointerdown", this.#onPointerDown, true);
+        document.removeEventListener("keydown", this.#onKeyDown, true);
+      }
+    },
+  );
+}

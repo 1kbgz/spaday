@@ -138,8 +138,12 @@ function bindEvent(
   if (!map) listeners.set(el, (map = new Map()));
   const existing = map.get(name);
   if (existing) el.removeEventListener(name, existing); // replace, don't stack
-  const handler: EventListener = (event) =>
+  const handler: EventListener = (event) => {
+    // A bound context menu replaces the native one; suppression is scoped to exactly the
+    // elements that carry a `contextmenu` action.
+    if (name === "contextmenu") event.preventDefault();
     interpret(action, { event, currentTarget: el, store, scope });
+  };
   el.addEventListener(name, handler);
   map.set(name, handler);
 }

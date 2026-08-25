@@ -70,6 +70,21 @@ def event_value(path: str = "") -> Expr:
     return _EventValue(path)
 
 
+class _EventProp(Expr):
+    def __init__(self, path: str) -> None:
+        self.path = path
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"expr": "event-prop", "path": self.path}
+
+
+def event_prop(path: str) -> Expr:
+    """A dot ``path`` read from the raw DOM event object itself — e.g. ``event_prop("clientX")`` for
+    the pointer position, or ``event_prop("shiftKey")`` for modifiers. :func:`event_value` walks the
+    event's smart-default *value* (``checked`` / ``value`` / ``detail``) instead."""
+    return _EventProp(path)
+
+
 def not_(of: Any) -> Expr:
     """Boolean negation of an expression (or a literal)."""
     return _Not(of)
@@ -420,6 +435,60 @@ class NamedJs(Action):
 
     def to_dict(self) -> dict[str, Any]:
         return {"kind": "js", "handler": self.handler}
+
+
+def open_popup(target: Ref, *, x: Any = None, y: Any = None, context_field: str | None = None, context: Any = None) -> Action:
+    """Open a :class:`~spaday.components.shell.Popup` at the pointer, optionally capturing event
+    context into reactive state first — the context-menu opener::
+
+        graph.on(
+            "spaday-dagre-node-contextmenu",
+            open_popup(by_id("node-menu"), context_field="menu_ctx", context=event_value("detail")),
+        )
+
+    ``x``/``y`` default to the raw event's ``clientX``/``clientY`` (via :func:`event_prop`); pass
+    expressions (e.g. ``event_value("x")`` against a component's rich ``detail``) when the
+    coordinates live elsewhere. When
+    ``context_field`` is given, ``context`` (default: the whole event value) is written to that store
+    field before the popup opens, so menu items can bind to what was clicked. Sugar over
+    ``Sequence``/``SetField``/``SetProp`` — no new wire semantics.
+    """
+    actions: list[Action] = []
+    if context_field is not None:
+        actions.append(SetField(context_field, context if context is not None else event_value()))
+    actions.append(SetProp(target, "x", x if x is not None else event_prop("clientX")))
+    actions.append(SetProp(target, "y", y if y is not None else event_prop("clientY")))
+    actions.append(SetProp(target, "open", True))
+    return Sequence(*actions)
+
+
+def close_popup(target: Ref) -> Action:
+    """Close a :class:`~spaday.components.shell.Popup` — e.g. from a menu item, after its own action::
+
+    item.on("click", Sequence(do_thing, close_popup(by_id("node-menu"))))
+    """
+    return SetProp(target, "open", False)
+
+
+def open_modal(target: Ref, *, context_field: str | None = None, context: Any = None) -> Action:
+    """Open a modal — any element with an ``open`` prop (``WaDialog``, ``WaDrawer``, …) — optionally
+    capturing event context into reactive state first, so the dialog's contents can bind to what
+    triggered it::
+
+        row_button.on("click", open_modal(by_id("confirm"), context_field="modal_ctx", context=item()))
+
+    Sugar over ``Sequence``/``SetField``/``SetProp`` — no new wire semantics.
+    """
+    actions: list[Action] = []
+    if context_field is not None:
+        actions.append(SetField(context_field, context if context is not None else event_value()))
+    actions.append(SetProp(target, "open", True))
+    return actions[0] if len(actions) == 1 else Sequence(*actions)
+
+
+def close_modal(target: Ref) -> Action:
+    """Close a modal opened with :func:`open_modal`."""
+    return SetProp(target, "open", False)
 
 
 def bind(source: Any, target: Ref, target_prop: str, *, transform: Any = None) -> Any:

@@ -272,3 +272,135 @@ test("spa-table projects rich component cells with working actions", async ({
     slotName: "cell-0",
   });
 });
+
+test("spa-popup opens at pointer coordinates from a contextmenu action and light-dismisses", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.__spaday.mount(document.body, {
+      tag: "spa-stack",
+      slots: {
+        default: [
+          {
+            tag: "div",
+            props: {
+              id: { Str: "surface" },
+              textContent: { Str: "right-click me" },
+              style: { Str: "width:400px;height:200px" },
+            },
+            events: {
+              contextmenu: {
+                kind: "seq",
+                actions: [
+                  {
+                    kind: "set",
+                    target: { ref: "id", id: "menu" },
+                    prop: "x",
+                    value: { expr: "event-prop", path: "clientX" },
+                  },
+                  {
+                    kind: "set",
+                    target: { ref: "id", id: "menu" },
+                    prop: "y",
+                    value: { expr: "event-prop", path: "clientY" },
+                  },
+                  {
+                    kind: "set",
+                    target: { ref: "id", id: "menu" },
+                    prop: "open",
+                    value: { expr: "lit", value: true },
+                  },
+                ],
+              },
+            },
+          },
+          {
+            tag: "spa-popup",
+            props: { id: { Str: "menu" } },
+            slots: {
+              default: [
+                { tag: "span", props: { textContent: { Str: "item" } } },
+              ],
+            },
+          },
+        ],
+      },
+    });
+    window.__nativeMenus = 0;
+    document.addEventListener("contextmenu", (e) => {
+      if (!e.defaultPrevented) window.__nativeMenus += 1;
+    });
+  });
+
+  await page.click("#surface", {
+    button: "right",
+    position: { x: 120, y: 80 },
+  });
+  const opened = await page.evaluate(() => {
+    const surface = document.getElementById("surface").getBoundingClientRect();
+    const menu = document.getElementById("menu");
+    const rect = menu.getBoundingClientRect();
+    return {
+      open: menu.open,
+      visible: getComputedStyle(menu).display === "block",
+      nativeSuppressed: window.__nativeMenus === 0,
+      // event-prop reads clientX/clientY off the raw event, so the popup lands AT the pointer
+      dx: Math.abs(rect.left - (surface.left + 120)),
+      dy: Math.abs(rect.top - (surface.top + 80)),
+    };
+  });
+  expect(opened.open).toBe(true);
+  expect(opened.visible).toBe(true);
+  expect(opened.nativeSuppressed).toBe(true); // preventDefault is scoped to the bound element
+  expect(opened.dx).toBeLessThan(2);
+  expect(opened.dy).toBeLessThan(2);
+
+  // clicking inside does not dismiss; clicking outside does, and dispatches spa-popup-close
+  await page.evaluate(() => {
+    window.__closes = 0;
+    document
+      .getElementById("menu")
+      .addEventListener("spa-popup-close", () => (window.__closes += 1));
+  });
+  await page.click("#menu span");
+  expect(await page.evaluate(() => document.getElementById("menu").open)).toBe(
+    true,
+  );
+  await page.mouse.click(390, 190);
+  const closed = await page.evaluate(() => ({
+    open: document.getElementById("menu").open,
+    closes: window.__closes,
+  }));
+  expect(closed).toEqual({ open: false, closes: 1 });
+});
+
+test("spa-popup clamps into the viewport and closes on Escape", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 500, height: 300 });
+  await page.evaluate(() => {
+    const menu = document.createElement("spa-popup");
+    menu.id = "clamped";
+    const body = document.createElement("div");
+    body.style.cssText = "width:150px;height:100px";
+    menu.appendChild(body);
+    document.body.appendChild(menu);
+    menu.x = 490; // would overflow right/bottom
+    menu.y = 290;
+    menu.open = true;
+  });
+  await page.waitForTimeout(50); // clamping happens on the next animation frame
+  const r = await page.evaluate(() => {
+    const rect = document.getElementById("clamped").getBoundingClientRect();
+    return {
+      right: rect.right,
+      bottom: rect.bottom,
+    };
+  });
+  expect(r.right).toBeLessThanOrEqual(500);
+  expect(r.bottom).toBeLessThanOrEqual(300);
+  await page.keyboard.press("Escape");
+  expect(
+    await page.evaluate(() => document.getElementById("clamped").open),
+  ).toBe(false);
+});

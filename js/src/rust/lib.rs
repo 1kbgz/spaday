@@ -16,6 +16,8 @@ extern "C" {
     fn set_prop(this: &Host, el: &JsValue, name: &str, value: JsValue);
     #[wasm_bindgen(method, js_name = eventValue)]
     fn event_value(this: &Host) -> JsValue;
+    #[wasm_bindgen(method, js_name = eventRaw)]
+    fn event_raw(this: &Host) -> JsValue;
     #[wasm_bindgen(method, js_name = getField)]
     fn get_field(this: &Host, name: &str) -> JsValue;
     #[wasm_bindgen(method, js_name = getItem)]
@@ -117,7 +119,7 @@ fn run(action: &spaday::Action, host: &Host) {
 
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
     use spaday::Expr::{
-        All, Any, Concat, Cond, Eq, Event, Field, Item, Lit, Not, Obj, Prop, Scope,
+        All, Any, Concat, Cond, Eq, Event, EventProp, Field, Item, Lit, Not, Obj, Prop, Scope,
     };
     match expr {
         // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
@@ -135,6 +137,19 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
                     value = js_sys::Reflect::get(&value, &JsValue::from_str(key))
                         .unwrap_or(JsValue::UNDEFINED);
                 }
+            }
+            value
+        }
+        EventProp { path } => {
+            // Read from the raw DOM event object (e.g. `clientX`, `shiftKey`) — `Event` above
+            // walks the smart-default *value* (checked / value / detail) instead.
+            let mut value = host.event_raw();
+            for key in path.split('.').filter(|part| !part.is_empty()) {
+                if value.is_null() || value.is_undefined() {
+                    break;
+                }
+                value = js_sys::Reflect::get(&value, &JsValue::from_str(key))
+                    .unwrap_or(JsValue::UNDEFINED);
             }
             value
         }
