@@ -253,3 +253,55 @@ def test_event_value_path_reads_into_a_rich_detail():
     assert event_value().to_dict() == {"expr": "event"}
     assert event_value("label").to_dict() == {"expr": "event", "path": "label"}
     assert event_value("a.b").to_dict() == {"expr": "event", "path": "a.b"}
+
+
+def test_popup_and_modal_helpers_compose_existing_actions():
+    from spaday.actions import by_id, close_modal, close_popup, event_value, open_modal, open_popup
+
+    # open_popup defaults: pointer coordinates off the event, then open
+    opened = open_popup(by_id("menu")).to_dict()
+    assert opened["kind"] == "seq"
+    assert [a["prop"] for a in opened["actions"]] == ["x", "y", "open"]
+    assert opened["actions"][0]["value"] == {"expr": "event", "path": "clientX"}
+    assert opened["actions"][1]["value"] == {"expr": "event", "path": "clientY"}
+    assert opened["actions"][2]["value"] == {"expr": "lit", "value": True}
+
+    # context capture writes the store field first, and coordinates are overridable expressions
+    ctx = open_popup(
+        by_id("menu"),
+        x=event_value("detail.x"),
+        y=event_value("detail.y"),
+        context_field="menu_ctx",
+        context=event_value("detail"),
+    ).to_dict()
+    assert ctx["actions"][0] == {"kind": "set-field", "field": "menu_ctx", "value": {"expr": "event", "path": "detail"}}
+    assert ctx["actions"][1]["value"] == {"expr": "event", "path": "detail.x"}
+
+    assert close_popup(by_id("menu")).to_dict() == {
+        "kind": "set",
+        "target": {"ref": "id", "id": "menu"},
+        "prop": "open",
+        "value": {"expr": "lit", "value": False},
+    }
+
+    # a modal is any element with an `open` prop; without context the helper is a bare set
+    assert open_modal(by_id("dlg")).to_dict()["kind"] == "set"
+    modal = open_modal(by_id("dlg"), context_field="modal_ctx").to_dict()
+    assert modal["kind"] == "seq"
+    assert modal["actions"][0]["field"] == "modal_ctx"
+    assert close_modal(by_id("dlg")).to_dict()["prop"] == "open"
+
+
+def test_popup_helper_output_round_trips_through_core():
+    import json
+
+    # the sugar produces only existing wire kinds, so a tree carrying it round-trips through core
+    from spaday import apply, diff
+    from spaday.actions import by_id, event_value, open_popup
+    from spaday.component import element
+    from spaday.components.shell import Popup
+
+    menu = Popup(element("span", textContent="item"), id="menu")
+    host = element("div", id="surface").on("contextmenu", open_popup(by_id("menu"), context_field="ctx", context=event_value("detail")))
+    node = element("div", host, menu).to_json()
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)
