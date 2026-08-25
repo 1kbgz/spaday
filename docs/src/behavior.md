@@ -159,9 +159,10 @@ graph.on("contextmenu", open_popup(by_id("node-menu"), context_field="menu_ctx")
 ```
 
 The menu's items read what was clicked from the captured field like any other state — e.g.
-`compute("textContent", concat("Inspect ", field("menu_ctx.detail.id")))`. For events that carry
-their coordinates in a rich `detail` (a component's re-dispatched event), point the coordinates and
-context at it: `open_popup(target, x=event_value("detail.x"), y=event_value("detail.y"), context=event_value("detail"))`.
+`compute("textContent", concat("Inspect ", field("menu_ctx.id")))`. The default coordinates read the
+raw event's `clientX`/`clientY` via `event_prop`; for a component's re-dispatched event whose rich
+`detail` carries the position, point them at it instead (paths in `event_value` walk the detail):
+`open_popup(target, x=event_value("x"), y=event_value("y"), context=event_value())`.
 
 A modal is the same capture-then-open shape against any element with an `open` prop (`WaDialog`,
 `WaDrawer`, …):

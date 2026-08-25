@@ -19,6 +19,7 @@ from .actions import (
     concat,
     cond,
     eq,
+    event_prop,
     event_value,
     field,
     item,
@@ -94,6 +95,7 @@ __all__ = [
     # framed wire (tree/patch over transports' Frame + JSON/msgpack codecs)
     "encode_frame",
     "eq",
+    "event_prop",
     "event_value",
     "field",
     "item",

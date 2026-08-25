@@ -296,13 +296,13 @@ test("spa-popup opens at pointer coordinates from a contextmenu action and light
                     kind: "set",
                     target: { ref: "id", id: "menu" },
                     prop: "x",
-                    value: { expr: "event", path: "clientX" },
+                    value: { expr: "event-prop", path: "clientX" },
                   },
                   {
                     kind: "set",
                     target: { ref: "id", id: "menu" },
                     prop: "y",
-                    value: { expr: "event", path: "clientY" },
+                    value: { expr: "event-prop", path: "clientY" },
                   },
                   {
                     kind: "set",
@@ -337,19 +337,23 @@ test("spa-popup opens at pointer coordinates from a contextmenu action and light
     position: { x: 120, y: 80 },
   });
   const opened = await page.evaluate(() => {
+    const surface = document.getElementById("surface").getBoundingClientRect();
     const menu = document.getElementById("menu");
     const rect = menu.getBoundingClientRect();
     return {
       open: menu.open,
       visible: getComputedStyle(menu).display === "block",
       nativeSuppressed: window.__nativeMenus === 0,
-      atPointer: rect.width > 0, // placed and sized
+      // event-prop reads clientX/clientY off the raw event, so the popup lands AT the pointer
+      dx: Math.abs(rect.left - (surface.left + 120)),
+      dy: Math.abs(rect.top - (surface.top + 80)),
     };
   });
   expect(opened.open).toBe(true);
   expect(opened.visible).toBe(true);
   expect(opened.nativeSuppressed).toBe(true); // preventDefault is scoped to the bound element
-  expect(opened.atPointer).toBe(true);
+  expect(opened.dx).toBeLessThan(2);
+  expect(opened.dy).toBeLessThan(2);
 
   // clicking inside does not dismiss; clicking outside does, and dispatches spa-popup-close
   await page.evaluate(() => {

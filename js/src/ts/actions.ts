@@ -48,6 +48,8 @@ function host(ctx: ActionContext) {
       if (target && "value" in target) return target.value;
       return (ctx.event as CustomEvent).detail;
     },
+    // the raw DOM event object, for `event-prop` (pointer position, modifiers)
+    eventRaw: () => ctx.event,
     // a reactive state field from the mounted signal store (undefined if the tree has no store)
     getField: (name: string) => ctx.store?.get(name),
     getItem: (path: string) => ctx.scope?.get(path),

@@ -262,8 +262,10 @@ def test_popup_and_modal_helpers_compose_existing_actions():
     opened = open_popup(by_id("menu")).to_dict()
     assert opened["kind"] == "seq"
     assert [a["prop"] for a in opened["actions"]] == ["x", "y", "open"]
-    assert opened["actions"][0]["value"] == {"expr": "event", "path": "clientX"}
-    assert opened["actions"][1]["value"] == {"expr": "event", "path": "clientY"}
+    # raw-event coordinates: event_value walks the smart-default value (a CustomEvent's detail),
+    # so pointer position must come off the raw event object
+    assert opened["actions"][0]["value"] == {"expr": "event-prop", "path": "clientX"}
+    assert opened["actions"][1]["value"] == {"expr": "event-prop", "path": "clientY"}
     assert opened["actions"][2]["value"] == {"expr": "lit", "value": True}
 
     # context capture writes the store field first, and coordinates are overridable expressions

@@ -50,6 +50,10 @@ pub enum Expr {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         path: Option<String>,
     },
+    /// A dot `path` read from the raw DOM event object itself (not the smart-default value) — e.g.
+    /// `clientX` for pointer position, or `shiftKey` for modifiers.
+    #[serde(rename = "event-prop")]
+    EventProp { path: String },
     /// Boolean negation of an expression.
     Not { of: Box<Expr> },
     /// The current value of a `name` prop on `target` (reads live element state).
@@ -210,6 +214,25 @@ mod tests {
                 "target": {"ref": "this"},
                 "prop": "textContent",
                 "value": {"expr": "event", "path": "label"},
+            }),
+        );
+    }
+
+    #[test]
+    fn event_prop_reads_the_raw_event() {
+        round(
+            &Action::SetProp {
+                target: Ref::Id { id: "menu".into() },
+                prop: "x".into(),
+                value: Expr::EventProp {
+                    path: "clientX".into(),
+                },
+            },
+            json!({
+                "kind": "set",
+                "target": {"ref": "id", "id": "menu"},
+                "prop": "x",
+                "value": {"expr": "event-prop", "path": "clientX"},
             }),
         );
     }

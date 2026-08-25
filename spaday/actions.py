@@ -70,6 +70,21 @@ def event_value(path: str = "") -> Expr:
     return _EventValue(path)
 
 
+class _EventProp(Expr):
+    def __init__(self, path: str) -> None:
+        self.path = path
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"expr": "event-prop", "path": self.path}
+
+
+def event_prop(path: str) -> Expr:
+    """A dot ``path`` read from the raw DOM event object itself — e.g. ``event_prop("clientX")`` for
+    the pointer position, or ``event_prop("shiftKey")`` for modifiers. :func:`event_value` walks the
+    event's smart-default *value* (``checked`` / ``value`` / ``detail``) instead."""
+    return _EventProp(path)
+
+
 def not_(of: Any) -> Expr:
     """Boolean negation of an expression (or a literal)."""
     return _Not(of)
@@ -431,8 +446,9 @@ def open_popup(target: Ref, *, x: Any = None, y: Any = None, context_field: str 
             open_popup(by_id("node-menu"), context_field="menu_ctx", context=event_value("detail")),
         )
 
-    ``x``/``y`` default to the triggering event's ``clientX``/``clientY``; pass expressions (e.g.
-    ``event_value("detail.x")``) when the coordinates live elsewhere on the event. When
+    ``x``/``y`` default to the raw event's ``clientX``/``clientY`` (via :func:`event_prop`); pass
+    expressions (e.g. ``event_value("x")`` against a component's rich ``detail``) when the
+    coordinates live elsewhere. When
     ``context_field`` is given, ``context`` (default: the whole event value) is written to that store
     field before the popup opens, so menu items can bind to what was clicked. Sugar over
     ``Sequence``/``SetField``/``SetProp`` — no new wire semantics.
@@ -440,8 +456,8 @@ def open_popup(target: Ref, *, x: Any = None, y: Any = None, context_field: str 
     actions: list[Action] = []
     if context_field is not None:
         actions.append(SetField(context_field, context if context is not None else event_value()))
-    actions.append(SetProp(target, "x", x if x is not None else event_value("clientX")))
-    actions.append(SetProp(target, "y", y if y is not None else event_value("clientY")))
+    actions.append(SetProp(target, "x", x if x is not None else event_prop("clientX")))
+    actions.append(SetProp(target, "y", y if y is not None else event_prop("clientY")))
     actions.append(SetProp(target, "open", True))
     return Sequence(*actions)
 
