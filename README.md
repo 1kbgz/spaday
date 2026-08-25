@@ -54,7 +54,7 @@ registers its browser assets with spaday:
 - [spaday-spectrum](https://github.com/1kbgz/spaday-spectrum) — [Adobe Spectrum Web Components](https://opensource.adobe.com/spectrum-web-components/).
 - [spaday-perspective](https://github.com/1kbgz/spaday-perspective) — live [Perspective](https://perspective-dev.github.io) workspaces and datagrids.
 - [spaday-webawesome](https://github.com/1kbgz/spaday-webawesome) — typed [WebAwesome](https://webawesome.com) catalog, forms, and tabs.
-- [spaday-lightweight-charts](https://github.com/1kbgz/spaday-lightweight-charts) — reactive TradingView Lightweight Charts.
+- [spaday-lightweight-charts](https://github.com/1kbgz/spaday-lightweight-charts) — reactive [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts).
 - [spaday-dagre](https://github.com/1kbgz/spaday-dagre) — interactive directed-graph rendering with [dagre](https://github.com/dagrejs/dagre) layout.
 - [spaday-regular-layout](https://github.com/1kbgz/spaday-regular-layout) — [serializable resizable panel layouts](https://github.com/texodus/regular-layout).
 - [spaday-regular-table](https://github.com/1kbgz/spaday-regular-table) — [viewport-virtualized high-performance data tables](https://github.com/finos/regular-table).
