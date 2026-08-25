@@ -43,8 +43,11 @@ class _Lit(Expr):
 
 
 class _EventValue(Expr):
+    def __init__(self, path: str = "") -> None:
+        self.path = path
+
     def to_dict(self) -> dict[str, Any]:
-        return {"expr": "event"}
+        return {"expr": "event", "path": self.path} if self.path else {"expr": "event"}
 
 
 class _Not(Expr):
@@ -60,9 +63,11 @@ def lit(value: Any) -> Expr:
     return _Lit(value)
 
 
-def event_value() -> Expr:
-    """The triggering event's value — a control's ``checked`` (booleans) else ``value`` else ``detail``."""
-    return _EventValue()
+def event_value(path: str = "") -> Expr:
+    """The triggering event's value — a control's ``checked`` (booleans) else ``value`` else ``detail``.
+    A dot ``path`` walks into the value: ``event_value("label")`` reads ``detail.label`` from a rich
+    CustomEvent, so one field of a structured detail can land in the store or an endpoint body."""
+    return _EventValue(path)
 
 
 def not_(of: Any) -> Expr:

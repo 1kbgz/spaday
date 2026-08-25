@@ -659,3 +659,35 @@ test("NamedJs invokes a pre-registered handler (the no-eval escape hatch)", asyn
   });
   expect(ran).toBe(2);
 });
+
+test("event expressions walk a path into a rich CustomEvent detail", async ({
+  page,
+}) => {
+  await page.goto("/tests/runtime.html");
+  await page.waitForFunction(() => window.__spaday);
+  const value = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ selected: "" });
+    const root = mount(
+      document.body,
+      {
+        tag: "div",
+        events: {
+          "edge-click": {
+            kind: "set-field",
+            field: "selected",
+            value: { expr: "event", path: "meta.label" },
+          },
+        },
+      },
+      store,
+    );
+    root.dispatchEvent(
+      new CustomEvent("edge-click", {
+        detail: { meta: { label: "rows" }, other: 1 },
+      }),
+    );
+    return store.get("selected");
+  });
+  expect(value).toBe("rows");
+});

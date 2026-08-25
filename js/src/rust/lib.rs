@@ -125,7 +125,19 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
         Lit { value } => value
             .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
             .unwrap_or(JsValue::UNDEFINED),
-        Event => host.event_value(),
+        Event { path } => {
+            let mut value = host.event_value();
+            if let Some(path) = path {
+                for key in path.split('.').filter(|part| !part.is_empty()) {
+                    if value.is_null() || value.is_undefined() {
+                        break;
+                    }
+                    value = js_sys::Reflect::get(&value, &JsValue::from_str(key))
+                        .unwrap_or(JsValue::UNDEFINED);
+                }
+            }
+            value
+        }
         Field { name } => host.get_field(name),
         Item { path } => host.get_item(path),
         Scope { name, path } => host.get_scope(name, path),
