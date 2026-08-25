@@ -14,9 +14,9 @@ Build reactive web-component UIs **configured in Python, executed in the browser
 
 ## Overview
 
-You author a UI as a tree of typed Python components from opt-in packages or any library that ships a
+Construct a UI as a tree of typed Python components from opt-in packages or any library that ships a
 [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest).
-You attach behavior as **declarative data**: an action DSL (toggle a prop, send a model edit, call an
+Attach behavior as **declarative data**: an action DSL (toggle a prop, send a model edit, call an
 endpoint) and reactive **bindings** (a control two-way-bound to a state field, or a prop computed from
 others). spaday's JavaScript runtime renders the tree to real web components and interprets that
 behavior **client-side** — so a toggle or a derived value updates with no round-trip to Python.
