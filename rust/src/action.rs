@@ -45,7 +45,11 @@ pub enum Expr {
     /// A literal (plain JSON) value.
     Lit { value: serde_json::Value },
     /// The triggering event's value — a control's `checked` (bool), else `value`, else `detail`.
-    Event,
+    /// A dot `path` walks into the value (e.g. `label` from a rich CustomEvent detail).
+    Event {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        path: Option<String>,
+    },
     /// Boolean negation of an expression.
     Not { of: Box<Expr> },
     /// The current value of a `name` prop on `target` (reads live element state).
@@ -192,13 +196,32 @@ mod tests {
     }
 
     #[test]
+    fn event_with_path() {
+        round(
+            &Action::SetProp {
+                target: Ref::This,
+                prop: "textContent".into(),
+                value: Expr::Event {
+                    path: Some("label".into()),
+                },
+            },
+            json!({
+                "kind": "set",
+                "target": {"ref": "this"},
+                "prop": "textContent",
+                "value": {"expr": "event", "path": "label"},
+            }),
+        );
+    }
+
+    #[test]
     fn setprop_by_id_with_not_event() {
         round(
             &Action::SetProp {
                 target: Ref::Id { id: "panel".into() },
                 prop: "hidden".into(),
                 value: Expr::Not {
-                    of: Box::new(Expr::Event),
+                    of: Box::new(Expr::Event { path: None }),
                 },
             },
             json!({
@@ -255,7 +278,7 @@ mod tests {
             &Action::SendPatch {
                 model: "global".into(),
                 field: "type".into(),
-                value: Expr::Event,
+                value: Expr::Event { path: None },
             },
             json!({"kind": "patch", "model": "global", "field": "type", "value": {"expr": "event"}}),
         );
@@ -291,7 +314,7 @@ mod tests {
     fn if_without_else_serializes_null() {
         round(
             &Action::If {
-                cond: Expr::Event,
+                cond: Expr::Event { path: None },
                 then: Box::new(Action::Toggle {
                     target: Ref::This,
                     prop: "hidden".into(),
@@ -308,7 +331,7 @@ mod tests {
             &Action::CallEndpoint {
                 method: "POST".into(),
                 url: "/api/order".into(),
-                body: Some(Expr::Event),
+                body: Some(Expr::Event { path: None }),
                 result: None,
             },
             json!({"kind": "call", "method": "POST", "url": "/api/order", "body": {"expr": "event"}, "result": null}),
@@ -360,7 +383,7 @@ mod tests {
             &Action::CallEndpoint {
                 method: "POST".into(),
                 url: "/api/order".into(),
-                body: Some(Expr::Event),
+                body: Some(Expr::Event { path: None }),
                 result: Some("order_result".into()),
             },
             json!({"kind": "call", "method": "POST", "url": "/api/order", "body": {"expr": "event"}, "result": "order_result"}),
@@ -389,7 +412,7 @@ mod tests {
         round(
             &Action::SetField {
                 field: "qty".into(),
-                value: Expr::Event,
+                value: Expr::Event { path: None },
             },
             json!({"kind": "set-field", "field": "qty", "value": {"expr": "event"}}),
         );

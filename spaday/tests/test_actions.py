@@ -247,3 +247,9 @@ def test_every_action_kind_round_trips_through_core():
     )
     tree = node.to_json()
     assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
+
+
+def test_event_value_path_reads_into_a_rich_detail():
+    assert event_value().to_dict() == {"expr": "event"}
+    assert event_value("label").to_dict() == {"expr": "event", "path": "label"}
+    assert event_value("a.b").to_dict() == {"expr": "event", "path": "a.b"}
