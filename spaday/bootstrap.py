@@ -132,10 +132,21 @@ _SESSION_ID = "globalThis.crypto?.randomUUID?.() ?? (Date.now().toString(36) + M
 def _layout(layout: AssetLayout | None = None) -> AssetLayout:
     if layout is not None and layout not in _ASSETS:
         raise ValueError("layout must be 'source' or 'installed'")
-    # package.json distinguishes spaday's own js/ checkout from an unrelated sibling `js` dir —
-    # notably plotly's labextension data, which lands at top-level site-packages/js next to an
-    # installed spaday and would otherwise force source-layout URLs that 404
-    return layout or ("source" if (_SOURCE_DIR / "package.json").is_file() else "installed")
+    return layout or ("source" if _is_source_checkout() else "installed")
+
+
+def _is_source_checkout() -> bool:
+    # Distinguish spaday's own js/ checkout from an unrelated sibling `js` dir — notably plotly's
+    # labextension data, which lands at top-level site-packages/js next to an installed spaday and
+    # would otherwise force source-layout URLs that 404. Other distributions can ship a
+    # js/package.json too, so require spaday's own sentinels: built bundles under js/dist and a
+    # package.json naming the spaday package.
+    if not (_SOURCE_DIR / "dist").is_dir():
+        return False
+    try:
+        return json.loads((_SOURCE_DIR / "package.json").read_text(encoding="utf-8")).get("name") == "@1kbgz/spaday"
+    except (OSError, ValueError):
+        return False
 
 
 def bundles_dir(layout: AssetLayout | None = None) -> Path:

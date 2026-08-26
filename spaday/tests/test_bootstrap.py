@@ -109,7 +109,16 @@ def test_bare_js_dir_is_not_mistaken_for_a_source_checkout(tmp_path, monkeypatch
     (tmp_path / "js").mkdir()
     (tmp_path / "js" / "install.json").write_text("{}", encoding="utf-8")
     assert bundles_dir().name == "extension"
-    (tmp_path / "js" / "package.json").write_text("{}", encoding="utf-8")  # a real checkout marker
+    # a foreign package.json (other distributions ship one too) is not a checkout marker either
+    (tmp_path / "js" / "package.json").write_text('{"name": "plotly.js"}', encoding="utf-8")
+    assert bundles_dir().name == "extension"
+    # nor is an unparseable one
+    (tmp_path / "js" / "package.json").write_text("not json", encoding="utf-8")
+    assert bundles_dir().name == "extension"
+    # the real sentinels: spaday's own package.json name AND built bundles under js/dist
+    (tmp_path / "js" / "package.json").write_text('{"name": "@1kbgz/spaday"}', encoding="utf-8")
+    assert bundles_dir().name == "extension"  # dist/ still missing
+    (tmp_path / "js" / "dist").mkdir()
     assert bundles_dir() == tmp_path / "js"
 
 

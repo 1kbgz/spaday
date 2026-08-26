@@ -38,6 +38,13 @@ WaSwitch().on("change", SetProp(by_id("panel"), "hidden", not_(event_value())))
 ```
 
 - `event_value()` — the triggering control's value (its `checked`, else `value`, else the event detail).
+- `event_prop(path)` — a path read off the raw DOM event object itself (`event_prop("clientX")` for
+  the pointer position, `event_prop("shiftKey")` for modifiers).
+- `event_closest(selector, path)` — a path read off the closest ancestor of the event target matching
+  a CSS selector (`event.target.closest(selector)`) — `event_closest("[data-node-id]", "dataset.nodeId")`
+  reads the id of the group a click landed in, however deeply nested the actual target. An empty
+  path returns the matched element itself, which isn't a useful serializable value — pass a `path`
+  to extract data.
 - `prop(target, name)` — read a prop off a live element (handy as an `If` condition).
 - `lit(value)` — a literal; a plain Python value is coerced to one automatically.
 
@@ -91,7 +98,9 @@ WaButton().compute("disabled", not_(all_(field("a"), field("b"))))
 ```
 
 The field-expression helpers: `field(name)`, `lit(value)`, `not_(e)`, `eq(a, b)`, `all_(*es)` (AND),
-`any_(*es)` (OR), `cond(test, then, else)` (a ternary — `compute("theme", cond(field("dark"), "dark", "light"))`), and `obj({name: expr})` (compose an object from sub-expressions). They compose.
+`any_(*es)` (OR), `cond(test, then, else)` (a ternary — `compute("theme", cond(field("dark"), "dark", "light"))`), `obj({name: expr})` (compose an object from sub-expressions), and `arr(*exprs)`
+(compose a list — `arr(field("path"))` wraps a dynamic value in a list, e.g. for a tree's
+`selected_paths`). They compose.
 
 ## Send a model edit or call an endpoint
 
@@ -162,7 +171,9 @@ The menu's items read what was clicked from the captured field like any other st
 `compute("textContent", concat("Inspect ", field("menu_ctx.id")))`. The default coordinates read the
 raw event's `clientX`/`clientY` via `event_prop`; for a component's re-dispatched event whose rich
 `detail` carries the position, point them at it instead (paths in `event_value` walk the detail):
-`open_popup(target, x=event_value("x"), y=event_value("y"), context=event_value())`.
+`open_popup(target, x=event_value("x"), y=event_value("y"), context=event_value())`. When the
+triggering event carries no pointer coordinates at all (a `CustomEvent`), the popup falls back to the
+last-known pointer position instead of landing at 0,0.
 
 A modal is the same capture-then-open shape against any element with an `open` prop (`WaDialog`,
 `WaDrawer`, …):
@@ -195,3 +206,10 @@ import spaday
 
 spaday.validate(tree)   # raises ValidationError listing any unresolved by_id reference
 ```
+
+Prop values are checked at authoring time too: a CEM-generated component given a literal that
+contradicts its declared catalog kind — a `str` for a `number` prop, a number for an `enum` — raises
+a `TypeError` naming the component tag, the prop, and the offending value, instead of surfacing later
+as an opaque component error in the browser. Two limits: reactive bindings and computed values are
+dynamic and stay unvalidated, and `json`-kind props (lists, objects, mixed unions, untyped props all
+map to that kind) are type-opaque, so no literal shape can be ruled out for them.

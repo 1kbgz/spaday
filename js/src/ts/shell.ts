@@ -318,7 +318,18 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
 const POPUP_CSS = `:host{display:none;position:fixed;left:0;top:0;z-index:1000}
 :host([open]){display:block}`;
 
+// Last-known pointer position — the fallback when a popup's `x`/`y` are set to a non-finite value
+// (e.g. `open_popup`'s `event_prop("clientX")` default resolving to undefined on a CustomEvent with
+// no pointer coordinates), so the popup still opens at the pointer instead of landing at 0,0.
+const lastPointer = { x: 0, y: 0 };
+
 if (typeof customElements !== "undefined" && !customElements.get("spa-popup")) {
+  const trackPointer = (event: PointerEvent): void => {
+    lastPointer.x = event.clientX;
+    lastPointer.y = event.clientY;
+  };
+  document.addEventListener("pointermove", trackPointer, { passive: true });
+  document.addEventListener("pointerdown", trackPointer, { passive: true });
   customElements.define(
     "spa-popup",
     class extends HTMLElement {
@@ -361,7 +372,9 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-popup")) {
       }
 
       set x(value: number) {
-        this.#x = Number(value) || 0;
+        // non-finite (undefined/NaN — an event without pointer coordinates) → the last-known pointer
+        const next = Number(value);
+        this.#x = Number.isFinite(next) ? next : lastPointer.x;
         if (this.open) this.#place();
       }
 
@@ -370,7 +383,8 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-popup")) {
       }
 
       set y(value: number) {
-        this.#y = Number(value) || 0;
+        const next = Number(value);
+        this.#y = Number.isFinite(next) ? next : lastPointer.y;
         if (this.open) this.#place();
       }
 

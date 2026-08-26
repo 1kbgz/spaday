@@ -54,6 +54,17 @@ def _as_node(child: Child) -> dict:
     return child.to_node() if isinstance(child, Component) else child
 
 
+# The Python shape a catalog prop kind demands of a *literal* value. `json` is absent on purpose: the
+# catalog maps every complex/unknown type (lists, objects, mixed unions, untyped props) to it, so no
+# literal shape can be ruled out. Reactive bindings/computed values are dynamic and never checked.
+_KIND_TYPES: dict[str, type | tuple[type, ...]] = {
+    "string": str,
+    "enum": str,
+    "boolean": bool,
+    "number": (int, float),
+}
+
+
 def _css_name(name: str) -> str:
     """A Python kwarg → its CSS name: drop one trailing ``_``, then ``_`` → ``-`` (``font_size`` → ``font-size``)."""
     name = name.removesuffix("_")
@@ -79,12 +90,31 @@ class Component:
         merged = dict(props or {})  # typed props (from a subclass) + generic keyword props (id, style, …)
         merged.update({_attr_name(k): v for k, v in attrs.items()})
         self._props: dict[str, Any] = {k: v for k, v in merged.items() if v is not None}
+        if type(self).schema is not None:
+            self._check_prop_kinds()
         self._slots: dict[str, list[Child]] = {}
         self._events: dict[str, dict] = {}
         self._bindings: dict[str, dict] = {}
         self._style: dict[str, str] = {}  # inline CSS declarations + custom properties (theming)
         self._classes: list[str] = []  # CSS classes (variants / states)
         self.child(*children)
+
+    def _check_prop_kinds(self) -> None:
+        """Reject a literal prop value that contradicts the class's catalog ``schema`` kind.
+
+        The authoring-time half of prop validation (the browser doesn't ship the catalog): a plain
+        value of the wrong shape — e.g. a ``str`` for a ``number`` prop — fails here with the
+        component and prop named, instead of surfacing later as an opaque component error. Only
+        kinds with an unambiguous Python shape are checked (see ``_KIND_TYPES``); ``json`` props and
+        props outside the schema (``id``, ``style``, …) pass through.
+        """
+        kinds = {prop.name: prop.kind for prop in self.schema.props}
+        for name, value in self._props.items():
+            expected = _KIND_TYPES.get(kinds.get(name, ""))
+            if expected is None:
+                continue
+            if not isinstance(value, expected) or (kinds[name] == "number" and isinstance(value, bool)):
+                raise TypeError(f"<{self.tag}> prop {name!r} expects kind {kinds[name]!r}, got {value!r} ({type(value).__name__})")
 
     def key(self, key: str) -> "Component":
         """Set the reconciliation key (for keyed child diffing)."""

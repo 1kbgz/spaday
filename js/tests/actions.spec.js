@@ -660,6 +660,85 @@ test("NamedJs invokes a pre-registered handler (the no-eval escape hatch)", asyn
   expect(ran).toBe(2);
 });
 
+test("arr composes a JS array (SetField writes a one-element list from the event)", async ({
+  page,
+}) => {
+  const value = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ selected_paths: [] });
+    const root = mount(
+      document.body,
+      {
+        tag: "div",
+        events: {
+          "node-click": {
+            kind: "set-field",
+            field: "selected_paths",
+            value: { expr: "arr", of: [{ expr: "event", path: "path" }] },
+          },
+        },
+      },
+      store,
+    );
+    root.dispatchEvent(
+      new CustomEvent("node-click", { detail: { path: "a/b" } }),
+    );
+    return store.get("selected_paths");
+  });
+  // the list-building counterpart of obj: the dynamic event value lands wrapped in a real array
+  expect(value).toEqual(["a/b"]);
+});
+
+test("event-closest reads data off the matched ancestor of the click target", async ({
+  page,
+}) => {
+  const value = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ selected: "" });
+    const root = mount(
+      document.body,
+      {
+        tag: "div",
+        events: {
+          click: {
+            kind: "set-field",
+            field: "selected",
+            value: {
+              expr: "event-closest",
+              selector: "[data-node-id]",
+              path: "dataset.nodeId",
+            },
+          },
+        },
+        slots: {
+          default: [
+            {
+              tag: "div",
+              props: { "data-node-id": { Str: "n42" } },
+              slots: {
+                default: [
+                  {
+                    tag: "span",
+                    props: {
+                      id: { Str: "label" },
+                      textContent: { Str: "node" },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    // the click lands on the inner span; closest() resolves the [data-node-id] group around it
+    root.querySelector("#label").click();
+    return store.get("selected");
+  });
+  expect(value).toBe("n42");
+});
+
 test("event expressions walk a path into a rich CustomEvent detail", async ({
   page,
 }) => {

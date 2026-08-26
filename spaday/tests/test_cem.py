@@ -97,6 +97,48 @@ def test_catalog_schema_validates_and_serializes_with_pydantic():
         schema.tag = "changed"  # type: ignore[misc]
 
 
+def test_generated_class_rejects_prop_kind_mismatches_at_authoring_time():
+    # the authoring-time half of prop validation: a literal of the wrong shape fails here, with the
+    # component and prop named, instead of surfacing later as an opaque component error in the browser
+    ns = _module()
+    with pytest.raises(TypeError, match=r"<wa-switch> prop 'checked' expects kind 'boolean'.*'yes'"):
+        ns["WaSwitch"](checked="yes")
+    with pytest.raises(TypeError, match=r"<wa-switch> prop 'size' expects kind 'enum'"):
+        ns["WaSwitch"](size=3)
+    with pytest.raises(TypeError, match=r"<wa-switch> prop 'name' expects kind 'string'"):
+        ns["WaSwitch"](name=7)
+    # correct literals and schema-free generic props pass untouched
+    node = ns["WaSwitch"](checked=True, size="large", name="wifi", id="sw").to_node()
+    assert node["props"]["checked"] == {"Bool": True}
+    assert node["props"]["id"] == {"Str": "sw"}
+
+
+def test_prop_kind_validation_covers_number_and_leaves_json_dynamic():
+    class Demo(Component):
+        tag = "demo-values"
+        schema = ComponentSchema.from_cem(
+            {
+                "tag_name": "demo-values",
+                "class_name": "DemoValues",
+                "props": [{"name": "count", "ty": "Number"}, {"name": "config", "ty": "Any"}],
+            }
+        )
+
+    with pytest.raises(TypeError, match=r"<demo-values> prop 'count' expects kind 'number'.*'3'"):
+        Demo(count="3")
+    with pytest.raises(TypeError, match=r"expects kind 'number'"):
+        Demo(count=True)  # bools are not numbers
+    assert Demo(count=3).to_node()["props"]["count"] == {"Int": 3}
+    assert Demo(count=2.5).to_node()["props"]["count"] == {"Float": 2.5}
+    # the `json` kind is type-opaque (lists, objects, mixed unions, untyped props all map to it),
+    # so it stays unvalidated — as do reactive bindings/computed values, which are dynamic
+    assert Demo(config="anything").to_node()["props"]["config"] == {"Str": "anything"}
+    # plain element() nodes carry no schema and stay fully permissive
+    from spaday import element
+
+    assert element("div", count="3").to_node()["props"]["count"] == {"Str": "3"}
+
+
 def test_typed_signatures_rendered():
     code = generate(FIXTURE)
     assert 'size: Literal["small", "medium", "large"] | None = None' in code
