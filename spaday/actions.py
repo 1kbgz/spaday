@@ -442,7 +442,7 @@ def open_popup(target: Ref, *, x: Any = None, y: Any = None, context_field: str 
     context into reactive state first — the context-menu opener::
 
         graph.on(
-            "spaday-dagre-node-contextmenu",
+            "dagre-node-contextmenu",
             open_popup(by_id("node-menu"), context_field="menu_ctx", context=event_value("detail")),
         )
 
