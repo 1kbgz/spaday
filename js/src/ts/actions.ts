@@ -50,6 +50,9 @@ function host(ctx: ActionContext) {
     },
     // the raw DOM event object, for `event-prop` (pointer position, modifiers)
     eventRaw: () => ctx.event,
+    // the closest ancestor of the event target matching a selector, for `event-closest`
+    eventClosest: (selector: string) =>
+      (ctx.event.target as Element | null)?.closest?.(selector) ?? null,
     // a reactive state field from the mounted signal store (undefined if the tree has no store)
     getField: (name: string) => ctx.store?.get(name),
     getItem: (path: string) => ctx.scope?.get(path),

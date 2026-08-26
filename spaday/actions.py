@@ -85,6 +85,23 @@ def event_prop(path: str) -> Expr:
     return _EventProp(path)
 
 
+class _EventClosest(Expr):
+    def __init__(self, selector: str, path: str) -> None:
+        self.selector, self.path = selector, path
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"expr": "event-closest", "selector": self.selector, "path": self.path}
+
+
+def event_closest(selector: str, path: str = "") -> Expr:
+    """A dot ``path`` read from the closest ancestor of the event target matching a CSS ``selector``
+    (``event.target.closest(selector)``) — e.g. ``event_closest("[data-node-id]", "dataset.nodeId")``
+    reads the id off the group a click landed in, however deeply nested the actual target. Evaluates
+    to ``undefined`` when nothing matches. An empty ``path`` returns the matched element itself, which
+    isn't a useful serializable value — pass a ``path`` to extract data."""
+    return _EventClosest(selector, path)
+
+
 def not_(of: Any) -> Expr:
     """Boolean negation of an expression (or a literal)."""
     return _Not(of)
@@ -256,6 +273,24 @@ def concat(*parts: Any) -> Expr:
     CallEndpoint("POST", concat("/send/basket/", field("key")), body)
     """
     return _Concat(*parts)
+
+
+class _Arr(Expr):
+    def __init__(self, *exprs: Any) -> None:
+        self.exprs = exprs
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"expr": "arr", "of": [_expr(e).to_dict() for e in self.exprs]}
+
+
+def arr(*exprs: Any) -> Expr:
+    """Compose a JSON array from sub-expressions (each a plain value or an :class:`Expr`) — the
+    list-building counterpart of :func:`obj`. E.g. wrap a dynamic value in a one-element list for a
+    list-typed prop or body field, like a tree's ``selected_paths``::
+
+        tree.on("click", SetProp(by_id("tree"), "selected_paths", arr(field("path"))))
+    """
+    return _Arr(*exprs)
 
 
 class Ref:
@@ -448,7 +483,8 @@ def open_popup(target: Ref, *, x: Any = None, y: Any = None, context_field: str 
 
     ``x``/``y`` default to the raw event's ``clientX``/``clientY`` (via :func:`event_prop`); pass
     expressions (e.g. ``event_value("x")`` against a component's rich ``detail``) when the
-    coordinates live elsewhere. When
+    coordinates live elsewhere. When the triggering event carries no pointer coordinates (a
+    ``CustomEvent``), the popup falls back to the last-known pointer position instead of 0,0. When
     ``context_field`` is given, ``context`` (default: the whole event value) is written to that store
     field before the popup opens, so menu items can bind to what was clicked. Sugar over
     ``Sequence``/``SetField``/``SetProp`` — no new wire semantics.

@@ -404,3 +404,79 @@ test("spa-popup clamps into the viewport and closes on Escape", async ({
     await page.evaluate(() => document.getElementById("clamped").open),
   ).toBe(false);
 });
+
+test("spa-popup falls back to the last-known pointer position when x/y are not finite", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.__spaday.mount(document.body, {
+      tag: "spa-stack",
+      slots: {
+        default: [
+          {
+            tag: "div",
+            props: {
+              id: { Str: "surface" },
+              style: { Str: "width:400px;height:200px" },
+            },
+            events: {
+              // the open_popup default wiring: event-prop clientX/clientY, then open
+              "open-menu": {
+                kind: "seq",
+                actions: [
+                  {
+                    kind: "set",
+                    target: { ref: "id", id: "menu" },
+                    prop: "x",
+                    value: { expr: "event-prop", path: "clientX" },
+                  },
+                  {
+                    kind: "set",
+                    target: { ref: "id", id: "menu" },
+                    prop: "y",
+                    value: { expr: "event-prop", path: "clientY" },
+                  },
+                  {
+                    kind: "set",
+                    target: { ref: "id", id: "menu" },
+                    prop: "open",
+                    value: { expr: "lit", value: true },
+                  },
+                ],
+              },
+            },
+          },
+          {
+            tag: "spa-popup",
+            props: { id: { Str: "menu" } },
+            slots: {
+              default: [
+                { tag: "span", props: { textContent: { Str: "item" } } },
+              ],
+            },
+          },
+        ],
+      },
+    });
+  });
+  await page.mouse.move(150, 90); // the module-level tracker remembers the pointer
+  await page.evaluate(() => {
+    // a CustomEvent has no clientX/clientY, so event-prop resolves undefined — the popup must
+    // degrade to the last-known pointer position instead of landing at 0,0
+    document
+      .getElementById("surface")
+      .dispatchEvent(new CustomEvent("open-menu"));
+  });
+  const r = await page.evaluate(() => {
+    const menu = document.getElementById("menu");
+    const rect = menu.getBoundingClientRect();
+    return {
+      open: menu.open,
+      dx: Math.abs(rect.left - 150),
+      dy: Math.abs(rect.top - 90),
+    };
+  });
+  expect(r.open).toBe(true);
+  expect(r.dx).toBeLessThan(2);
+  expect(r.dy).toBeLessThan(2);
+});

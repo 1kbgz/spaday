@@ -18,6 +18,8 @@ extern "C" {
     fn event_value(this: &Host) -> JsValue;
     #[wasm_bindgen(method, js_name = eventRaw)]
     fn event_raw(this: &Host) -> JsValue;
+    #[wasm_bindgen(method, js_name = eventClosest)]
+    fn event_closest(this: &Host, selector: &str) -> JsValue;
     #[wasm_bindgen(method, js_name = getField)]
     fn get_field(this: &Host, name: &str) -> JsValue;
     #[wasm_bindgen(method, js_name = getItem)]
@@ -119,7 +121,8 @@ fn run(action: &spaday::Action, host: &Host) {
 
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
     use spaday::Expr::{
-        All, Any, Concat, Cond, Eq, Event, EventProp, Field, Item, Lit, Not, Obj, Prop, Scope,
+        All, Any, Arr, Concat, Cond, Eq, Event, EventClosest, EventProp, Field, Item, Lit, Not,
+        Obj, Prop, Scope,
     };
     match expr {
         // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
@@ -144,6 +147,19 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
             // Read from the raw DOM event object (e.g. `clientX`, `shiftKey`) — `Event` above
             // walks the smart-default *value* (checked / value / detail) instead.
             let mut value = host.event_raw();
+            for key in path.split('.').filter(|part| !part.is_empty()) {
+                if value.is_null() || value.is_undefined() {
+                    break;
+                }
+                value = js_sys::Reflect::get(&value, &JsValue::from_str(key))
+                    .unwrap_or(JsValue::UNDEFINED);
+            }
+            value
+        }
+        EventClosest { selector, path } => {
+            // Walk from the closest ancestor of the event target matching `selector` (the host
+            // resolves `event.target.closest(selector)`); an empty path is the element itself.
+            let mut value = host.event_closest(selector);
             for key in path.split('.').filter(|part| !part.is_empty()) {
                 if value.is_null() || value.is_undefined() {
                     break;
@@ -189,6 +205,15 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
                 values.push(&eval(part, host));
             }
             values.join("").into()
+        }
+        // Compose a plain JS array from each element's evaluated value — the list-building
+        // counterpart of Obj (e.g. wrap a dynamic value in a one-element list for a list-typed prop).
+        Arr { of } => {
+            let values = js_sys::Array::new();
+            for element in of {
+                values.push(&eval(element, host));
+            }
+            values.into()
         }
     }
 }

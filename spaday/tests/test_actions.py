@@ -16,10 +16,12 @@ from spaday.actions import (
     ToggleField,
     all_,
     any_,
+    arr,
     bind,
     by_id,
     concat,
     cond,
+    event_closest,
     event_value,
     field,
     item,
@@ -138,6 +140,32 @@ def test_obj_composes_an_object_body_for_call_endpoint():
     # rides the core diff/apply on a node like any other action
     node = element("button").on("click", action).to_json()
     assert json.loads(apply(node, diff(node, node))) == json.loads(node)
+
+
+def test_arr_composes_a_list_and_coerces_plain_values():
+    # the list-building counterpart of obj — e.g. wrap a dynamic value for a list-typed prop
+    assert arr(field("path"), "a", 1).to_dict() == {
+        "expr": "arr",
+        "of": [
+            {"expr": "field", "name": "path"},
+            {"expr": "lit", "value": "a"},
+            {"expr": "lit", "value": 1},
+        ],
+    }
+    node = element("button").on("click", SetField("selected_paths", arr(event_value()))).to_json()
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)  # the core accepts arr
+
+
+def test_event_closest_reads_data_off_the_matched_ancestor():
+    assert event_closest("[data-node-id]", "dataset.nodeId").to_dict() == {
+        "expr": "event-closest",
+        "selector": "[data-node-id]",
+        "path": "dataset.nodeId",
+    }
+    # an empty path returns the element itself — pass a path to extract data
+    assert event_closest("[data-node-id]").to_dict()["path"] == ""
+    node = element("div").on("click", SetField("selected", event_closest("[data-node-id]", "dataset.nodeId"))).to_json()
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)  # the core accepts event-closest
 
 
 def test_field_composes_an_action_body_from_store_state():

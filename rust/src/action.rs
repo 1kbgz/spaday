@@ -54,6 +54,11 @@ pub enum Expr {
     /// `clientX` for pointer position, or `shiftKey` for modifiers.
     #[serde(rename = "event-prop")]
     EventProp { path: String },
+    /// A dot `path` read from the closest ancestor of the event target matching a CSS `selector`
+    /// (`event.target.closest(selector)`) — e.g. `dataset.nodeId` off the `[data-node-id]` group a
+    /// click landed in. An empty `path` returns the matched element itself.
+    #[serde(rename = "event-closest")]
+    EventClosest { selector: String, path: String },
     /// Boolean negation of an expression.
     Not { of: Box<Expr> },
     /// The current value of a `name` prop on `target` (reads live element state).
@@ -85,6 +90,9 @@ pub enum Expr {
     },
     /// Concatenate evaluated values as strings — primarily for state-derived endpoint URLs.
     Concat { parts: Vec<Expr> },
+    /// Compose a JSON array from element sub-expressions — the list-building counterpart of `Obj`,
+    /// e.g. wrapping a dynamic value in a one-element list: `{"expr":"arr","of":[{"expr":"event"}]}`.
+    Arr { of: Vec<Expr> },
 }
 
 /// A static endpoint URL or one evaluated from event/store state at action time.
@@ -233,6 +241,49 @@ mod tests {
                 "target": {"ref": "id", "id": "menu"},
                 "prop": "x",
                 "value": {"expr": "event-prop", "path": "clientX"},
+            }),
+        );
+    }
+
+    #[test]
+    fn event_closest_reads_the_matched_ancestor() {
+        round(
+            &Action::SetField {
+                field: "selected".into(),
+                value: Expr::EventClosest {
+                    selector: "[data-node-id]".into(),
+                    path: "dataset.nodeId".into(),
+                },
+            },
+            json!({
+                "kind": "set-field",
+                "field": "selected",
+                "value": {"expr": "event-closest", "selector": "[data-node-id]", "path": "dataset.nodeId"},
+            }),
+        );
+    }
+
+    #[test]
+    fn arr_composes_a_list_from_expressions() {
+        round(
+            &Action::SetField {
+                field: "selected_paths".into(),
+                value: Expr::Arr {
+                    of: vec![
+                        Expr::Field {
+                            name: "path".into(),
+                        },
+                        Expr::Lit { value: json!("a") },
+                    ],
+                },
+            },
+            json!({
+                "kind": "set-field",
+                "field": "selected_paths",
+                "value": {"expr": "arr", "of": [
+                    {"expr": "field", "name": "path"},
+                    {"expr": "lit", "value": "a"},
+                ]},
             }),
         );
     }
