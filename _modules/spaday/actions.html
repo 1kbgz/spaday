@@ -333,6 +333,23 @@
     <span class="k">return</span> <span class="n">_EventProp</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_EventClosest</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selector</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selector</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">selector</span><span class="p">,</span> <span class="n">path</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"event-closest"</span><span class="p">,</span> <span class="s2">"selector"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector</span><span class="p">,</span> <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">event_closest</span><span class="p">(</span><span class="n">selector</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A dot ``path`` read from the closest ancestor of the event target matching a CSS ``selector``</span>
+<span class="sd">    (``event.target.closest(selector)``) — e.g. ``event_closest("[data-node-id]", "dataset.nodeId")``</span>
+<span class="sd">    reads the id off the group a click landed in, however deeply nested the actual target. Evaluates</span>
+<span class="sd">    to ``undefined`` when nothing matches. An empty ``path`` returns the matched element itself, which</span>
+<span class="sd">    isn't a useful serializable value — pass a ``path`` to extract data."""</span>
+    <span class="k">return</span> <span class="n">_EventClosest</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="not_">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.not_">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">not_</span><span class="p">(</span><span class="n">of</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
@@ -534,6 +551,24 @@
 <span class="sd">    CallEndpoint("POST", concat("/send/basket/", field("key")), body)</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">_Concat</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_Arr</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">exprs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exprs</span> <span class="o">=</span> <span class="n">exprs</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"arr"</span><span class="p">,</span> <span class="s2">"of"</span><span class="p">:</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exprs</span><span class="p">]}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">arr</span><span class="p">(</span><span class="o">*</span><span class="n">exprs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Compose a JSON array from sub-expressions (each a plain value or an :class:`Expr`) — the</span>
+<span class="sd">    list-building counterpart of :func:`obj`. E.g. wrap a dynamic value in a one-element list for a</span>
+<span class="sd">    list-typed prop or body field, like a tree's ``selected_paths``::</span>
+
+<span class="sd">        tree.on("click", SetProp(by_id("tree"), "selected_paths", arr(field("path"))))</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">_Arr</span><span class="p">(</span><span class="o">*</span><span class="n">exprs</span><span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Ref</span><span class="p">:</span>
@@ -756,7 +791,8 @@
 
 <span class="sd">    ``x``/``y`` default to the raw event's ``clientX``/``clientY`` (via :func:`event_prop`); pass</span>
 <span class="sd">    expressions (e.g. ``event_value("x")`` against a component's rich ``detail``) when the</span>
-<span class="sd">    coordinates live elsewhere. When</span>
+<span class="sd">    coordinates live elsewhere. When the triggering event carries no pointer coordinates (a</span>
+<span class="sd">    ``CustomEvent``), the popup falls back to the last-known pointer position instead of 0,0. When</span>
 <span class="sd">    ``context_field`` is given, ``context`` (default: the whole event value) is written to that store</span>
 <span class="sd">    field before the popup opens, so menu items can bind to what was clicked. Sugar over</span>
 <span class="sd">    ``Sequence``/``SetField``/``SetProp`` — no new wire semantics.</span>

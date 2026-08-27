@@ -466,8 +466,9 @@
 <span class="sd">    Closed it renders nothing; open it places its children at viewport coordinates (``x``, ``y``),</span>
 <span class="sd">    clamped on-screen, and light-dismisses on an outside pointerdown or Escape (closing dispatches a</span>
 <span class="sd">    bubbling ``spa-popup-close``). Open it with :func:`~spaday.actions.open_popup`, whose defaults</span>
-<span class="sd">    read the pointer position off the triggering event — a bound ``contextmenu`` action suppresses</span>
-<span class="sd">    the native browser menu automatically::</span>
+<span class="sd">    read the pointer position off the triggering event — when the event carries no pointer</span>
+<span class="sd">    coordinates (a ``CustomEvent``), ``x``/``y`` fall back to the last-known pointer position — and</span>
+<span class="sd">    a bound ``contextmenu`` action suppresses the native browser menu automatically::</span>
 
 <span class="sd">        menu = Popup(WaDropdown(...), id="node-menu")</span>
 <span class="sd">        graph.on("contextmenu", open_popup(by_id("node-menu"), context_field="menu_ctx"))</span>

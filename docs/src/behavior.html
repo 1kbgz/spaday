@@ -283,6 +283,13 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 </div>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">event_value()</span></code> — the triggering control’s value (its <code class="docutils literal notranslate"><span class="pre">checked</span></code>, else <code class="docutils literal notranslate"><span class="pre">value</span></code>, else the event detail).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">event_prop(path)</span></code> — a path read off the raw DOM event object itself (<code class="docutils literal notranslate"><span class="pre">event_prop(&quot;clientX&quot;)</span></code> for
+the pointer position, <code class="docutils literal notranslate"><span class="pre">event_prop(&quot;shiftKey&quot;)</span></code> for modifiers).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">event_closest(selector,</span> <span class="pre">path)</span></code> — a path read off the closest ancestor of the event target matching
+a CSS selector (<code class="docutils literal notranslate"><span class="pre">event.target.closest(selector)</span></code>) — <code class="docutils literal notranslate"><span class="pre">event_closest(&quot;[data-node-id]&quot;,</span> <span class="pre">&quot;dataset.nodeId&quot;)</span></code>
+reads the id of the group a click landed in, however deeply nested the actual target. An empty
+path returns the matched element itself, which isn’t a useful serializable value — pass a <code class="docutils literal notranslate"><span class="pre">path</span></code>
+to extract data.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">prop(target,</span> <span class="pre">name)</span></code> — read a prop off a live element (handy as an <code class="docutils literal notranslate"><span class="pre">If</span></code> condition).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">lit(value)</span></code> — a literal; a plain Python value is coerced to one automatically.</p></li>
 </ul>
@@ -332,7 +339,9 @@ expression. It recomputes whenever any field it reads changes (one-way by nature
 </pre></div>
 </div>
 <p>The field-expression helpers: <code class="docutils literal notranslate"><span class="pre">field(name)</span></code>, <code class="docutils literal notranslate"><span class="pre">lit(value)</span></code>, <code class="docutils literal notranslate"><span class="pre">not_(e)</span></code>, <code class="docutils literal notranslate"><span class="pre">eq(a,</span> <span class="pre">b)</span></code>, <code class="docutils literal notranslate"><span class="pre">all_(*es)</span></code> (AND),
-<code class="docutils literal notranslate"><span class="pre">any_(*es)</span></code> (OR), <code class="docutils literal notranslate"><span class="pre">cond(test,</span> <span class="pre">then,</span> <span class="pre">else)</span></code> (a ternary — <code class="docutils literal notranslate"><span class="pre">compute(&quot;theme&quot;,</span> <span class="pre">cond(field(&quot;dark&quot;),</span> <span class="pre">&quot;dark&quot;,</span> <span class="pre">&quot;light&quot;))</span></code>), and <code class="docutils literal notranslate"><span class="pre">obj({name:</span> <span class="pre">expr})</span></code> (compose an object from sub-expressions). They compose.</p>
+<code class="docutils literal notranslate"><span class="pre">any_(*es)</span></code> (OR), <code class="docutils literal notranslate"><span class="pre">cond(test,</span> <span class="pre">then,</span> <span class="pre">else)</span></code> (a ternary — <code class="docutils literal notranslate"><span class="pre">compute(&quot;theme&quot;,</span> <span class="pre">cond(field(&quot;dark&quot;),</span> <span class="pre">&quot;dark&quot;,</span> <span class="pre">&quot;light&quot;))</span></code>), <code class="docutils literal notranslate"><span class="pre">obj({name:</span> <span class="pre">expr})</span></code> (compose an object from sub-expressions), and <code class="docutils literal notranslate"><span class="pre">arr(*exprs)</span></code>
+(compose a list — <code class="docutils literal notranslate"><span class="pre">arr(field(&quot;path&quot;))</span></code> wraps a dynamic value in a list, e.g. for a tree’s
+<code class="docutils literal notranslate"><span class="pre">selected_paths</span></code>). They compose.</p>
 </section>
 <section id="send-a-model-edit-or-call-an-endpoint">
 <h2>Send a model edit or call an endpoint<a class="headerlink" href="#send-a-model-edit-or-call-an-endpoint" title="Link to this heading">¶</a></h2>
@@ -395,7 +404,9 @@ exactly that element — nothing else on the page is affected:</p>
 <code class="docutils literal notranslate"><span class="pre">compute(&quot;textContent&quot;,</span> <span class="pre">concat(&quot;Inspect</span> <span class="pre">&quot;,</span> <span class="pre">field(&quot;menu_ctx.id&quot;)))</span></code>. The default coordinates read the
 raw event’s <code class="docutils literal notranslate"><span class="pre">clientX</span></code>/<code class="docutils literal notranslate"><span class="pre">clientY</span></code> via <code class="docutils literal notranslate"><span class="pre">event_prop</span></code>; for a component’s re-dispatched event whose rich
 <code class="docutils literal notranslate"><span class="pre">detail</span></code> carries the position, point them at it instead (paths in <code class="docutils literal notranslate"><span class="pre">event_value</span></code> walk the detail):
-<code class="docutils literal notranslate"><span class="pre">open_popup(target,</span> <span class="pre">x=event_value(&quot;x&quot;),</span> <span class="pre">y=event_value(&quot;y&quot;),</span> <span class="pre">context=event_value())</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">open_popup(target,</span> <span class="pre">x=event_value(&quot;x&quot;),</span> <span class="pre">y=event_value(&quot;y&quot;),</span> <span class="pre">context=event_value())</span></code>. When the
+triggering event carries no pointer coordinates at all (a <code class="docutils literal notranslate"><span class="pre">CustomEvent</span></code>), the popup falls back to the
+last-known pointer position instead of landing at 0,0.</p>
 <p>A modal is the same capture-then-open shape against any element with an <code class="docutils literal notranslate"><span class="pre">open</span></code> prop (<code class="docutils literal notranslate"><span class="pre">WaDialog</span></code>,
 <code class="docutils literal notranslate"><span class="pre">WaDrawer</span></code>, …):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">close_modal</span><span class="p">,</span> <span class="n">open_modal</span>
@@ -424,6 +435,12 @@ time:</p>
 <span class="n">spaday</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>   <span class="c1"># raises ValidationError listing any unresolved by_id reference</span>
 </pre></div>
 </div>
+<p>Prop values are checked at authoring time too: a CEM-generated component given a literal that
+contradicts its declared catalog kind — a <code class="docutils literal notranslate"><span class="pre">str</span></code> for a <code class="docutils literal notranslate"><span class="pre">number</span></code> prop, a number for an <code class="docutils literal notranslate"><span class="pre">enum</span></code> — raises
+a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> naming the component tag, the prop, and the offending value, instead of surfacing later
+as an opaque component error in the browser. Two limits: reactive bindings and computed values are
+dynamic and stay unvalidated, and <code class="docutils literal notranslate"><span class="pre">json</span></code>-kind props (lists, objects, mixed unions, untyped props all
+map to that kind) are type-opaque, so no literal shape can be ruled out for them.</p>
 </section>
 </section>
 
