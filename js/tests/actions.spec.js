@@ -774,7 +774,7 @@ test("event expressions walk a path into a rich CustomEvent detail", async ({
 test("Invoke calls a component method with evaluated args; call reads a sync result", async ({
   page,
 }) => {
-  const r = await page.evaluate(() => {
+  const r = await page.evaluate(async () => {
     // a stand-in component: one async method (invoke) and one sync method (call)
     if (!customElements.get("x-panel-host")) {
       customElements.define(
@@ -835,6 +835,8 @@ test("Invoke calls a component method with evaluated args; call reads a sync res
       store,
     );
     root.querySelector("button").click();
+    // the seq awaits the async openPanel before the set-field step
+    await new Promise((resolve) => setTimeout(resolve, 20));
     const host = root.querySelector("x-panel-host");
     return { calls: host.calls, saved: store.get("saved") };
   });
@@ -899,4 +901,97 @@ test("SetStorage persists strings verbatim and objects as JSON; Download offers 
   expect(JSON.parse(r.b)).toEqual({ n: 1 }); // objects JSON-encoded
   expect(r.blobType).toBe("application/json");
   expect(r.anchor).toEqual({ href: "blob:stubbed", download: "layout.json" });
+});
+
+test("a Sequence awaits an async Invoke: result lands before the next step", async ({
+  page,
+}) => {
+  const r = await page.evaluate(async () => {
+    if (!customElements.get("x-async-saver")) {
+      customElements.define(
+        "x-async-saver",
+        class extends HTMLElement {
+          async saveClean() {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            return { layout: "clean" };
+          }
+          sync() {
+            return "sync-value";
+          }
+        },
+      );
+    }
+    const store = new window.__spaday.Store({
+      saved: null,
+      after: null,
+      syncImmediate: null,
+    });
+    const root = window.__spaday.mount(
+      document.body,
+      {
+        tag: "div",
+        slots: {
+          default: [
+            { tag: "x-async-saver", props: { id: { Str: "saver" } } },
+            {
+              tag: "button",
+              events: {
+                click: {
+                  kind: "seq",
+                  actions: [
+                    {
+                      kind: "invoke",
+                      target: { ref: "id", id: "saver" },
+                      method: "saveClean",
+                      result: "saved",
+                    },
+                    // runs only after the promise above settles: reads the landed result
+                    {
+                      kind: "set-field",
+                      field: "after",
+                      value: { expr: "field", name: "saved" },
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              tag: "button",
+              props: { id: { Str: "sync-btn" } },
+              events: {
+                click: {
+                  kind: "invoke",
+                  target: { ref: "id", id: "saver" },
+                  method: "sync",
+                  result: "syncImmediate",
+                },
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    // a sync method with result= applies inline, same tick
+    root.querySelector("#sync-btn").click();
+    const syncImmediate = store.get("syncImmediate");
+    // the async chain: nothing lands synchronously...
+    root.querySelector("button").click();
+    const beforeSettle = {
+      saved: store.get("saved"),
+      after: store.get("after"),
+    };
+    // ...and after the promise settles, result first, then the dependent step
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    return {
+      syncImmediate,
+      beforeSettle,
+      saved: store.get("saved"),
+      after: store.get("after"),
+    };
+  });
+  expect(r.syncImmediate).toBe("sync-value"); // the sync fast path stayed same-tick
+  expect(r.beforeSettle).toEqual({ saved: null, after: null });
+  expect(r.saved).toEqual({ layout: "clean" });
+  expect(r.after).toEqual({ layout: "clean" }); // seq ordering held across the await
 });

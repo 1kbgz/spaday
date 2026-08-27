@@ -15,5 +15,6 @@ crate-type = ["cdylib"]
 spaday = { path = "../rust", version = "*" }
 wasm-bindgen = "=0.2.126"
 js-sys = "0.3"
+wasm-bindgen-futures = "0.4"
 serde = "1"
 serde-wasm-bindgen = "0.6"

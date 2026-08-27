@@ -1,3 +1,6 @@
+use std::future::Future;
+use std::pin::Pin;
+
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
@@ -49,13 +52,25 @@ extern "C" {
 /// Behavior is data: the action is parsed + validated by the shared core, then evaluated here with no
 /// `eval`. This is the browser-side half of the action DSL — the same model the Python binding authors.
 #[wasm_bindgen]
-pub fn interpret(action: &str, host: &Host) -> Result<(), JsError> {
+pub fn interpret(action: &str, host: Host) -> Result<(), JsError> {
     let action = spaday::parse_action(action).map_err(|e| JsError::new(&e))?;
-    run(&action, host);
+    let mut fut = Box::pin(async move { run(&action, &host).await });
+    // Drive synchronously to the first pending await: purely-sync action chains apply inline
+    // (same-tick reads keep working); only a chain blocked on a real promise — an `invoke` of
+    // an async method — continues on the microtask queue, preserving `seq` ordering across it.
+    let waker = std::task::Waker::noop();
+    let mut cx = std::task::Context::from_waker(waker);
+    if fut.as_mut().poll(&mut cx).is_pending() {
+        wasm_bindgen_futures::spawn_local(fut);
+    }
     Ok(())
 }
 
-fn run(action: &spaday::Action, host: &Host) {
+fn run<'a>(action: &'a spaday::Action, host: &'a Host) -> Pin<Box<dyn Future<Output = ()> + 'a>> {
+    Box::pin(run_inner(action, host))
+}
+
+async fn run_inner(action: &spaday::Action, host: &Host) {
     use spaday::Action::{
         CallEndpoint, Download, Emit, If, Invoke, NamedJs, SendPatch, Sequence, SetField, SetProp,
         SetStorage, Toggle, ToggleField,
@@ -85,7 +100,7 @@ fn run(action: &spaday::Action, host: &Host) {
         }
         Sequence { actions } => {
             for a in actions {
-                run(a, host);
+                run(a, host).await;
             }
         }
         Emit { event, detail } => {
@@ -103,9 +118,9 @@ fn run(action: &spaday::Action, host: &Host) {
         }
         If { cond, then, els } => {
             if truthy(&eval(cond, host)) {
-                run(then, host);
+                run(then, host).await;
             } else if let Some(e) = els {
-                run(e, host);
+                run(e, host).await;
             }
         }
         CallEndpoint {
@@ -125,9 +140,24 @@ fn run(action: &spaday::Action, host: &Host) {
             target,
             method,
             args,
+            result,
         } => {
             if let Some(el) = resolve(target, host) {
-                host.call_method(&el, method, eval_args(args, host));
+                let value = host.call_method(&el, method, eval_args(args, host));
+                // await a returned promise so a `seq` continues only after the method settles;
+                // rejections were already marked handled (and logged) by the host
+                let thenable = value.is_object()
+                    && js_sys::Reflect::has(&value, &JsValue::from_str("then")).unwrap_or(false);
+                let resolved = if thenable {
+                    wasm_bindgen_futures::JsFuture::from(js_sys::Promise::resolve(&value))
+                        .await
+                        .unwrap_or(JsValue::UNDEFINED)
+                } else {
+                    value
+                };
+                if let Some(field) = result {
+                    host.set_field(field, resolved);
+                }
             }
         }
         SetStorage { key, value } => {

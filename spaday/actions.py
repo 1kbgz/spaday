@@ -489,16 +489,26 @@ class Invoke(Action):
         button.on("click", Invoke(by_id("layout"), "openPanel", event_prop("currentTarget.dataset.tab")))
 
     Prefer a component's declared methods (its CEM documents them); for a synchronous method whose
-    *result* you need, use the :func:`call` expression instead.
+    *result* you need inline, use the :func:`call` expression instead. With ``result=`` the
+    interpreter awaits an async method and writes the resolved value to that signal-store field —
+    and a :class:`Sequence` waits before its next step, so "save, then persist what was saved" is
+    expressible as data::
+
+        Sequence(
+            Invoke(by_id("workspace"), "saveClean", result="custom_layout"),
+            SetStorage("my_layout", field("custom_layout")),
+        )
     """
 
-    def __init__(self, target: Ref, method: str, *args: Any) -> None:
-        self.target, self.method, self.args = target, method, args
+    def __init__(self, target: Ref, method: str, *args: Any, result: str | None = None) -> None:
+        self.target, self.method, self.args, self.result = target, method, args, result
 
     def to_dict(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": "invoke", "target": self.target.to_dict(), "method": self.method}
         if self.args:
             out["args"] = [_expr(a).to_dict() for a in self.args]
+        if self.result is not None:
+            out["result"] = self.result
         return out
 
 
