@@ -16,6 +16,8 @@
         Scope,
         connectStore,
         connectWorker,
+        trackRoot,
+        refreshRoots,
       } from "/dist/esm/index.js";
       await init({ module_or_path: "/dist/pkg/spaday_bg.wasm" }); // the action interpreter runs in wasm
       window.__spaday = {
@@ -29,6 +31,8 @@
         Scope,
         connectStore,
         connectWorker,
+        trackRoot,
+        refreshRoots,
       };
     </script>
   </head>

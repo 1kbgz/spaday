@@ -12,7 +12,7 @@ from spaday.packages import ComponentPackage
 
 def test_static_bootstrap_mounts_without_a_wire():
     html = bootstrap()
-    assert "mount(document.body, node);" in html  # plain static mount
+    assert 'trackRoot(mount(document.body, node), node, "/tree.json");' in html  # plain static mount, refreshable
     assert "connectStore" not in html and "new Client()" not in html
     assert 'fetch("/tree.json")' in html
 
@@ -144,7 +144,7 @@ def test_target_selects_the_mount_point():
 
 def test_store_seeds_a_local_signal_store_without_a_wire():
     html = bootstrap(store={"dark": True, "view": "blotter"})
-    assert "import { mount, init, Store }" in html  # Store imported even with no transports wire
+    assert "import { mount, init, trackRoot, Store }" in html  # Store imported even with no transports wire
     assert 'new Store({"dark": true, "view": "blotter"})' in html  # seeded from the dict
     assert "mount(document.body, node, store)" in html  # mounted with the store
     assert "connectStore" not in html  # local reactive state only, no server wire
@@ -157,7 +157,7 @@ def test_store_seed_js_expression_is_client_evaluated():
     # the browser knows (e.g. prefers-color-scheme) can seed the store at boot.
     html = bootstrap(store={"dark": Js('matchMedia("(prefers-color-scheme: dark)").matches'), "view": "blotter"})
     assert 'new Store({"dark": (matchMedia("(prefers-color-scheme: dark)").matches), "view": "blotter"})' in html
-    assert "import { mount, init, Store }" in html  # still a plain seeded store, no wire
+    assert "import { mount, init, trackRoot, Store }" in html  # still a plain seeded store, no wire
 
 
 def test_persist_round_trips_a_store_field_through_localstorage():
@@ -171,7 +171,7 @@ def test_persist_round_trips_a_store_field_through_localstorage():
 
 def test_persist_alone_creates_a_store():
     html = bootstrap(persist={"dark": "app:dark"})
-    assert "import { mount, init, Store }" in html  # Store imported for the persist-only page
+    assert "import { mount, init, trackRoot, Store }" in html  # Store imported for the persist-only page
     assert "const store = new Store()" in html
     assert "mount(document.body, node, store)" in html
 

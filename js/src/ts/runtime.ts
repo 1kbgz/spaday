@@ -61,6 +61,43 @@ export function mount(
  * current root — a root-level `Replace` swaps the element, so callers must keep the returned value
  * (the original `root` reference would be left detached).
  */
+// Mounted roots that can be refreshed from their tree URL (registered by the bootstrap; a page
+// normally has one). `refreshRoots` re-fetches, diffs against the tree as-mounted (via the core),
+// and applies the patch in place — "server state changed, re-render" without a live wire.
+interface TrackedRoot {
+  root: Element;
+  node: Node;
+  src: string;
+  store?: Store;
+}
+const trackedRoots: TrackedRoot[] = [];
+
+export function trackRoot(
+  root: Element,
+  node: Node,
+  src: string,
+  store?: Store,
+): void {
+  trackedRoots.push({ root, node, src, store });
+}
+
+export async function refreshRoots(url?: string): Promise<void> {
+  const { diff } = await import("../../dist/pkg/spaday");
+  for (const tracked of trackedRoots) {
+    const source = url ?? tracked.src;
+    if (!source) continue;
+    const response = await fetch(source);
+    if (!response.ok)
+      throw new Error(`refresh: ${source} responded ${response.status}`);
+    const next = (await response.json()) as Node;
+    const patch = JSON.parse(
+      diff(JSON.stringify(tracked.node), JSON.stringify(next)),
+    ) as { ops: Op[] };
+    tracked.root = applyPatch(tracked.root, patch, tracked.store);
+    tracked.node = next;
+  }
+}
+
 export function applyPatch(
   root: Element,
   patch: { ops: Op[] },
@@ -103,6 +140,10 @@ function hydrateNode(
     wireShow(el, node, store, scope); // structural children are client-mounted (the HTML rendered none)
   } else if (node.tag === "spa-each") {
     wireEach(el, node, store, scope);
+  } else if (node.tag === "spa-switch") {
+    wireSwitch(el, node, store, scope);
+  } else if (node.tag === "spa-lazy") {
+    wireLazy(el, node, store, scope);
   } else {
     for (const [slot, children] of Object.entries(node.slots ?? {})) {
       const existing = childrenInSlot(el, slot);
@@ -288,6 +329,152 @@ function wireShow(el: Element, node: Node, store?: Store, scope?: Scope): void {
   let map = bindings.get(el); // record teardown so removing the spa-show unsubscribes (via teardownTree)
   if (!map) bindings.set(el, (map = new Map()));
   map.set("when", () => {
+    for (const unsubscribe of subs) unsubscribe();
+    clear();
+  });
+}
+
+// `spa-switch`: routing on one value — exactly one case's subtree is mounted at a time. Cases are
+// named slots keyed by the matched value ("default" is the fallback), so a change tears down one
+// branch and mounts one branch: O(1) per switch, versus N `spa-show` predicates.
+function wireSwitch(
+  el: Element,
+  node: Node,
+  store?: Store,
+  scope?: Scope,
+): void {
+  structuralNodes.set(el, node);
+  const on = node.bindings?.on;
+  let mounted: Element[] = [];
+  let currentKey: string | null = null;
+  const clear = (): void => {
+    for (const child of mounted) {
+      teardownTree(child);
+      child.remove();
+    }
+    mounted = [];
+  };
+  const evaluate = (): string => {
+    const value =
+      on?.compute !== undefined
+        ? evalExpr(on.compute, store, scope)
+        : on?.field !== undefined
+          ? store?.get(on.field)
+          : undefined;
+    return value == null ? "" : String(value);
+  };
+  const render = (): void => {
+    const value = evaluate();
+    const key = node.slots?.[value] !== undefined ? value : DEFAULT_SLOT;
+    if (key === currentKey) return;
+    clear();
+    currentKey = key;
+    for (const child of node.slots?.[key] ?? []) {
+      const built = build(child, store, scope);
+      el.appendChild(built);
+      mounted.push(built);
+    }
+  };
+  render(); // initial case
+  const subs: (() => void)[] = [];
+  if (on?.compute !== undefined) {
+    if (store)
+      for (const f of exprFields(on.compute))
+        subs.push(store.subscribe(f, render));
+    for (const dependency of exprScopes(on.compute, scope))
+      subs.push(dependency.subscribe(render));
+  } else if (on?.field !== undefined && store) {
+    subs.push(store.subscribe(on.field, render));
+  }
+  let map = bindings.get(el);
+  if (!map) bindings.set(el, (map = new Map()));
+  map.set("on", () => {
+    for (const unsubscribe of subs) unsubscribe();
+    clear();
+  });
+}
+
+// One shared cache per page: a deferred subtree is fetched once and reused by every `spa-lazy`
+// with the same src (and across remounts, e.g. a Switch flipping away and back).
+const lazyCache = new Map<string, Promise<Node>>();
+
+// `spa-lazy`: a subtree deferred to a URL. The initial tree carries only this placeholder node;
+// the body (a serialized component, e.g. Python `tree_json(element(...))`) is fetched when the
+// node first activates — immediately on mount, or when an optional `when` condition first turns
+// truthy — then built and mounted like any other subtree. Slot children act as the placeholder
+// and are replaced when the fetch lands.
+function wireLazy(el: Element, node: Node, store?: Store, scope?: Scope): void {
+  structuralNodes.set(el, node);
+  const src = untag(node.props?.src ?? { Str: "" }) as string;
+  const cond = node.bindings?.when;
+  let mounted: Element[] = [];
+  let loaded = false;
+  let disposed = false;
+  const clear = (): void => {
+    for (const child of mounted) {
+      teardownTree(child);
+      child.remove();
+    }
+    mounted = [];
+  };
+  // placeholder children until the fetch lands
+  for (const child of node.slots?.[DEFAULT_SLOT] ?? []) {
+    const built = build(child, store, scope);
+    el.appendChild(built);
+    mounted.push(built);
+  }
+  const activate = (): void => {
+    if (loaded || !src) return;
+    loaded = true;
+    let promise = lazyCache.get(src);
+    if (!promise) {
+      promise = fetch(src).then((response) => {
+        if (!response.ok)
+          throw new Error(`spa-lazy: ${src} responded ${response.status}`);
+        return response.json() as Promise<Node>;
+      });
+      lazyCache.set(src, promise);
+    }
+    promise
+      .then((body) => {
+        if (disposed) return;
+        clear();
+        const built = build(body, store, scope);
+        el.appendChild(built);
+        mounted.push(built);
+      })
+      .catch((error) => {
+        lazyCache.delete(src); // a failed fetch may be retried by a later activation
+        loaded = false;
+        console.error("spa-lazy: failed to load", src, error);
+      });
+  };
+  const subs: (() => void)[] = [];
+  if (!cond) {
+    activate();
+  } else {
+    const evaluate = (): boolean =>
+      cond.compute !== undefined
+        ? !!evalExpr(cond.compute, store, scope)
+        : !!store?.get(cond.field!);
+    const check = (): void => {
+      if (evaluate()) activate();
+    };
+    check();
+    if (cond.compute !== undefined) {
+      if (store)
+        for (const f of exprFields(cond.compute))
+          subs.push(store.subscribe(f, check));
+      for (const dependency of exprScopes(cond.compute, scope))
+        subs.push(dependency.subscribe(check));
+    } else if (cond.field !== undefined && store) {
+      subs.push(store.subscribe(cond.field, check));
+    }
+  }
+  let map = bindings.get(el);
+  if (!map) bindings.set(el, (map = new Map()));
+  map.set("when", () => {
+    disposed = true;
     for (const unsubscribe of subs) unsubscribe();
     clear();
   });
@@ -679,7 +866,9 @@ function wireEach(
 function isStructuralBinding(node: Node, prop: string): boolean {
   return (
     (node.tag === "spa-show" && prop === "when") ||
-    (node.tag === "spa-each" && prop === "items")
+    (node.tag === "spa-each" && prop === "items") ||
+    (node.tag === "spa-switch" && prop === "on") ||
+    (node.tag === "spa-lazy" && prop === "when")
   );
 }
 
@@ -725,6 +914,10 @@ function build(node: Node, store?: Store, scope?: Scope): Element {
     wireShow(el, node, store, scope); // conditionally mounts the node's default-slot children
   } else if (node.tag === "spa-each") {
     wireEach(el, node, store, scope);
+  } else if (node.tag === "spa-switch") {
+    wireSwitch(el, node, store, scope);
+  } else if (node.tag === "spa-lazy") {
+    wireLazy(el, node, store, scope);
   } else {
     for (const [slot, children] of Object.entries(node.slots ?? {})) {
       for (const child of children)
