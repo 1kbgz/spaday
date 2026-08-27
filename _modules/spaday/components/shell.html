@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.components.shell - spaday v0.7.5</title>
+        <title>spaday.components.shell - spaday v0.7.6</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.5</code></div></a>
+      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.6</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.5</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.6</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -276,11 +276,14 @@
     <span class="s2">"Main"</span><span class="p">,</span>
     <span class="s2">"Nav"</span><span class="p">,</span>
     <span class="s2">"Popup"</span><span class="p">,</span>
+    <span class="s2">"Lazy"</span><span class="p">,</span>
     <span class="s2">"Region"</span><span class="p">,</span>
     <span class="s2">"Row"</span><span class="p">,</span>
     <span class="s2">"Show"</span><span class="p">,</span>
+    <span class="s2">"Switch"</span><span class="p">,</span>
     <span class="s2">"Stack"</span><span class="p">,</span>
     <span class="s2">"Table"</span><span class="p">,</span>
+    <span class="s2">"Toast"</span><span class="p">,</span>
     <span class="s2">"Toolbar"</span><span class="p">,</span>
 <span class="p">]</span>
 
@@ -483,6 +486,100 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">Switch</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Route between subtrees on one store field — the O(1) spelling of N ``Show`` branches.</span>
+
+<span class="sd">    Exactly one case is mounted at a time; changing the field tears down the old branch and mounts</span>
+<span class="sd">    the new one, without evaluating a predicate per case. Cases are keyed by the field's value</span>
+<span class="sd">    (compared as strings); ``default`` renders when nothing matches::</span>
+
+<span class="sd">        Switch("selected", {"a/b": card_ab, "c/d": card_cd}, default=placeholder)</span>
+
+<span class="sd">    Pairs with :class:`Lazy` for large case bodies: ``Switch("selected", {p: Lazy(src=f"/card/{p}")</span>
+<span class="sd">    for p in paths})`` keeps both the DOM and the initial tree small.</span>
+<span class="sd">    """</span>
+
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"spa-switch"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">cases</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Child</span><span class="p">],</span>
+        <span class="n">default</span><span class="p">:</span> <span class="n">Child</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="p">{</span><span class="s2">"style"</span><span class="p">:</span> <span class="s2">"display:contents"</span><span class="p">},</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">Expr</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="s2">"on"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"compute"</span><span class="p">:</span> <span class="n">field</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"one-way"</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="s2">"on"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"field"</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"one-way"</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">value</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">cases</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">child</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">child_in</span><span class="p">(</span><span class="s2">"default"</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Lazy</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A subtree deferred to a URL, fetched when first shown — so a large branch does not ride the</span>
+<span class="sd">    initial tree at all.</span>
+
+<span class="sd">    ``src`` must return a serialized component (``tree_json(element(...))`` — any node JSON). The</span>
+<span class="sd">    body is fetched once per URL and cached for the page. Without ``when``/``field`` the fetch</span>
+<span class="sd">    happens on mount; with a condition it happens when the condition first turns truthy. Children</span>
+<span class="sd">    are the placeholder shown until the body arrives::</span>
+
+<span class="sd">        Lazy(Paragraph("Loading…"), src=f"/card/{path}", when=eq(field("selected"), path))</span>
+<span class="sd">    """</span>
+
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"spa-lazy"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="n">Child</span><span class="p">,</span>
+        <span class="n">src</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">when</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="p">{</span><span class="s2">"src"</span><span class="p">:</span> <span class="n">src</span><span class="p">,</span> <span class="s2">"style"</span><span class="p">:</span> <span class="s2">"display:contents"</span><span class="p">},</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="s2">"when"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"field"</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"one-way"</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">when</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">when</span><span class="p">,</span> <span class="n">Expr</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Lazy when must be an Expr, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">when</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="s2">"when"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"compute"</span><span class="p">:</span> <span class="n">when</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"one-way"</span><span class="p">}</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Toast</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Transient corner notifications (``spa-toast``) — the shell's surface for reporting action</span>
+<span class="sd">    outcomes, most usefully failures.</span>
+
+<span class="sd">    Notices stack in the viewport corner with a tone accent (``"info"`` / ``"success"`` /</span>
+<span class="sd">    ``"danger"``) and auto-dismiss after ``timeout`` ms (default 5000; ``0`` keeps a toast until its</span>
+<span class="sd">    close × is clicked). Trigger one two ways. Imperatively, :class:`~spaday.actions.Invoke` the</span>
+<span class="sd">    element's ``notify`` method from any action chain::</span>
+
+<span class="sd">        toasts = Toast(id="toasts")</span>
+<span class="sd">        save.on("click", Invoke(by_id("toasts"), "notify", obj({"message": lit("Saved"), "tone": lit("success")})))</span>
+
+<span class="sd">    Reactively, drive the bindable ``message`` prop from state — every non-empty write enqueues a</span>
+<span class="sd">    toast, with the optional ``tone`` prop read at enqueue time (an empty message enqueues nothing).</span>
+<span class="sd">    This is the canonical way to surface a ``CallEndpoint`` failure from its ``result=`` field::</span>
+
+<span class="sd">        toasts = Toast(tone="danger", id="toasts")</span>
+<span class="sd">        submit.on("click", CallEndpoint("POST", "/api/thing", body=..., result="submit_result"))</span>
+<span class="sd">        # surface failures from the result field …</span>
+<span class="sd">        toasts.compute("message", cond(field("submit_result.ok"), lit(""), field("submit_result.body")))</span>
+<span class="sd">        # … or drive any reactive fallback UI from the same field</span>
+<span class="sd">        page.add(Show(..., when=not_(field("submit_result.ok"))))</span>
+<span class="sd">    """</span>
+
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"spa-toast"</span>
+
+
 <span class="k">class</span><span class="w"> </span><span class="nc">Show</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Conditionally render children from a reactive store field — they are *mounted* when the condition</span>
 <span class="sd">    is truthy and *removed* (not merely hidden) when it is falsy, so a toggle can create and destroy real</span>
@@ -644,7 +741,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=a674670e"></script>
+</div><script src="../../../_static/documentation_options.js?v=918ced64"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

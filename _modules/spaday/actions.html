@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.actions - spaday v0.7.5</title>
+        <title>spaday.actions - spaday v0.7.6</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.5</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.6</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.5</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.6</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -348,6 +348,26 @@
 <span class="sd">    to ``undefined`` when nothing matches. An empty ``path`` returns the matched element itself, which</span>
 <span class="sd">    isn't a useful serializable value — pass a ``path`` to extract data."""</span>
     <span class="k">return</span> <span class="n">_EventClosest</span><span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_Call</span><span class="p">(</span><span class="n">Expr</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"Ref"</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">args</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">:</span> <span class="s2">"call"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"method"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"args"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="s2">"Ref"</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The value returned by calling a **synchronous** ``method`` on ``target`` with evaluated</span>
+<span class="sd">    ``args`` — e.g. ``call(by_id("layout"), "save")`` reads a layout for persistence, or</span>
+<span class="sd">    ``call(by_id("layout"), "calculatePath", "tab")`` as a condition. No ``eval``: the method must</span>
+<span class="sd">    exist on the element (component methods are part of its declared surface). Async methods belong</span>
+<span class="sd">    in the :class:`Invoke` *action*; an expression must produce a value now."""</span>
+    <span class="k">return</span> <span class="n">_Call</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="not_">
@@ -766,6 +786,97 @@
 
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">Invoke</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Call ``method`` on ``target`` with evaluated ``args``, discarding the result — the</span>
+<span class="sd">    declarative spelling of "press this component's button". An async method's promise is</span>
+<span class="sd">    fire-and-forget (a rejection is logged, not thrown)::</span>
+
+<span class="sd">        button.on("click", Invoke(by_id("layout"), "openPanel", event_prop("currentTarget.dataset.tab")))</span>
+
+<span class="sd">    Prefer a component's declared methods (its CEM documents them); for a synchronous method whose</span>
+<span class="sd">    *result* you need inline, use the :func:`call` expression instead. With ``result=`` the</span>
+<span class="sd">    interpreter awaits an async method and writes the resolved value to that signal-store field —</span>
+<span class="sd">    and a :class:`Sequence` waits before its next step, so "save, then persist what was saved" is</span>
+<span class="sd">    expressible as data::</span>
+
+<span class="sd">        Sequence(</span>
+<span class="sd">            Invoke(by_id("workspace"), "saveClean", result="custom_layout"),</span>
+<span class="sd">            SetStorage("my_layout", field("custom_layout")),</span>
+<span class="sd">        )</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Ref</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">target</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">result</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"invoke"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"method"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"args"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">_expr</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"result"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SetStorage</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Persist an evaluated value under ``key`` in the browser's localStorage — strings verbatim,</span>
+<span class="sd">    other values JSON-encoded — e.g. saving a layout so a reload restores it::</span>
+
+<span class="sd">        WaButton().text("Save").on("click", SetStorage("my_layout", call(by_id("layout"), "save")))</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"set-storage"</span><span class="p">,</span> <span class="s2">"key"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Download</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Offer an evaluated value to the user as a file download named ``filename`` (a plain string</span>
+<span class="sd">    or an expression) — no server round-trip. A string value downloads verbatim; anything else is</span>
+<span class="sd">    JSON-encoded. ``content_type`` defaults to application/json::</span>
+
+<span class="sd">        WaButton().text("Export").on("click", Download("layout.json", call(by_id("layout"), "save")))</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">content_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_type</span> <span class="o">=</span> <span class="n">filename</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">content_type</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"download"</span><span class="p">,</span>
+            <span class="s2">"filename"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+            <span class="s2">"value"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"contentType"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_type</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">RefreshTree</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Re-fetch the mounted tree (its bootstrap URL, or an explicit ``url``) and diff it into the</span>
+<span class="sd">    live DOM — "server state changed, re-render" without adopting a live wire. Awaited, so after a</span>
+<span class="sd">    mutating endpoint the refresh sees the new state::</span>
+
+<span class="sd">        materialize.on("click", Sequence(</span>
+<span class="sd">            CallEndpoint("POST", "/materialize", body=obj({"path": field("selected")}), result="mat"),</span>
+<span class="sd">            RefreshTree(),</span>
+<span class="sd">        ))</span>
+
+<span class="sd">    Only the differences are applied (the core's ``diff``), so unchanged elements keep identity and</span>
+<span class="sd">    client state; a page served as a transports frame has no JSON tree URL, so pass ``url``.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"refresh"</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s2">"url"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+
 <div class="viewcode-block" id="NamedJs">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.NamedJs">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">NamedJs</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
@@ -883,7 +994,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=a674670e"></script>
+</div><script src="../../_static/documentation_options.js?v=918ced64"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

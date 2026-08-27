@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Author a component tree" href="components.html"><link rel="prev" title="How spaday works" href="concepts.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Add behavior and reactivity - spaday v0.7.5</title>
+        <title>Add behavior and reactivity - spaday v0.7.6</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.5</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.6</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.5</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.6</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -374,6 +374,19 @@ reactive UI like any other state:</p>
 <span class="n">Show</span><span class="p">(</span><span class="n">WaCallout</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"textContent"</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="s2">"sent.body"</span><span class="p">)),</span> <span class="n">when</span><span class="o">=</span><span class="n">not_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"sent.ok"</span><span class="p">)))</span>
 </pre></div>
 </div>
+<p>For transient notices, the shell’s <code class="docutils literal notranslate"><span class="pre">Toast</span></code> (<code class="docutils literal notranslate"><span class="pre">spa-toast</span></code>) is the canonical error-reporting surface: a
+fixed corner stack of notifications with <code class="docutils literal notranslate"><span class="pre">info</span></code> / <code class="docutils literal notranslate"><span class="pre">success</span></code> / <code class="docutils literal notranslate"><span class="pre">danger</span></code> tones that auto-dismiss
+(<code class="docutils literal notranslate"><span class="pre">timeout</span></code> ms, default 5000; <code class="docutils literal notranslate"><span class="pre">0</span></code> keeps a toast until its close × is clicked). <code class="docutils literal notranslate"><span class="pre">Invoke</span></code> its <code class="docutils literal notranslate"><span class="pre">notify</span></code>
+method from any action chain — <code class="docutils literal notranslate"><span class="pre">Invoke(by_id(&quot;toasts&quot;),</span> <span class="pre">&quot;notify&quot;,</span> <span class="pre">obj({&quot;message&quot;:</span> <span class="pre">lit(&quot;Saved&quot;),</span> <span class="pre">&quot;tone&quot;:</span> <span class="pre">lit(&quot;success&quot;)}))</span></code> — or drive its bindable <code class="docutils literal notranslate"><span class="pre">message</span></code> prop from state: every non-empty write
+enqueues a toast, with the <code class="docutils literal notranslate"><span class="pre">tone</span></code> prop read at enqueue time, so a <code class="docutils literal notranslate"><span class="pre">result=</span></code> failure surfaces with no
+handler:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">cond</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">lit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Toast</span>
+
+<span class="n">toasts</span> <span class="o">=</span> <span class="n">Toast</span><span class="p">(</span><span class="n">tone</span><span class="o">=</span><span class="s2">"danger"</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"toasts"</span><span class="p">)</span>
+<span class="n">toasts</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"message"</span><span class="p">,</span> <span class="n">cond</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"sent.ok"</span><span class="p">),</span> <span class="n">lit</span><span class="p">(</span><span class="s2">""</span><span class="p">),</span> <span class="n">field</span><span class="p">(</span><span class="s2">"sent.body"</span><span class="p">)))</span>
+</pre></div>
+</div>
 <p><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> is usually unnecessary once you use a two-way binding (above) — the binding carries the
 control→model edit declaratively. Reach for <code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> for an imperative edit that
 isn’t a simple control value. When several models share a page, a <code class="docutils literal notranslate"><span class="pre">SendPatch(&quot;ns&quot;,</span> <span class="pre">field,</span> <span class="pre">value)</span></code> is
@@ -420,6 +433,37 @@ last-known pointer position instead of landing at 0,0.</p>
 <p>Popup and modal contents mount with the page; wrap a heavy subtree in <code class="docutils literal notranslate"><span class="pre">Show</span></code> keyed to a state field
 if it should only mount while open.</p>
 </section>
+<section id="call-component-methods-and-browser-side-effects">
+<h2>Call component methods and browser side effects<a class="headerlink" href="#call-component-methods-and-browser-side-effects" title="Link to this heading">¶</a></h2>
+<p>Some interactions are a component <em>method</em>, not a prop — a layout’s <code class="docutils literal notranslate"><span class="pre">openPanel(name)</span></code>, a viewer’s
+<code class="docutils literal notranslate"><span class="pre">resetView()</span></code>. <code class="docutils literal notranslate"><span class="pre">Invoke</span></code> calls a declared method with evaluated arguments, fire-and-forget (an async
+method’s rejection is logged, not thrown); the <code class="docutils literal notranslate"><span class="pre">call</span></code> expression is its synchronous, value-returning
+sibling for methods you read from — and both stay data on the wire, with no <code class="docutils literal notranslate"><span class="pre">eval</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Download</span><span class="p">,</span> <span class="n">Invoke</span><span class="p">,</span> <span class="n">SetStorage</span><span class="p">,</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">call</span><span class="p">,</span> <span class="n">event_prop</span>
+
+<span class="c1"># open the tab named by the clicked button's data-tab attribute</span>
+<span class="n">opener</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Invoke</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"layout"</span><span class="p">),</span> <span class="s2">"openPanel"</span><span class="p">,</span> <span class="n">event_prop</span><span class="p">(</span><span class="s2">"currentTarget.dataset.tab"</span><span class="p">)))</span>
+
+<span class="c1"># persist a layout locally (strings store verbatim, other values JSON-encode)</span>
+<span class="n">save</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">SetStorage</span><span class="p">(</span><span class="s2">"my_layout"</span><span class="p">,</span> <span class="n">call</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"layout"</span><span class="p">),</span> <span class="s2">"save"</span><span class="p">)))</span>
+
+<span class="c1"># or hand it to the user as a file — no server round-trip</span>
+<span class="n">export</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Download</span><span class="p">(</span><span class="s2">"layout.json"</span><span class="p">,</span> <span class="n">call</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"layout"</span><span class="p">),</span> <span class="s2">"save"</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>An async method composes with <code class="docutils literal notranslate"><span class="pre">Sequence</span></code>: <code class="docutils literal notranslate"><span class="pre">Invoke</span></code> awaits a returned promise (and with <code class="docutils literal notranslate"><span class="pre">result=</span></code>,
+writes the resolved value to a state field first), so “save, then persist what was saved” is plain
+data — while purely synchronous action chains still apply in the same tick:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">save</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">(</span>
+    <span class="n">Invoke</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"workspace"</span><span class="p">),</span> <span class="s2">"saveClean"</span><span class="p">,</span> <span class="n">result</span><span class="o">=</span><span class="s2">"custom_layout"</span><span class="p">),</span>
+    <span class="n">SetStorage</span><span class="p">(</span><span class="s2">"my_layout"</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="s2">"custom_layout"</span><span class="p">)),</span>
+<span class="p">))</span>
+</pre></div>
+</div>
+<p>Prefer methods a component’s manifest declares — they are part of its public surface. Method names
+are not yet checked against the catalog at authoring time (a mistyped name logs a console error at
+event time); catalog-backed validation is planned alongside CEM method parsing.</p>
+</section>
 <section id="the-escape-hatch">
 <h2>The escape hatch<a class="headerlink" href="#the-escape-hatch" title="Link to this heading">¶</a></h2>
 <p>For the rare irreducible case, <code class="docutils literal notranslate"><span class="pre">NamedJs(&quot;handler&quot;)</span></code> invokes a JavaScript handler you pre-registered in
@@ -441,6 +485,15 @@ a <code class="docutils literal notranslate"><span class="pre">TypeError</span><
 as an opaque component error in the browser. Two limits: reactive bindings and computed values are
 dynamic and stay unvalidated, and <code class="docutils literal notranslate"><span class="pre">json</span></code>-kind props (lists, objects, mixed unions, untyped props all
 map to that kind) are type-opaque, so no literal shape can be ruled out for them.</p>
+<p>Prop <em>names</em> are checked too. A schema-carrying component’s constructor accepts the snake_case
+spelling of each camelCase CEM prop and normalizes it to the canonical name —
+<code class="docutils literal notranslate"><span class="pre">Dagre(max_label_width=180)</span></code> sets <code class="docutils literal notranslate"><span class="pre">maxLabelWidth</span></code>; passing both spellings at once raises. And
+<code class="docutils literal notranslate"><span class="pre">spaday.validate</span></code> checks every node that still knows its catalog schema for unknown prop and binding
+names: a typo raises a <code class="docutils literal notranslate"><span class="pre">ValidationError</span></code> naming the tag and prop, with a “did you mean” hint when the
+unknown name is the snake_case spelling of a real prop. Generic globals (<code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code>, <code class="docutils literal notranslate"><span class="pre">style</span></code>,
+<code class="docutils literal notranslate"><span class="pre">slot</span></code>, <code class="docutils literal notranslate"><span class="pre">data-*</span></code> / <code class="docutils literal notranslate"><span class="pre">aria-*</span></code>, …) always pass; nodes without a schema — <code class="docutils literal notranslate"><span class="pre">element(...)</span></code> escape hatches
+and serialized dict trees — stay unvalidated, as do two-way binding names, which target live
+form-control properties a manifest routinely omits.</p>
 </section>
 </section>
 
@@ -506,6 +559,7 @@ map to that kind) are type-opaque, so no literal shape can be ruled out for them
 <li><a class="reference internal" href="#compute-a-prop-from-state">Compute a prop from state</a></li>
 <li><a class="reference internal" href="#send-a-model-edit-or-call-an-endpoint">Send a model edit or call an endpoint</a></li>
 <li><a class="reference internal" href="#context-menus-and-modals">Context menus and modals</a></li>
+<li><a class="reference internal" href="#call-component-methods-and-browser-side-effects">Call component methods and browser side effects</a></li>
 <li><a class="reference internal" href="#the-escape-hatch">The escape hatch</a></li>
 <li><a class="reference internal" href="#validate-references-before-shipping">Validate references before shipping</a></li>
 </ul>
@@ -519,7 +573,7 @@ map to that kind) are type-opaque, so no literal shape can be ruled out for them
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=a674670e"></script>
+</div><script src="../../_static/documentation_options.js?v=918ced64"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

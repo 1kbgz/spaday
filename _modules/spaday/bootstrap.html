@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.bootstrap - spaday v0.7.5</title>
+        <title>spaday.bootstrap - spaday v0.7.6</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.5</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.6</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.5</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.6</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -517,8 +517,11 @@
         <span class="n">f_js</span><span class="p">,</span> <span class="n">k_js</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">field_name</span><span class="p">)),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">storage_key</span><span class="p">))</span>
         <span class="n">store_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"try </span><span class="se">{{</span><span class="s2"> const v = localStorage.getItem(</span><span class="si">{</span><span class="n">k_js</span><span class="si">}</span><span class="s2">); if (v !== null) store.set(</span><span class="si">{</span><span class="n">f_js</span><span class="si">}</span><span class="s2">, JSON.parse(v)); </span><span class="se">}}</span><span class="s2"> catch </span><span class="se">{{}}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">store_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"store.subscribe(</span><span class="si">{</span><span class="n">f_js</span><span class="si">}</span><span class="s2">, (v) =&gt; </span><span class="se">{{</span><span class="s2"> try </span><span class="se">{{</span><span class="s2"> localStorage.setItem(</span><span class="si">{</span><span class="n">k_js</span><span class="si">}</span><span class="s2">, JSON.stringify(v)); </span><span class="se">}}</span><span class="s2"> catch </span><span class="se">{{}}</span><span class="s2"> </span><span class="se">}}</span><span class="s2">);"</span><span class="p">)</span>
+    <span class="c1"># the refresh action's re-fetch source: the plain-JSON tree URL; a frame-wired page has no</span>
+    <span class="c1"># JSON url, so `Refresh` there requires an explicit url</span>
+    <span class="n">tree_url</span> <span class="o">=</span> <span class="s1">'""'</span> <span class="k">if</span> <span class="n">frame</span> <span class="k">else</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">/tree.json"</span><span class="p">)</span>
     <span class="n">runtime_names</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="p">[</span><span class="s2">"mount"</span><span class="p">,</span> <span class="s2">"init"</span><span class="p">]</span>
+        <span class="p">[</span><span class="s2">"mount"</span><span class="p">,</span> <span class="s2">"init"</span><span class="p">,</span> <span class="s2">"trackRoot"</span><span class="p">]</span>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"Store"</span><span class="p">]</span> <span class="k">if</span> <span class="p">(</span><span class="n">wired</span> <span class="ow">or</span> <span class="n">store</span> <span class="ow">or</span> <span class="n">persist</span><span class="p">)</span> <span class="k">else</span> <span class="p">[])</span>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"connectStore"</span><span class="p">]</span> <span class="k">if</span> <span class="n">wired</span> <span class="k">else</span> <span class="p">[])</span>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"decodeFrame"</span><span class="p">]</span> <span class="k">if</span> <span class="n">frame</span> <span class="k">else</span> <span class="p">[])</span>
@@ -551,7 +554,7 @@
                 <span class="s2">"  socket.addEventListener('close', () =&gt; setTimeout(connect, 1000));"</span><span class="p">,</span>
                 <span class="s2">"}"</span><span class="p">,</span>
                 <span class="s2">"connect();"</span><span class="p">,</span>
-                <span class="sa">f</span><span class="s2">"mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store);"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"trackRoot(mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store), node, </span><span class="si">{</span><span class="n">tree_url</span><span class="si">}</span><span class="s2">, store);"</span><span class="p">,</span>
             <span class="p">]</span>
         <span class="p">)</span>
     <span class="k">elif</span> <span class="n">transports</span><span class="p">:</span>
@@ -565,7 +568,7 @@
                 <span class="s1">'ws.addEventListener("message", (event) =&gt;'</span><span class="p">,</span>
                 <span class="s1">'  link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),'</span><span class="p">,</span>
                 <span class="s2">");"</span><span class="p">,</span>
-                <span class="sa">f</span><span class="s2">"mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store);"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"trackRoot(mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store), node, </span><span class="si">{</span><span class="n">tree_url</span><span class="si">}</span><span class="s2">, store);"</span><span class="p">,</span>
             <span class="p">]</span>
         <span class="p">)</span>
     <span class="k">elif</span> <span class="n">wires</span><span class="p">:</span>  <span class="c1"># several models share ONE store, each mirrored under its own namespace (see _wire_block)</span>
@@ -579,11 +582,11 @@
             <span class="s1">'event.detail.model ? event.detail.model + "." + event.detail.field : event.detail.field, '</span>
             <span class="s2">"event.detail.value));"</span>
         <span class="p">)</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store);"</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"trackRoot(mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store), node, </span><span class="si">{</span><span class="n">tree_url</span><span class="si">}</span><span class="s2">, store);"</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">store</span> <span class="ow">or</span> <span class="n">persist</span><span class="p">:</span>  <span class="c1"># local reactive state (bindings/actions read it), no server wire</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="o">*</span><span class="n">store_lines</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store);"</span><span class="p">])</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="o">*</span><span class="n">store_lines</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"trackRoot(mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store), node, </span><span class="si">{</span><span class="n">tree_url</span><span class="si">}</span><span class="s2">, store);"</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node);"</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"trackRoot(mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node), node, </span><span class="si">{</span><span class="n">tree_url</span><span class="si">}</span><span class="s2">);"</span><span class="p">)</span>
     <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">      "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
 
 
@@ -688,7 +691,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=a674670e"></script>
+</div><script src="../../_static/documentation_options.js?v=918ced64"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
