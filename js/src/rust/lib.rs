@@ -36,7 +36,15 @@ extern "C" {
     #[wasm_bindgen(method, js_name = sendPatch)]
     fn send_patch(this: &Host, model: &str, field: &str, value: JsValue);
     #[wasm_bindgen(method, js_name = callEndpoint)]
-    fn call_endpoint(this: &Host, method: &str, url: JsValue, body: JsValue, result: Option<&str>);
+    fn call_endpoint(
+        this: &Host,
+        method: &str,
+        url: JsValue,
+        body: JsValue,
+        result: Option<&str>,
+    ) -> JsValue;
+    #[wasm_bindgen(method, js_name = refreshTree)]
+    fn refresh_tree(this: &Host, url: Option<&str>) -> JsValue;
     #[wasm_bindgen(method, js_name = callNamed)]
     fn call_named(this: &Host, handler: &str);
     #[wasm_bindgen(method, js_name = callMethod)]
@@ -72,8 +80,8 @@ fn run<'a>(action: &'a spaday::Action, host: &'a Host) -> Pin<Box<dyn Future<Out
 
 async fn run_inner(action: &spaday::Action, host: &Host) {
     use spaday::Action::{
-        CallEndpoint, Download, Emit, If, Invoke, NamedJs, SendPatch, Sequence, SetField, SetProp,
-        SetStorage, Toggle, ToggleField,
+        CallEndpoint, Download, Emit, If, Invoke, NamedJs, Refresh, SendPatch, Sequence, SetField,
+        SetProp, SetStorage, Toggle, ToggleField,
     };
     match action {
         SetProp {
@@ -134,7 +142,12 @@ async fn run_inner(action: &spaday::Action, host: &Host) {
                 spaday::EndpointUrl::Expr(expr) => eval(expr, host),
             };
             let b = body.as_ref().map_or(JsValue::UNDEFINED, |e| eval(e, host));
-            host.call_endpoint(method, u, b, result.as_deref());
+            let done = host.call_endpoint(method, u, b, result.as_deref());
+            // await the round-trip so a `seq` continues after the response (and `result`) landed
+            await_thenable(done).await;
+        }
+        Refresh { url } => {
+            await_thenable(host.refresh_tree(url.as_deref())).await;
         }
         Invoke {
             target,
@@ -175,6 +188,14 @@ async fn run_inner(action: &spaday::Action, host: &Host) {
             );
         }
         NamedJs { handler } => host.call_named(handler),
+    }
+}
+
+async fn await_thenable(value: JsValue) {
+    let thenable = value.is_object()
+        && js_sys::Reflect::has(&value, &JsValue::from_str("then")).unwrap_or(false);
+    if thenable {
+        let _ = wasm_bindgen_futures::JsFuture::from(js_sys::Promise::resolve(&value)).await;
     }
 }
 

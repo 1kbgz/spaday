@@ -548,6 +548,30 @@ class Download(Action):
         return out
 
 
+class RefreshTree(Action):
+    """Re-fetch the mounted tree (its bootstrap URL, or an explicit ``url``) and diff it into the
+    live DOM — "server state changed, re-render" without adopting a live wire. Awaited, so after a
+    mutating endpoint the refresh sees the new state::
+
+        materialize.on("click", Sequence(
+            CallEndpoint("POST", "/materialize", body=obj({"path": field("selected")}), result="mat"),
+            RefreshTree(),
+        ))
+
+    Only the differences are applied (the core's ``diff``), so unchanged elements keep identity and
+    client state; a page served as a transports frame has no JSON tree URL, so pass ``url``.
+    """
+
+    def __init__(self, url: str | None = None) -> None:
+        self.url = url
+
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"kind": "refresh"}
+        if self.url is not None:
+            out["url"] = self.url
+        return out
+
+
 class NamedJs(Action):
     """The escape hatch: invoke a pre-registered named JS handler (no arbitrary ``eval``). Register it
     on the JS side with ``registerHandler(name, fn)``; use only for the rare irreducible case."""

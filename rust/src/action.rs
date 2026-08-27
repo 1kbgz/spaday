@@ -218,6 +218,14 @@ pub enum Action {
         )]
         content_type: Option<String>,
     },
+    /// Re-fetch the mounted tree (its bootstrap URL, or an explicit `url`) and diff it into the
+    /// live DOM — "server state changed, re-render" without a live wire. Awaited, so a `seq` like
+    /// `CallEndpoint(...)` then `Refresh` re-renders only after the mutation landed.
+    #[serde(rename = "refresh")]
+    Refresh {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        url: Option<String>,
+    },
     /// The escape hatch: invoke a pre-registered named JS handler (no arbitrary `eval`). For the rare
     /// irreducible case the declarative actions can't express.
     #[serde(rename = "js")]
@@ -387,6 +395,17 @@ mod tests {
                 "filename": {"expr": "lit", "value": "layout.json"},
                 "value": {"expr": "call", "target": {"ref": "id", "id": "layout"}, "method": "save"},
             }),
+        );
+    }
+
+    #[test]
+    fn refresh_round_trips() {
+        round(&Action::Refresh { url: None }, json!({"kind": "refresh"}));
+        round(
+            &Action::Refresh {
+                url: Some("/tree.json".into()),
+            },
+            json!({"kind": "refresh", "url": "/tree.json"}),
         );
     }
 

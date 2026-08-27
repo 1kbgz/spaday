@@ -7,7 +7,7 @@
 
 import { interpret as wasmInterpret } from "../../dist/pkg/spaday";
 import { getHandler } from "./handlers";
-import { setProp } from "./runtime";
+import { refreshRoots, setProp } from "./runtime";
 import type { Scope, Store } from "./signals";
 import { assertReady } from "./wasm-ready";
 
@@ -67,6 +67,8 @@ function host(ctx: ActionContext) {
       }
       return result;
     },
+    // `refresh` action: re-fetch the mounted tree (or an explicit url) and diff it in place
+    refreshTree: (url?: string) => refreshRoots(url ?? undefined),
     // `set-storage` action: strings verbatim, other values JSON-encoded
     setStorage: (key: string, value: unknown) =>
       window.localStorage.setItem(
@@ -118,6 +120,8 @@ function host(ctx: ActionContext) {
       body: unknown,
       result?: string,
     ) => {
+      // returns the settled round-trip so the interpreter can await it: a `seq` continues
+      // only after the response landed (and `result`, when set, is already written)
       const request = fetch(String(url), {
         method,
         headers:
@@ -126,9 +130,8 @@ function host(ctx: ActionContext) {
             : { "content-type": "application/json" },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
-      if (!result || !ctx.store) return void request;
       const store = ctx.store;
-      void request
+      return request
         .then(async (r) => {
           const text = await r.text();
           let parsed: unknown;
@@ -140,7 +143,9 @@ function host(ctx: ActionContext) {
           return { status: r.status, ok: r.ok, body: parsed };
         })
         .catch((err) => ({ status: 0, ok: false, body: String(err) })) // network failure
-        .then((outcome) => store.set(result, outcome));
+        .then((outcome) => {
+          if (result && store) store.set(result, outcome);
+        });
     },
     // NamedJs escape hatch: invoke a pre-registered handler by name (no eval).
     callNamed: (handler: string) =>

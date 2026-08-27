@@ -34,11 +34,14 @@ __all__ = [
     "Main",
     "Nav",
     "Popup",
+    "Lazy",
     "Region",
     "Row",
     "Show",
+    "Switch",
     "Stack",
     "Table",
+    "Toast",
     "Toolbar",
 ]
 
@@ -239,6 +242,100 @@ class Popup(Component):
 
     def __init__(self, *children: Child, key: str | None = None, **props: Any) -> None:
         super().__init__(*children, key=key, **props)
+
+
+class Switch(Component):
+    """Route between subtrees on one store field — the O(1) spelling of N ``Show`` branches.
+
+    Exactly one case is mounted at a time; changing the field tears down the old branch and mounts
+    the new one, without evaluating a predicate per case. Cases are keyed by the field's value
+    (compared as strings); ``default`` renders when nothing matches::
+
+        Switch("selected", {"a/b": card_ab, "c/d": card_cd}, default=placeholder)
+
+    Pairs with :class:`Lazy` for large case bodies: ``Switch("selected", {p: Lazy(src=f"/card/{p}")
+    for p in paths})`` keeps both the DOM and the initial tree small.
+    """
+
+    tag = "spa-switch"
+
+    def __init__(
+        self,
+        field: str | Any,
+        cases: dict[str, Child],
+        default: Child | None = None,
+        *,
+        key: str | None = None,
+        **props: Any,
+    ) -> None:
+        super().__init__(key=key, props={"style": "display:contents"}, **props)
+        if isinstance(field, Expr):
+            self._bindings["on"] = {"compute": field.to_dict(), "mode": "one-way"}
+        else:
+            self._bindings["on"] = {"field": field, "mode": "one-way"}
+        for value, child in cases.items():
+            self.child_in(str(value), child)
+        if default is not None:
+            self.child_in("default", default)
+
+
+class Lazy(Component):
+    """A subtree deferred to a URL, fetched when first shown — so a large branch does not ride the
+    initial tree at all.
+
+    ``src`` must return a serialized component (``tree_json(element(...))`` — any node JSON). The
+    body is fetched once per URL and cached for the page. Without ``when``/``field`` the fetch
+    happens on mount; with a condition it happens when the condition first turns truthy. Children
+    are the placeholder shown until the body arrives::
+
+        Lazy(Paragraph("Loading…"), src=f"/card/{path}", when=eq(field("selected"), path))
+    """
+
+    tag = "spa-lazy"
+
+    def __init__(
+        self,
+        *children: Child,
+        src: str,
+        field: str | None = None,
+        when: Any | None = None,
+        key: str | None = None,
+        **props: Any,
+    ) -> None:
+        super().__init__(*children, key=key, props={"src": src, "style": "display:contents"}, **props)
+        if field is not None:
+            self._bindings["when"] = {"field": field, "mode": "one-way"}
+        elif when is not None:
+            if not isinstance(when, Expr):
+                raise TypeError(f"Lazy when must be an Expr, got {type(when).__name__}")
+            self._bindings["when"] = {"compute": when.to_dict(), "mode": "one-way"}
+
+
+class Toast(Component):
+    """Transient corner notifications (``spa-toast``) — the shell's surface for reporting action
+    outcomes, most usefully failures.
+
+    Notices stack in the viewport corner with a tone accent (``"info"`` / ``"success"`` /
+    ``"danger"``) and auto-dismiss after ``timeout`` ms (default 5000; ``0`` keeps a toast until its
+    close × is clicked). Trigger one two ways. Imperatively, :class:`~spaday.actions.Invoke` the
+    element's ``notify`` method from any action chain::
+
+        toasts = Toast(id="toasts")
+        save.on("click", Invoke(by_id("toasts"), "notify", obj({"message": lit("Saved"), "tone": lit("success")})))
+
+    Reactively, drive the bindable ``message`` prop from state — every non-empty write enqueues a
+    toast, with the optional ``tone`` prop read at enqueue time (an empty message enqueues nothing).
+    This is the canonical way to surface a ``CallEndpoint`` failure from its ``result=`` field::
+
+        toasts = Toast(tone="danger", id="toasts")
+        submit.on("click", CallEndpoint("POST", "/api/thing", body=..., result="submit_result"))
+        # surface failures from the result field …
+        toasts.compute("message", cond(field("submit_result.ok"), lit(""), field("submit_result.body")))
+        # … or drive any reactive fallback UI from the same field
+        page.add(Show(..., when=not_(field("submit_result.ok"))))
+    """
+
+    tag = "spa-toast"
 
 
 class Show(Component):

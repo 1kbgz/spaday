@@ -5,15 +5,18 @@ id — a silent, easy-to-miss bug. :func:`validate` walks the tree and raises :c
 listing every ``by_id`` reference (in an action or a ``prop(...)`` expression, however deeply nested)
 that doesn't resolve to a node's id in the same tree.
 
-Reactive ``bind`` targets a state *field*, not a node, so it has nothing to resolve here; and prop
-*names* aren't checked (the typed component constructors already validate those, and the string escape
-hatches legitimately allow custom attributes).
+Reactive ``bind`` targets a state *field*, not a node, so it has nothing to resolve here. Prop and
+binding *names* are checked too, wherever a catalog schema is known — see :func:`validate`.
 """
 
 from collections.abc import Iterator
 from typing import Any
 
-from .component import Component
+from .component import Component, _snake_name
+
+#: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.
+_GLOBAL_PROPS = {"id", "class", "style", "slot", "part", "title", "role", "hidden", "tabindex", "textContent"}
+_GLOBAL_PREFIXES = ("data-", "aria-")
 
 
 class ValidationError(ValueError):
@@ -68,10 +71,38 @@ def _collect_refs(node: dict, refs: list[str]) -> None:
             _collect_refs(child, refs)
 
 
+def _collect_unknown_props(component: Component, problems: list[str]) -> None:
+    schema = type(component).schema
+    if schema is not None:
+        known = {prop.name for prop in schema.props}
+        # two-way bindings target live form-control properties (a composed control's `value` is
+        # routinely absent from its manifest), so their names stay unchecked
+        bound = [n for n, b in component._bindings.items() if b.get("mode") != "two-way" and not n.startswith("root-class:")]
+        names = list(component._props) + bound
+        for name in names:
+            if name in known or name in _GLOBAL_PROPS or name.startswith(_GLOBAL_PREFIXES):
+                continue
+            hint = next((p for p in sorted(known) if _snake_name(p) == name), None)
+            problems.append(f"<{component.tag}> unknown prop {name!r}" + (f" (did you mean {hint!r}?)" if hint else ""))
+    for children in component._slots.values():
+        for child in children:
+            if isinstance(child, Component):
+                _collect_unknown_props(child, problems)
+
+
 def validate(tree: Component | dict) -> None:
-    """Raise :class:`ValidationError` if any ``by_id(...)`` reference in the tree's actions is unresolved.
+    """Raise :class:`ValidationError` if the tree has unresolved ``by_id(...)`` references or unknown props.
 
     Pass a :class:`~spaday.component.Component` (or its serialized node dict). Returns ``None`` on success.
+
+    Two checks run. Every ``by_id`` reference (in an action or a ``prop(...)`` expression) must resolve
+    to a node's id in the same tree. And on each node that carries a catalog ``schema`` (CEM-generated
+    components retain one), every prop and binding name must be a schema prop or a generic global
+    (``id``, ``class``, ``style``, ``slot``, …, plus ``data-*``/``aria-*``); an unknown name is reported
+    with the tag and — when it is the snake_case spelling of a real prop — a "did you mean" hint. The
+    prop check only reaches what still knows its schema: nodes built by ``element(...)`` and serialized
+    dict trees carry none, so they stay unvalidated — as do two-way binding names, which target live
+    form-control properties a manifest routinely omits.
     """
     node = tree.to_node() if isinstance(tree, Component) else tree
     ids: set[str] = set()
@@ -82,3 +113,8 @@ def validate(tree: Component | dict) -> None:
     if missing:
         known = sorted(ids)
         raise ValidationError("unresolved by_id reference(s): " + ", ".join(repr(m) for m in missing) + f" (known ids: {known})")
+    if isinstance(tree, Component):
+        problems: list[str] = []
+        _collect_unknown_props(tree, problems)
+        if problems:
+            raise ValidationError("unknown prop(s): " + "; ".join(problems))

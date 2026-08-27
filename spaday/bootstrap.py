@@ -263,8 +263,11 @@ def _script(
         f_js, k_js = json.dumps(str(field_name)), json.dumps(str(storage_key))
         store_lines.append(f"try {{ const v = localStorage.getItem({k_js}); if (v !== null) store.set({f_js}, JSON.parse(v)); }} catch {{}}")
         store_lines.append(f"store.subscribe({f_js}, (v) => {{ try {{ localStorage.setItem({k_js}, JSON.stringify(v)); }} catch {{}} }});")
+    # the refresh action's re-fetch source: the plain-JSON tree URL; a frame-wired page has no
+    # JSON url, so `Refresh` there requires an explicit url
+    tree_url = '""' if frame else json.dumps(f"{base}/tree.json")
     runtime_names = (
-        ["mount", "init"]
+        ["mount", "init", "trackRoot"]
         + (["Store"] if (wired or store or persist) else [])
         + (["connectStore"] if wired else [])
         + (["decodeFrame"] if frame else [])
@@ -297,7 +300,7 @@ def _script(
                 "  socket.addEventListener('close', () => setTimeout(connect, 1000));",
                 "}",
                 "connect();",
-                f"mount({into}, node, store);",
+                f"trackRoot(mount({into}, node, store), node, {tree_url}, store);",
             ]
         )
     elif transports:
@@ -311,7 +314,7 @@ def _script(
                 'ws.addEventListener("message", (event) =>',
                 '  link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),',
                 ");",
-                f"mount({into}, node, store);",
+                f"trackRoot(mount({into}, node, store), node, {tree_url}, store);",
             ]
         )
     elif wires:  # several models share ONE store, each mirrored under its own namespace (see _wire_block)
@@ -325,11 +328,11 @@ def _script(
             'event.detail.model ? event.detail.model + "." + event.detail.field : event.detail.field, '
             "event.detail.value));"
         )
-        lines.append(f"mount({into}, node, store);")
+        lines.append(f"trackRoot(mount({into}, node, store), node, {tree_url}, store);")
     elif store or persist:  # local reactive state (bindings/actions read it), no server wire
-        lines.extend([*store_lines, f"mount({into}, node, store);"])
+        lines.extend([*store_lines, f"trackRoot(mount({into}, node, store), node, {tree_url}, store);"])
     else:
-        lines.append(f"mount({into}, node);")
+        lines.append(f"trackRoot(mount({into}, node), node, {tree_url});")
     return "\n      ".join(lines)
 
 

@@ -362,3 +362,34 @@ def test_invoke_storage_and_download_round_trip_through_core():
     assert tree["events"]["contextmenu"]["contentType"] == "application/json"
     # and the core accepts them: a diff/apply round-trip is lossless
     assert json.loads(apply(node, diff(node, node))) == json.loads(node)
+
+
+def test_switch_lazy_and_refresh_round_trip_through_core():
+    import json
+
+    from spaday import CallEndpoint, RefreshTree, Sequence, apply, diff, eq, field
+    from spaday.component import element
+    from spaday.components.shell import Lazy, Switch
+
+    page = element(
+        "main",
+        Switch(
+            "selected",
+            {"a/b": Lazy(element("em", "loading"), src="/card/a-b", when=eq(field("selected"), "a/b"))},
+            default=element("p", "pick a model"),
+        ),
+        element("button", "Materialize").on("click", Sequence(CallEndpoint("POST", "/materialize", result="mat"), RefreshTree())),
+    )
+    node = page.to_json()
+    tree = json.loads(node)
+    switch = tree["slots"]["default"][0]
+    assert switch["tag"] == "spa-switch"
+    assert switch["bindings"]["on"] == {"field": "selected", "mode": "one-way"}
+    assert set(switch["slots"]) == {"a/b", "default"}
+    lazy = switch["slots"]["a/b"][0]
+    assert lazy["tag"] == "spa-lazy"
+    assert lazy["props"]["src"] == {"Str": "/card/a-b"}
+    button = tree["slots"]["default"][1]
+    assert button["events"]["click"]["actions"][1] == {"kind": "refresh"}
+    # the core accepts all of it: diff/apply round-trip is lossless
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)
