@@ -159,43 +159,43 @@ async fn run_inner(action: &spaday::Action, host: &Host) {
                 let value = host.call_method(&el, method, eval_args(args, host));
                 // await a returned promise so a `seq` continues only after the method settles;
                 // rejections were already marked handled (and logged) by the host
-                let thenable = value.is_object()
-                    && js_sys::Reflect::has(&value, &JsValue::from_str("then")).unwrap_or(false);
-                let resolved = if thenable {
-                    wasm_bindgen_futures::JsFuture::from(js_sys::Promise::resolve(&value))
-                        .await
-                        .unwrap_or(JsValue::UNDEFINED)
-                } else {
-                    value
-                };
+                let resolved = resolve_thenable(value).await;
                 if let Some(field) = result {
                     host.set_field(field, resolved);
                 }
             }
         }
         SetStorage { key, value } => {
-            host.set_storage(key, eval(value, host));
+            // resolve a thenable value (e.g. a `call` of an async method) before persisting
+            let resolved = resolve_thenable(eval(value, host)).await;
+            host.set_storage(key, resolved);
         }
         Download {
             filename,
             value,
             content_type,
         } => {
-            host.download(
-                eval(filename, host),
-                eval(value, host),
-                content_type.as_deref(),
-            );
+            let resolved = resolve_thenable(eval(value, host)).await;
+            host.download(eval(filename, host), resolved, content_type.as_deref());
         }
         NamedJs { handler } => host.call_named(handler),
     }
 }
 
 async fn await_thenable(value: JsValue) {
+    resolve_thenable(value).await;
+}
+
+/// Resolve a thenable to its settled value (undefined on rejection); pass anything else through.
+async fn resolve_thenable(value: JsValue) -> JsValue {
     let thenable = value.is_object()
         && js_sys::Reflect::has(&value, &JsValue::from_str("then")).unwrap_or(false);
     if thenable {
-        let _ = wasm_bindgen_futures::JsFuture::from(js_sys::Promise::resolve(&value)).await;
+        wasm_bindgen_futures::JsFuture::from(js_sys::Promise::resolve(&value))
+            .await
+            .unwrap_or(JsValue::UNDEFINED)
+    } else {
+        value
     }
 }
 

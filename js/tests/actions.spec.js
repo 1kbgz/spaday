@@ -995,3 +995,63 @@ test("a Sequence awaits an async Invoke: result lands before the next step", asy
   expect(r.saved).toEqual({ layout: "clean" });
   expect(r.after).toEqual({ layout: "clean" }); // seq ordering held across the await
 });
+
+test("set-storage and download resolve a thenable value (a call of an async method)", async ({
+  page,
+}) => {
+  const r = await page.evaluate(async () => {
+    localStorage.removeItem("async-layout");
+    const downloads = [];
+    const realCreate = URL.createObjectURL;
+    URL.createObjectURL = (blob) => {
+      downloads.push(blob);
+      return "blob:stubbed";
+    };
+    const realClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      downloads.push({ download: this.download });
+    };
+    const workspace = document.createElement("div");
+    workspace.id = "async-ws";
+    workspace.save = async () => ({ layout: "clean" });
+    document.body.appendChild(workspace);
+    const saveCall = {
+      expr: "call",
+      target: { ref: "id", id: "async-ws" },
+      method: "save",
+    };
+    const btn = window.__spaday.mount(document.body, {
+      tag: "button",
+      events: {
+        click: {
+          kind: "seq",
+          actions: [
+            { kind: "set-storage", key: "async-layout", value: saveCall },
+            {
+              kind: "download",
+              filename: { expr: "lit", value: "layout.json" },
+              value: saveCall,
+            },
+          ],
+        },
+      },
+    });
+    btn.click();
+    // the chain defers on the first thenable; wait for the download to land
+    for (let i = 0; i < 100 && downloads.length < 2; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    URL.createObjectURL = realCreate;
+    HTMLAnchorElement.prototype.click = realClick;
+    workspace.remove();
+    return {
+      stored: localStorage.getItem("async-layout"),
+      blobText: await downloads[0].text(),
+      anchor: downloads[1],
+    };
+  });
+  // the resolved object is persisted/downloaded, not the promise's JSON ("{}")
+  expect(JSON.parse(r.stored)).toEqual({ layout: "clean" });
+  expect(JSON.parse(r.blobText)).toEqual({ layout: "clean" });
+  expect(r.anchor.download).toBe("layout.json");
+});

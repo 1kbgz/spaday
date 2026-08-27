@@ -337,6 +337,8 @@ export function evalExpr(expr: unknown, store?: Store, scope?: Scope): unknown {
         out[k] = evalExpr(v, store, scope);
       return out;
     }
+    case "arr":
+      return (e.of as unknown[]).map((x) => evalExpr(x, store, scope));
     case "concat":
       return (e.parts as unknown[])
         .map((part) => String(evalExpr(part, store, scope)))
