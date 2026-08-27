@@ -54,6 +54,15 @@ pub enum Expr {
     /// `clientX` for pointer position, or `shiftKey` for modifiers.
     #[serde(rename = "event-prop")]
     EventProp { path: String },
+    /// The value returned by calling a **synchronous** `method` on `target` with evaluated `args` —
+    /// e.g. a layout's `save()` for persistence, or `calculatePath(name)` as a condition. Async
+    /// methods belong in the `invoke` *action*; an expression must produce a value now.
+    Call {
+        target: Ref,
+        method: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        args: Vec<Expr>,
+    },
     /// A dot `path` read from the closest ancestor of the event target matching a CSS `selector`
     /// (`event.target.closest(selector)`) — e.g. `dataset.nodeId` off the `[data-node-id]` group a
     /// click landed in. An empty `path` returns the matched element itself.
@@ -175,6 +184,35 @@ pub enum Action {
         #[serde(default)]
         result: Option<String>,
     },
+    /// Call `method` on `target` with evaluated `args`, discarding the result. An async method's
+    /// promise is fire-and-forget (a rejection is logged, not thrown). Methods are part of a
+    /// component's declared surface — this stays "behavior as data": the method name rides the
+    /// wire, nothing is eval'd.
+    #[serde(rename = "invoke")]
+    Invoke {
+        target: Ref,
+        method: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        args: Vec<Expr>,
+    },
+    /// Persist an evaluated value under `key` in the browser's localStorage — strings verbatim,
+    /// other values JSON-encoded — e.g. saving a layout so a reload restores it.
+    #[serde(rename = "set-storage")]
+    SetStorage { key: String, value: Expr },
+    /// Offer an evaluated value to the user as a file download named `filename` (an expression, so
+    /// the name can be computed). A string value downloads verbatim; anything else is
+    /// JSON-encoded. `content_type` defaults to application/json.
+    #[serde(rename = "download")]
+    Download {
+        filename: Expr,
+        value: Expr,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            rename = "contentType"
+        )]
+        content_type: Option<String>,
+    },
     /// The escape hatch: invoke a pre-registered named JS handler (no arbitrary `eval`). For the rare
     /// irreducible case the declarative actions can't express.
     #[serde(rename = "js")]
@@ -284,6 +322,64 @@ mod tests {
                     {"expr": "field", "name": "path"},
                     {"expr": "lit", "value": "a"},
                 ]},
+            }),
+        );
+    }
+
+    #[test]
+    fn call_expression_and_invoke_action() {
+        round(
+            &Action::Invoke {
+                target: Ref::Id {
+                    id: "layout".into(),
+                },
+                method: "openPanel".into(),
+                args: vec![Expr::EventProp {
+                    path: "currentTarget.dataset.tab".into(),
+                }],
+            },
+            json!({
+                "kind": "invoke",
+                "target": {"ref": "id", "id": "layout"},
+                "method": "openPanel",
+                "args": [{"expr": "event-prop", "path": "currentTarget.dataset.tab"}],
+            }),
+        );
+        round(
+            &Action::SetStorage {
+                key: "layout".into(),
+                value: Expr::Call {
+                    target: Ref::Id {
+                        id: "layout".into(),
+                    },
+                    method: "save".into(),
+                    args: vec![],
+                },
+            },
+            json!({
+                "kind": "set-storage",
+                "key": "layout",
+                "value": {"expr": "call", "target": {"ref": "id", "id": "layout"}, "method": "save"},
+            }),
+        );
+        round(
+            &Action::Download {
+                filename: Expr::Lit {
+                    value: serde_json::json!("layout.json"),
+                },
+                value: Expr::Call {
+                    target: Ref::Id {
+                        id: "layout".into(),
+                    },
+                    method: "save".into(),
+                    args: vec![],
+                },
+                content_type: None,
+            },
+            json!({
+                "kind": "download",
+                "filename": {"expr": "lit", "value": "layout.json"},
+                "value": {"expr": "call", "target": {"ref": "id", "id": "layout"}, "method": "save"},
             }),
         );
     }

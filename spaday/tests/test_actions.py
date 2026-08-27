@@ -335,3 +335,30 @@ def test_popup_helper_output_round_trips_through_core():
     host = element("div", id="surface").on("contextmenu", open_popup(by_id("menu"), context_field="ctx", context=event_value("detail")))
     node = element("div", host, menu).to_json()
     assert json.loads(apply(node, diff(node, node))) == json.loads(node)
+
+
+def test_invoke_storage_and_download_round_trip_through_core():
+    import json
+
+    from spaday import Download, Invoke, SetStorage, apply, by_id, call, diff, event_prop
+    from spaday.component import element
+
+    node = (
+        element("button")
+        .on("click", Invoke(by_id("layout"), "openPanel", event_prop("currentTarget.dataset.tab")))
+        .on("dblclick", SetStorage("saved_layout", call(by_id("layout"), "save")))
+        .on("contextmenu", Download("layout.json", call(by_id("layout"), "save"), content_type="application/json"))
+        .to_json()
+    )
+    # the wire kinds are the core's: invoke / set-storage / download with a call expression
+    tree = json.loads(node)
+    kinds = {name: action["kind"] for name, action in tree["events"].items()}
+    assert kinds == {"click": "invoke", "dblclick": "set-storage", "contextmenu": "download"}
+    assert tree["events"]["dblclick"]["value"] == {
+        "expr": "call",
+        "target": {"ref": "id", "id": "layout"},
+        "method": "save",
+    }
+    assert tree["events"]["contextmenu"]["contentType"] == "application/json"
+    # and the core accepts them: a diff/apply round-trip is lossless
+    assert json.loads(apply(node, diff(node, node))) == json.loads(node)

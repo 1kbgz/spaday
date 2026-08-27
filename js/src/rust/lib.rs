@@ -36,6 +36,12 @@ extern "C" {
     fn call_endpoint(this: &Host, method: &str, url: JsValue, body: JsValue, result: Option<&str>);
     #[wasm_bindgen(method, js_name = callNamed)]
     fn call_named(this: &Host, handler: &str);
+    #[wasm_bindgen(method, js_name = callMethod)]
+    fn call_method(this: &Host, el: &JsValue, method: &str, args: JsValue) -> JsValue;
+    #[wasm_bindgen(method, js_name = setStorage)]
+    fn set_storage(this: &Host, key: &str, value: JsValue);
+    #[wasm_bindgen(method)]
+    fn download(this: &Host, filename: JsValue, value: JsValue, content_type: Option<&str>);
 }
 
 /// Interpret a serialized action (the core's DSL wire form) against the DOM primitives in `host`.
@@ -51,8 +57,8 @@ pub fn interpret(action: &str, host: &Host) -> Result<(), JsError> {
 
 fn run(action: &spaday::Action, host: &Host) {
     use spaday::Action::{
-        CallEndpoint, Emit, If, NamedJs, SendPatch, Sequence, SetField, SetProp, Toggle,
-        ToggleField,
+        CallEndpoint, Download, Emit, If, Invoke, NamedJs, SendPatch, Sequence, SetField, SetProp,
+        SetStorage, Toggle, ToggleField,
     };
     match action {
         SetProp {
@@ -115,14 +121,45 @@ fn run(action: &spaday::Action, host: &Host) {
             let b = body.as_ref().map_or(JsValue::UNDEFINED, |e| eval(e, host));
             host.call_endpoint(method, u, b, result.as_deref());
         }
+        Invoke {
+            target,
+            method,
+            args,
+        } => {
+            if let Some(el) = resolve(target, host) {
+                host.call_method(&el, method, eval_args(args, host));
+            }
+        }
+        SetStorage { key, value } => {
+            host.set_storage(key, eval(value, host));
+        }
+        Download {
+            filename,
+            value,
+            content_type,
+        } => {
+            host.download(
+                eval(filename, host),
+                eval(value, host),
+                content_type.as_deref(),
+            );
+        }
         NamedJs { handler } => host.call_named(handler),
     }
 }
 
+fn eval_args(args: &[spaday::Expr], host: &Host) -> JsValue {
+    let out = js_sys::Array::new();
+    for arg in args {
+        out.push(&eval(arg, host));
+    }
+    out.into()
+}
+
 fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
     use spaday::Expr::{
-        All, Any, Arr, Concat, Cond, Eq, Event, EventClosest, EventProp, Field, Item, Lit, Not,
-        Obj, Prop, Scope,
+        All, Any, Arr, Call, Concat, Cond, Eq, Event, EventClosest, EventProp, Field, Item, Lit,
+        Not, Obj, Prop, Scope,
     };
     match expr {
         // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
@@ -169,6 +206,13 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
             }
             value
         }
+        Call {
+            target,
+            method,
+            args,
+        } => resolve(target, host).map_or(JsValue::UNDEFINED, |el| {
+            host.call_method(&el, method, eval_args(args, host))
+        }),
         Field { name } => host.get_field(name),
         Item { path } => host.get_item(path),
         Scope { name, path } => host.get_scope(name, path),

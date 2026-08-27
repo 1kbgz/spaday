@@ -50,6 +50,43 @@ function host(ctx: ActionContext) {
     },
     // the raw DOM event object, for `event-prop` (pointer position, modifiers)
     eventRaw: () => ctx.event,
+    // `call` expression / `invoke` action: call a component method by name — no eval, the
+    // method must exist on the element. A returned promise is marked handled (fire-and-forget
+    // for the action path; an expression needing a value should call a synchronous method).
+    callMethod: (el: Element, name: string, args: unknown[]) => {
+      const method = (el as unknown as Record<string, unknown>)[name];
+      if (typeof method !== "function") {
+        console.error(`spaday: <${el.localName}> has no method ${name}()`);
+        return undefined;
+      }
+      const result = method.apply(el, args);
+      if (result && typeof (result as Promise<unknown>).catch === "function") {
+        (result as Promise<unknown>).catch((error) =>
+          console.error(`spaday: ${name}() rejected`, error),
+        );
+      }
+      return result;
+    },
+    // `set-storage` action: strings verbatim, other values JSON-encoded
+    setStorage: (key: string, value: unknown) =>
+      window.localStorage.setItem(
+        key,
+        typeof value === "string" ? value : JSON.stringify(value),
+      ),
+    // `download` action: offer the value as a file (no server round-trip)
+    download: (filename: unknown, value: unknown, contentType?: string) => {
+      const text =
+        typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      const blob = new Blob([text], {
+        type: contentType || "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = String(filename);
+      anchor.click();
+      URL.revokeObjectURL(url);
+    },
     // the closest ancestor of the event target matching a selector, for `event-closest`
     eventClosest: (selector: string) =>
       (ctx.event.target as Element | null)?.closest?.(selector) ?? null,
