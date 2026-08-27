@@ -4,7 +4,7 @@ import pytest
 
 from spaday import Paragraph, Strong, Text, apply, diff, element
 from spaday.actions import NamedJs, field, item, not_
-from spaday.components.shell import App, AppShell, Body, Column, Each, Footer, Gutter, Main, Nav, Region, Row, Show, Stack, Table, Toolbar
+from spaday.components.shell import App, AppShell, Body, Column, Each, Footer, Gutter, Main, Nav, Region, Row, Show, Stack, Table, Toast, Toolbar
 
 
 def test_shell_classes_emit_spa_tags():
@@ -243,6 +243,21 @@ def test_each_validates_its_source_key_and_scope(kwargs, message):
 def test_each_requires_one_component_template():
     with pytest.raises(TypeError, match="one Component"):
         Each("text", field="rows", key="id")
+
+
+def test_toast_authors_a_spa_toast_with_both_trigger_patterns():
+    # imperative target: an id for Invoke(by_id("toasts"), "notify", ...)
+    node = Toast(id="toasts").to_node()
+    assert node["tag"] == "spa-toast"
+    assert node["props"]["id"] == {"Str": "toasts"}
+    # store-driven: a bound message enqueues, with the tone prop read at enqueue time
+    node = Toast(tone="danger").bind("message", "submit_error").to_node()
+    assert node["props"]["tone"] == {"Str": "danger"}
+    assert node["bindings"]["message"] == {"field": "submit_error", "mode": "one-way"}
+    # exported alongside the other shell components
+    from spaday import components
+
+    assert components.Toast is Toast
 
 
 def test_table_authors_a_spa_table():

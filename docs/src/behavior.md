@@ -139,6 +139,21 @@ WaButton().text("Send").on("click", CallEndpoint("POST", "/api/order", obj({"sym
 Show(WaCallout().compute("textContent", field("sent.body")), when=not_(field("sent.ok")))
 ```
 
+For transient notices, the shell's `Toast` (`spa-toast`) is the canonical error-reporting surface: a
+fixed corner stack of notifications with `info` / `success` / `danger` tones that auto-dismiss
+(`timeout` ms, default 5000; `0` keeps a toast until its close × is clicked). `Invoke` its `notify`
+method from any action chain — `Invoke(by_id("toasts"), "notify", obj({"message": lit("Saved"), "tone": lit("success")}))` — or drive its bindable `message` prop from state: every non-empty write
+enqueues a toast, with the `tone` prop read at enqueue time, so a `result=` failure surfaces with no
+handler:
+
+```python
+from spaday import cond, field, lit
+from spaday.components.shell import Toast
+
+toasts = Toast(tone="danger", id="toasts")
+toasts.compute("message", cond(field("sent.ok"), lit(""), field("sent.body")))
+```
+
 `SendPatch` is usually unnecessary once you use a two-way binding (above) — the binding carries the
 control→model edit declaratively. Reach for `SendPatch` for an imperative edit that
 isn't a simple control value. When several models share a page, a `SendPatch("ns", field, value)` is
@@ -248,3 +263,13 @@ a `TypeError` naming the component tag, the prop, and the offending value, inste
 as an opaque component error in the browser. Two limits: reactive bindings and computed values are
 dynamic and stay unvalidated, and `json`-kind props (lists, objects, mixed unions, untyped props all
 map to that kind) are type-opaque, so no literal shape can be ruled out for them.
+
+Prop *names* are checked too. A schema-carrying component's constructor accepts the snake_case
+spelling of each camelCase CEM prop and normalizes it to the canonical name —
+`Dagre(max_label_width=180)` sets `maxLabelWidth`; passing both spellings at once raises. And
+`spaday.validate` checks every node that still knows its catalog schema for unknown prop and binding
+names: a typo raises a `ValidationError` naming the tag and prop, with a "did you mean" hint when the
+unknown name is the snake_case spelling of a real prop. Generic globals (`id`, `class`, `style`,
+`slot`, `data-*` / `aria-*`, …) always pass; nodes without a schema — `element(...)` escape hatches
+and serialized dict trees — stay unvalidated, as do two-way binding names, which target live
+form-control properties a manifest routinely omits.

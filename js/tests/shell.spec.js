@@ -405,6 +405,98 @@ test("spa-popup clamps into the viewport and closes on Escape", async ({
   ).toBe(false);
 });
 
+test("spa-toast notify() renders a toned toast and auto-dismisses after its timeout", async ({
+  page,
+}) => {
+  const r = await page.evaluate(async () => {
+    const el = window.__spaday.mount(document.body, { tag: "spa-toast" });
+    el.notify({ message: "saved", tone: "success", timeout: 200 });
+    el.notify({ message: "fyi" }); // default tone info, default (long) timeout
+    const toasts = [...el.shadowRoot.querySelectorAll(".toast")];
+    const before = toasts.map((t) => ({
+      text: t.textContent,
+      classes: [...t.classList],
+    }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return {
+      before,
+      after: [...el.shadowRoot.querySelectorAll(".toast")].map(
+        (t) => t.textContent,
+      ),
+    };
+  });
+  expect(r.before).toEqual([
+    { text: "saved", classes: ["toast", "success"] },
+    { text: "fyi", classes: ["toast", "info"] },
+  ]);
+  // the 200ms toast is gone; the default-timeout toast is still up
+  expect(r.after).toEqual(["fyi"]);
+});
+
+test("spa-toast keeps a timeout-0 toast until its close button is clicked", async ({
+  page,
+}) => {
+  const r = await page.evaluate(async () => {
+    const el = window.__spaday.mount(document.body, { tag: "spa-toast" });
+    el.notify({ message: "boom", tone: "danger", timeout: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const toast = el.shadowRoot.querySelector(".toast");
+    const close = toast.querySelector("button");
+    const sticky = {
+      stillUp: !!toast.isConnected,
+      danger: toast.classList.contains("danger"),
+      text: toast.querySelector("span").textContent,
+      closeLabel: close.getAttribute("aria-label"),
+    };
+    close.click();
+    return {
+      sticky,
+      afterClose: el.shadowRoot.querySelectorAll(".toast").length,
+    };
+  });
+  expect(r.sticky).toEqual({
+    stillUp: true,
+    danger: true,
+    text: "boom",
+    closeLabel: "close",
+  });
+  expect(r.afterClose).toBe(0);
+});
+
+test("spa-toast enqueues from a bound message field, reading tone at enqueue time", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ error: "" });
+    const el = mount(
+      document.body,
+      {
+        tag: "spa-toast",
+        props: { tone: { Str: "danger" } },
+        bindings: { message: { field: "error", mode: "one-way" } },
+      },
+      store,
+    );
+    const count = () => el.shadowRoot.querySelectorAll(".toast").length;
+    const initial = count(); // the empty initial field value enqueues nothing
+    store.set("error", "request failed");
+    const toast = el.shadowRoot.querySelector(".toast");
+    return {
+      initial,
+      after: count(),
+      text: toast.textContent,
+      danger: toast.classList.contains("danger"),
+    };
+  });
+  expect(r).toEqual({
+    initial: 0,
+    after: 1,
+    text: "request failed",
+    danger: true,
+  });
+});
+
 test("spa-popup falls back to the last-known pointer position when x/y are not finite", async ({
   page,
 }) => {

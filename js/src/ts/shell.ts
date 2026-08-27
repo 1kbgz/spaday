@@ -24,13 +24,24 @@ const THEME_CSS = `:where(.wa-dark) {
   --spa-surface-2: #1d232b;
   --spa-border: #333b45;
   --spa-muted: #9aa3ad;
+  --spa-info: #5b9dd9;
+  --spa-success: #58a765;
+  --spa-danger: #d9636a;
 }
 :where(.wa-light) {
   --spa-surface: #fff;
   --spa-surface-2: #fafafa;
   --spa-border: #e6e6e6;
   --spa-muted: #666;
+  --spa-info: #1565c0;
+  --spa-success: #2e7d32;
+  --spa-danger: #c62828;
 }`;
+
+// Tone accents for notification surfaces (light defaults; the dark palette overrides above).
+const INFO = "var(--spa-info, #1565c0)";
+const SUCCESS = "var(--spa-success, #2e7d32)";
+const DANGER = "var(--spa-danger, #c62828)";
 
 /** tag → the element's `:host` layout style. Each gets a shadow root with this style + a default slot. */
 const SHELL: Record<string, string> = {
@@ -428,6 +439,85 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-popup")) {
       #undismiss(): void {
         document.removeEventListener("pointerdown", this.#onPointerDown, true);
         document.removeEventListener("keydown", this.#onKeyDown, true);
+      }
+    },
+  );
+}
+
+// Transient notifications (`spa-toast`): a fixed corner stack of notices, the shell's canonical
+// surface for reporting action outcomes (e.g. a `CallEndpoint` failure). Enqueue imperatively via
+// the `notify` method — from Python, `Invoke(by_id("toasts"), "notify", obj({...}))` — or
+// reactively by setting the bindable `message` property (each non-empty write enqueues a toast,
+// with the `tone` property read at enqueue time). A toast auto-dismisses after `timeout` ms
+// (default 5000); `timeout: 0` keeps it until its close button is clicked.
+const TOAST_CSS = `:host{position:fixed;right:1rem;bottom:1rem;z-index:1100;display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;pointer-events:none}
+.toast{display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem;max-width:24rem;border:1px solid ${BORDER};border-left:3px solid ${INFO};border-radius:8px;background:${SURFACE};color:inherit;font-size:.9rem;box-shadow:0 2px 10px rgba(0,0,0,.18);pointer-events:auto}
+.toast.success{border-left-color:${SUCCESS}}
+.toast.danger{border-left-color:${DANGER}}
+.toast button{all:unset;cursor:pointer;color:${MUTED};font-size:1rem;line-height:1;padding:0 .1rem}`;
+
+type ToastTone = "info" | "success" | "danger";
+
+function toastTone(value: unknown): ToastTone {
+  return value === "success" || value === "danger" ? value : "info";
+}
+
+if (typeof customElements !== "undefined" && !customElements.get("spa-toast")) {
+  customElements.define(
+    "spa-toast",
+    class extends HTMLElement {
+      #root: ShadowRoot;
+      #tone: ToastTone = "info";
+
+      constructor() {
+        super();
+        this.#root = this.attachShadow({ mode: "open" });
+        const style = document.createElement("style");
+        style.textContent = TOAST_CSS;
+        this.#root.append(style);
+      }
+
+      get tone(): ToastTone {
+        return this.#tone;
+      }
+
+      set tone(value: unknown) {
+        this.#tone = toastTone(value);
+      }
+
+      // The store-driven pattern: a bound/computed `message` enqueues on every non-empty write
+      // (clearing to ""/null enqueues nothing, so a computed failure message stays quiet on success).
+      get message(): string {
+        return "";
+      }
+
+      set message(value: unknown) {
+        if (value == null || value === "") return;
+        this.notify({ message: value, tone: this.#tone });
+      }
+
+      notify(
+        options: { message?: unknown; tone?: unknown; timeout?: unknown } = {},
+      ): void {
+        const toast = document.createElement("div");
+        toast.className = `toast ${toastTone(options.tone)}`;
+        const text = document.createElement("span");
+        text.textContent =
+          options.message == null ? "" : String(options.message);
+        toast.append(text);
+        const timeout = Number(options.timeout ?? 5000);
+        if (timeout > 0) {
+          setTimeout(() => toast.remove(), timeout);
+        } else {
+          // sticky: stays until its close button is clicked
+          const close = document.createElement("button");
+          close.type = "button";
+          close.setAttribute("aria-label", "close");
+          close.textContent = "×";
+          close.addEventListener("click", () => toast.remove());
+          toast.append(close);
+        }
+        this.#root.append(toast);
       }
     },
   );
