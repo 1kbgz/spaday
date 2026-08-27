@@ -194,6 +194,11 @@ pub enum Action {
         method: String,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         args: Vec<Expr>,
+        /// With `result`, the interpreter awaits an async method and writes the resolved value to
+        /// this signal-store field — and a `Sequence` waits for it before its next step, so
+        /// "save, then persist what was saved" is expressible as data.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        result: Option<String>,
     },
     /// Persist an evaluated value under `key` in the browser's localStorage — strings verbatim,
     /// other values JSON-encoded — e.g. saving a layout so a reload restores it.
@@ -337,6 +342,7 @@ mod tests {
                 args: vec![Expr::EventProp {
                     path: "currentTarget.dataset.tab".into(),
                 }],
+                result: None,
             },
             json!({
                 "kind": "invoke",
@@ -380,6 +386,26 @@ mod tests {
                 "kind": "download",
                 "filename": {"expr": "lit", "value": "layout.json"},
                 "value": {"expr": "call", "target": {"ref": "id", "id": "layout"}, "method": "save"},
+            }),
+        );
+    }
+
+    #[test]
+    fn invoke_with_result_field() {
+        round(
+            &Action::Invoke {
+                target: Ref::Id {
+                    id: "workspace".into(),
+                },
+                method: "saveClean".into(),
+                args: vec![],
+                result: Some("custom_layout".into()),
+            },
+            json!({
+                "kind": "invoke",
+                "target": {"ref": "id", "id": "workspace"},
+                "method": "saveClean",
+                "result": "custom_layout",
             }),
         );
     }

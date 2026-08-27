@@ -210,6 +210,17 @@ save.on("click", SetStorage("my_layout", call(by_id("layout"), "save")))
 export.on("click", Download("layout.json", call(by_id("layout"), "save")))
 ```
 
+An async method composes with `Sequence`: `Invoke` awaits a returned promise (and with `result=`,
+writes the resolved value to a state field first), so "save, then persist what was saved" is plain
+data — while purely synchronous action chains still apply in the same tick:
+
+```python
+save.on("click", Sequence(
+    Invoke(by_id("workspace"), "saveClean", result="custom_layout"),
+    SetStorage("my_layout", field("custom_layout")),
+))
+```
+
 Prefer methods a component's manifest declares — they are part of its public surface. Method names
 are not yet checked against the catalog at authoring time (a mistyped name logs a console error at
 event time); catalog-backed validation is planned alongside CEM method parsing.
