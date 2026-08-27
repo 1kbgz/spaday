@@ -190,6 +190,30 @@ WaButton().text("Cancel").on("click", close_modal(by_id("confirm")))
 Popup and modal contents mount with the page; wrap a heavy subtree in `Show` keyed to a state field
 if it should only mount while open.
 
+## Call component methods and browser side effects
+
+Some interactions are a component *method*, not a prop — a layout's `openPanel(name)`, a viewer's
+`resetView()`. `Invoke` calls a declared method with evaluated arguments, fire-and-forget (an async
+method's rejection is logged, not thrown); the `call` expression is its synchronous, value-returning
+sibling for methods you read from — and both stay data on the wire, with no `eval`:
+
+```python
+from spaday import Download, Invoke, SetStorage, by_id, call, event_prop
+
+# open the tab named by the clicked button's data-tab attribute
+opener.on("click", Invoke(by_id("layout"), "openPanel", event_prop("currentTarget.dataset.tab")))
+
+# persist a layout locally (strings store verbatim, other values JSON-encode)
+save.on("click", SetStorage("my_layout", call(by_id("layout"), "save")))
+
+# or hand it to the user as a file — no server round-trip
+export.on("click", Download("layout.json", call(by_id("layout"), "save")))
+```
+
+Prefer methods a component's manifest declares — they are part of its public surface. Method names
+are not yet checked against the catalog at authoring time (a mistyped name logs a console error at
+event time); catalog-backed validation is planned alongside CEM method parsing.
+
 ## The escape hatch
 
 For the rare irreducible case, `NamedJs("handler")` invokes a JavaScript handler you pre-registered in

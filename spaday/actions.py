@@ -102,6 +102,26 @@ def event_closest(selector: str, path: str = "") -> Expr:
     return _EventClosest(selector, path)
 
 
+class _Call(Expr):
+    def __init__(self, target: "Ref", method: str, *args: Any) -> None:
+        self.target, self.method, self.args = target, method, args
+
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"expr": "call", "target": self.target.to_dict(), "method": self.method}
+        if self.args:
+            out["args"] = [_expr(a).to_dict() for a in self.args]
+        return out
+
+
+def call(target: "Ref", method: str, *args: Any) -> Expr:
+    """The value returned by calling a **synchronous** ``method`` on ``target`` with evaluated
+    ``args`` — e.g. ``call(by_id("layout"), "save")`` reads a layout for persistence, or
+    ``call(by_id("layout"), "calculatePath", "tab")`` as a condition. No ``eval``: the method must
+    exist on the element (component methods are part of its declared surface). Async methods belong
+    in the :class:`Invoke` *action*; an expression must produce a value now."""
+    return _Call(target, method, *args)
+
+
 def not_(of: Any) -> Expr:
     """Boolean negation of an expression (or a literal)."""
     return _Not(of)
@@ -459,6 +479,63 @@ class CallEndpoint(Action):
         url = self.url.to_dict() if isinstance(self.url, Expr) else self.url
         body = _expr(self.body).to_dict() if self.body is not None else None
         return {"kind": "call", "method": self.method, "url": url, "body": body, "result": self.result}
+
+
+class Invoke(Action):
+    """Call ``method`` on ``target`` with evaluated ``args``, discarding the result — the
+    declarative spelling of "press this component's button". An async method's promise is
+    fire-and-forget (a rejection is logged, not thrown)::
+
+        button.on("click", Invoke(by_id("layout"), "openPanel", event_prop("currentTarget.dataset.tab")))
+
+    Prefer a component's declared methods (its CEM documents them); for a synchronous method whose
+    *result* you need, use the :func:`call` expression instead.
+    """
+
+    def __init__(self, target: Ref, method: str, *args: Any) -> None:
+        self.target, self.method, self.args = target, method, args
+
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"kind": "invoke", "target": self.target.to_dict(), "method": self.method}
+        if self.args:
+            out["args"] = [_expr(a).to_dict() for a in self.args]
+        return out
+
+
+class SetStorage(Action):
+    """Persist an evaluated value under ``key`` in the browser's localStorage — strings verbatim,
+    other values JSON-encoded — e.g. saving a layout so a reload restores it::
+
+        WaButton().text("Save").on("click", SetStorage("my_layout", call(by_id("layout"), "save")))
+    """
+
+    def __init__(self, key: str, value: Any) -> None:
+        self.key, self.value = key, value
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"kind": "set-storage", "key": self.key, "value": _expr(self.value).to_dict()}
+
+
+class Download(Action):
+    """Offer an evaluated value to the user as a file download named ``filename`` (a plain string
+    or an expression) — no server round-trip. A string value downloads verbatim; anything else is
+    JSON-encoded. ``content_type`` defaults to application/json::
+
+        WaButton().text("Export").on("click", Download("layout.json", call(by_id("layout"), "save")))
+    """
+
+    def __init__(self, filename: Any, value: Any, content_type: str | None = None) -> None:
+        self.filename, self.value, self.content_type = filename, value, content_type
+
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "kind": "download",
+            "filename": _expr(self.filename).to_dict(),
+            "value": _expr(self.value).to_dict(),
+        }
+        if self.content_type is not None:
+            out["contentType"] = self.content_type
+        return out
 
 
 class NamedJs(Action):

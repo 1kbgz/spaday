@@ -770,3 +770,133 @@ test("event expressions walk a path into a rich CustomEvent detail", async ({
   });
   expect(value).toBe("rows");
 });
+
+test("Invoke calls a component method with evaluated args; call reads a sync result", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    // a stand-in component: one async method (invoke) and one sync method (call)
+    if (!customElements.get("x-panel-host")) {
+      customElements.define(
+        "x-panel-host",
+        class extends HTMLElement {
+          calls = [];
+          async openPanel(name) {
+            this.calls.push(name);
+          }
+          save() {
+            return { layout: "tabs", calls: this.calls.length };
+          }
+        },
+      );
+    }
+    const store = new window.__spaday.Store({ saved: null });
+    const root = window.__spaday.mount(
+      document.body,
+      {
+        tag: "div",
+        slots: {
+          default: [
+            { tag: "x-panel-host", props: { id: { Str: "host" } } },
+            {
+              tag: "button",
+              props: { "data-tab": { Str: "workspace" } },
+              events: {
+                click: {
+                  kind: "seq",
+                  actions: [
+                    {
+                      kind: "invoke",
+                      target: { ref: "id", id: "host" },
+                      method: "openPanel",
+                      args: [
+                        {
+                          expr: "event-prop",
+                          path: "currentTarget.dataset.tab",
+                        },
+                      ],
+                    },
+                    {
+                      kind: "set-field",
+                      field: "saved",
+                      value: {
+                        expr: "call",
+                        target: { ref: "id", id: "host" },
+                        method: "save",
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    root.querySelector("button").click();
+    const host = root.querySelector("x-panel-host");
+    return { calls: host.calls, saved: store.get("saved") };
+  });
+  expect(r.calls).toEqual(["workspace"]); // the evaluated arg reached the method
+  expect(r.saved).toEqual({ layout: "tabs", calls: 1 }); // call captured the sync result
+});
+
+test("SetStorage persists strings verbatim and objects as JSON; Download offers a file", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    localStorage.removeItem("bench-a");
+    localStorage.removeItem("bench-b");
+    // capture the download without navigating: stub createObjectURL and anchor click
+    const downloads = [];
+    const realCreate = URL.createObjectURL;
+    URL.createObjectURL = (blob) => {
+      downloads.push(blob);
+      return "blob:stubbed";
+    };
+    const realClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      downloads.push({ href: this.href, download: this.download });
+    };
+    const btn = window.__spaday.mount(document.body, {
+      tag: "button",
+      events: {
+        click: {
+          kind: "seq",
+          actions: [
+            {
+              kind: "set-storage",
+              key: "bench-a",
+              value: { expr: "lit", value: "plain" },
+            },
+            {
+              kind: "set-storage",
+              key: "bench-b",
+              value: { expr: "lit", value: { n: 1 } },
+            },
+            {
+              kind: "download",
+              filename: { expr: "lit", value: "layout.json" },
+              value: { expr: "lit", value: { layout: "tabs" } },
+            },
+          ],
+        },
+      },
+    });
+    btn.click();
+    URL.createObjectURL = realCreate;
+    HTMLAnchorElement.prototype.click = realClick;
+    const [blob, anchor] = downloads;
+    return {
+      a: localStorage.getItem("bench-a"),
+      b: localStorage.getItem("bench-b"),
+      blobType: blob.type,
+      anchor,
+    };
+  });
+  expect(r.a).toBe("plain"); // strings verbatim
+  expect(JSON.parse(r.b)).toEqual({ n: 1 }); // objects JSON-encoded
+  expect(r.blobType).toBe("application/json");
+  expect(r.anchor).toEqual({ href: "blob:stubbed", download: "layout.json" });
+});
