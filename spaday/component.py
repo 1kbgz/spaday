@@ -13,6 +13,8 @@ the runtime interprets the action in the browser on the DOM event, with no round
 from __future__ import annotations
 
 import json
+import re
+from functools import lru_cache
 from typing import Any, ClassVar, Union
 
 from .actions import Action, Expr
@@ -29,6 +31,23 @@ def _attr_name(name: str) -> str:
     """A Python kwarg → its attribute name: drop one trailing underscore so reserved words work
     (``class_`` → ``class``, ``for_`` → ``for``)."""
     return name.removesuffix("_")
+
+
+def _snake_name(name: str) -> str:
+    """A camelCase prop name → its snake_case spelling (``maxLabelWidth`` → ``max_label_width``)."""
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", "_", name).lower()
+
+
+@lru_cache(maxsize=None)
+def _prop_aliases(schema: ComponentSchema) -> dict[str, str]:
+    """snake_case spelling → canonical prop name, for schema props where the two spellings differ."""
+    names = {prop.name for prop in schema.props}
+    aliases: dict[str, str] = {}
+    for prop in schema.props:
+        snake = _snake_name(prop.name)
+        if snake != prop.name and snake not in names:
+            aliases.setdefault(snake, prop.name)
+    return aliases
 
 
 def _tag(value: Any) -> Any:
@@ -88,7 +107,17 @@ class Component:
     def __init__(self, *children: Child, key: str | None = None, props: dict[str, Any] | None = None, **attrs: Any) -> None:
         self._key = key
         merged = dict(props or {})  # typed props (from a subclass) + generic keyword props (id, style, …)
-        merged.update({_attr_name(k): v for k, v in attrs.items()})
+        generic = {_attr_name(k): v for k, v in attrs.items()}
+        if type(self).schema is not None and generic:
+            # a schema-carrying class also accepts the snake_case spelling of each camelCase prop
+            # (`max_label_width=` lands as prop `maxLabelWidth`); both spellings at once is ambiguous
+            aliases = _prop_aliases(type(self).schema)
+            for name in [n for n in generic if n in aliases and generic[n] is not None]:
+                canonical = aliases[name]
+                if generic.get(canonical) is not None or merged.get(canonical) is not None:
+                    raise TypeError(f"<{self.tag}> prop {canonical!r} passed under both spellings ({name!r} and {canonical!r})")
+                generic[canonical] = generic.pop(name)
+        merged.update(generic)
         self._props: dict[str, Any] = {k: v for k, v in merged.items() if v is not None}
         if type(self).schema is not None:
             self._check_prop_kinds()

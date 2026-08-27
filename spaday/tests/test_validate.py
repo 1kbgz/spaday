@@ -3,6 +3,8 @@ import pytest
 import spaday
 from spaday import (
     CallEndpoint,
+    Component,
+    ComponentSchema,
     Emit,
     If,
     Sequence,
@@ -16,6 +18,19 @@ from spaday import (
     this,
     validate,
 )
+
+
+class Dagre(Component):
+    """A stand-in for a CEM-generated component: carries a catalog schema."""
+
+    tag = "spa-dagre"
+    schema = ComponentSchema.from_cem(
+        {
+            "tag_name": "spa-dagre",
+            "class_name": "Dagre",
+            "props": [{"name": "maxLabelWidth", "ty": "Number"}, {"name": "layout", "ty": "Str"}],
+        }
+    )
 
 
 def test_resolved_by_id_passes():
@@ -70,6 +85,34 @@ def test_validate_accepts_a_serialized_node_dict():
     node = element("button").on("click", Toggle(by_id("x"), "hidden")).to_node()
     with pytest.raises(ValidationError):
         validate(node)
+
+
+def test_unknown_prop_on_a_schema_component_raises_with_a_snake_case_hint():
+    tree = element("div").child(Dagre().prop("max_label_width", 180))
+    with pytest.raises(ValidationError) as exc:
+        validate(tree)
+    assert "<spa-dagre> unknown prop 'max_label_width' (did you mean 'maxLabelWidth'?)" in str(exc.value)
+
+
+def test_unknown_binding_without_a_snake_case_match_gets_no_hint():
+    with pytest.raises(ValidationError) as exc:
+        validate(Dagre().bind("maxLabelWdith", "width"))
+    msg = str(exc.value)
+    assert "<spa-dagre> unknown prop 'maxLabelWdith'" in msg
+    assert "did you mean" not in msg
+
+
+def test_schema_props_globals_and_schema_free_nodes_pass_the_prop_check():
+    validate(Dagre(maxLabelWidth=180, id="graph", class_="card").prop("data-x", "1").prop("aria-label", "graph"))
+    validate(Dagre().bind("layout", "layout_field").compute("textContent", spaday.field("title")))
+    validate(element("div", max_label_width=1))  # element() carries no schema — stays unvalidated
+    # two-way bindings target live form-control properties a manifest routinely omits — unchecked
+    validate(Dagre().bind("value", "selection", mode="two-way"))
+
+
+def test_serialized_dict_trees_skip_the_prop_check():
+    # a plain node dict no longer knows its schema, so only by_id resolution runs on it
+    validate(Dagre().prop("mystery", 1).to_node())
 
 
 def test_exported_from_package():

@@ -139,6 +139,59 @@ def test_prop_kind_validation_covers_number_and_leaves_json_dynamic():
     assert element("div", count="3").to_node()["props"]["count"] == {"Str": "3"}
 
 
+def _camel_demo() -> type[Component]:
+    class Demo(Component):
+        tag = "demo-graph"
+        schema = ComponentSchema.from_cem(
+            {
+                "tag_name": "demo-graph",
+                "class_name": "DemoGraph",
+                "props": [{"name": "maxLabelWidth", "ty": "Number"}, {"name": "size", "ty": "Str"}],
+            }
+        )
+
+    return Demo
+
+
+def test_schema_component_accepts_snake_case_prop_aliases():
+    Demo = _camel_demo()
+    # the snake_case spelling normalizes to the canonical CEM name instead of inventing a new prop
+    assert Demo(max_label_width=180).to_node()["props"] == {"maxLabelWidth": {"Int": 180}}
+    # the canonical spelling still works; names whose spellings coincide need no alias
+    assert Demo(maxLabelWidth=180).to_node()["props"] == {"maxLabelWidth": {"Int": 180}}
+    assert Demo(size="s").to_node()["props"] == {"size": {"Str": "s"}}
+    # an aliased value is kind-checked under the canonical name
+    with pytest.raises(TypeError, match=r"<demo-graph> prop 'maxLabelWidth' expects kind 'number'"):
+        Demo(max_label_width="wide")
+
+
+def test_schema_component_rejects_both_prop_spellings_at_once():
+    Demo = _camel_demo()
+    with pytest.raises(TypeError, match=r"<demo-graph> prop 'maxLabelWidth' passed under both spellings"):
+        Demo(maxLabelWidth=100, max_label_width=180)
+    # an explicit None means "unset", so it doesn't count as the other spelling
+    assert Demo(maxLabelWidth=None, max_label_width=180).to_node()["props"] == {"maxLabelWidth": {"Int": 180}}
+
+
+def test_generated_module_aliases_snake_case_kwargs():
+    # the aliasing lives in the shared Component base, so generated module text is unchanged —
+    # a class exec'd from rendered code picks it up with no regeneration
+    from spaday.cem import render
+
+    ns: dict = {}
+    exec(render([{"tag_name": "x-graph", "class_name": "XGraph", "props": [{"name": "maxLabelWidth", "ty": "Number"}]}]), ns)  # noqa: S102
+    assert ns["XGraph"](max_label_width=180).to_node()["props"]["maxLabelWidth"] == {"Int": 180}
+    with pytest.raises(TypeError, match="both spellings"):
+        ns["XGraph"](maxLabelWidth=100, max_label_width=180)
+
+
+def test_schema_free_components_keep_snake_case_props_verbatim():
+    from spaday import element
+
+    # element() carries no schema: arbitrary attribute names pass through untouched
+    assert element("div", max_label_width=1).to_node()["props"] == {"max_label_width": {"Int": 1}}
+
+
 def test_typed_signatures_rendered():
     code = generate(FIXTURE)
     assert 'size: Literal["small", "medium", "large"] | None = None' in code

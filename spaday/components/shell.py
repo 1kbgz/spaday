@@ -41,6 +41,7 @@ __all__ = [
     "Switch",
     "Stack",
     "Table",
+    "Toast",
     "Toolbar",
 ]
 
@@ -308,6 +309,33 @@ class Lazy(Component):
             if not isinstance(when, Expr):
                 raise TypeError(f"Lazy when must be an Expr, got {type(when).__name__}")
             self._bindings["when"] = {"compute": when.to_dict(), "mode": "one-way"}
+
+
+class Toast(Component):
+    """Transient corner notifications (``spa-toast``) — the shell's surface for reporting action
+    outcomes, most usefully failures.
+
+    Notices stack in the viewport corner with a tone accent (``"info"`` / ``"success"`` /
+    ``"danger"``) and auto-dismiss after ``timeout`` ms (default 5000; ``0`` keeps a toast until its
+    close × is clicked). Trigger one two ways. Imperatively, :class:`~spaday.actions.Invoke` the
+    element's ``notify`` method from any action chain::
+
+        toasts = Toast(id="toasts")
+        save.on("click", Invoke(by_id("toasts"), "notify", obj({"message": lit("Saved"), "tone": lit("success")})))
+
+    Reactively, drive the bindable ``message`` prop from state — every non-empty write enqueues a
+    toast, with the optional ``tone`` prop read at enqueue time (an empty message enqueues nothing).
+    This is the canonical way to surface a ``CallEndpoint`` failure from its ``result=`` field::
+
+        toasts = Toast(tone="danger", id="toasts")
+        submit.on("click", CallEndpoint("POST", "/api/thing", body=..., result="submit_result"))
+        # surface failures from the result field …
+        toasts.compute("message", cond(field("submit_result.ok"), lit(""), field("submit_result.body")))
+        # … or drive any reactive fallback UI from the same field
+        page.add(Show(..., when=not_(field("submit_result.ok"))))
+    """
+
+    tag = "spa-toast"
 
 
 class Show(Component):
