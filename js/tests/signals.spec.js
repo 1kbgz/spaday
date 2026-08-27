@@ -570,3 +570,43 @@ test("a binding to a dotted path reacts to nested state, two-way", async ({
   expect(result.initial).toBe("Main");
   expect(result.stored).toBe("Oak");
 });
+
+test("an arr expr composes a list from sub-expressions reactively", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    // a probe element with a real `selected` property, so the list lands unstringified
+    customElements.define(
+      "arr-probe",
+      class extends HTMLElement {
+        selected = null;
+      },
+    );
+    const store = new Store({ path: "a/b" });
+    const root = mount(
+      document.createElement("div"),
+      {
+        tag: "arr-probe",
+        bindings: {
+          selected: {
+            compute: {
+              expr: "arr",
+              of: [
+                { expr: "field", name: "path" },
+                { expr: "lit", value: "pinned" },
+              ],
+            },
+            mode: "one-way",
+          },
+        },
+      },
+      store,
+    );
+    const initial = root.selected;
+    store.set("path", "c/d");
+    return { initial, after: root.selected };
+  });
+  expect(result.initial).toEqual(["a/b", "pinned"]);
+  expect(result.after).toEqual(["c/d", "pinned"]);
+});
