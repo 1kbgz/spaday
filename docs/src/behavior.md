@@ -159,6 +159,55 @@ control→model edit declaratively. Reach for `SendPatch` for an imperative edit
 isn't a simple control value. When several models share a page, a `SendPatch("ns", field, value)` is
 routed into the `ns`-namespaced store (see [transports](transports.md)).
 
+## Route, defer, and refresh subtrees
+
+`Show` mounts one branch on one condition. When a page is really *routing* — one selected value, many
+branches — use `Switch`: it keys a store field to named cases, and the runtime indexes straight to
+the matching branch instead of evaluating a predicate per candidate:
+
+```python
+from spaday.components.shell import Switch
+
+Switch("selected", {"a/b": card_ab, "c/d": card_cd}, default=placeholder)
+```
+
+Cases mount and unmount like `Show` branches (real elements, not hidden ones); an unmatched value
+falls back to `default=`, or renders nothing without one.
+
+A big page doesn't have to ship every branch up front. `Lazy` serializes a placeholder and a `src`
+URL; the real subtree (a component-tree JSON document, e.g. from `to_node()`) is fetched the first
+time the branch activates — on mount, or when its `when=` condition first turns truthy — and cached
+by `src` from then on:
+
+```python
+from spaday import element, eq, field
+from spaday.components.shell import Lazy, Switch
+
+Switch("selected", {
+    path: Lazy(element("em", "loading…"), src=f"/card/{path}", when=eq(field("selected"), path))
+    for path in paths
+}, default=placeholder)
+```
+
+The initial `tree.json` then carries one placeholder per branch instead of the branch itself — for a
+catalog of hundreds of server-rendered detail cards, that is the difference between kilobytes and
+megabytes on first paint.
+
+Finally, `RefreshTree` covers "server state changed, re-render" for apps that don't need a live wire:
+it re-fetches the page's `tree.json` (or an explicit `url=`) and diffs it into the mounted tree with
+the core's patch machinery, so unchanged nodes keep their identity and client state. Actions in a
+`Sequence` are awaited in order — `CallEndpoint` resolves before the next action runs — so mutate-
+then-refresh is one chain:
+
+```python
+from spaday import CallEndpoint, RefreshTree, Sequence
+
+WaButton().text("Materialize").on("click", Sequence(
+    CallEndpoint("POST", "/materialize", result="mat"),
+    RefreshTree(),
+))
+```
+
 ## Context menus and modals
 
 A context menu is a `Popup` — a floating shell surface that renders nothing while closed, places its
