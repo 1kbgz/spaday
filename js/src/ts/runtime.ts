@@ -83,6 +83,7 @@ export function trackRoot(
 
 export async function refreshRoots(url?: string): Promise<void> {
   const { diff } = await import("../../dist/pkg/spaday");
+  lazyCache.clear(); // server state changed: cached lazy bodies are stale
   for (const tracked of trackedRoots) {
     const source = url ?? tracked.src;
     if (!source) continue;
@@ -95,6 +96,12 @@ export async function refreshRoots(url?: string): Promise<void> {
     ) as { ops: Op[] };
     tracked.root = applyPatch(tracked.root, patch, tracked.store);
     tracked.node = next;
+    // mounted lazy bodies live at their own URLs, which the tree diff can't see — refetch
+    // them (the reloader swaps the body only if the payload actually changed)
+    for (const el of tracked.root.querySelectorAll("spa-lazy"))
+      lazyReloaders.get(el)?.();
+    if (tracked.root.tagName.toLowerCase() === "spa-lazy")
+      lazyReloaders.get(tracked.root)?.();
   }
 }
 
@@ -105,7 +112,12 @@ export function applyPatch(
   scope?: Scope,
 ): Element {
   let current = root;
-  for (const op of patch.ops) current = applyOp(current, op, store, scope);
+  const refreshed = new Set<Element>();
+  for (const op of patch.ops)
+    current = applyOp(current, op, store, scope, refreshed);
+  // structural elements whose stored definitions changed re-wire once, after all ops landed
+  for (const el of refreshed)
+    if (el.isConnected) refreshStructural(el, store, scope);
   return current;
 }
 
@@ -202,6 +214,9 @@ function unbindEvent(el: Element, name: string): void {
 // subscribes the prop to its state field; a two-way binding also writes the field when the control changes.
 const bindings = new WeakMap<Element, Map<string, () => void>>();
 const structuralNodes = new WeakMap<Element, Node>();
+// `refreshRoots` re-fetches lazy bodies too (server state changed): each spa-lazy registers a
+// reloader that refetches its src and swaps the mounted body only when the payload changed.
+const lazyReloaders = new WeakMap<Element, () => void>();
 const VALUE_EVENTS = ["change", "input", "wa-tab-show"]; // a control writes its bound field on these (wa-tab-show: a wa-tab-group's active tab changed)
 
 function readProp(el: Element, name: string): unknown {
@@ -410,6 +425,7 @@ function wireLazy(el: Element, node: Node, store?: Store, scope?: Scope): void {
   let mounted: Element[] = [];
   let loaded = false;
   let disposed = false;
+  let lastBodyJson: string | null = null;
   const clear = (): void => {
     for (const child of mounted) {
       teardownTree(child);
@@ -438,6 +454,9 @@ function wireLazy(el: Element, node: Node, store?: Store, scope?: Scope): void {
     promise
       .then((body) => {
         if (disposed) return;
+        const json = JSON.stringify(body);
+        if (json === lastBodyJson) return; // a reload with an unchanged payload is a no-op
+        lastBodyJson = json;
         clear();
         const built = build(body, store, scope);
         el.appendChild(built);
@@ -449,6 +468,12 @@ function wireLazy(el: Element, node: Node, store?: Store, scope?: Scope): void {
         console.error("spa-lazy: failed to load", src, error);
       });
   };
+  // `refreshRoots` refetches an already-loaded body (its cache entry was just invalidated)
+  lazyReloaders.set(el, () => {
+    if (disposed || !loaded) return;
+    loaded = false;
+    activate();
+  });
   const subs: (() => void)[] = [];
   if (!cond) {
     activate();
@@ -1006,7 +1031,104 @@ function resolve(root: Element, path: Path): Element {
   return el;
 }
 
-function applyOp(root: Element, op: Op, store?: Store, scope?: Scope): Element {
+const STRUCTURAL_BINDING: Record<string, string> = {
+  "spa-show": "when",
+  "spa-each": "items",
+  "spa-switch": "on",
+  "spa-lazy": "when",
+};
+
+/** Re-wire a structural element from its (mutated) stored definition. A structural element's
+ * subtrees live in its wiring closures, not the DOM, so a tree patch that changes anything at or
+ * below its slots updates the definition and re-wires — the mounted branch rebuilds from the new
+ * definition, and non-mounted branches (a Switch's other cases) pick it up on their next mount. */
+function refreshStructural(el: Element, store?: Store, scope?: Scope): void {
+  const node = structuralNodes.get(el);
+  const name = node && STRUCTURAL_BINDING[node.tag];
+  if (!node || !name) return;
+  unwireBinding(el, name); // tears down the mounted branch and its subscriptions
+  if (node.tag === "spa-show") wireShow(el, node, store, scope);
+  else if (node.tag === "spa-switch") wireSwitch(el, node, store, scope);
+  else if (node.tag === "spa-lazy") wireLazy(el, node, store, scope);
+  else wireEach(el, node, store, scope);
+}
+
+function opPath(op: Op): Path {
+  return (Object.values(op)[0] as { path: Path }).path;
+}
+
+/** Walk `path` from `root`; if it enters a structural element's slots (or is a child op targeting
+ * one), the definition owns that subtree — return the element and the remaining path within it. */
+function structuralBoundary(
+  root: Element,
+  op: Op,
+): { el: Element; node: Node; rest: Path } | null {
+  const path = opPath(op);
+  let el: Element = root;
+  for (let i = 0; i < path.length; i++) {
+    const node = structuralNodes.get(el);
+    if (node) return { el, node, rest: path.slice(i) };
+    el = childrenInSlot(el, path[i].slot)[path[i].index];
+    if (!el) return null;
+  }
+  // a child op's payload addresses the resolved element's slots; for a structural element those
+  // are definition slots, not DOM children
+  if ("InsertChild" in op || "RemoveChild" in op || "MoveChild" in op) {
+    const node = structuralNodes.get(el);
+    if (node) return { el, node, rest: [] };
+  }
+  return null;
+}
+
+/** Apply one patch op to a serialized definition subtree instead of the DOM. */
+function applyOpToDefinition(node: Node, rest: Path, op: Op): void {
+  const parentDepth = "Replace" in op ? rest.length - 1 : rest.length;
+  for (let i = 0; i < parentDepth; i++)
+    node = node.slots![rest[i].slot]![rest[i].index]; // paths come from a diff of this very tree
+  if ("SetProp" in op) (node.props ??= {})[op.SetProp.name] = op.SetProp.value;
+  else if ("RemoveProp" in op) delete node.props?.[op.RemoveProp.name];
+  else if ("SetEvent" in op)
+    (node.events ??= {})[op.SetEvent.name] = op.SetEvent.action;
+  else if ("RemoveEvent" in op) delete node.events?.[op.RemoveEvent.name];
+  else if ("SetBinding" in op)
+    (node.bindings ??= {})[op.SetBinding.name] = op.SetBinding.binding;
+  else if ("RemoveBinding" in op) delete node.bindings?.[op.RemoveBinding.name];
+  else if ("SetKey" in op) {
+    if (op.SetKey.key === null) delete node.key;
+    else node.key = op.SetKey.key;
+  } else if ("InsertChild" in op)
+    ((node.slots ??= {})[op.InsertChild.slot] ??= []).splice(
+      op.InsertChild.index,
+      0,
+      op.InsertChild.node,
+    );
+  else if ("RemoveChild" in op)
+    node.slots?.[op.RemoveChild.slot]?.splice(op.RemoveChild.index, 1);
+  else if ("MoveChild" in op) {
+    const children = node.slots?.[op.MoveChild.slot];
+    if (children) {
+      const [moving] = children.splice(op.MoveChild.from, 1);
+      children.splice(op.MoveChild.to, 0, moving);
+    }
+  } else if ("Replace" in op) {
+    const last = rest[rest.length - 1];
+    node.slots![last.slot]![last.index] = op.Replace.node;
+  }
+}
+
+function applyOp(
+  root: Element,
+  op: Op,
+  store?: Store,
+  scope?: Scope,
+  refreshed?: Set<Element>,
+): Element {
+  const boundary = structuralBoundary(root, op);
+  if (boundary) {
+    applyOpToDefinition(boundary.node, boundary.rest, op);
+    refreshed?.add(boundary.el);
+    return root;
+  }
   if ("SetProp" in op) {
     setProp(
       resolve(root, op.SetProp.path),

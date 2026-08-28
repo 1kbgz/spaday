@@ -195,7 +195,10 @@ megabytes on first paint.
 
 Finally, `RefreshTree` covers "server state changed, re-render" for apps that don't need a live wire:
 it re-fetches the page's `tree.json` (or an explicit `url=`) and diffs it into the mounted tree with
-the core's patch machinery, so unchanged nodes keep their identity and client state. Actions in a
+the core's patch machinery, so unchanged nodes keep their identity and client state. The diff
+descends into structural bindings: a changed branch inside a `Show`/`Switch` re-renders (including
+the stored bodies of a `Switch`'s non-mounted cases), and every loaded `Lazy` body is re-fetched
+from its `src` — swapped only if the payload actually changed. Actions in a
 `Sequence` are awaited in order — `CallEndpoint` resolves before the next action runs — so mutate-
 then-refresh is one chain:
 
@@ -319,6 +322,8 @@ spelling of each camelCase CEM prop and normalizes it to the canonical name —
 `spaday.validate` checks every node that still knows its catalog schema for unknown prop and binding
 names: a typo raises a `ValidationError` naming the tag and prop, with a "did you mean" hint when the
 unknown name is the snake_case spelling of a real prop. Generic globals (`id`, `class`, `style`,
-`slot`, `data-*` / `aria-*`, …) always pass; nodes without a schema — `element(...)` escape hatches
-and serialized dict trees — stay unvalidated, as do two-way binding names, which target live
-form-control properties a manifest routinely omits.
+`slot`, `data-*` / `aria-*`, …) always pass. On a serialized dict tree, schemas resolve by tag
+instead — every schema-carrying class that has been imported registers its tag — so
+`validate(component.to_node())` checks the same props as `validate(component)`. Nodes with no
+schema either way (`element(...)` escape hatches) stay unvalidated, as do two-way binding names,
+which target live form-control properties a manifest routinely omits.

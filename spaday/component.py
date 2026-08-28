@@ -38,6 +38,10 @@ def _snake_name(name: str) -> str:
     return re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", "_", name).lower()
 
 
+#: tag -> schema for every imported schema-carrying class (validate uses it for dict trees)
+_SCHEMAS_BY_TAG: dict[str, ComponentSchema] = {}
+
+
 @lru_cache(maxsize=None)
 def _prop_aliases(schema: ComponentSchema) -> dict[str, str]:
     """snake_case spelling → canonical prop name, for schema props where the two spellings differ."""
@@ -103,6 +107,13 @@ class Component:
 
     tag: str = ""
     schema: ClassVar[ComponentSchema | None] = None
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        # schema-carrying classes register by tag, so `validate` can check props on serialized
+        # dict trees too (a node dict carries no schema of its own)
+        if cls.schema is not None and cls.tag:
+            _SCHEMAS_BY_TAG[cls.tag] = cls.schema
 
     def __init__(self, *children: Child, key: str | None = None, props: dict[str, Any] | None = None, **attrs: Any) -> None:
         self._key = key

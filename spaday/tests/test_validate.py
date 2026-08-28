@@ -110,9 +110,29 @@ def test_schema_props_globals_and_schema_free_nodes_pass_the_prop_check():
     validate(Dagre().bind("value", "selection", mode="two-way"))
 
 
-def test_serialized_dict_trees_skip_the_prop_check():
-    # a plain node dict no longer knows its schema, so only by_id resolution runs on it
-    validate(Dagre().prop("mystery", 1).to_node())
+def test_serialized_dict_trees_resolve_schemas_by_tag():
+    # a plain node dict carries no schema, but every imported schema-carrying class registered its
+    # tag — so the dict form checks the same props as the Component form
+    with pytest.raises(ValidationError) as excinfo:
+        validate(Dagre().prop("mystery", 1).to_node())
+    assert "<spa-dagre> unknown prop 'mystery'" in str(excinfo.value)
+
+
+def test_dict_trees_get_the_snake_case_hint_and_two_way_exemption():
+    with pytest.raises(ValidationError) as excinfo:
+        validate({"tag": "div", "slots": {"default": [{"tag": "spa-dagre", "props": {"max_label_width": {"Int": 1}}}]}})
+    assert "did you mean 'maxLabelWidth'?" in str(excinfo.value)
+    # two-way bindings and unknown tags stay unchecked, as in the Component form
+    validate({"tag": "spa-dagre", "bindings": {"value": {"field": "selection", "mode": "two-way"}}})
+    validate({"tag": "not-a-registered-tag", "props": {"mystery": {"Int": 1}}})
+    # globals and data-*/aria-* pass in the dict form too
+    validate({"tag": "spa-dagre", "props": {"id": {"Str": "g"}, "data-x": {"Str": "1"}}})
+
+
+def test_a_dict_child_nested_in_a_component_is_checked():
+    with pytest.raises(ValidationError) as excinfo:
+        validate(element("div").child(Dagre().to_node() | {"props": {"mystery": {"Int": 1}}}))
+    assert "<spa-dagre> unknown prop 'mystery'" in str(excinfo.value)
 
 
 def test_exported_from_package():

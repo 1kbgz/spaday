@@ -333,6 +333,12 @@ class Toast(Component):
         toasts.compute("message", cond(field("submit_result.ok"), lit(""), field("submit_result.body")))
         # … or drive any reactive fallback UI from the same field
         page.add(Show(..., when=not_(field("submit_result.ok"))))
+
+    **Testing note**: notices render in the element's *shadow root*, so ``innerText``/``textContent``
+    on ``<spa-toast>`` are ``""`` even while toasts are visible — assert via
+    ``el.shadowRoot.querySelectorAll(".toast")`` (the same pattern as ``spaday-tree`` rows). And the
+    ``message`` prop is *cleared after each enqueue* (so the same text can re-notify), so reading it
+    back is not a way to assert what was shown.
     """
 
     tag = "spa-toast"
