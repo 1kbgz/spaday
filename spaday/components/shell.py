@@ -284,9 +284,11 @@ class Lazy(Component):
     initial tree at all.
 
     ``src`` must return a serialized component (``tree_json(element(...))`` — any node JSON). The
-    body is fetched once per URL and cached for the page. Without ``when``/``field`` the fetch
-    happens on mount; with a condition it happens when the condition first turns truthy. Children
-    are the placeholder shown until the body arrives::
+    body is fetched once per URL and cached for the page; :class:`~spaday.actions.RefreshTree`
+    re-fetches every loaded body from its ``src`` and swaps it only if it changed, so "defer big
+    subtrees with ``Lazy``, refresh them with ``RefreshTree``" keeps deferred content current.
+    Without ``when``/``field`` the fetch happens on mount; with a condition it happens when the
+    condition first turns truthy. Children are the placeholder shown until the body arrives::
 
         Lazy(Paragraph("Loading…"), src=f"/card/{path}", when=eq(field("selected"), path))
     """
