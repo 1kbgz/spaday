@@ -248,8 +248,19 @@ function wireBinding(
   const apply = bindingApply(el, prop);
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads
-    // changes. One-way by nature — there is nothing to write back.
-    const recompute = () => apply(evalExpr(spec.compute, store, scope));
+    // changes. One-way by nature — there is nothing to write back. One settled state change can notify
+    // several of the fields the expression reads (an object write notifies the field and each changed
+    // sub-path); skip the write when the recomputed value is unchanged, so effectful props (e.g. a
+    // toast queue's message) see one write per real change, not one per notification.
+    let last: unknown;
+    let wrote = false;
+    const recompute = () => {
+      const value = evalExpr(spec.compute, store, scope);
+      if (wrote && Object.is(value, last)) return;
+      last = value;
+      wrote = true;
+      apply(value);
+    };
     recompute(); // initial value
     if (store)
       for (const field of exprFields(spec.compute)) {
