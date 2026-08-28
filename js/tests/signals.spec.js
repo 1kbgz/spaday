@@ -201,6 +201,67 @@ test("a computed binding derives a prop from fields and recomputes reactively", 
   expect(result.after).toEqual({ disabled: true, hidden: true }); // recomputed when the fields changed
 });
 
+test("a computed binding writes once per settled change, not once per dependency notification", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ action_result: null });
+    // The toast pattern: one endpoint-result object, a message expression reading three of
+    // its paths. A single settled write notifies each subscribed path, but an effectful
+    // prop (spa-toast's message enqueues per non-empty write) must see one write.
+    const el = mount(
+      document.body,
+      {
+        tag: "spa-toast",
+        bindings: {
+          message: {
+            compute: {
+              expr: "cond",
+              test: {
+                expr: "all",
+                of: [
+                  { expr: "field", name: "action_result" },
+                  {
+                    expr: "not",
+                    of: { expr: "field", name: "action_result.ok" },
+                  },
+                ],
+              },
+              then: {
+                expr: "concat",
+                parts: [
+                  { expr: "lit", value: "Request failed: " },
+                  { expr: "field", name: "action_result.status" },
+                ],
+              },
+              else: { expr: "lit", value: "" },
+            },
+            mode: "one-way",
+          },
+        },
+      },
+      store,
+    );
+    const toasts = () =>
+      [...el.shadowRoot.querySelectorAll(".toast")].map((t) => t.textContent);
+    store.set("action_result", { ok: false, status: 500, body: "boom" });
+    const afterFailure = toasts();
+    store.set("action_result", { ok: true, status: 200, body: "fine" });
+    const afterSuccess = toasts(); // message cleared to "": enqueues nothing
+    store.set("action_result", { ok: false, status: 502, body: "bad gateway" });
+    return { afterFailure, afterSuccess, afterSecondFailure: toasts() };
+  });
+  // one settled change notified three dependencies but enqueued exactly one toast
+  expect(result.afterFailure).toEqual(["Request failed: 500"]);
+  expect(result.afterSuccess).toEqual(["Request failed: 500"]);
+  // a value that genuinely changes back writes again
+  expect(result.afterSecondFailure).toEqual([
+    "Request failed: 500",
+    "Request failed: 502",
+  ]);
+});
+
 test("a cond expr selects between two values by a field, reactively", async ({
   page,
 }) => {
