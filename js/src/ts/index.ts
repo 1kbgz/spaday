@@ -54,6 +54,9 @@ export type { Binding, Node } from "./runtime";
 export { Scope, Store } from "./signals";
 export type { Field } from "./signals";
 
+// URL channel: store fields bound to query parameters (deep links, back/forward).
+export { bindUrl } from "./url";
+
 // The transports seam: bidirectionally sync a Store with a transports-mirrored model. Imports nothing
 // from transports — it speaks to the Client through the ModelClient interface (spaday's view of the wire).
 export { connectStore } from "./store-sync";

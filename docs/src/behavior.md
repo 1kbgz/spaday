@@ -172,7 +172,9 @@ Switch("selected", {"a/b": card_ab, "c/d": card_cd}, default=placeholder)
 ```
 
 Cases mount and unmount like `Show` branches (real elements, not hidden ones); an unmatched value
-falls back to `default=`, or renders nothing without one.
+falls back to `default=`, or renders nothing without one. Bind the field to the URL —
+`serve(page, url={"selected": "model"})`, see [Serving](serving.md) — and the `Switch` is a router:
+`/?model=a%2Fb` opens that case, selecting pushes a history entry, and back/forward work.
 
 A big page doesn't have to ship every branch up front. `Lazy` serializes a placeholder and a `src`
 URL; the real subtree (a component-tree JSON document, e.g. from `to_node()`) is fetched the first

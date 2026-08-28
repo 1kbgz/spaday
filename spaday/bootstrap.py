@@ -236,13 +236,15 @@ def _script(
     target: str | None = None,
     layout: AssetLayout | None = None,
     persist: dict[str, str] | None = None,
+    url: dict[str, str] | None = None,
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
     to transports. ``wire="transports"`` mirrors ONE model into the store (Store + Client + connectStore);
     a ``wire=[{…}, …]`` LIST mirrors SEVERAL models into one store, each under its own namespace (see
     :func:`_wire_block`), with one ``spaday:patch`` sink routing :class:`~spaday.actions.SendPatch` intents
     into the store. ``store`` seeds local signal state even without a wire; ``persist`` (field ->
-    localStorage key) overrides a field's seed with its persisted value at boot and stores later writes.
+    localStorage key) overrides a field's seed with its persisted value at boot and stores later writes;
+    ``url`` (field -> query parameter) does the same against the page URL, with history entries.
     Mounts into ``target`` (a CSS selector) when given, else ``document.body``. (``ws``/``reconnect``/
     ``tree="frame"`` apply to the single-model string form only; a wire list carries each spec's own url
     and uses a snapshot per socket.)"""
@@ -263,12 +265,16 @@ def _script(
         f_js, k_js = json.dumps(str(field_name)), json.dumps(str(storage_key))
         store_lines.append(f"try {{ const v = localStorage.getItem({k_js}); if (v !== null) store.set({f_js}, JSON.parse(v)); }} catch {{}}")
         store_lines.append(f"store.subscribe({f_js}, (v) => {{ try {{ localStorage.setItem({k_js}, JSON.stringify(v)); }} catch {{}} }});")
+    # `url` seeds after `persist`: a deep link beats a remembered preference
+    if url:
+        store_lines.append(f"bindUrl(store, {json.dumps({str(k): str(v) for k, v in url.items()})});")
     # the refresh action's re-fetch source: the plain-JSON tree URL; a frame-wired page has no
     # JSON url, so `Refresh` there requires an explicit url
     tree_url = '""' if frame else json.dumps(f"{base}/tree.json")
     runtime_names = (
         ["mount", "init", "trackRoot"]
-        + (["Store"] if (wired or store or persist) else [])
+        + (["Store"] if (wired or store or persist or url) else [])
+        + (["bindUrl"] if url else [])
         + (["connectStore"] if wired else [])
         + (["decodeFrame"] if frame else [])
     )
@@ -329,7 +335,7 @@ def _script(
             "event.detail.value));"
         )
         lines.append(f"trackRoot(mount({into}, node, store), node, {tree_url}, store);")
-    elif store or persist:  # local reactive state (bindings/actions read it), no server wire
+    elif store or persist or url:  # local reactive state (bindings/actions read it), no server wire
         lines.extend([*store_lines, f"trackRoot(mount({into}, node, store), node, {tree_url}, store);"])
     else:
         lines.append(f"trackRoot(mount({into}, node), node, {tree_url});")
@@ -355,13 +361,19 @@ def bootstrap(
     nonce: str | None = None,
     layout: AssetLayout | None = None,
     persist: dict[str, str] | None = None,
+    url: dict[str, str] | None = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
     (reactive UI state for two-way bindings + ``field`` actions) even without a ``wire``. ``persist`` maps
     store fields to localStorage keys: a persisted value overrides the field's seed at boot (before the
     tree mounts) and every later write to the field is stored, so per-browser preferences (a theme toggle,
-    a chosen view) survive reloads.
+    a chosen view) survive reloads. ``url`` maps store fields to query parameters the same way, against
+    the page URL: a parameter seeds its field at boot (after ``persist`` — a deep link beats a remembered
+    preference), every later change pushes a history entry, and back/forward write the field back — so
+    what the user is looking at is linkable, bookmarkable, and survives a reload, and a ``Switch`` on a
+    bound field is a router. Strings ride the URL verbatim; a field seeded with another type JSON-encodes
+    and reads back as JSON; ``None``/``""`` clears the parameter.
 
     ``wire="transports"`` mirrors one model into the store over a websocket; ``wire=[{"url": …,
     "namespace": …, "session": …}, …]`` mirrors **several** models into one store, each namespaced so their
@@ -383,7 +395,7 @@ def bootstrap(
     style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
     style_tags += [f"<style{n}>{css}</style>" for css in styles]
     head_markup = "\n    ".join(p for p in (_package_head(component_packages, base, nonce), *style_tags, head) if p)
-    script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout, persist)
+    script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout, persist, url)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
         return f'{head_block}<script type="module"{n}>\n  {script}\n</script>\n'
