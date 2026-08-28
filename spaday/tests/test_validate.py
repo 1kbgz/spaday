@@ -125,6 +125,14 @@ def test_dict_trees_get_the_snake_case_hint_and_two_way_exemption():
     # two-way bindings and unknown tags stay unchecked, as in the Component form
     validate({"tag": "spa-dagre", "bindings": {"value": {"field": "selection", "mode": "two-way"}}})
     validate({"tag": "not-a-registered-tag", "props": {"mystery": {"Int": 1}}})
+    # globals and data-*/aria-* pass in the dict form too
+    validate({"tag": "spa-dagre", "props": {"id": {"Str": "g"}, "data-x": {"Str": "1"}}})
+
+
+def test_a_dict_child_nested_in_a_component_is_checked():
+    with pytest.raises(ValidationError) as excinfo:
+        validate(element("div").child(Dagre().to_node() | {"props": {"mystery": {"Int": 1}}}))
+    assert "<spa-dagre> unknown prop 'mystery'" in str(excinfo.value)
 
 
 def test_exported_from_package():
