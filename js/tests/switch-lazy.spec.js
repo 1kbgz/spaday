@@ -313,3 +313,210 @@ test("refresh refetches a loaded Lazy body and swaps it only when changed", asyn
   expect(after).toBe("card v2");
   expect(hits).toBe(3); // initial load + one refetch per refresh (cache invalidated)
 });
+
+test("patch ops route into structural definitions: child ops, events, bindings, replace", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    const store = new window.__spaday.Store({
+      sel: "a",
+      label: "bound",
+      fired: "",
+    });
+    const root = window.__spaday.mount(
+      document.body,
+      {
+        tag: "div",
+        slots: {
+          default: [
+            {
+              tag: "spa-switch",
+              bindings: { on: { field: "sel", mode: "one-way" } },
+              slots: {
+                a: [
+                  {
+                    tag: "p",
+                    key: "first",
+                    props: { id: { Str: "one" }, textContent: { Str: "one" } },
+                  },
+                  {
+                    tag: "p",
+                    props: { id: { Str: "two" }, textContent: { Str: "two" } },
+                  },
+                ],
+                default: [],
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    const at = (index) => [
+      { slot: "default", index: 0 },
+      { slot: "a", index },
+    ];
+    window.__spaday.applyPatch(
+      root,
+      {
+        ops: [
+          // all paths cross the spa-switch boundary, so they mutate its stored definition
+          {
+            Replace: {
+              path: at(0),
+              node: {
+                tag: "p",
+                props: { id: { Str: "uno" }, textContent: { Str: "uno" } },
+              },
+            },
+          },
+          { SetKey: { path: at(0), key: null } },
+          {
+            RemoveChild: {
+              path: [{ slot: "default", index: 0 }],
+              slot: "a",
+              index: 1,
+            },
+          },
+          {
+            InsertChild: {
+              path: [{ slot: "default", index: 0 }],
+              slot: "a",
+              index: 1,
+              node: {
+                tag: "p",
+                props: { id: { Str: "tres" }, textContent: { Str: "tres" } },
+              },
+            },
+          },
+          {
+            InsertChild: {
+              path: [{ slot: "default", index: 0 }],
+              slot: "a",
+              index: 2,
+              node: { tag: "button", props: { id: { Str: "btn" } } },
+            },
+          },
+          {
+            MoveChild: {
+              path: [{ slot: "default", index: 0 }],
+              slot: "a",
+              from: 1,
+              to: 0,
+            },
+          },
+          {
+            SetProp: {
+              path: at(0),
+              name: "textContent",
+              value: { Str: "tres!" },
+            },
+          },
+          { RemoveProp: { path: at(1), name: "textContent" } },
+          {
+            SetEvent: {
+              path: at(2),
+              name: "click",
+              action: {
+                kind: "set-field",
+                field: "fired",
+                value: { expr: "lit", value: "yes" },
+              },
+            },
+          },
+          {
+            SetBinding: {
+              path: at(2),
+              name: "textContent",
+              binding: { field: "label", mode: "one-way" },
+            },
+          },
+        ],
+      },
+      store,
+    );
+    const texts = Array.from(
+      document.querySelectorAll("spa-switch > p, spa-switch > button"),
+    ).map((el) => `${el.id}:${el.textContent}`);
+    document.getElementById("btn").click();
+    store.set("label", "rebound");
+    return {
+      texts,
+      fired: store.get("fired"),
+      rebound: document.getElementById("btn").textContent,
+    };
+  });
+  expect(r.texts).toEqual(["tres:tres!", "uno:", "btn:bound"]);
+  expect(r.fired).toBe("yes");
+  expect(r.rebound).toBe("rebound");
+});
+
+test("patch ops into an Each template re-wire its instances", async ({
+  page,
+}) => {
+  const r = await page.evaluate(() => {
+    const store = new window.__spaday.Store({
+      rows: [
+        { id: "x", name: "X" },
+        { id: "y", name: "Y" },
+      ],
+    });
+    const root = window.__spaday.mount(
+      document.body,
+      {
+        tag: "div",
+        slots: {
+          default: [
+            {
+              tag: "spa-each",
+              props: { itemKey: { Str: "id" } },
+              bindings: { items: { field: "rows", mode: "one-way" } },
+              slots: {
+                default: [
+                  {
+                    tag: "span",
+                    props: { class: { Str: "row" } },
+                    bindings: {
+                      textContent: {
+                        compute: { expr: "item", path: "name" },
+                        mode: "one-way",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    const before = Array.from(document.querySelectorAll(".row")).map(
+      (el) => el.className,
+    );
+    window.__spaday.applyPatch(
+      root,
+      {
+        ops: [
+          {
+            SetProp: {
+              path: [
+                { slot: "default", index: 0 },
+                { slot: "default", index: 0 },
+              ],
+              name: "class",
+              value: { Str: "row loud" },
+            },
+          },
+        ],
+      },
+      store,
+    );
+    const after = Array.from(document.querySelectorAll(".row")).map(
+      (el) => el.className,
+    );
+    return { before, after };
+  });
+  expect(r.before).toEqual(["row", "row"]);
+  expect(r.after).toEqual(["row loud", "row loud"]);
+});
