@@ -575,6 +575,12 @@
 <span class="sd">        toasts.compute("message", cond(field("submit_result.ok"), lit(""), field("submit_result.body")))</span>
 <span class="sd">        # … or drive any reactive fallback UI from the same field</span>
 <span class="sd">        page.add(Show(..., when=not_(field("submit_result.ok"))))</span>
+
+<span class="sd">    **Testing note**: notices render in the element's *shadow root*, so ``innerText``/``textContent``</span>
+<span class="sd">    on ``&lt;spa-toast&gt;`` are ``""`` even while toasts are visible — assert via</span>
+<span class="sd">    ``el.shadowRoot.querySelectorAll(".toast")`` (the same pattern as ``spaday-tree`` rows). And the</span>
+<span class="sd">    ``message`` prop is *cleared after each enqueue* (so the same text can re-notify), so reading it</span>
+<span class="sd">    back is not a way to assert what was shown.</span>
 <span class="sd">    """</span>
 
     <span class="n">tag</span> <span class="o">=</span> <span class="s2">"spa-toast"</span>

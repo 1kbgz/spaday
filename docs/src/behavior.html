@@ -422,7 +422,10 @@ catalog of hundreds of server-rendered detail cards, that is the difference betw
 megabytes on first paint.</p>
 <p>Finally, <code class="docutils literal notranslate"><span class="pre">RefreshTree</span></code> covers “server state changed, re-render” for apps that don’t need a live wire:
 it re-fetches the page’s <code class="docutils literal notranslate"><span class="pre">tree.json</span></code> (or an explicit <code class="docutils literal notranslate"><span class="pre">url=</span></code>) and diffs it into the mounted tree with
-the core’s patch machinery, so unchanged nodes keep their identity and client state. Actions in a
+the core’s patch machinery, so unchanged nodes keep their identity and client state. The diff
+descends into structural bindings: a changed branch inside a <code class="docutils literal notranslate"><span class="pre">Show</span></code>/<code class="docutils literal notranslate"><span class="pre">Switch</span></code> re-renders (including
+the stored bodies of a <code class="docutils literal notranslate"><span class="pre">Switch</span></code>’s non-mounted cases), and every loaded <code class="docutils literal notranslate"><span class="pre">Lazy</span></code> body is re-fetched
+from its <code class="docutils literal notranslate"><span class="pre">src</span></code> — swapped only if the payload actually changed. Actions in a
 <code class="docutils literal notranslate"><span class="pre">Sequence</span></code> are awaited in order — <code class="docutils literal notranslate"><span class="pre">CallEndpoint</span></code> resolves before the next action runs — so mutate-
 then-refresh is one chain:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallEndpoint</span><span class="p">,</span> <span class="n">RefreshTree</span><span class="p">,</span> <span class="n">Sequence</span>
@@ -533,9 +536,11 @@ spelling of each camelCase CEM prop and normalizes it to the canonical name —
 <code class="docutils literal notranslate"><span class="pre">spaday.validate</span></code> checks every node that still knows its catalog schema for unknown prop and binding
 names: a typo raises a <code class="docutils literal notranslate"><span class="pre">ValidationError</span></code> naming the tag and prop, with a “did you mean” hint when the
 unknown name is the snake_case spelling of a real prop. Generic globals (<code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code>, <code class="docutils literal notranslate"><span class="pre">style</span></code>,
-<code class="docutils literal notranslate"><span class="pre">slot</span></code>, <code class="docutils literal notranslate"><span class="pre">data-*</span></code> / <code class="docutils literal notranslate"><span class="pre">aria-*</span></code>, …) always pass; nodes without a schema — <code class="docutils literal notranslate"><span class="pre">element(...)</span></code> escape hatches
-and serialized dict trees — stay unvalidated, as do two-way binding names, which target live
-form-control properties a manifest routinely omits.</p>
+<code class="docutils literal notranslate"><span class="pre">slot</span></code>, <code class="docutils literal notranslate"><span class="pre">data-*</span></code> / <code class="docutils literal notranslate"><span class="pre">aria-*</span></code>, …) always pass. On a serialized dict tree, schemas resolve by tag
+instead — every schema-carrying class that has been imported registers its tag — so
+<code class="docutils literal notranslate"><span class="pre">validate(component.to_node())</span></code> checks the same props as <code class="docutils literal notranslate"><span class="pre">validate(component)</span></code>. Nodes with no
+schema either way (<code class="docutils literal notranslate"><span class="pre">element(...)</span></code> escape hatches) stay unvalidated, as do two-way binding names,
+which target live form-control properties a manifest routinely omits.</p>
 </section>
 </section>
 

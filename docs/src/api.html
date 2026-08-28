@@ -609,10 +609,11 @@ and two-way binding are future work.</p>
 to a node’s id in the same tree. And on each node that carries a catalog <code class="docutils literal notranslate"><span class="pre">schema</span></code> (CEM-generated
 components retain one), every prop and binding name must be a schema prop or a generic global
 (<code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code>, <code class="docutils literal notranslate"><span class="pre">style</span></code>, <code class="docutils literal notranslate"><span class="pre">slot</span></code>, …, plus <code class="docutils literal notranslate"><span class="pre">data-*</span></code>/<code class="docutils literal notranslate"><span class="pre">aria-*</span></code>); an unknown name is reported
-with the tag and — when it is the snake_case spelling of a real prop — a “did you mean” hint. The
-prop check only reaches what still knows its schema: nodes built by <code class="docutils literal notranslate"><span class="pre">element(...)</span></code> and serialized
-dict trees carry none, so they stay unvalidated — as do two-way binding names, which target live
-form-control properties a manifest routinely omits.</p>
+with the tag and — when it is the snake_case spelling of a real prop — a “did you mean” hint. On a
+serialized dict tree, schemas resolve by tag instead, covering every schema-carrying class that has
+been imported — so <code class="docutils literal notranslate"><span class="pre">validate(component.to_node())</span></code> checks the same props as <code class="docutils literal notranslate"><span class="pre">validate(component)</span></code>.
+Nodes with no schema either way (<code class="docutils literal notranslate"><span class="pre">element(...)</span></code> tags) stay unvalidated, as do two-way binding
+names, which target live form-control properties a manifest routinely omits.</p>
 </dd></dl>
 
 <dl class="py exception">
