@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Author a component tree" href="components.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Serve and embed a spaday app - spaday v0.7.8</title>
+        <title>Serve and embed a spaday app - spaday v0.7.9</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.8</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.9</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.8</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.9</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -424,6 +424,20 @@ signal store with <code class="docutils literal notranslate"><span class="pre">s
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="p">{</span><span class="s2">"dark"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"view"</span><span class="p">:</span> <span class="s2">"list"</span><span class="p">})</span>   <span class="c1"># the tree's bindings read/write these fields</span>
 </pre></div>
 </div>
+<p>Two channels keep such fields alive across page loads, both mapping store fields to keys:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">persist={&quot;dark&quot;:</span> <span class="pre">&quot;app:dark&quot;}</span></code> — localStorage. The stored value overrides the field’s seed at boot
+and every later write is stored, so per-browser preferences survive reloads.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">url={&quot;selected&quot;:</span> <span class="pre">&quot;model&quot;}</span></code> — the page URL. <code class="docutils literal notranslate"><span class="pre">?model=…</span></code> seeds the field at boot (after <code class="docutils literal notranslate"><span class="pre">persist</span></code>: a
+deep link beats a remembered preference), every later change pushes a history entry, and
+back/forward write the field back — so what the user is looking at is linkable, bookmarkable, and
+survives a reload, and a <code class="docutils literal notranslate"><span class="pre">Switch</span></code> on the field is a router. Strings ride the URL verbatim; a field
+seeded with another type JSON-encodes and reads back as JSON (<code class="docutils literal notranslate"><span class="pre">?page=2</span></code> → <code class="docutils literal notranslate"><span class="pre">2</span></code>); <code class="docutils literal notranslate"><span class="pre">None</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> clears
+the parameter.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="p">{</span><span class="s2">"selected"</span><span class="p">:</span> <span class="s2">""</span><span class="p">},</span> <span class="n">url</span><span class="o">=</span><span class="p">{</span><span class="s2">"selected"</span><span class="p">:</span> <span class="s2">"model"</span><span class="p">})</span>   <span class="c1"># /?model=a%2Fb opens card a/b</span>
+</pre></div>
+</div>
 </section>
 <section id="connect-a-live-model">
 <h2>Connect a live model<a class="headerlink" href="#connect-a-live-model" title="Link to this heading">¶</a></h2>
@@ -549,7 +563,7 @@ the store; you supply the websocket route and run <code class="docutils literal 
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=ddeecabf"></script>
+</div><script src="../../_static/documentation_options.js?v=79964ea6"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

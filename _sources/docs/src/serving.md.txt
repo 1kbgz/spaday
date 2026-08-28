@@ -176,6 +176,21 @@ signal store with `store=` — the page mounts with that state, no wire required
 app = serve(page, store={"dark": False, "view": "list"})   # the tree's bindings read/write these fields
 ```
 
+Two channels keep such fields alive across page loads, both mapping store fields to keys:
+
+- `persist={"dark": "app:dark"}` — localStorage. The stored value overrides the field's seed at boot
+  and every later write is stored, so per-browser preferences survive reloads.
+- `url={"selected": "model"}` — the page URL. `?model=…` seeds the field at boot (after `persist`: a
+  deep link beats a remembered preference), every later change pushes a history entry, and
+  back/forward write the field back — so what the user is looking at is linkable, bookmarkable, and
+  survives a reload, and a `Switch` on the field is a router. Strings ride the URL verbatim; a field
+  seeded with another type JSON-encodes and reads back as JSON (`?page=2` → `2`); `None`/`""` clears
+  the parameter.
+
+```python
+app = serve(page, store={"selected": ""}, url={"selected": "model"})   # /?model=a%2Fb opens card a/b
+```
+
 ## Connect a live model
 
 To keep the UI in sync with a server-side model, add a wire: `wire="transports"` for one model, or a list

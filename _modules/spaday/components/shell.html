@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.components.shell - spaday v0.7.8</title>
+        <title>spaday.components.shell - spaday v0.7.9</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -166,7 +166,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.8</code></div></a>
+      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.9</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -187,7 +187,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.8</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.9</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -526,9 +526,11 @@
 <span class="sd">    initial tree at all.</span>
 
 <span class="sd">    ``src`` must return a serialized component (``tree_json(element(...))`` — any node JSON). The</span>
-<span class="sd">    body is fetched once per URL and cached for the page. Without ``when``/``field`` the fetch</span>
-<span class="sd">    happens on mount; with a condition it happens when the condition first turns truthy. Children</span>
-<span class="sd">    are the placeholder shown until the body arrives::</span>
+<span class="sd">    body is fetched once per URL and cached for the page; :class:`~spaday.actions.RefreshTree`</span>
+<span class="sd">    re-fetches every loaded body from its ``src`` and swaps it only if it changed, so "defer big</span>
+<span class="sd">    subtrees with ``Lazy``, refresh them with ``RefreshTree``" keeps deferred content current.</span>
+<span class="sd">    Without ``when``/``field`` the fetch happens on mount; with a condition it happens when the</span>
+<span class="sd">    condition first turns truthy. Children are the placeholder shown until the body arrives::</span>
 
 <span class="sd">        Lazy(Paragraph("Loading…"), src=f"/card/{path}", when=eq(field("selected"), path))</span>
 <span class="sd">    """</span>
@@ -747,7 +749,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=ddeecabf"></script>
+</div><script src="../../../_static/documentation_options.js?v=79964ea6"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
