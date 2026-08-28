@@ -176,6 +176,22 @@ def test_persist_alone_creates_a_store():
     assert "mount(document.body, node, store)" in html
 
 
+def test_url_binds_a_store_field_to_a_query_parameter():
+    # `url` maps a store field to a query parameter: `bindUrl` seeds the field from the URL before the
+    # mount (so the tree renders with the deep link's value) and pushes history entries on change.
+    html = bootstrap(store={"selected": ""}, url={"selected": "model"})
+    assert "import { mount, init, trackRoot, Store, bindUrl }" in html
+    assert 'bindUrl(store, {"selected": "model"});' in html
+    assert html.index("bindUrl(store") < html.index("mount(document.body, node, store)")
+
+
+def test_url_seeds_after_persist():
+    # a deep link beats a remembered preference: the URL seed lands after the localStorage override
+    html = bootstrap(persist={"selected": "app:selected"}, url={"selected": "model"})
+    assert "const store = new Store()" in html  # url/persist alone still create a store
+    assert html.index('localStorage.getItem("app:selected")') < html.index("bindUrl(store")
+
+
 def test_store_and_fragment_compose():
     f = bootstrap(store={"n": 1}, fragment=True, target="#widget")
     assert "<!doctype html>" not in f  # still a snippet
