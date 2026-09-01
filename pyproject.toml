@@ -39,7 +39,7 @@ webawesome = ["spaday-webawesome>=0.1.0"]
 lightweight-charts = ["spaday-lightweight-charts>=0.1.0"]
 examples = ["transports>=0.8,<0.9", "starlette", "uvicorn", "websockets", "spaday-webawesome>=0.1.0", "spaday-lightweight-charts>=0.1.0"]
 cluster = ["transports>=0.8,<0.9", "starlette", "uvicorn", "websockets", "pyzmq"]  # the multi-worker example (needs a transports with the clustering API)
-perspective = ["transports>=0.8,<0.9", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<4.6", "spaday-perspective>=0.1.0", "superstore>=0.3.1"]  # external panel + Mode B server; superstore generates the orders + chart series
+perspective = ["transports>=0.8,<0.9", "starlette", "uvicorn", "websockets", "perspective-python>=4.5,<5.4", "spaday-perspective>=0.1.0", "superstore>=0.3.1"]  # external panel + Mode B server; superstore generates the orders + chart series
 aiohttp = ["aiohttp"]  # the aiohttp backend (spaday.backends.aiohttp)
 flask = ["flask"]  # the Flask backend (spaday.backends.flask)
 tornado = ["tornado"]  # the Tornado backend (spaday.backends.tornado)
@@ -58,7 +58,7 @@ develop = [
     "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
     "mdformat-tables>=1",
-    "perspective-python>=4.5,<4.6",  # gateway + omnibus browser example tests
+    "perspective-python>=4.5,<5.4",  # gateway + omnibus browser example tests
     "playwright",  # browser-backed Each performance benchmarks
     "pyzmq",  # clustered chart browser example test
     "pytest",
