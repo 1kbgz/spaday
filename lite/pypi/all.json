@@ -5,19 +5,19 @@
         {
           "comment_text": "",
           "digests": {
-            "md5": "11fa1de8f4a1087b81f58a44d03644ab",
-            "sha256": "054f293560c3b28d6c75ca50073630208502ce4f14263b7fa7358eedf091c338"
+            "md5": "1e73f0f786331fa0c951023f41b37bbb",
+            "sha256": "9a09b0a2a19b22832e907bcbdac9c4b5cda2bb8c54cac3a7955f00b11b431c95"
           },
           "downloads": -1,
           "filename": "spaday-0.7.9-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
           "has_sig": false,
-          "md5_digest": "11fa1de8f4a1087b81f58a44d03644ab",
+          "md5_digest": "1e73f0f786331fa0c951023f41b37bbb",
           "packagetype": "bdist_wheel",
           "python_version": "py3",
           "requires_python": ">=3.10",
           "size": 1356072,
-          "upload_time": "2026-08-30T17:47:05.164351Z",
-          "upload_time_iso_8601": "2026-08-30T17:47:05.164351Z",
+          "upload_time": "2026-09-01T21:42:01.482068Z",
+          "upload_time_iso_8601": "2026-09-01T21:42:01.482068Z",
           "url": "./spaday-0.7.9-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
           "yanked": false,
           "yanked_reason": null
