@@ -64,3 +64,15 @@ def test_bind_root_class_targets_the_document_root():
     # page-level theming outside the tree: a field toggles a class on <html> (e.g. WebAwesome's wa-dark)
     node = element("spa-app").bind_root_class("wa-dark", "dark").to_node()
     assert node["bindings"]["root-class:wa-dark"] == {"field": "dark", "mode": "one-way"}
+
+
+def test_bind_root_attr_targets_the_document_root():
+    # enumerated page-level state a class cannot carry: the field's *value* lands on <html>
+    node = element("spa-app").bind_root_attr("data-density", "density").to_node()
+    assert node["bindings"]["root-attr:data-density"] == {"field": "density", "mode": "one-way"}
+
+
+def test_bind_root_attr_rejects_class_and_style():
+    for name in ("class", "style"):
+        with pytest.raises(ValueError, match="cannot set"):
+            element("spa-app").bind_root_attr(name, "value")

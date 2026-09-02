@@ -323,8 +323,11 @@ spelling of each camelCase CEM prop and normalizes it to the canonical name —
 `Dagre(max_label_width=180)` sets `maxLabelWidth`; passing both spellings at once raises. And
 `spaday.validate` checks every node that still knows its catalog schema for unknown prop and binding
 names: a typo raises a `ValidationError` naming the tag and prop, with a "did you mean" hint when the
-unknown name is the snake_case spelling of a real prop. Generic globals (`id`, `class`, `style`,
-`slot`, `data-*` / `aria-*`, …) always pass. On a serialized dict tree, schemas resolve by tag
+unknown name is the snake_case spelling of a real prop. A component's known names are its attributes
+*and* its property-only fields (`schema.fields` — see the [manifest guide](cem.md)), so a data
+component's payload keyword passes. Generic globals (`id`, `class`, `style`, `slot`, `data-*` /
+`aria-*`, …) always pass, and so do the `root-class:` / `root-attr:` bindings, which name a class or
+attribute on `<html>` rather than a prop of the element they are authored on. On a serialized dict tree, schemas resolve by tag
 instead — every schema-carrying class that has been imported registers its tag — so
 `validate(component.to_node())` checks the same props as `validate(component)`. Nodes with no
 schema either way (`element(...)` escape hatches) stay unvalidated, as do two-way binding names,

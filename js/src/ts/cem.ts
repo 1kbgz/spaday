@@ -22,6 +22,8 @@ export interface ComponentSchema {
   class_name: string;
   summary?: string;
   props: PropSchema[];
+  /** Property-only inputs: public fields with no attribute of their own, so `props` omits them. */
+  fields?: PropSchema[];
   events: string[];
   slots: string[];
 }

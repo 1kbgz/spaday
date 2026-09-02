@@ -18,7 +18,7 @@ from functools import lru_cache
 from typing import Any, ClassVar, Union
 
 from .actions import Action, Expr
-from .catalog import ComponentSchema
+from .catalog import ComponentSchema, PropertySchema
 
 #: The conventional name of a component's unnamed (default) slot (matches the Rust core).
 DEFAULT_SLOT = "default"
@@ -43,11 +43,18 @@ _SCHEMAS_BY_TAG: dict[str, ComponentSchema] = {}
 
 
 @lru_cache(maxsize=None)
+def _settable(schema: ComponentSchema) -> tuple[PropertySchema, ...]:
+    """Every input a schema describes: its attributes and its property-only fields. Both are set the
+    same way — as a keyword on the component — so both take the same aliasing and kind checks."""
+    return schema.props + schema.fields
+
+
+@lru_cache(maxsize=None)
 def _prop_aliases(schema: ComponentSchema) -> dict[str, str]:
-    """snake_case spelling → canonical prop name, for schema props where the two spellings differ."""
-    names = {prop.name for prop in schema.props}
+    """snake_case spelling → canonical name, for schema props and fields where the two spellings differ."""
+    names = {prop.name for prop in _settable(schema)}
     aliases: dict[str, str] = {}
-    for prop in schema.props:
+    for prop in _settable(schema):
         snake = _snake_name(prop.name)
         if snake != prop.name and snake not in names:
             aliases.setdefault(snake, prop.name)
@@ -148,7 +155,7 @@ class Component:
         kinds with an unambiguous Python shape are checked (see ``_KIND_TYPES``); ``json`` props and
         props outside the schema (``id``, ``style``, …) pass through.
         """
-        kinds = {prop.name: prop.kind for prop in self.schema.props}
+        kinds = {prop.name: prop.kind for prop in _settable(self.schema)}
         for name, value in self._props.items():
             expected = _KIND_TYPES.get(kinds.get(name, ""))
             if expected is None:
@@ -261,6 +268,22 @@ class Component:
         One-way (the field drives the class); active only when mounted with a signal ``Store``.
         """
         self._bindings[f"root-class:{name}"] = {"field": field, "mode": "one-way"}
+        return self
+
+    def bind_root_attr(self, name: str, field: str) -> "Component":
+        """Set an attribute on the document root (``<html>``) from a reactive state ``field``.
+
+        The attribute counterpart to :meth:`bind_root_class`, for the page-level state a class cannot
+        carry: a theme selector whose *value* is matched (``:root[data-density='comfortable']``) needs an
+        attribute, since a class carries no value and enumerated values would need mutually exclusive
+        naming plus removal logic. The field's value is written as the runtime writes any attribute —
+        ``None``/``False`` remove it, ``True`` and ``""`` give the bare form (``data-vivid``), anything
+        else is stringified — so one binding covers both enumerated and boolean root state.
+        One-way (the field drives the attribute); active only when mounted with a signal ``Store``.
+        """
+        if name in ("class", "style"):
+            raise ValueError(f"bind_root_attr cannot set {name!r} on the document root (use bind_root_class / theme tokens)")
+        self._bindings[f"root-attr:{name}"] = {"field": field, "mode": "one-way"}
         return self
 
     def _final_props(self) -> dict[str, Any]:

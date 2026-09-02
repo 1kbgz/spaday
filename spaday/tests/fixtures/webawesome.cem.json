@@ -52,6 +52,14 @@
           "attributes": [
             { "name": "appearance", "type": { "text": "'accent' | 'filled' | 'outlined' | 'plain'" }, "default": "'outlined'" }
           ],
+          "members": [
+            { "kind": "field", "name": "data", "type": { "text": "CardData" }, "description": "An object payload no attribute can express." },
+            { "kind": "method", "name": "refresh" },
+            { "kind": "field", "name": "#internals", "type": { "text": "ElementInternals" } },
+            { "kind": "field", "name": "appearance", "type": { "text": "string" } },
+            { "kind": "field", "name": "body", "type": { "text": "HTMLDivElement" } },
+            { "kind": "field", "name": "title", "type": { "text": "string" }, "inheritedFrom": { "name": "WaElement" } }
+          ],
           "slots": [{ "name": "" }, { "name": "header" }, { "name": "footer" }]
         },
         {
