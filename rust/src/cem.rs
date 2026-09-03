@@ -200,9 +200,10 @@ pub fn parse_cem(json: &str) -> Result<String, serde_json::Error> {
 /// and static members, base-class plumbing, and references into the element's own shadow tree. Excluded
 /// in order: anything but a public instance field; a `#private`/`_internal` name; a field a base class
 /// declares (`inheritedFrom`); a field backed by an attribute (`attribute`, or a name `attributes`
-/// already carries — [`ComponentSchema::props`] describes those); a `readonly` field; a field typed as a
-/// platform object (see [`is_platform_type`]); and a callback field, which no serializable tree can
-/// carry. What survives is the payload-shaped surface an attribute cannot express.
+/// already carries — [`ComponentSchema::props`] describes those); a `readonly` field; a standard DOM
+/// member (see [`DOM_MEMBERS`]); a field typed as a platform object (see [`is_platform_type`]); and a
+/// callback field, which no serializable tree can carry. What survives is the payload-shaped surface an
+/// attribute cannot express.
 ///
 /// Deliberately conservative in one direction: an internal field that slips through only widens what
 /// the schema accepts, while dropping a real input would leave authors with no way to name it.
@@ -217,9 +218,55 @@ fn is_authorable_field(m: &Member, attributes: &[&str]) -> bool {
         && m.inherited_from.is_none()
         && m.attribute.is_none()
         && !attributes.contains(&m.name.as_str())
+        && !DOM_MEMBERS.contains(&m.name.as_str())
         && !is_platform_type(ty)
         && !ty.contains("=>") // a callback: behavior is authored as actions, never passed as a value
 }
+
+/// Members of `Element`, `HTMLElement` and `Node` that describe *any* element rather than this one.
+///
+/// A manifest that redeclares its base-class surface per element — rather than marking it
+/// `inheritedFrom` — offers these as if they were the component's own inputs; one such catalog carried
+/// `adoptedStyleSheets` on 34 of 40 elements. [`is_platform_type`] cannot reach them, because most are
+/// declared as plain strings and booleans (`className: string`, `hidden: boolean`).
+///
+/// Scoped to the interfaces every element implements. Form-control members (`checked`, `value`, `type`,
+/// `readOnly`, `disabled`, …) are deliberately absent: on a custom control those *are* the authored
+/// input, and a manifest that declares one as a field with no attribute behind it means it.
+const DOM_MEMBERS: &[&str] = &[
+    "accessKey",
+    "adoptedStyleSheets",
+    "attributes",
+    "autocapitalize",
+    "autofocus",
+    "classList",
+    "className",
+    "contentEditable",
+    "dataset",
+    "dir",
+    "draggable",
+    "enterKeyHint",
+    "hidden",
+    "id",
+    "innerHTML",
+    "innerText",
+    "inert",
+    "lang",
+    "nodeValue",
+    "nonce",
+    "outerHTML",
+    "outerText",
+    "part",
+    "popover",
+    "shadowRoot",
+    "slot",
+    "spellcheck",
+    "style",
+    "tabIndex",
+    "textContent",
+    "title",
+    "translate",
+];
 
 /// Browser and base-class objects a field can only hold a live instance of: DOM nodes, CSSOM sheets,
 /// observers, the element's own internals. Enumerated rather than pattern-matched, because the platform
@@ -449,6 +496,9 @@ mod cem_tests {
               { "kind": "field", "name": "adoptedStyleSheets", "type": {"text": "CSSStyleSheet[]"} },
               { "kind": "field", "name": "styles", "type": {"text": "CSSResultGroup"} },
               { "kind": "field", "name": "internals", "type": {"text": "ElementInternals"} },
+              { "kind": "field", "name": "className", "type": {"text": "string"} },
+              { "kind": "field", "name": "hidden", "type": {"text": "boolean"} },
+              { "kind": "field", "name": "checked", "type": {"text": "boolean"} },
               { "kind": "field", "name": "renderCell", "type": {"text": "(row: number) => string"} }
             ]
           }
@@ -460,7 +510,9 @@ mod cem_tests {
     fn test_fields_carry_property_only_inputs() {
         let s = &parse_manifest(FIELDS_MANIFEST).unwrap()[0];
         let names: Vec<&str> = s.fields.iter().map(|f| f.name.as_str()).collect();
-        assert_eq!(names, vec!["data", "scale"]); // everything else is class surface, not an input
+        // `checked` stays: on a custom control a form-control member with no attribute behind it is
+        // the authored input, unlike the DOM members every element carries
+        assert_eq!(names, vec!["data", "scale", "checked"]);
         assert_eq!(
             s.props.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
             vec!["digits"]
@@ -473,6 +525,17 @@ mod cem_tests {
             PropType::Enum(vec!["linear".into(), "log".into()])
         );
         assert_eq!(s.fields[1].default.as_deref(), Some("linear"));
+    }
+
+    #[test]
+    fn test_dom_members_are_not_inputs_even_when_typed_as_primitives() {
+        // a manifest that redeclares its base-class surface per element offers `className: string` and
+        // `hidden: boolean` as if they were this component's inputs; no type check can catch those
+        let s = &parse_manifest(FIELDS_MANIFEST).unwrap()[0];
+        let names: Vec<&str> = s.fields.iter().map(|f| f.name.as_str()).collect();
+        assert!(!names.contains(&"className"));
+        assert!(!names.contains(&"hidden"));
+        assert!(!names.contains(&"adoptedStyleSheets"));
     }
 
     #[test]
