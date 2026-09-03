@@ -1,6 +1,6 @@
 [package]
 name = "spaday_js"
-version = "0.7.10"
+version = "0.7.11"
 edition = "2021"
 publish = false
 keywords = ["experimental"]
