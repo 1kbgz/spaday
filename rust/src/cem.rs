@@ -200,9 +200,10 @@ pub fn parse_cem(json: &str) -> Result<String, serde_json::Error> {
 /// and static members, base-class plumbing, and references into the element's own shadow tree. Excluded
 /// in order: anything but a public instance field; a `#private`/`_internal` name; a field a base class
 /// declares (`inheritedFrom`); a field backed by an attribute (`attribute`, or a name `attributes`
-/// already carries — [`ComponentSchema::props`] describes those); a `readonly` field; a field typed as a
-/// DOM node (a reference into the element's own shadow tree); and a callback field, which no
-/// serializable tree can carry. What survives is the payload-shaped surface an attribute cannot express.
+/// already carries — [`ComponentSchema::props`] describes those); a `readonly` field; a standard DOM
+/// member (see [`DOM_MEMBERS`]); a field typed as a platform object (see [`is_platform_type`]); and a
+/// callback field, which no serializable tree can carry. What survives is the payload-shaped surface an
+/// attribute cannot express.
 ///
 /// Deliberately conservative in one direction: an internal field that slips through only widens what
 /// the schema accepts, while dropping a real input would leave authors with no way to name it.
@@ -217,30 +218,121 @@ fn is_authorable_field(m: &Member, attributes: &[&str]) -> bool {
         && m.inherited_from.is_none()
         && m.attribute.is_none()
         && !attributes.contains(&m.name.as_str())
-        && !is_dom_reference(ty)
+        && !DOM_MEMBERS.contains(&m.name.as_str())
+        && !is_platform_type(ty)
         && !ty.contains("=>") // a callback: behavior is authored as actions, never passed as a value
 }
 
-/// Whether every alternative of a TS type is a DOM node interface (`HTMLDivElement | undefined`,
-/// `Element`, …) — the shape of a reference into the element's own shadow tree, never an input.
-fn is_dom_reference(text: &str) -> bool {
-    let mut saw_dom = false;
+/// Members of `Element`, `HTMLElement` and `Node` that describe *any* element rather than this one.
+///
+/// A manifest that redeclares its base-class surface per element — rather than marking it
+/// `inheritedFrom` — offers these as if they were the component's own inputs; one such catalog carried
+/// `adoptedStyleSheets` on 34 of 40 elements. [`is_platform_type`] cannot reach them, because most are
+/// declared as plain strings and booleans (`className: string`, `hidden: boolean`).
+///
+/// Scoped to the interfaces every element implements. Form-control members (`checked`, `value`, `type`,
+/// `readOnly`, `disabled`, …) are deliberately absent: on a custom control those *are* the authored
+/// input, and a manifest that declares one as a field with no attribute behind it means it.
+const DOM_MEMBERS: &[&str] = &[
+    "accessKey",
+    "adoptedStyleSheets",
+    "attributes",
+    "autocapitalize",
+    "autofocus",
+    "classList",
+    "className",
+    "contentEditable",
+    "dataset",
+    "dir",
+    "draggable",
+    "enterKeyHint",
+    "hidden",
+    "id",
+    "innerHTML",
+    "innerText",
+    "inert",
+    "lang",
+    "nodeValue",
+    "nonce",
+    "outerHTML",
+    "outerText",
+    "part",
+    "popover",
+    "shadowRoot",
+    "slot",
+    "spellcheck",
+    "style",
+    "tabIndex",
+    "textContent",
+    "title",
+    "translate",
+];
+
+/// Browser and base-class objects a field can only hold a live instance of: DOM nodes, CSSOM sheets,
+/// observers, the element's own internals. Enumerated rather than pattern-matched, because the platform
+/// surface is finite and stable while application types are neither — a name this list does not know is
+/// treated as an input.
+const PLATFORM_TYPES: &[&str] = &[
+    "AbortController",
+    "AbortSignal",
+    "CSSResult",
+    "CSSResultArray",
+    "CSSResultGroup",
+    "CSSStyleDeclaration",
+    "CSSStyleSheet",
+    "Document",
+    "DocumentFragment",
+    "Element",
+    "ElementInternals",
+    "EventTarget",
+    "IntersectionObserver",
+    "MutationObserver",
+    "Node",
+    "NodeList",
+    "ResizeObserver",
+    "ShadowRoot",
+    "StyleSheet",
+    "StyleSheetList",
+    "TemplateResult",
+];
+
+/// Whether every alternative of a TS type is a platform object (`CSSStyleSheet[]`,
+/// `HTMLDivElement | undefined`, `ElementInternals`, …).
+///
+/// Such a field is never an input: no serializable value can be assigned to one. The check is by type
+/// rather than by name, because names like `styles` or `data` are ambiguous across libraries while a
+/// declared `CSSResultGroup` is not. A manifest that marks this plumbing `inheritedFrom`, `readonly` or
+/// `static` is already filtered before reaching here; this catches the manifests that do not.
+fn is_platform_type(text: &str) -> bool {
+    let mut saw_platform = false;
     for member in text.split('|').map(str::trim).filter(|m| !m.is_empty()) {
-        let member = member.trim_end_matches("[]");
+        let member = unwrap_array(member);
         if member == "null" || member == "undefined" {
             continue;
         }
-        let dom = matches!(
-            member,
-            "Element" | "Node" | "EventTarget" | "ShadowRoot" | "DocumentFragment"
-        ) || ((member.starts_with("HTML") || member.starts_with("SVG"))
-            && member.ends_with("Element"));
-        if !dom {
+        let platform = PLATFORM_TYPES.contains(&member)
+            || ((member.starts_with("HTML")
+                || member.starts_with("SVG")
+                || member.starts_with("MathML"))
+                && member.ends_with("Element"));
+        if !platform {
             return false;
         }
-        saw_dom = true;
+        saw_platform = true;
     }
-    saw_dom
+    saw_platform
+}
+
+/// The element type of `T[]`, `Array<T>` or `ReadonlyArray<T>` — a collection of platform objects is
+/// one too. Anything else is returned unchanged.
+fn unwrap_array(text: &str) -> &str {
+    let text = text.trim().trim_end_matches("[]").trim();
+    for prefix in ["Array<", "ReadonlyArray<"] {
+        if let Some(inner) = text.strip_prefix(prefix).and_then(|t| t.strip_suffix('>')) {
+            return inner.trim().trim_end_matches("[]").trim();
+        }
+    }
+    text
 }
 
 fn pascal_case(tag: &str) -> String {
@@ -401,6 +493,12 @@ mod cem_tests {
               { "kind": "field", "name": "title", "type": {"text": "string"}, "inheritedFrom": {"name": "WaElement"} },
               { "kind": "field", "name": "validity", "readonly": true, "type": {"text": "ValidityState"} },
               { "kind": "field", "name": "canvas", "type": {"text": "HTMLCanvasElement | undefined"} },
+              { "kind": "field", "name": "adoptedStyleSheets", "type": {"text": "CSSStyleSheet[]"} },
+              { "kind": "field", "name": "styles", "type": {"text": "CSSResultGroup"} },
+              { "kind": "field", "name": "internals", "type": {"text": "ElementInternals"} },
+              { "kind": "field", "name": "className", "type": {"text": "string"} },
+              { "kind": "field", "name": "hidden", "type": {"text": "boolean"} },
+              { "kind": "field", "name": "checked", "type": {"text": "boolean"} },
               { "kind": "field", "name": "renderCell", "type": {"text": "(row: number) => string"} }
             ]
           }
@@ -412,7 +510,9 @@ mod cem_tests {
     fn test_fields_carry_property_only_inputs() {
         let s = &parse_manifest(FIELDS_MANIFEST).unwrap()[0];
         let names: Vec<&str> = s.fields.iter().map(|f| f.name.as_str()).collect();
-        assert_eq!(names, vec!["data", "scale"]); // everything else is class surface, not an input
+        // `checked` stays: on a custom control a form-control member with no attribute behind it is
+        // the authored input, unlike the DOM members every element carries
+        assert_eq!(names, vec!["data", "scale", "checked"]);
         assert_eq!(
             s.props.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
             vec!["digits"]
@@ -428,16 +528,34 @@ mod cem_tests {
     }
 
     #[test]
-    fn test_dom_reference_types_are_not_inputs() {
-        assert!(is_dom_reference("HTMLSlotElement"));
-        assert!(is_dom_reference(
+    fn test_dom_members_are_not_inputs_even_when_typed_as_primitives() {
+        // a manifest that redeclares its base-class surface per element offers `className: string` and
+        // `hidden: boolean` as if they were this component's inputs; no type check can catch those
+        let s = &parse_manifest(FIELDS_MANIFEST).unwrap()[0];
+        let names: Vec<&str> = s.fields.iter().map(|f| f.name.as_str()).collect();
+        assert!(!names.contains(&"className"));
+        assert!(!names.contains(&"hidden"));
+        assert!(!names.contains(&"adoptedStyleSheets"));
+    }
+
+    #[test]
+    fn test_platform_typed_fields_are_not_inputs() {
+        assert!(is_platform_type("HTMLSlotElement"));
+        assert!(is_platform_type(
             "HTMLInputElement | HTMLTextAreaElement | undefined"
         ));
-        assert!(is_dom_reference("SVGSVGElement"));
-        assert!(is_dom_reference("Element[]"));
-        assert!(!is_dom_reference("")); // an untyped field is still an input
-        assert!(!is_dom_reference("HeatmapData"));
-        assert!(!is_dom_reference("string | HTMLElement")); // a mixed union may still be authorable
+        assert!(is_platform_type("SVGSVGElement"));
+        assert!(is_platform_type("Element[]"));
+        // the base-class surface a manifest may leave unmarked: Lit styles, adopted sheets, internals
+        assert!(is_platform_type("CSSStyleSheet[]"));
+        assert!(is_platform_type("CSSResultGroup"));
+        assert!(is_platform_type("ElementInternals"));
+        assert!(is_platform_type("Array<HTMLElement>"));
+        assert!(is_platform_type("ReadonlyArray<CSSStyleSheet>"));
+        assert!(!is_platform_type("")); // an untyped field is still an input
+        assert!(!is_platform_type("HeatmapData"));
+        assert!(!is_platform_type("SheetConfig")); // an application type that merely reads like one
+        assert!(!is_platform_type("string | HTMLElement")); // a mixed union may still be authorable
     }
 
     #[test]

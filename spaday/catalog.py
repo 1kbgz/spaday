@@ -48,6 +48,11 @@ class ComponentSchema(BaseModel):
     events: tuple[str, ...] = ()
     slots: tuple[str, ...] = ()
 
+    def __repr_args__(self) -> Any:
+        """Drop an empty ``fields`` from the repr, so a catalog whose elements declare no
+        property-only inputs generates exactly as it did before fields existed."""
+        return [(name, value) for name, value in super().__repr_args__() if name != "fields" or value]
+
     @classmethod
     def from_cem(cls, schema: Mapping[str, Any]) -> ComponentSchema:
         """Build catalog metadata from spaday's normalized CEM schema."""

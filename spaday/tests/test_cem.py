@@ -238,6 +238,14 @@ def test_schema_carries_property_only_fields():
     assert "fields" not in _module()["WaSwitch"].schema.to_dict()  # omitted when the element declares none
 
 
+def test_generated_schema_omits_an_empty_fields_tuple():
+    # a catalog whose elements declare no property-only inputs generates exactly as it did before
+    # fields existed, so committed catalogs do not churn for a keyword that carries nothing
+    code = generate(FIXTURE)
+    assert "fields=()" not in code
+    assert "fields=(\n" in code or "fields=(P" in code  # wa-card's payload still lands
+
+
 def test_a_field_is_set_like_a_prop_and_passes_validation():
     card = _module()["WaCard"](appearance="filled", data={"rows": [1], "cols": ["a"]})
     node = card.to_node()
