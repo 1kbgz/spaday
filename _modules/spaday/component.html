@@ -356,6 +356,25 @@
 <span class="p">}</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_declared_container</span><span class="p">(</span><span class="n">type_text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The Python container a declared type unambiguously calls for, or ``None`` when it is not obvious.</span>
+
+<span class="sd">    A `json` prop's declared type is the only description of its shape, and the two mistakes worth</span>
+<span class="sd">    catching are a matrix where an object belongs and the reverse — the browser reports those as a</span>
+<span class="sd">    setter throwing far from the mistake. Only the spellings that can mean nothing else are read: an</span>
+<span class="sd">    array (`T[]`, `Array&lt;T&gt;`) and an object (`{…}`, `Record&lt;…&gt;`). A named type is deliberately not read:</span>
+<span class="sd">    an alias can name either, so `HeatmapData` says nothing a check could rely on — the name is carried</span>
+<span class="sd">    in the schema so an author who knows their own types can assert on it.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">type_text</span> <span class="ow">or</span> <span class="s2">"|"</span> <span class="ow">in</span> <span class="n">type_text</span><span class="p">:</span>  <span class="c1"># a union may accept several shapes</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">type_text</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"[]"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">type_text</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"Array&lt;"</span><span class="p">,</span> <span class="s2">"ReadonlyArray&lt;"</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">list</span>
+    <span class="k">if</span> <span class="n">type_text</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"{"</span><span class="p">,</span> <span class="s2">"Record&lt;"</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">dict</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_css_name</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""A Python kwarg → its CSS name: drop one trailing ``_``, then ``_`` → ``-`` (``font_size`` → ``font-size``)."""</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)</span>
@@ -405,6 +424,7 @@
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">strict_props</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_check_prop_names</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_check_prop_shapes</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_check_prop_kinds</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_slots</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Child</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -443,6 +463,18 @@
         <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="n">problem</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_props</span> <span class="k">if</span> <span class="p">(</span><span class="n">problem</span> <span class="o">:=</span> <span class="n">_unknown_prop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">name</span><span class="p">))]</span>
         <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">problems</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_prop_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Reject a ``json`` prop whose literal contradicts its declared type (opt-in; see</span>
+<span class="sd">        :meth:`set_strict_props`). The shape half of :meth:`_check_prop_kinds`: a `json` kind rules out</span>
+<span class="sd">        no Python value, but a type declared as an array or an object rules out the other one."""</span>
+        <span class="n">declared</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">prop</span><span class="o">.</span><span class="n">type_text</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">_settable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span> <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">"json"</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">expected</span> <span class="o">=</span> <span class="n">_declared_container</span><span class="p">(</span><span class="n">declared</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">expected</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">expected</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tag</span><span class="si">}</span><span class="s2">&gt; prop </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> expects </span><span class="si">{</span><span class="n">declared</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_check_prop_kinds</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Reject a literal prop value that contradicts the class's catalog ``schema`` kind.</span>
