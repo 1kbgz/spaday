@@ -234,7 +234,8 @@ def test_schema_carries_property_only_fields():
     data = schema.fields[0]
     assert data.kind == "json"  # an object type, like a `json` attribute
     assert data.description == "An object payload no attribute can express."
-    assert schema.to_dict()["fields"] == [{"name": "data", "kind": "json", "description": data.description}]
+    assert data.type_text == "CardData"  # the shape a `json` kind cannot express
+    assert schema.to_dict()["fields"] == [{"name": "data", "kind": "json", "type_text": "CardData", "description": data.description}]
     assert "fields" not in _module()["WaSwitch"].schema.to_dict()  # omitted when the element declares none
 
 

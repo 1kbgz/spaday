@@ -138,6 +138,37 @@ def test_a_dict_child_nested_in_a_component_is_checked():
     assert "<spa-dagre> unknown prop 'mystery'" in str(excinfo.value)
 
 
+class Heatmap(Component):
+    """A data component: its payload is an object, described only by the manifest's type text."""
+
+    tag = "spa-heatmap"
+    schema = ComponentSchema.from_cem(
+        {
+            "tag_name": "spa-heatmap",
+            "class_name": "Heatmap",
+            "props": [
+                {"name": "values", "ty": "Any", "type_text": "{ rows: string[]; values: number[][] }"},
+                {"name": "series", "ty": "Any", "type_text": "SeriesPoint[]"},
+                {"name": "config", "ty": "Any", "type_text": "HeatmapConfig"},
+            ],
+        }
+    )
+
+
+def test_strict_props_rejects_a_literal_that_contradicts_its_declared_shape():
+    assert Heatmap(values=[[1]]).to_node()["props"]  # off by default, as the name check is
+    Heatmap.set_strict_props()
+    try:
+        with pytest.raises(TypeError, match=r"prop 'values' expects \{ rows.*got \[\[1\]\] \(list\)"):
+            Heatmap(values=[[1]])  # a matrix where an object belongs: the browser would throw inside a setter
+        with pytest.raises(TypeError, match=r"prop 'series' expects SeriesPoint\[\]"):
+            Heatmap(series={"x": 1})
+        Heatmap(values={"rows": [], "values": []}, series=[{"x": 1}])  # the declared shapes pass
+        Heatmap(config=[1])  # a named type may alias either shape, so it stays unchecked
+    finally:
+        del Heatmap.strict_props
+
+
 def test_strict_props_is_opt_in_and_reports_what_validate_reports():
     assert Dagre(mystery=1).to_node()["props"] == {"mystery": {"Int": 1}}  # off by default
     Dagre.set_strict_props()

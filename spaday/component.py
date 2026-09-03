@@ -113,6 +113,25 @@ _KIND_TYPES: dict[str, type | tuple[type, ...]] = {
 }
 
 
+def _declared_container(type_text: str | None) -> type | None:
+    """The Python container a declared type unambiguously calls for, or ``None`` when it is not obvious.
+
+    A `json` prop's declared type is the only description of its shape, and the two mistakes worth
+    catching are a matrix where an object belongs and the reverse — the browser reports those as a
+    setter throwing far from the mistake. Only the spellings that can mean nothing else are read: an
+    array (`T[]`, `Array<T>`) and an object (`{…}`, `Record<…>`). A named type is deliberately not read:
+    an alias can name either, so `HeatmapData` says nothing a check could rely on — the name is carried
+    in the schema so an author who knows their own types can assert on it.
+    """
+    if not type_text or "|" in type_text:  # a union may accept several shapes
+        return None
+    if type_text.endswith("[]") or type_text.startswith(("Array<", "ReadonlyArray<")):
+        return list
+    if type_text.startswith(("{", "Record<")):
+        return dict
+    return None
+
+
 def _css_name(name: str) -> str:
     """A Python kwarg → its CSS name: drop one trailing ``_``, then ``_`` → ``-`` (``font_size`` → ``font-size``)."""
     name = name.removesuffix("_")
@@ -160,6 +179,7 @@ class Component:
         if type(self).schema is not None:
             if type(self).strict_props:
                 self._check_prop_names()
+                self._check_prop_shapes()
             self._check_prop_kinds()
         self._slots: dict[str, list[Child]] = {}
         self._events: dict[str, dict] = {}
@@ -195,6 +215,18 @@ class Component:
         problems = [problem for name in self._props if (problem := _unknown_prop(self.schema, self.tag, name))]
         if problems:
             raise TypeError("; ".join(problems))
+
+    def _check_prop_shapes(self) -> None:
+        """Reject a ``json`` prop whose literal contradicts its declared type (opt-in; see
+        :meth:`set_strict_props`). The shape half of :meth:`_check_prop_kinds`: a `json` kind rules out
+        no Python value, but a type declared as an array or an object rules out the other one."""
+        declared = {prop.name: prop.type_text for prop in _settable(self.schema) if prop.kind == "json"}
+        for name, value in self._props.items():
+            expected = _declared_container(declared.get(name))
+            if expected is None:
+                continue
+            if not isinstance(value, expected) and not (expected is list and isinstance(value, tuple)):
+                raise TypeError(f"<{self.tag}> prop {name!r} expects {declared[name]}, got {value!r} ({type(value).__name__})")
 
     def _check_prop_kinds(self) -> None:
         """Reject a literal prop value that contradicts the class's catalog ``schema`` kind.

@@ -17,14 +17,25 @@ class PropertySchema(BaseModel):
     name: str
     kind: PropertyKind
     choices: tuple[str, ...] = ()
+    #: The manifest's declared type, carried only for ``json`` props — the kind that says nothing about
+    #: shape. An author cannot tell ``{rows, cols, values}`` from a matrix without it, and the browser
+    #: reports the difference as a setter throwing far from the mistake.
+    type_text: str | None = None
     default: str | None = None
     description: str | None = None
+
+    def __repr_args__(self) -> Any:
+        """Drop an absent ``type_text``, so the kinds that describe themselves — every prop but the
+        ``json`` ones — generate exactly as they did before it existed."""
+        return [(name, value) for name, value in super().__repr_args__() if name != "type_text" or value]
 
     def to_dict(self) -> dict[str, Any]:
         """Return JSON-serializable catalog data."""
         value: dict[str, Any] = {"name": self.name, "kind": self.kind}
         if self.choices:
             value["choices"] = list(self.choices)
+        if self.type_text is not None:
+            value["type_text"] = self.type_text
         if self.default is not None:
             value["default"] = self.default
         if self.description is not None:
@@ -83,6 +94,7 @@ def _property_from_cem(prop: Mapping[str, Any]) -> PropertySchema:
         name=prop["name"],
         kind=kind,
         choices=choices,
+        type_text=prop.get("type_text"),
         default=prop.get("default"),
         description=prop.get("doc"),
     )
