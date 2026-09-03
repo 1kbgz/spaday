@@ -34,6 +34,11 @@ manifest's `members` describe the element's whole class surface, so only what su
 callbacks are all dropped) is carried. Both kinds accept the snake_case spelling and both are checked
 by `spaday.validate`.
 
+A `json` prop or field also carries `type_text`, the manifest's declared type — `{ rows: string[]; … }`,
+`SeriesPoint[]`, `HeatmapData`. It is kept only for that kind, since `string`, `boolean`, `number` and
+`enum` already describe their own shape, and it is what lets a wrong payload shape be caught before the
+browser (see [strict components](behavior.md)).
+
 ## Build classes at runtime
 
 For a one-off or experimental manifest, `spaday.classes` builds the classes in memory instead — no file

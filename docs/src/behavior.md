@@ -316,7 +316,8 @@ contradicts its declared catalog kind — a `str` for a `number` prop, a number 
 a `TypeError` naming the component tag, the prop, and the offending value, instead of surfacing later
 as an opaque component error in the browser. Two limits: reactive bindings and computed values are
 dynamic and stay unvalidated, and `json`-kind props (lists, objects, mixed unions, untyped props all
-map to that kind) are type-opaque, so no literal shape can be ruled out for them.
+map to that kind) are type-opaque, so no literal shape can be ruled out for them by kind alone — see
+`set_strict_props` below for the check that reads their declared type instead.
 
 Prop *names* are checked too. A schema-carrying component's constructor accepts the snake_case
 spelling of each camelCase CEM prop and normalizes it to the canonical name —
@@ -347,5 +348,19 @@ WaSelect.set_strict_props(False)  # ...except one the manifest describes badly
 ```
 
 An unknown keyword then raises `TypeError` at construction, naming every unknown name at once in the
-same words `validate` uses. A class that sets it explicitly keeps that setting when a base class is
+same words `validate` uses. Strict components also check the *shape* of a `json` prop against the type
+its manifest declares — `schema.type_text`, carried for exactly the kind that says nothing else about
+shape:
+
+```python
+Heatmap(data=[[1, 2], [3, 4]])
+# TypeError: <spa-heatmap> prop 'data' expects { rows: string[]; cols: string[]; values: number[][] },
+#            got [[1, 2], [3, 4]] (list)
+```
+
+That is the mistake worth catching early: the name is right, the shape is wrong, and the browser reports
+it as a setter throwing far from the call that caused it. Only the spellings that can mean nothing else
+are read — an array (`T[]`, `Array<T>`) and an object (`{…}`, `Record<…>`). A named type like
+`HeatmapData` is deliberately not read, because an alias can name either shape; the declared text is on
+the schema, so an author who knows their own types can assert on it. A class that sets it explicitly keeps that setting when a base class is
 toggled later, so the opt-out above survives. Only constructor keywords are checked — `.prop(name, value)` stays the explicit way to set an attribute the manifest does not describe.

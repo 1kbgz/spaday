@@ -115,6 +115,11 @@ pub struct PropSchema {
     /// The attribute name as it appears on the element (the wire key), e.g. `"checked"`.
     pub name: String,
     pub ty: PropType,
+    /// The manifest's declared type, carried only for [`PropType::Any`] — the kind that says nothing
+    /// about shape. `Bool`, `Str`, `Number` and `Enum` already describe themselves, so repeating their
+    /// type text would bloat every catalog to say what the kind says.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub type_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -155,11 +160,15 @@ pub fn parse_manifest(json: &str) -> Result<Vec<ComponentSchema>, serde_json::Er
             let props = decl
                 .attributes
                 .iter()
-                .map(|a| PropSchema {
-                    name: a.name.clone(),
-                    ty: parse_type(a.ty.as_ref().and_then(|t| t.text.as_deref())),
-                    default: clean_default(a.default.as_deref()),
-                    doc: a.description.clone(),
+                .map(|a| {
+                    let text = a.ty.as_ref().and_then(|t| t.text.as_deref());
+                    PropSchema {
+                        name: a.name.clone(),
+                        ty: parse_type(text),
+                        type_text: opaque_type_text(text),
+                        default: clean_default(a.default.as_deref()),
+                        doc: a.description.clone(),
+                    }
                 })
                 .collect();
             let attribute_names: Vec<&str> =
@@ -168,11 +177,15 @@ pub fn parse_manifest(json: &str) -> Result<Vec<ComponentSchema>, serde_json::Er
                 .members
                 .iter()
                 .filter(|m| is_authorable_field(m, &attribute_names))
-                .map(|m| PropSchema {
-                    name: m.name.clone(),
-                    ty: parse_type(m.ty.as_ref().and_then(|t| t.text.as_deref())),
-                    default: clean_default(m.default.as_deref()),
-                    doc: m.description.clone(),
+                .map(|m| {
+                    let text = m.ty.as_ref().and_then(|t| t.text.as_deref());
+                    PropSchema {
+                        name: m.name.clone(),
+                        ty: parse_type(text),
+                        type_text: opaque_type_text(text),
+                        default: clean_default(m.default.as_deref()),
+                        doc: m.description.clone(),
+                    }
                 })
                 .collect();
             out.push(ComponentSchema {
@@ -192,6 +205,20 @@ pub fn parse_manifest(json: &str) -> Result<Vec<ComponentSchema>, serde_json::Er
 /// String-in/string-out facade for the bindings: manifest JSON → schemas JSON.
 pub fn parse_cem(json: &str) -> Result<String, serde_json::Error> {
     serde_json::to_string(&parse_manifest(json)?)
+}
+
+/// The declared type text to carry for a prop, or `None` when the normalized kind already says it.
+///
+/// An object payload normalizes to [`PropType::Any`], which is where an author most needs to know the
+/// shape and where spaday can say least — so that is the one case the text is worth keeping. Manifests
+/// wrap long unions across lines; collapse the whitespace so a generated catalog stays stable.
+fn opaque_type_text(text: Option<&str>) -> Option<String> {
+    let text = text?;
+    if parse_type(Some(text)) != PropType::Any {
+        return None;
+    }
+    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!collapsed.is_empty()).then_some(collapsed)
 }
 
 /// Whether a manifest member is a property-only input an author can set.
@@ -462,6 +489,34 @@ mod cem_tests {
         assert_eq!(by("name").ty, PropType::Optional(Box::new(PropType::Str)));
         assert_eq!(by("name").default, None); // `null` ⇒ no default
         assert_eq!(by("css").ty, PropType::Any); // unmodeled type
+    }
+
+    #[test]
+    fn test_type_text_is_carried_only_where_the_kind_says_nothing() {
+        let s = &parse_manifest(MANIFEST).unwrap()[0];
+        let by = |n: &str| s.props.iter().find(|p| p.name == n).unwrap();
+        // an unmodeled type is the one case an author cannot infer the shape from the kind
+        assert_eq!(
+            by("css").type_text.as_deref(),
+            Some("CSSResultGroup | undefined")
+        );
+        // the kinds that describe themselves carry nothing, so catalogs do not restate them
+        assert_eq!(by("checked").type_text, None);
+        assert_eq!(by("size").type_text, None);
+        assert_eq!(by("name").type_text, None);
+    }
+
+    #[test]
+    fn test_type_text_collapses_the_whitespace_a_manifest_wraps_with() {
+        let manifest = r#"{"modules":[{"declarations":[{
+          "kind":"class","name":"El","customElement":true,"tagName":"an-el",
+          "attributes":[{"name":"data","type":{"text":"{\n  rows: string[];\n  values: number[][];\n}"}}]
+        }]}]}"#;
+        let s = &parse_manifest(manifest).unwrap()[0];
+        assert_eq!(
+            s.props[0].type_text.as_deref(),
+            Some("{ rows: string[]; values: number[][]; }")
+        );
     }
 
     #[test]
