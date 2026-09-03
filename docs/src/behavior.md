@@ -332,3 +332,20 @@ instead — every schema-carrying class that has been imported registers its tag
 `validate(component.to_node())` checks the same props as `validate(component)`. Nodes with no
 schema either way (`element(...)` escape hatches) stay unvalidated, as do two-way binding names,
 which target live form-control properties a manifest routinely omits.
+
+Name checking is a `validate` call by default, not a constructor error, because a manifest describes an
+element's inputs approximately — `schema.fields` is filtered from a class surface that mixes real inputs
+with plumbing, so a name spaday does not recognize is not proof of a mistake. Where the earlier error is
+worth that risk, turn it on with `set_strict_props`:
+
+```python
+from spaday import Component
+from spaday_webawesome import WaSelect
+
+Component.set_strict_props()      # every schema-carrying class, catalogs you don't own included
+WaSelect.set_strict_props(False)  # ...except one the manifest describes badly
+```
+
+An unknown keyword then raises `TypeError` at construction, naming every unknown name at once in the
+same words `validate` uses. A class that sets it explicitly keeps that setting when a base class is
+toggled later, so the opt-out above survives. Only constructor keywords are checked — `.prop(name, value)` stays the explicit way to set an attribute the manifest does not describe.
