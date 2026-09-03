@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.component - spaday v0.7.10</title>
+        <title>spaday.component - spaday v0.7.11</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.10</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.11</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.10</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.11</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -284,6 +284,10 @@
 <span class="c1">#: tag -&gt; schema for every imported schema-carrying class (validate uses it for dict trees)</span>
 <span class="n">_SCHEMAS_BY_TAG</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ComponentSchema</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
+<span class="c1">#: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.</span>
+<span class="n">_GLOBAL_PROPS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"id"</span><span class="p">,</span> <span class="s2">"class"</span><span class="p">,</span> <span class="s2">"style"</span><span class="p">,</span> <span class="s2">"slot"</span><span class="p">,</span> <span class="s2">"part"</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">,</span> <span class="s2">"hidden"</span><span class="p">,</span> <span class="s2">"tabindex"</span><span class="p">,</span> <span class="s2">"textContent"</span><span class="p">}</span>
+<span class="n">_GLOBAL_PREFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"data-"</span><span class="p">,</span> <span class="s2">"aria-"</span><span class="p">)</span>
+
 
 <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_settable</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">ComponentSchema</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PropertySchema</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
@@ -302,6 +306,20 @@
         <span class="k">if</span> <span class="n">snake</span> <span class="o">!=</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="n">snake</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
             <span class="n">aliases</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">snake</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">aliases</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_unknown_prop</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">ComponentSchema</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The problem text for a keyword ``schema`` does not describe, or ``None`` when the name is fine.</span>
+
+<span class="sd">    One definition of "accepted name", shared by the strict constructor and :func:`spaday.validate`:</span>
+<span class="sd">    the schema's attributes and property-only fields, plus the generic props the runtime sets on any</span>
+<span class="sd">    element. A name that is the snake_case spelling of a real one carries a did-you-mean hint.</span>
+<span class="sd">    """</span>
+    <span class="n">known</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">_settable</span><span class="p">(</span><span class="n">schema</span><span class="p">)}</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">known</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_GLOBAL_PROPS</span> <span class="ow">or</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">_GLOBAL_PREFIXES</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">hint</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">known</span><span class="p">)</span> <span class="k">if</span> <span class="n">_snake_name</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="n">name</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"&lt;</span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2">&gt; unknown prop </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span> <span class="o">+</span> <span class="p">(</span><span class="sa">f</span><span class="s2">" (did you mean </span><span class="si">{</span><span class="n">hint</span><span class="si">!r}</span><span class="s2">?)"</span> <span class="k">if</span> <span class="n">hint</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_tag</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
@@ -359,6 +377,8 @@
 
     <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">ComponentSchema</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1">#: Reject unknown keywords at construction (see :meth:`set_strict_props`). Off by default.</span>
+    <span class="n">strict_props</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -383,6 +403,8 @@
         <span class="n">merged</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">generic</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">merged</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">strict_props</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_check_prop_names</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_check_prop_kinds</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_slots</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Child</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -390,6 +412,37 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_style</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># inline CSS declarations + custom properties (theming)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_classes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># CSS classes (variants / states)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Component.set_strict_props">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.set_strict_props">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_strict_props</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Make unknown keyword arguments raise at construction, for ``cls`` and its subclasses.</span>
+
+<span class="sd">        Off by default: a manifest describes an element's inputs approximately (see</span>
+<span class="sd">        :attr:`ComponentSchema.fields`), so an unrecognized keyword is reported by</span>
+<span class="sd">        :func:`spaday.validate` over a built tree rather than assumed to be a mistake. Turn it on where</span>
+<span class="sd">        the earlier error is worth that risk, at whichever scope fits — the whole catalog</span>
+<span class="sd">        (``Component.set_strict_props()``), one package's components</span>
+<span class="sd">        (``WaButton.set_strict_props()``, which works on a generated catalog you don't own), or off</span>
+<span class="sd">        again for a single class the manifest describes badly (``WaSelect.set_strict_props(False)``).</span>
+<span class="sd">        A class that sets it explicitly keeps that setting when a base class is toggled later, so a</span>
+<span class="sd">        per-class opt-out survives turning the catalog strict. Classes without a ``schema`` have</span>
+<span class="sd">        nothing to check and are unaffected.</span>
+
+<span class="sd">        Only constructor keywords are checked; :meth:`prop` stays the explicit escape hatch for an</span>
+<span class="sd">        attribute the manifest does not describe.</span>
+<span class="sd">        """</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">strict_props</span> <span class="o">=</span> <span class="n">strict</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_prop_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Reject keywords the class's catalog ``schema`` does not describe (opt-in; see</span>
+<span class="sd">        :meth:`set_strict_props`). Reports every unknown name at once, by the same rules and in the</span>
+<span class="sd">        same words :func:`spaday.validate` uses on a built tree."""</span>
+        <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="n">problem</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_props</span> <span class="k">if</span> <span class="p">(</span><span class="n">problem</span> <span class="o">:=</span> <span class="n">_unknown_prop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">name</span><span class="p">))]</span>
+        <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">problems</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_check_prop_kinds</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Reject a literal prop value that contradicts the class's catalog ``schema`` kind.</span>
@@ -670,7 +723,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=d46e566c"></script>
+</div><script src="../../_static/documentation_options.js?v=7016d275"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

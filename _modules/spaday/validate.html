@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.validate - spaday v0.7.10</title>
+        <title>spaday.validate - spaday v0.7.11</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.10</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.11</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.10</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.11</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -255,11 +255,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">_SCHEMAS_BY_TAG</span><span class="p">,</span> <span class="n">Component</span><span class="p">,</span> <span class="n">_settable</span><span class="p">,</span> <span class="n">_snake_name</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">_SCHEMAS_BY_TAG</span><span class="p">,</span> <span class="n">Component</span><span class="p">,</span> <span class="n">_unknown_prop</span>
 
-<span class="c1">#: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.</span>
-<span class="n">_GLOBAL_PROPS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"id"</span><span class="p">,</span> <span class="s2">"class"</span><span class="p">,</span> <span class="s2">"style"</span><span class="p">,</span> <span class="s2">"slot"</span><span class="p">,</span> <span class="s2">"part"</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">,</span> <span class="s2">"hidden"</span><span class="p">,</span> <span class="s2">"tabindex"</span><span class="p">,</span> <span class="s2">"textContent"</span><span class="p">}</span>
-<span class="n">_GLOBAL_PREFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"data-"</span><span class="p">,</span> <span class="s2">"aria-"</span><span class="p">)</span>
 <span class="c1">#: Binding names that target the document root rather than a prop on the bound element; one-way by</span>
 <span class="c1">#: construction, so they are exempt from the two-way and unknown-prop checks below.</span>
 <span class="n">_ROOT_PREFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"root-class:"</span><span class="p">,</span> <span class="s2">"root-attr:"</span><span class="p">)</span>
@@ -323,16 +320,12 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_collect_unknown_props</span><span class="p">(</span><span class="n">component</span><span class="p">:</span> <span class="n">Component</span><span class="p">,</span> <span class="n">problems</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">schema</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">component</span><span class="p">)</span><span class="o">.</span><span class="n">schema</span>
     <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">known</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">_settable</span><span class="p">(</span><span class="n">schema</span><span class="p">)}</span>
         <span class="c1"># two-way bindings target live form-control properties (a composed control's `value` is</span>
         <span class="c1"># routinely absent from its manifest), so their names stay unchecked</span>
         <span class="n">bound</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">component</span><span class="o">.</span><span class="n">_bindings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"mode"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"two-way"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">n</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">_ROOT_PREFIXES</span><span class="p">)]</span>
-        <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">_props</span><span class="p">)</span> <span class="o">+</span> <span class="n">bound</span>
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">known</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_GLOBAL_PROPS</span> <span class="ow">or</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">_GLOBAL_PREFIXES</span><span class="p">):</span>
-                <span class="k">continue</span>
-            <span class="n">hint</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">known</span><span class="p">)</span> <span class="k">if</span> <span class="n">_snake_name</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="n">name</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"&lt;</span><span class="si">{</span><span class="n">component</span><span class="o">.</span><span class="n">tag</span><span class="si">}</span><span class="s2">&gt; unknown prop </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span> <span class="o">+</span> <span class="p">(</span><span class="sa">f</span><span class="s2">" (did you mean </span><span class="si">{</span><span class="n">hint</span><span class="si">!r}</span><span class="s2">?)"</span> <span class="k">if</span> <span class="n">hint</span> <span class="k">else</span> <span class="s2">""</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">_props</span><span class="p">)</span> <span class="o">+</span> <span class="n">bound</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">problem</span> <span class="o">:=</span> <span class="n">_unknown_prop</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">component</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+                <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">children</span> <span class="ow">in</span> <span class="n">component</span><span class="o">.</span><span class="n">_slots</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">Component</span><span class="p">):</span>
@@ -346,14 +339,11 @@
 <span class="sd">    schema-carrying class (``Component.__init_subclass__`` registers them)."""</span>
     <span class="n">schema</span> <span class="o">=</span> <span class="n">_SCHEMAS_BY_TAG</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tag"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">known</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">_settable</span><span class="p">(</span><span class="n">schema</span><span class="p">)}</span>
         <span class="n">bindings</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"bindings"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="n">bound</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bindings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"mode"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"two-way"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">n</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">_ROOT_PREFIXES</span><span class="p">)]</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"props"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span> <span class="o">+</span> <span class="n">bound</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">known</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_GLOBAL_PROPS</span> <span class="ow">or</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">_GLOBAL_PREFIXES</span><span class="p">):</span>
-                <span class="k">continue</span>
-            <span class="n">hint</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">known</span><span class="p">)</span> <span class="k">if</span> <span class="n">_snake_name</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="n">name</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"&lt;</span><span class="si">{</span><span class="n">node</span><span class="p">[</span><span class="s1">'tag'</span><span class="p">]</span><span class="si">}</span><span class="s2">&gt; unknown prop </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span> <span class="o">+</span> <span class="p">(</span><span class="sa">f</span><span class="s2">" (did you mean </span><span class="si">{</span><span class="n">hint</span><span class="si">!r}</span><span class="s2">?)"</span> <span class="k">if</span> <span class="n">hint</span> <span class="k">else</span> <span class="s2">""</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">problem</span> <span class="o">:=</span> <span class="n">_unknown_prop</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">node</span><span class="p">[</span><span class="s2">"tag"</span><span class="p">],</span> <span class="n">name</span><span class="p">):</span>
+                <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">children</span> <span class="ow">in</span> <span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"slots"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
             <span class="n">_collect_unknown_props_dict</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">problems</span><span class="p">)</span>
@@ -425,7 +415,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=d46e566c"></script>
+</div><script src="../../_static/documentation_options.js?v=7016d275"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

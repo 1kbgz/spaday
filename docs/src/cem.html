@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="API reference" href="api.html"><link rel="prev" title="Wrap an imperative JS library" href="wrappers.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Generate typed classes from a manifest - spaday v0.7.10</title>
+        <title>Generate typed classes from a manifest - spaday v0.7.11</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.10</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.11</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -189,7 +189,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.10</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.11</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -277,6 +277,10 @@ manifest’s <code class="docutils literal notranslate"><span class="pre">member
 (methods, private and static members, inherited and attribute-backed fields, element references and
 callbacks are all dropped) is carried. Both kinds accept the snake_case spelling and both are checked
 by <code class="docutils literal notranslate"><span class="pre">spaday.validate</span></code>.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">json</span></code> prop or field also carries <code class="docutils literal notranslate"><span class="pre">type_text</span></code>, the manifest’s declared type — <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">rows:</span> <span class="pre">string[];</span> <span class="pre">…</span> <span class="pre">}</span></code>,
+<code class="docutils literal notranslate"><span class="pre">SeriesPoint[]</span></code>, <code class="docutils literal notranslate"><span class="pre">HeatmapData</span></code>. It is kept only for that kind, since <code class="docutils literal notranslate"><span class="pre">string</span></code>, <code class="docutils literal notranslate"><span class="pre">boolean</span></code>, <code class="docutils literal notranslate"><span class="pre">number</span></code> and
+<code class="docutils literal notranslate"><span class="pre">enum</span></code> already describe their own shape, and it is what lets a wrong payload shape be caught before the
+browser (see <a class="reference internal" href="behavior.html"><span class="std std-doc">strict components</span></a>).</p>
 </section>
 <section id="build-classes-at-runtime">
 <h2>Build classes at runtime<a class="headerlink" href="#build-classes-at-runtime" title="Link to this heading">¶</a></h2>
@@ -371,7 +375,7 @@ the two disagreeing.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=d46e566c"></script>
+</div><script src="../../_static/documentation_options.js?v=7016d275"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

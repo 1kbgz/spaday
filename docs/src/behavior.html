@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Author a component tree" href="components.html"><link rel="prev" title="How spaday works" href="concepts.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Add behavior and reactivity - spaday v0.7.10</title>
+        <title>Add behavior and reactivity - spaday v0.7.11</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.10</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.11</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -189,7 +189,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.10</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.7.11</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -532,7 +532,8 @@ contradicts its declared catalog kind — a <code class="docutils literal notran
 a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> naming the component tag, the prop, and the offending value, instead of surfacing later
 as an opaque component error in the browser. Two limits: reactive bindings and computed values are
 dynamic and stay unvalidated, and <code class="docutils literal notranslate"><span class="pre">json</span></code>-kind props (lists, objects, mixed unions, untyped props all
-map to that kind) are type-opaque, so no literal shape can be ruled out for them.</p>
+map to that kind) are type-opaque, so no literal shape can be ruled out for them by kind alone — see
+<code class="docutils literal notranslate"><span class="pre">set_strict_props</span></code> below for the check that reads their declared type instead.</p>
 <p>Prop <em>names</em> are checked too. A schema-carrying component’s constructor accepts the snake_case
 spelling of each camelCase CEM prop and normalizes it to the canonical name —
 <code class="docutils literal notranslate"><span class="pre">Dagre(max_label_width=180)</span></code> sets <code class="docutils literal notranslate"><span class="pre">maxLabelWidth</span></code>; passing both spellings at once raises. And
@@ -559,7 +560,19 @@ worth that risk, turn it on with <code class="docutils literal notranslate"><spa
 </pre></div>
 </div>
 <p>An unknown keyword then raises <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> at construction, naming every unknown name at once in the
-same words <code class="docutils literal notranslate"><span class="pre">validate</span></code> uses. A class that sets it explicitly keeps that setting when a base class is
+same words <code class="docutils literal notranslate"><span class="pre">validate</span></code> uses. Strict components also check the <em>shape</em> of a <code class="docutils literal notranslate"><span class="pre">json</span></code> prop against the type
+its manifest declares — <code class="docutils literal notranslate"><span class="pre">schema.type_text</span></code>, carried for exactly the kind that says nothing else about
+shape:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Heatmap</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
+<span class="c1"># TypeError: &lt;spa-heatmap&gt; prop 'data' expects { rows: string[]; cols: string[]; values: number[][] },</span>
+<span class="c1">#            got [[1, 2], [3, 4]] (list)</span>
+</pre></div>
+</div>
+<p>That is the mistake worth catching early: the name is right, the shape is wrong, and the browser reports
+it as a setter throwing far from the call that caused it. Only the spellings that can mean nothing else
+are read — an array (<code class="docutils literal notranslate"><span class="pre">T[]</span></code>, <code class="docutils literal notranslate"><span class="pre">Array&lt;T&gt;</span></code>) and an object (<code class="docutils literal notranslate"><span class="pre">{…}</span></code>, <code class="docutils literal notranslate"><span class="pre">Record&lt;…&gt;</span></code>). A named type like
+<code class="docutils literal notranslate"><span class="pre">HeatmapData</span></code> is deliberately not read, because an alias can name either shape; the declared text is on
+the schema, so an author who knows their own types can assert on it. A class that sets it explicitly keeps that setting when a base class is
 toggled later, so the opt-out above survives. Only constructor keywords are checked — <code class="docutils literal notranslate"><span class="pre">.prop(name,</span> <span class="pre">value)</span></code> stays the explicit way to set an attribute the manifest does not describe.</p>
 </section>
 </section>
@@ -641,7 +654,7 @@ toggled later, so the opt-out above survives. Only constructor keywords are chec
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=d46e566c"></script>
+</div><script src="../../_static/documentation_options.js?v=7016d275"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
