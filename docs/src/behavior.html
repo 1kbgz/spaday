@@ -14,6 +14,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/searchlite.css?v=4235115c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=890fd012" />
     
@@ -537,8 +538,11 @@ spelling of each camelCase CEM prop and normalizes it to the canonical name —
 <code class="docutils literal notranslate"><span class="pre">Dagre(max_label_width=180)</span></code> sets <code class="docutils literal notranslate"><span class="pre">maxLabelWidth</span></code>; passing both spellings at once raises. And
 <code class="docutils literal notranslate"><span class="pre">spaday.validate</span></code> checks every node that still knows its catalog schema for unknown prop and binding
 names: a typo raises a <code class="docutils literal notranslate"><span class="pre">ValidationError</span></code> naming the tag and prop, with a “did you mean” hint when the
-unknown name is the snake_case spelling of a real prop. Generic globals (<code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code>, <code class="docutils literal notranslate"><span class="pre">style</span></code>,
-<code class="docutils literal notranslate"><span class="pre">slot</span></code>, <code class="docutils literal notranslate"><span class="pre">data-*</span></code> / <code class="docutils literal notranslate"><span class="pre">aria-*</span></code>, …) always pass. On a serialized dict tree, schemas resolve by tag
+unknown name is the snake_case spelling of a real prop. A component’s known names are its attributes
+<em>and</em> its property-only fields (<code class="docutils literal notranslate"><span class="pre">schema.fields</span></code> — see the <a class="reference internal" href="cem.html"><span class="std std-doc">manifest guide</span></a>), so a data
+component’s payload keyword passes. Generic globals (<code class="docutils literal notranslate"><span class="pre">id</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code>, <code class="docutils literal notranslate"><span class="pre">style</span></code>, <code class="docutils literal notranslate"><span class="pre">slot</span></code>, <code class="docutils literal notranslate"><span class="pre">data-*</span></code> /
+<code class="docutils literal notranslate"><span class="pre">aria-*</span></code>, …) always pass, and so do the <code class="docutils literal notranslate"><span class="pre">root-class:</span></code> / <code class="docutils literal notranslate"><span class="pre">root-attr:</span></code> bindings, which name a class or
+attribute on <code class="docutils literal notranslate"><span class="pre">&lt;html&gt;</span></code> rather than a prop of the element they are authored on. On a serialized dict tree, schemas resolve by tag
 instead — every schema-carrying class that has been imported registers its tag — so
 <code class="docutils literal notranslate"><span class="pre">validate(component.to_node())</span></code> checks the same props as <code class="docutils literal notranslate"><span class="pre">validate(component)</span></code>. Nodes with no
 schema either way (<code class="docutils literal notranslate"><span class="pre">element(...)</span></code> escape hatches) stay unvalidated, as do two-way binding names,
@@ -630,6 +634,8 @@ which target live form-control properties a manifest routinely omits.</p>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=43c3c99e"></script>
+    <script data-searchlite-adopt="true" defer="defer" src="../../_static/searchlite-ui.js?v=42b9d9bb"></script>
     <script src="../../_static/js/custom.js?v=956e5d78"></script>
     </body>
 </html>

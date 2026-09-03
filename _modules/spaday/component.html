@@ -13,6 +13,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/searchlite.css?v=4235115c" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=890fd012" />
     
@@ -260,7 +261,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Action</span><span class="p">,</span> <span class="n">Expr</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentSchema</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentSchema</span><span class="p">,</span> <span class="n">PropertySchema</span>
 
 <span class="c1">#: The conventional name of a component's unnamed (default) slot (matches the Rust core).</span>
 <span class="n">DEFAULT_SLOT</span> <span class="o">=</span> <span class="s2">"default"</span>
@@ -285,11 +286,18 @@
 
 
 <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_settable</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">ComponentSchema</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PropertySchema</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Every input a schema describes: its attributes and its property-only fields. Both are set the</span>
+<span class="sd">    same way — as a keyword on the component — so both take the same aliasing and kind checks."""</span>
+    <span class="k">return</span> <span class="n">schema</span><span class="o">.</span><span class="n">props</span> <span class="o">+</span> <span class="n">schema</span><span class="o">.</span><span class="n">fields</span>
+
+
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_prop_aliases</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">ComponentSchema</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""snake_case spelling → canonical prop name, for schema props where the two spellings differ."""</span>
-    <span class="n">names</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">props</span><span class="p">}</span>
+<span class="w">    </span><span class="sd">"""snake_case spelling → canonical name, for schema props and fields where the two spellings differ."""</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">_settable</span><span class="p">(</span><span class="n">schema</span><span class="p">)}</span>
     <span class="n">aliases</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">props</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">_settable</span><span class="p">(</span><span class="n">schema</span><span class="p">):</span>
         <span class="n">snake</span> <span class="o">=</span> <span class="n">_snake_name</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">snake</span> <span class="o">!=</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="n">snake</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
             <span class="n">aliases</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">snake</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -392,7 +400,7 @@
 <span class="sd">        kinds with an unambiguous Python shape are checked (see ``_KIND_TYPES``); ``json`` props and</span>
 <span class="sd">        props outside the schema (``id``, ``style``, …) pass through.</span>
 <span class="sd">        """</span>
-        <span class="n">kinds</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">prop</span><span class="o">.</span><span class="n">kind</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">props</span><span class="p">}</span>
+        <span class="n">kinds</span> <span class="o">=</span> <span class="p">{</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">prop</span><span class="o">.</span><span class="n">kind</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">_settable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)}</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">expected</span> <span class="o">=</span> <span class="n">_KIND_TYPES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kinds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">expected</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -543,6 +551,25 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
+<div class="viewcode-block" id="Component.bind_root_attr">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.bind_root_attr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_root_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Component"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Set an attribute on the document root (``&lt;html&gt;``) from a reactive state ``field``.</span>
+
+<span class="sd">        The attribute counterpart to :meth:`bind_root_class`, for the page-level state a class cannot</span>
+<span class="sd">        carry: a theme selector whose *value* is matched (``:root[data-density='comfortable']``) needs an</span>
+<span class="sd">        attribute, since a class carries no value and enumerated values would need mutually exclusive</span>
+<span class="sd">        naming plus removal logic. The field's value is written as the runtime writes any attribute —</span>
+<span class="sd">        ``None``/``False`` remove it, ``True`` and ``""`` give the bare form (``data-vivid``), anything</span>
+<span class="sd">        else is stringified — so one binding covers both enumerated and boolean root state.</span>
+<span class="sd">        One-way (the field drives the attribute); active only when mounted with a signal ``Store``.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"class"</span><span class="p">,</span> <span class="s2">"style"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bind_root_attr cannot set </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> on the document root (use bind_root_class / theme tokens)"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="sa">f</span><span class="s2">"root-attr:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"field"</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"one-way"</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_final_props</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Props with theming folded in: ``style``/``class`` merged from :meth:`style`/:meth:`css`/</span>
 <span class="sd">        :meth:`classes` (after any literal ``style``/``class`` prop)."""</span>
@@ -650,6 +677,8 @@
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=43c3c99e"></script>
+    <script data-searchlite-adopt="true" defer="defer" src="../../_static/searchlite-ui.js?v=42b9d9bb"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
     <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
 

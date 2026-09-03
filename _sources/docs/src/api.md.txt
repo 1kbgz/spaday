@@ -166,3 +166,18 @@ through whichever channel themes them:
 - a package themed by a **prop or constructor options** (Perspective's `theme`, Lightweight Charts)
   binds that prop to the same field that drives the root class:
   `component.compute("theme", cond(field("dark"), "dark", "light"))`.
+
+A class states a boolean. For page-level state that carries a *value* — a design system whose tokens
+hang off `:root[data-density='comfortable']`, or a family of root flags in one control group —
+`Component.bind_root_attr(name, field)` writes an attribute on `<html>` instead:
+
+```python
+App(...).bind_root_attr("data-density", "density")  # "comfortable" | None
+App(...).bind_root_attr("data-vivid", "vivid")      # True | False
+```
+
+The field's value is written as the runtime writes any attribute: `None`/`False` remove it, `True` and
+`""` give the bare form (`data-vivid`), anything else is stringified — so an enumerated field replaces
+the attribute's value rather than accumulating names, and clearing the field removes it. Both root
+bindings are one-way and seeded from the store at mount, so a field restored by `persist=` or `url=`
+themes the page before the tree renders.
