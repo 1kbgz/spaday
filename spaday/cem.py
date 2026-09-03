@@ -41,8 +41,9 @@ def classes(manifest_path: str, name: str | None = None) -> dict[str, type[Compo
     ``{class_name: class}`` for the whole manifest. Handy for binding an arbitrary or one-off manifest
     on the fly. Unlike a committed, generated peer-package catalog,
     these classes are **not statically typed** — the type checker can't see their per-attribute
-    signatures — though they still validate keyword names at call time. Reach for :func:`generate`
-    (committed codegen) when you want typing.
+    signatures. They do carry the same ``schema``, so :func:`~spaday.validate.validate` checks their
+    keyword names on the built tree exactly as it does a generated catalog's. Reach for
+    :func:`generate` (committed codegen) when you want typing.
     """
     built = {schema["class_name"]: _make_class(schema) for schema in schemas(manifest_path)}
     if name is None:

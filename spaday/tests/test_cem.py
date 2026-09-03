@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from spaday import Component, ComponentSchema, PropertySchema, apply, classes, diff, generate, parse_cem
+from spaday import Component, ComponentSchema, PropertySchema, apply, classes, diff, generate, parse_cem, validate
 
 FIXTURES = Path(__file__).parent / "fixtures"
 FIXTURE = str(FIXTURES / "webawesome.cem.json")
@@ -222,6 +222,27 @@ def test_slots_compose_typed_components():
     assert node["tag"] == "wa-card"
     assert node["slots"]["header"][0]["tag"] == "wa-button"
     assert node["slots"]["default"][0]["tag"] == "wa-switch"
+
+
+def test_schema_carries_property_only_fields():
+    schema = _module()["WaCard"].schema
+    assert [prop.name for prop in schema.props] == ["appearance"]
+    # the payload is a field, so a manifest lists it nowhere else; the class surface around it is not
+    # an input (a method, a private field, an attribute-backed field, an element reference, an
+    # inherited field) and stays out
+    assert [prop.name for prop in schema.fields] == ["data"]
+    data = schema.fields[0]
+    assert data.kind == "json"  # an object type, like a `json` attribute
+    assert data.description == "An object payload no attribute can express."
+    assert schema.to_dict()["fields"] == [{"name": "data", "kind": "json", "description": data.description}]
+    assert "fields" not in _module()["WaSwitch"].schema.to_dict()  # omitted when the element declares none
+
+
+def test_a_field_is_set_like_a_prop_and_passes_validation():
+    card = _module()["WaCard"](appearance="filled", data={"rows": [1], "cols": ["a"]})
+    node = card.to_node()
+    assert node["props"]["data"] == {"Map": {"rows": {"List": [{"Int": 1}]}, "cols": {"List": [{"Str": "a"}]}}}
+    validate(card)  # the payload keyword is known — a schema without fields would reject it
 
 
 def test_classes_builds_components_at_runtime():

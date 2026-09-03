@@ -41,6 +41,10 @@ class ComponentSchema(BaseModel):
     class_name: str
     summary: str | None = None
     props: tuple[PropertySchema, ...] = ()
+    #: Property-only inputs — public fields the element declares with no attribute of their own, so a
+    #: manifest leaves them out of ``props``. A data component's payload (an object no attribute can
+    #: express) lives here; authors set one exactly like a prop and the runtime writes the property.
+    fields: tuple[PropertySchema, ...] = ()
     events: tuple[str, ...] = ()
     slots: tuple[str, ...] = ()
 
@@ -52,6 +56,7 @@ class ComponentSchema(BaseModel):
             class_name=schema["class_name"],
             summary=schema.get("summary"),
             props=tuple(_property_from_cem(prop) for prop in schema.get("props", ())),
+            fields=tuple(_property_from_cem(prop) for prop in schema.get("fields", ())),
             events=tuple(schema.get("events", ())),
             slots=tuple(schema.get("slots", ())),
         )
@@ -65,6 +70,8 @@ class ComponentSchema(BaseModel):
             "events": list(self.events),
             "slots": list(self.slots),
         }
+        if self.fields:  # omitted when empty, as PropertySchema omits its own empty entries
+            value["fields"] = [prop.to_dict() for prop in self.fields]
         if self.summary is not None:
             value["summary"] = self.summary
         return value

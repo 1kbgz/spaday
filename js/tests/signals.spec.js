@@ -424,6 +424,49 @@ test("a root-class binding toggles a class on <html> from a field", async ({
   expect(result).toEqual({ initial: false, on: true, off: false });
 });
 
+test("a root-attr binding writes the field's value as an attribute on <html>", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({
+      density: "comfortable",
+      vivid: false,
+      lang: "en",
+    });
+    mount(
+      document.createElement("div"),
+      {
+        tag: "div",
+        bindings: {
+          "root-attr:data-density": { field: "density", mode: "one-way" },
+          "root-attr:data-vivid": { field: "vivid", mode: "one-way" },
+          "root-attr:lang": { field: "lang", mode: "one-way" },
+        },
+      },
+      store,
+    );
+    const root = document.documentElement;
+    const seeded = root.getAttribute("data-density"); // seeded field applies at mount
+    store.set("density", "compact"); // an enum replaces rather than accumulates
+    const replaced = root.getAttribute("data-density");
+    store.set("density", null);
+    const cleared = root.hasAttribute("data-density");
+    store.set("vivid", true); // true is the bare attribute, not the string "true"
+    const bare = root.getAttribute("data-vivid");
+    // `lang` is also a property of <html>: a root-attr binding still writes the attribute
+    const attribute = root.getAttribute("lang");
+    return { seeded, replaced, cleared, bare, attribute };
+  });
+  expect(result).toEqual({
+    seeded: "comfortable",
+    replaced: "compact",
+    cleared: false,
+    bare: "",
+    attribute: "en",
+  });
+});
+
 test("nested-path fields: set/get a dotted path; notify the leaf and its ancestor, not a sibling", async ({
   page,
 }) => {

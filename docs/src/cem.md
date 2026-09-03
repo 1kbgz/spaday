@@ -24,10 +24,21 @@ Peer packages use this workflow for committed catalogs. For example, `spaday-web
 Generated classes expose their normalized CEM metadata through `Component.schema`, ready for inclusion
 in a [`ComponentPackage` catalog](serving.md).
 
+A manifest describes two kinds of input, and the schema carries both. `schema.props` are the element's
+**attributes** — each one becomes a typed keyword argument. `schema.fields` are its **property-only
+inputs**: public fields the element declares with no attribute of their own, which is where a data
+component keeps its payload (an object no attribute can express). A field is set exactly like a prop —
+`Chart(data={...})` — and the runtime writes the property; it is not a typed parameter, because a
+manifest's `members` describe the element's whole class surface, so only what survives filtering
+(methods, private and static members, inherited and attribute-backed fields, element references and
+callbacks are all dropped) is carried. Both kinds accept the snake_case spelling and both are checked
+by `spaday.validate`.
+
 ## Build classes at runtime
 
-For a one-off or experimental manifest, `spaday.classes` builds the classes in memory instead — no file,
-no static types, but it still validates keyword names:
+For a one-off or experimental manifest, `spaday.classes` builds the classes in memory instead — no file
+and no static types, but the same `Component.schema`, so `spaday.validate` checks keyword names on the
+built tree either way:
 
 ```python
 import spaday

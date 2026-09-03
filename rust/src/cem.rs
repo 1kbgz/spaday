@@ -1,8 +1,8 @@
 //! Custom Elements Manifest (CEM) parser — the binding-generator foundation.
 //!
 //! Web-component libraries publish a `custom-elements.json` (the [Custom Elements Manifest]) that
-//! describes every element: its tag, attributes (with types and defaults), events, and slots.
-//! [`parse_manifest`] reads one into a normalized [`ComponentSchema`] per element. The bindings then
+//! describes every element: its tag, attributes (with types and defaults), class members, events, and
+//! slots. [`parse_manifest`] reads one into a normalized [`ComponentSchema`] per element. The bindings then
 //! render that schema two ways — build-time typed **Python** classes and a **JS** runtime registry —
 //! so a UI authored in typed Python binds to the real web components. One parse, two outputs, the
 //! same "one core, two bindings" shape as the diff engine.
@@ -39,9 +39,38 @@ struct Declaration {
     #[serde(default)]
     attributes: Vec<Attribute>,
     #[serde(default)]
+    members: Vec<Member>,
+    #[serde(default)]
     events: Vec<Named>,
     #[serde(default)]
     slots: Vec<Named>,
+}
+
+/// A class member (`kind: "field"` or `"method"`). Only public, element-specific, writable fields with
+/// no attribute of their own become [`ComponentSchema::fields`]; see [`is_authorable_field`].
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Member {
+    kind: String,
+    name: String,
+    #[serde(default, rename = "type")]
+    ty: Option<TypeText>,
+    #[serde(default)]
+    privacy: Option<String>,
+    #[serde(default, rename = "static")]
+    is_static: bool,
+    #[serde(default)]
+    readonly: bool,
+    /// Present when the field is declared by a base class rather than this element.
+    #[serde(default)]
+    inherited_from: Option<serde_json::Value>,
+    /// Present when the field is backed by an attribute (already carried by `attributes`).
+    #[serde(default)]
+    attribute: Option<String>,
+    #[serde(default)]
+    default: Option<String>,
+    #[serde(default)]
+    description: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -92,7 +121,7 @@ pub struct PropSchema {
     pub doc: Option<String>,
 }
 
-/// A normalized custom element: its tag, a class name, props, events, and slots.
+/// A normalized custom element: its tag, a class name, props, property-only fields, events, and slots.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ComponentSchema {
     pub tag_name: String,
@@ -101,6 +130,11 @@ pub struct ComponentSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
     pub props: Vec<PropSchema>,
+    /// Property-only inputs: public fields the element declares with no attribute of their own, so they
+    /// are absent from `props`. Data components carry their payload here (an object a plain attribute
+    /// cannot express), and the author sets one exactly like a prop — the runtime writes the property.
+    #[serde(default)]
+    pub fields: Vec<PropSchema>,
     pub events: Vec<String>,
     /// Slot names; the empty string is the default (unnamed) slot.
     pub slots: Vec<String>,
@@ -128,11 +162,25 @@ pub fn parse_manifest(json: &str) -> Result<Vec<ComponentSchema>, serde_json::Er
                     doc: a.description.clone(),
                 })
                 .collect();
+            let attribute_names: Vec<&str> =
+                decl.attributes.iter().map(|a| a.name.as_str()).collect();
+            let fields = decl
+                .members
+                .iter()
+                .filter(|m| is_authorable_field(m, &attribute_names))
+                .map(|m| PropSchema {
+                    name: m.name.clone(),
+                    ty: parse_type(m.ty.as_ref().and_then(|t| t.text.as_deref())),
+                    default: clean_default(m.default.as_deref()),
+                    doc: m.description.clone(),
+                })
+                .collect();
             out.push(ComponentSchema {
                 class_name: pascal_case(&tag_name),
                 tag_name,
                 summary: decl.summary.or(decl.description),
                 props,
+                fields,
                 events: decl.events.into_iter().map(|e| e.name).collect(),
                 slots: decl.slots.into_iter().map(|s| s.name).collect(),
             });
@@ -144,6 +192,55 @@ pub fn parse_manifest(json: &str) -> Result<Vec<ComponentSchema>, serde_json::Er
 /// String-in/string-out facade for the bindings: manifest JSON → schemas JSON.
 pub fn parse_cem(json: &str) -> Result<String, serde_json::Error> {
     serde_json::to_string(&parse_manifest(json)?)
+}
+
+/// Whether a manifest member is a property-only input an author can set.
+///
+/// `members` is the element's whole class surface, most of which is not authorable: methods, private
+/// and static members, base-class plumbing, and references into the element's own shadow tree. Excluded
+/// in order: anything but a public instance field; a `#private`/`_internal` name; a field a base class
+/// declares (`inheritedFrom`); a field backed by an attribute (`attribute`, or a name `attributes`
+/// already carries — [`ComponentSchema::props`] describes those); a `readonly` field; a field typed as a
+/// DOM node (a reference into the element's own shadow tree); and a callback field, which no
+/// serializable tree can carry. What survives is the payload-shaped surface an attribute cannot express.
+///
+/// Deliberately conservative in one direction: an internal field that slips through only widens what
+/// the schema accepts, while dropping a real input would leave authors with no way to name it.
+fn is_authorable_field(m: &Member, attributes: &[&str]) -> bool {
+    let ty = m.ty.as_ref().and_then(|t| t.text.as_deref()).unwrap_or("");
+    m.kind == "field"
+        && m.privacy.as_deref().unwrap_or("public") == "public"
+        && !m.is_static
+        && !m.readonly
+        && !m.name.starts_with('#')
+        && !m.name.starts_with('_')
+        && m.inherited_from.is_none()
+        && m.attribute.is_none()
+        && !attributes.contains(&m.name.as_str())
+        && !is_dom_reference(ty)
+        && !ty.contains("=>") // a callback: behavior is authored as actions, never passed as a value
+}
+
+/// Whether every alternative of a TS type is a DOM node interface (`HTMLDivElement | undefined`,
+/// `Element`, …) — the shape of a reference into the element's own shadow tree, never an input.
+fn is_dom_reference(text: &str) -> bool {
+    let mut saw_dom = false;
+    for member in text.split('|').map(str::trim).filter(|m| !m.is_empty()) {
+        let member = member.trim_end_matches("[]");
+        if member == "null" || member == "undefined" {
+            continue;
+        }
+        let dom = matches!(
+            member,
+            "Element" | "Node" | "EventTarget" | "ShadowRoot" | "DocumentFragment"
+        ) || ((member.starts_with("HTML") || member.starts_with("SVG"))
+            && member.ends_with("Element"));
+        if !dom {
+            return false;
+        }
+        saw_dom = true;
+    }
+    saw_dom
 }
 
 fn pascal_case(tag: &str) -> String {
@@ -280,6 +377,72 @@ mod cem_tests {
         let json = parse_cem(MANIFEST).unwrap();
         let back: Vec<ComponentSchema> = serde_json::from_str(&json).unwrap();
         assert_eq!(back, parse_manifest(MANIFEST).unwrap());
+    }
+
+    /// A data component: its payload is a *field* (an object no attribute can express), alongside the
+    /// class surface a manifest also lists — methods, private/static/internal members, inherited and
+    /// attribute-backed fields, and references into its own shadow tree.
+    const FIELDS_MANIFEST: &str = r##"{
+      "modules": [
+        { "declarations": [
+          {
+            "kind": "class", "name": "SpaHeatmap", "customElement": true, "tagName": "spa-heatmap",
+            "attributes": [ { "name": "digits", "type": {"text": "number"} } ],
+            "members": [
+              { "kind": "field", "name": "data", "type": {"text": "HeatmapData"}, "description": "The payload." },
+              { "kind": "field", "name": "scale", "type": {"text": "'linear' | 'log'"}, "default": "'linear'" },
+              { "kind": "method", "name": "render" },
+              { "kind": "field", "name": "#buffer", "type": {"text": "number[]"} },
+              { "kind": "field", "name": "_cache", "type": {"text": "object"} },
+              { "kind": "field", "name": "internals", "privacy": "private", "type": {"text": "object"} },
+              { "kind": "field", "name": "version", "static": true, "type": {"text": "string"} },
+              { "kind": "field", "name": "digits", "type": {"text": "number"} },
+              { "kind": "field", "name": "formAction", "attribute": "formaction", "type": {"text": "string"} },
+              { "kind": "field", "name": "title", "type": {"text": "string"}, "inheritedFrom": {"name": "WaElement"} },
+              { "kind": "field", "name": "validity", "readonly": true, "type": {"text": "ValidityState"} },
+              { "kind": "field", "name": "canvas", "type": {"text": "HTMLCanvasElement | undefined"} },
+              { "kind": "field", "name": "renderCell", "type": {"text": "(row: number) => string"} }
+            ]
+          }
+        ] }
+      ]
+    }"##;
+
+    #[test]
+    fn test_fields_carry_property_only_inputs() {
+        let s = &parse_manifest(FIELDS_MANIFEST).unwrap()[0];
+        let names: Vec<&str> = s.fields.iter().map(|f| f.name.as_str()).collect();
+        assert_eq!(names, vec!["data", "scale"]); // everything else is class surface, not an input
+        assert_eq!(
+            s.props.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
+            vec!["digits"]
+        );
+        let data = &s.fields[0];
+        assert_eq!(data.ty, PropType::Any); // an object type stays unmodeled, as a `json` attribute does
+        assert_eq!(data.doc.as_deref(), Some("The payload."));
+        assert_eq!(
+            s.fields[1].ty,
+            PropType::Enum(vec!["linear".into(), "log".into()])
+        );
+        assert_eq!(s.fields[1].default.as_deref(), Some("linear"));
+    }
+
+    #[test]
+    fn test_dom_reference_types_are_not_inputs() {
+        assert!(is_dom_reference("HTMLSlotElement"));
+        assert!(is_dom_reference(
+            "HTMLInputElement | HTMLTextAreaElement | undefined"
+        ));
+        assert!(is_dom_reference("SVGSVGElement"));
+        assert!(is_dom_reference("Element[]"));
+        assert!(!is_dom_reference("")); // an untyped field is still an input
+        assert!(!is_dom_reference("HeatmapData"));
+        assert!(!is_dom_reference("string | HTMLElement")); // a mixed union may still be authorable
+    }
+
+    #[test]
+    fn test_a_manifest_without_members_has_no_fields() {
+        assert!(parse_manifest(MANIFEST).unwrap()[0].fields.is_empty());
     }
 
     #[test]

@@ -12,11 +12,14 @@ binding *names* are checked too, wherever a catalog schema is known — see :fun
 from collections.abc import Iterator
 from typing import Any
 
-from .component import _SCHEMAS_BY_TAG, Component, _snake_name
+from .component import _SCHEMAS_BY_TAG, Component, _settable, _snake_name
 
 #: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.
 _GLOBAL_PROPS = {"id", "class", "style", "slot", "part", "title", "role", "hidden", "tabindex", "textContent"}
 _GLOBAL_PREFIXES = ("data-", "aria-")
+#: Binding names that target the document root rather than a prop on the bound element; one-way by
+#: construction, so they are exempt from the two-way and unknown-prop checks below.
+_ROOT_PREFIXES = ("root-class:", "root-attr:")
 
 
 class ValidationError(ValueError):
@@ -74,10 +77,10 @@ def _collect_refs(node: dict, refs: list[str]) -> None:
 def _collect_unknown_props(component: Component, problems: list[str]) -> None:
     schema = type(component).schema
     if schema is not None:
-        known = {prop.name for prop in schema.props}
+        known = {prop.name for prop in _settable(schema)}
         # two-way bindings target live form-control properties (a composed control's `value` is
         # routinely absent from its manifest), so their names stay unchecked
-        bound = [n for n, b in component._bindings.items() if b.get("mode") != "two-way" and not n.startswith("root-class:")]
+        bound = [n for n, b in component._bindings.items() if b.get("mode") != "two-way" and not n.startswith(_ROOT_PREFIXES)]
         names = list(component._props) + bound
         for name in names:
             if name in known or name in _GLOBAL_PROPS or name.startswith(_GLOBAL_PREFIXES):
@@ -97,9 +100,9 @@ def _collect_unknown_props_dict(node: dict, problems: list[str]) -> None:
     schema-carrying class (``Component.__init_subclass__`` registers them)."""
     schema = _SCHEMAS_BY_TAG.get(node.get("tag", ""))
     if schema is not None:
-        known = {prop.name for prop in schema.props}
+        known = {prop.name for prop in _settable(schema)}
         bindings = node.get("bindings") or {}
-        bound = [n for n, b in bindings.items() if b.get("mode") != "two-way" and not n.startswith("root-class:")]
+        bound = [n for n, b in bindings.items() if b.get("mode") != "two-way" and not n.startswith(_ROOT_PREFIXES)]
         for name in list(node.get("props") or {}) + bound:
             if name in known or name in _GLOBAL_PROPS or name.startswith(_GLOBAL_PREFIXES):
                 continue

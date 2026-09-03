@@ -224,14 +224,22 @@ function readProp(el: Element, name: string): unknown {
   return el.hasAttribute(name) ? el.getAttribute(name) : null;
 }
 
-// The setter a binding drives. Normally a prop on the bound element; a `root-class:NAME` binding instead
-// toggles a class on the document root (`<html>`) — page-level theming (e.g. WebAwesome's `wa-dark`) that
-// lives outside the component tree. Authored via `Component.bind_root_class`.
+// The setter a binding drives. Normally a prop on the bound element; a `root-class:NAME` or
+// `root-attr:NAME` binding instead writes the document root (`<html>`) — page-level theming (e.g.
+// WebAwesome's `wa-dark`, or a `:root[data-density='comfortable']` token set) that lives outside the
+// component tree. Authored via `Component.bind_root_class` / `bind_root_attr`. A class is a boolean, so
+// it coerces; an attribute keeps its value, and is written as an attribute even when the name shadows a
+// property of `<html>` (`title`, `lang`, `dir`, …).
 function bindingApply(el: Element, prop: string): (value: unknown) => void {
   const ROOT_CLASS = "root-class:";
+  const ROOT_ATTR = "root-attr:";
   if (prop.startsWith(ROOT_CLASS)) {
     const name = prop.slice(ROOT_CLASS.length);
     return (v) => document.documentElement.classList.toggle(name, !!v);
+  }
+  if (prop.startsWith(ROOT_ATTR)) {
+    const name = prop.slice(ROOT_ATTR.length);
+    return (v) => setAttr(document.documentElement, name, v);
   }
   return (v) => setProp(el, prop, v);
 }
@@ -978,6 +986,11 @@ export function setProp(el: Element, name: string, value: unknown): void {
     (el as unknown as Record<string, unknown>)[name] = value;
     return;
   }
+  setAttr(el, name, value);
+}
+
+/** Write `value` as an attribute: `false`/`null`/`undefined` remove it, `true` gives the bare form. */
+function setAttr(el: Element, name: string, value: unknown): void {
   if (value === false || value === null || value === undefined) {
     el.removeAttribute(name);
   } else {
