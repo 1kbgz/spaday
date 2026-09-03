@@ -41,6 +41,10 @@ def _snake_name(name: str) -> str:
 #: tag -> schema for every imported schema-carrying class (validate uses it for dict trees)
 _SCHEMAS_BY_TAG: dict[str, ComponentSchema] = {}
 
+#: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.
+_GLOBAL_PROPS = {"id", "class", "style", "slot", "part", "title", "role", "hidden", "tabindex", "textContent"}
+_GLOBAL_PREFIXES = ("data-", "aria-")
+
 
 @lru_cache(maxsize=None)
 def _settable(schema: ComponentSchema) -> tuple[PropertySchema, ...]:
@@ -59,6 +63,20 @@ def _prop_aliases(schema: ComponentSchema) -> dict[str, str]:
         if snake != prop.name and snake not in names:
             aliases.setdefault(snake, prop.name)
     return aliases
+
+
+def _unknown_prop(schema: ComponentSchema, tag: str, name: str) -> str | None:
+    """The problem text for a keyword ``schema`` does not describe, or ``None`` when the name is fine.
+
+    One definition of "accepted name", shared by the strict constructor and :func:`spaday.validate`:
+    the schema's attributes and property-only fields, plus the generic props the runtime sets on any
+    element. A name that is the snake_case spelling of a real one carries a did-you-mean hint.
+    """
+    known = {prop.name for prop in _settable(schema)}
+    if name in known or name in _GLOBAL_PROPS or name.startswith(_GLOBAL_PREFIXES):
+        return None
+    hint = next((p for p in sorted(known) if _snake_name(p) == name), None)
+    return f"<{tag}> unknown prop {name!r}" + (f" (did you mean {hint!r}?)" if hint else "")
 
 
 def _tag(value: Any) -> Any:
@@ -114,6 +132,8 @@ class Component:
 
     tag: str = ""
     schema: ClassVar[ComponentSchema | None] = None
+    #: Reject unknown keywords at construction (see :meth:`set_strict_props`). Off by default.
+    strict_props: ClassVar[bool] = False
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -138,6 +158,8 @@ class Component:
         merged.update(generic)
         self._props: dict[str, Any] = {k: v for k, v in merged.items() if v is not None}
         if type(self).schema is not None:
+            if type(self).strict_props:
+                self._check_prop_names()
             self._check_prop_kinds()
         self._slots: dict[str, list[Child]] = {}
         self._events: dict[str, dict] = {}
@@ -145,6 +167,34 @@ class Component:
         self._style: dict[str, str] = {}  # inline CSS declarations + custom properties (theming)
         self._classes: list[str] = []  # CSS classes (variants / states)
         self.child(*children)
+
+    @classmethod
+    def set_strict_props(cls, strict: bool = True) -> None:
+        """Make unknown keyword arguments raise at construction, for ``cls`` and its subclasses.
+
+        Off by default: a manifest describes an element's inputs approximately (see
+        :attr:`ComponentSchema.fields`), so an unrecognized keyword is reported by
+        :func:`spaday.validate` over a built tree rather than assumed to be a mistake. Turn it on where
+        the earlier error is worth that risk, at whichever scope fits — the whole catalog
+        (``Component.set_strict_props()``), one package's components
+        (``WaButton.set_strict_props()``, which works on a generated catalog you don't own), or off
+        again for a single class the manifest describes badly (``WaSelect.set_strict_props(False)``).
+        A class that sets it explicitly keeps that setting when a base class is toggled later, so a
+        per-class opt-out survives turning the catalog strict. Classes without a ``schema`` have
+        nothing to check and are unaffected.
+
+        Only constructor keywords are checked; :meth:`prop` stays the explicit escape hatch for an
+        attribute the manifest does not describe.
+        """
+        cls.strict_props = strict
+
+    def _check_prop_names(self) -> None:
+        """Reject keywords the class's catalog ``schema`` does not describe (opt-in; see
+        :meth:`set_strict_props`). Reports every unknown name at once, by the same rules and in the
+        same words :func:`spaday.validate` uses on a built tree."""
+        problems = [problem for name in self._props if (problem := _unknown_prop(self.schema, self.tag, name))]
+        if problems:
+            raise TypeError("; ".join(problems))
 
     def _check_prop_kinds(self) -> None:
         """Reject a literal prop value that contradicts the class's catalog ``schema`` kind.

@@ -138,6 +138,33 @@ def test_a_dict_child_nested_in_a_component_is_checked():
     assert "<spa-dagre> unknown prop 'mystery'" in str(excinfo.value)
 
 
+def test_strict_props_is_opt_in_and_reports_what_validate_reports():
+    assert Dagre(mystery=1).to_node()["props"] == {"mystery": {"Int": 1}}  # off by default
+    Dagre.set_strict_props()
+    try:
+        with pytest.raises(TypeError) as excinfo:
+            Dagre(mystery=1, max_label_wdith=2)
+        message = str(excinfo.value)  # every unknown name at once, worded as validate words it
+        assert "<spa-dagre> unknown prop 'mystery'; <spa-dagre> unknown prop 'max_label_wdith'" == message
+        Dagre(maxLabelWidth=180, id="graph", class_="card")  # schema names and globals still pass
+        Dagre(max_label_width=180)  # a real snake_case alias is normalized before the check, not rejected
+        Dagre().prop("mystery", 1)  # prop() stays the explicit escape hatch
+    finally:
+        del Dagre.strict_props
+
+
+def test_strict_props_set_on_the_base_reaches_a_catalog_you_do_not_own():
+    Component.set_strict_props(True)
+    try:
+        with pytest.raises(TypeError):
+            Dagre(mystery=1)
+        Dagre.set_strict_props(False)  # an explicit per-class opt-out wins over the base
+        assert Dagre(mystery=1).to_node()["props"] == {"mystery": {"Int": 1}}
+    finally:
+        Component.set_strict_props(False)
+        del Dagre.strict_props
+
+
 def test_exported_from_package():
     assert spaday.validate is validate
     assert issubclass(spaday.ValidationError, ValueError)
