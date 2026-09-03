@@ -299,6 +299,11 @@
     <span class="n">events</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
     <span class="n">slots</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">__repr_args__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Drop an empty ``fields`` from the repr, so a catalog whose elements declare no</span>
+<span class="sd">        property-only inputs generates exactly as it did before fields existed."""</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__repr_args__</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s2">"fields"</span> <span class="ow">or</span> <span class="n">value</span><span class="p">]</span>
+
 <div class="viewcode-block" id="ComponentSchema.from_cem">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.ComponentSchema.from_cem">[docs]</a>
     <span class="nd">@classmethod</span>

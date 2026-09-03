@@ -547,6 +547,20 @@ instead — every schema-carrying class that has been imported registers its tag
 <code class="docutils literal notranslate"><span class="pre">validate(component.to_node())</span></code> checks the same props as <code class="docutils literal notranslate"><span class="pre">validate(component)</span></code>. Nodes with no
 schema either way (<code class="docutils literal notranslate"><span class="pre">element(...)</span></code> escape hatches) stay unvalidated, as do two-way binding names,
 which target live form-control properties a manifest routinely omits.</p>
+<p>Name checking is a <code class="docutils literal notranslate"><span class="pre">validate</span></code> call by default, not a constructor error, because a manifest describes an
+element’s inputs approximately — <code class="docutils literal notranslate"><span class="pre">schema.fields</span></code> is filtered from a class surface that mixes real inputs
+with plumbing, so a name spaday does not recognize is not proof of a mistake. Where the earlier error is
+worth that risk, turn it on with <code class="docutils literal notranslate"><span class="pre">set_strict_props</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaSelect</span>
+
+<span class="n">Component</span><span class="o">.</span><span class="n">set_strict_props</span><span class="p">()</span>      <span class="c1"># every schema-carrying class, catalogs you don't own included</span>
+<span class="n">WaSelect</span><span class="o">.</span><span class="n">set_strict_props</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># ...except one the manifest describes badly</span>
+</pre></div>
+</div>
+<p>An unknown keyword then raises <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> at construction, naming every unknown name at once in the
+same words <code class="docutils literal notranslate"><span class="pre">validate</span></code> uses. A class that sets it explicitly keeps that setting when a base class is
+toggled later, so the opt-out above survives. Only constructor keywords are checked — <code class="docutils literal notranslate"><span class="pre">.prop(name,</span> <span class="pre">value)</span></code> stays the explicit way to set an attribute the manifest does not describe.</p>
 </section>
 </section>
 
