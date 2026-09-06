@@ -218,8 +218,15 @@ fn opaque_type_text(text: Option<&str>) -> Option<String> {
         return None;
     }
     let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    (!collapsed.is_empty()).then_some(collapsed)
+    if collapsed.is_empty() || UNINFORMATIVE_TYPES.contains(&collapsed.as_str()) {
+        return None; // a declared `unknown` says exactly what the `json` kind already said
+    }
+    Some(collapsed)
 }
+
+/// TypeScript spellings for "no information". Carrying one would add a line to every catalog that
+/// declares it, to repeat what [`PropType::Any`] already says.
+const UNINFORMATIVE_TYPES: &[&str] = &["any", "unknown", "unknown | undefined", "any | undefined"];
 
 /// Whether a manifest member is a property-only input an author can set.
 ///
@@ -504,6 +511,23 @@ mod cem_tests {
         assert_eq!(by("checked").type_text, None);
         assert_eq!(by("size").type_text, None);
         assert_eq!(by("name").type_text, None);
+    }
+
+    #[test]
+    fn test_type_text_skips_the_spellings_that_say_nothing() {
+        let manifest = r#"{"modules":[{"declarations":[{
+          "kind":"class","name":"El","customElement":true,"tagName":"an-el",
+          "attributes":[
+            {"name":"opaque","type":{"text":"unknown"}},
+            {"name":"loose","type":{"text":"any"}},
+            {"name":"rows","type":{"text":"string[]"}}
+          ]
+        }]}]}"#;
+        let s = &parse_manifest(manifest).unwrap()[0];
+        let by = |n: &str| s.props.iter().find(|p| p.name == n).unwrap();
+        assert_eq!(by("opaque").type_text, None); // the kind already says "unmodeled"
+        assert_eq!(by("loose").type_text, None);
+        assert_eq!(by("rows").type_text.as_deref(), Some("string[]"));
     }
 
     #[test]
