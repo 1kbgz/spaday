@@ -202,6 +202,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/components.html">Author a component tree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/serving.html">Serve and embed a spaday app</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/customizing.html">Ship your own variant</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/pyodide.html">How to run a spaday app in Pyodide</a></li>
@@ -454,6 +455,29 @@
 <span class="sd">        attribute the manifest does not describe.</span>
 <span class="sd">        """</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">strict_props</span> <span class="o">=</span> <span class="n">strict</span></div>
+
+
+<div class="viewcode-block" id="Component.retag">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.retag">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retag</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="s2">"Component"</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""A subclass of this component bound to a different custom element name.</span>
+
+<span class="sd">        Use it when an application ships its own element implementing the same contract and wants</span>
+<span class="sd">        this class's authoring surface — props, bindings, actions, catalog schema — pointed at that</span>
+<span class="sd">        element instead::</span>
+
+<span class="sd">            MyGrid = PerspectivePanel.retag("my-data-grid")</span>
+
+<span class="sd">        The tag is carried into the class's ``schema`` as well, which</span>
+<span class="sd">        :class:`~spaday.packages.ComponentPackage` requires to agree with ``tag``, so the result can</span>
+<span class="sd">        go straight into a package descriptor. The new tag registers for dict-tree validation like</span>
+<span class="sd">        any other schema-carrying class.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tag</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"retag requires a tag"</span><span class="p">)</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"tag"</span><span class="p">:</span> <span class="n">tag</span><span class="p">})</span> <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="p">(</span><span class="bp">cls</span><span class="p">,),</span> <span class="p">{</span><span class="s2">"tag"</span><span class="p">:</span> <span class="n">tag</span><span class="p">,</span> <span class="s2">"schema"</span><span class="p">:</span> <span class="n">schema</span><span class="p">})</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_check_prop_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -762,8 +786,8 @@
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
-    <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=43c3c99e"></script>
-    <script data-searchlite-adopt="true" defer="defer" src="../../_static/searchlite-ui.js?v=42b9d9bb"></script>
+    <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=a5320898"></script>
+    <script data-searchlite-adopt="true" defer="defer" src="../../_static/searchlite-ui.js?v=4e4bdd69"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
     <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
 

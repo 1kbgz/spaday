@@ -202,6 +202,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/components.html">Author a component tree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/serving.html">Serve and embed a spaday app</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/src/customizing.html">Ship your own variant</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../docs/src/pyodide.html">How to run a spaday app in Pyodide</a></li>
@@ -536,7 +537,15 @@
     <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">'import </span><span class="se">{{</span><span class="s1"> </span><span class="si">{</span><span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">runtime_names</span><span class="p">)</span><span class="si">}</span><span class="s1"> </span><span class="se">}}</span><span class="s1"> from "</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">"runtime"</span><span class="p">]</span><span class="si">}</span><span class="s1">";'</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">wired</span><span class="p">:</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">'import </span><span class="se">{{</span><span class="s1"> Client, fromValue, toValue, wasm </span><span class="se">}}</span><span class="s1"> from "</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">"transports"</span><span class="p">]</span><span class="si">}</span><span class="s1">";'</span><span class="p">)</span>
-    <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="sa">f</span><span class="s1">'import "</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s1">";'</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">scripts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">scripts</span><span class="p">:</span>
+        <span class="c1"># dynamic + caught, not `import "…"`: a static import of a third-party bundle that throws</span>
+        <span class="c1"># while registering (two copies of one custom element, say) aborts this module before</span>
+        <span class="c1"># `mount`, and the page renders nothing at all. Awaited here, so handlers are still</span>
+        <span class="c1"># registered before the tree mounts; a failure costs that one script, not the page.</span>
+        <span class="n">urls</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">script</span><span class="p">)</span> <span class="k">for</span> <span class="n">script</span> <span class="ow">in</span> <span class="n">scripts</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"await Promise.all([</span><span class="si">{</span><span class="n">urls</span><span class="si">}</span><span class="s2">].map((u) =&gt; import(u).catch((e) =&gt; console.error(`spaday: extra script $</span><span class="se">{{</span><span class="s2">u</span><span class="se">}}</span><span class="s2"> failed to load`, e))));"</span>
+        <span class="p">)</span>
     <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">'await init(</span><span class="se">{{</span><span class="s1"> module_or_path: "</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">"wasm"</span><span class="p">]</span><span class="si">}</span><span class="s1">" </span><span class="se">}}</span><span class="s1">);'</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">wired</span><span class="p">:</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">'await wasm.default(</span><span class="se">{{</span><span class="s1"> module_or_path: "</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">"transports_wasm"</span><span class="p">]</span><span class="si">}</span><span class="s1">" </span><span class="se">}}</span><span class="s1">);'</span><span class="p">)</span>
@@ -711,8 +720,8 @@
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
-    <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=43c3c99e"></script>
-    <script data-searchlite-adopt="true" defer="defer" src="../../_static/searchlite-ui.js?v=42b9d9bb"></script>
+    <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=a5320898"></script>
+    <script data-searchlite-adopt="true" defer="defer" src="../../_static/searchlite-ui.js?v=4e4bdd69"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
     <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
 

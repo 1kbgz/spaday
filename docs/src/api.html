@@ -203,6 +203,7 @@
 <li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serving.html">Serve and embed a spaday app</a></li>
+<li class="toctree-l1"><a class="reference internal" href="customizing.html">Ship your own variant</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transports.html">Sync a UI to a server over transports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook.html">Use spaday in a Jupyter notebook</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pyodide.html">How to run a spaday app in Pyodide</a></li>
@@ -287,6 +288,22 @@ per-class opt-out survives turning the catalog strict. Classes without a <code c
 nothing to check and are unaffected.</p>
 <p>Only constructor keywords are checked; <a class="reference internal" href="#spaday.prop" title="spaday.prop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">prop()</span></code></a> stays the explicit escape hatch for an
 attribute the manifest does not describe.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.retag">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">retag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#spaday.Component" title="spaday.component.Component"><span class="pre">Component</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.retag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.retag" title="Link to this definition">¶</a></dt>
+<dd><p>A subclass of this component bound to a different custom element name.</p>
+<p>Use it when an application ships its own element implementing the same contract and wants
+this class’s authoring surface — props, bindings, actions, catalog schema — pointed at that
+element instead:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MyGrid</span> <span class="o">=</span> <span class="n">PerspectivePanel</span><span class="o">.</span><span class="n">retag</span><span class="p">(</span><span class="s2">"my-data-grid"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The tag is carried into the class’s <code class="docutils literal notranslate"><span class="pre">schema</span></code> as well, which
+<a class="reference internal" href="#spaday.ComponentPackage" title="spaday.packages.ComponentPackage"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComponentPackage</span></code></a> requires to agree with <code class="docutils literal notranslate"><span class="pre">tag</span></code>, so the result can
+go straight into a package descriptor. The new tag registers for dict-tree validation like
+any other schema-carrying class.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1061,6 +1078,7 @@ themes the page before the tree renders.</p>
 <li><a class="reference internal" href="#spaday.Component"><code class="docutils literal notranslate"><span class="pre">Component</span></code></a><ul>
 <li><a class="reference internal" href="#spaday.Component.strict_props"><code class="docutils literal notranslate"><span class="pre">Component.strict_props</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.set_strict_props"><code class="docutils literal notranslate"><span class="pre">Component.set_strict_props()</span></code></a></li>
+<li><a class="reference internal" href="#spaday.Component.retag"><code class="docutils literal notranslate"><span class="pre">Component.retag()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.key"><code class="docutils literal notranslate"><span class="pre">Component.key()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.child"><code class="docutils literal notranslate"><span class="pre">Component.child()</span></code></a></li>
 <li><a class="reference internal" href="#spaday.Component.child_in"><code class="docutils literal notranslate"><span class="pre">Component.child_in()</span></code></a></li>
@@ -1202,8 +1220,8 @@ themes the page before the tree renders.</p>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
-    <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=43c3c99e"></script>
-    <script data-searchlite-adopt="true" defer="defer" src="../../_static/searchlite-ui.js?v=42b9d9bb"></script>
+    <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=a5320898"></script>
+    <script data-searchlite-adopt="true" defer="defer" src="../../_static/searchlite-ui.js?v=4e4bdd69"></script>
     <script src="../../_static/js/custom.js?v=956e5d78"></script>
     </body>
 </html>
