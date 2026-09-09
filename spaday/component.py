@@ -208,6 +208,26 @@ class Component:
         """
         cls.strict_props = strict
 
+    @classmethod
+    def retag(cls, tag: str) -> type["Component"]:
+        """A subclass of this component bound to a different custom element name.
+
+        Use it when an application ships its own element implementing the same contract and wants
+        this class's authoring surface — props, bindings, actions, catalog schema — pointed at that
+        element instead::
+
+            MyGrid = PerspectivePanel.retag("my-data-grid")
+
+        The tag is carried into the class's ``schema`` as well, which
+        :class:`~spaday.packages.ComponentPackage` requires to agree with ``tag``, so the result can
+        go straight into a package descriptor. The new tag registers for dict-tree validation like
+        any other schema-carrying class.
+        """
+        if not tag:
+            raise ValueError("retag requires a tag")
+        schema = cls.schema.model_copy(update={"tag": tag}) if cls.schema is not None else None
+        return type(cls.__name__, (cls,), {"tag": tag, "schema": schema})
+
     def _check_prop_names(self) -> None:
         """Reject keywords the class's catalog ``schema`` does not describe (opt-in; see
         :meth:`set_strict_props`). Reports every unknown name at once, by the same rules and in the
