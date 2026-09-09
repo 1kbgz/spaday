@@ -281,7 +281,13 @@ def _script(
     lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{assets["runtime"]}";']
     if wired:
         lines.append(f'import {{ Client, fromValue, toValue, wasm }} from "{js}{assets["transports"]}";')
-    lines.extend(f'import "{s}";' for s in scripts)
+    if scripts:
+        # dynamic + caught, not `import "…"`: a static import of a third-party bundle that throws
+        # while registering (two copies of one custom element, say) aborts this module before
+        # `mount`, and the page renders nothing at all. Awaited here, so handlers are still
+        # registered before the tree mounts; a failure costs that one script, not the page.
+        urls = ", ".join(json.dumps(script) for script in scripts)
+        lines.append(f"await Promise.all([{urls}].map((u) => import(u).catch((e) => console.error(`spaday: extra script ${{u}} failed to load`, e))));")
     lines.append(f'await init({{ module_or_path: "{js}{assets["wasm"]}" }});')
     if wired:
         lines.append(f'await wasm.default({{ module_or_path: "{js}{assets["transports_wasm"]}" }});')
