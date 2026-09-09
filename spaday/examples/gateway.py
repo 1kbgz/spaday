@@ -119,13 +119,13 @@ THEME_CSS = """<style>
 
 
 def _layout(extra: dict) -> dict:
-    """A Perspective workspace layout showing the 'orders' table in a single datagrid viewer."""
+    """A Perspective workspace layout showing the 'orders' table in a single datagrid viewer.
+
+    Perspective 5's shape: a ``regular-layout`` tree plus per-panel viewer configs. ``tab-layout``
+    names its tabs as plain strings (``split-layout`` nests ``children`` instead)."""
     return {
-        "sizes": [1],
-        "detail": {"main": {"type": "tab-area", "widgets": ["orders"], "currentIndex": 0}},
-        "master": {"sizes": [], "widgets": []},
-        "mode": "globalFilters",
-        "viewers": {"orders": {"table": "orders", "plugin": "Datagrid", **extra}},
+        "layout": {"type": "tab-layout", "tabs": ["orders"], "currentIndex": 0},
+        "panels": {"orders": {"table": "orders", "plugin": "Datagrid", **extra}},
     }
 
 

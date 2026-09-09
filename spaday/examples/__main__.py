@@ -161,13 +161,10 @@ form_server = host(Device())
 # can PUSH at any time. Two pushable presets — a flat live blotter and a by-category rollup — flip
 # server-side, and every connected workspace re-restores ("push a new view at any time").
 def _layout(viewer: dict) -> dict:
-    """A single-viewer perspective-workspace layout (the shape ``<perspective-workspace>.restore`` wants)."""
+    """A single-viewer Perspective 5 layout: a ``regular-layout`` tree plus per-panel viewer configs."""
     return {
-        "sizes": [1],
-        "detail": {"main": {"type": "tab-area", "widgets": ["view"], "currentIndex": 0}},
-        "master": {"sizes": [], "widgets": []},
-        "mode": "globalFilters",
-        "viewers": {"view": {"table": "orders", "plugin": "Datagrid", "theme": "Pro Light", **viewer}},
+        "layout": {"type": "tab-layout", "tabs": ["view"], "currentIndex": 0},
+        "panels": {"view": {"table": "orders", "plugin": "Datagrid", "theme": "Pro Light", **viewer}},
     }
 
 
@@ -211,9 +208,9 @@ class Blotter:
     async def relayout(self, request) -> JSONResponse:
         """Flip the shared layout between the flat blotter and the by-category rollup; transports fans the
         change so every connected workspace re-restores."""
-        grouped = self.config.layout.get("viewers", {}).get("view", {}).get("group_by")
+        grouped = self.config.layout.get("panels", {}).get("view", {}).get("group_by")
         self.config.layout = dict(BLOTTER_VIEW) if grouped else dict(BY_CATEGORY_VIEW)
-        return JSONResponse({"view": self.config.layout["viewers"]["view"]["title"]})
+        return JSONResponse({"view": self.config.layout["panels"]["view"]["title"]})
 
 
 blotter = Blotter()

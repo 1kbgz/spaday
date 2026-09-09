@@ -24,8 +24,10 @@ const THEME_CSS = `:where(.wa-dark) {
   --spa-surface-2: #1d232b;
   --spa-border: #333b45;
   --spa-muted: #9aa3ad;
+  --spa-accent: #8fb4dd;
   --spa-info: #5b9dd9;
   --spa-success: #58a765;
+  --spa-warning: #d29922;
   --spa-danger: #d9636a;
 }
 :where(.wa-light) {
@@ -33,12 +35,17 @@ const THEME_CSS = `:where(.wa-dark) {
   --spa-surface-2: #fafafa;
   --spa-border: #e6e6e6;
   --spa-muted: #666;
+  --spa-accent: #4a90d9;
   --spa-info: #1565c0;
   --spa-success: #2e7d32;
+  --spa-warning: #9a6700;
   --spa-danger: #c62828;
 }`;
 
 // Tone accents for notification surfaces (light defaults; the dark palette overrides above).
+// `--spa-accent` and `--spa-warning` are part of the same palette but unused by the shell itself:
+// they are the shared vocabulary component packages chain their own tokens to (an emphasis color
+// and a fourth tone), so an app that re-themes the shell re-themes them too.
 const INFO = "var(--spa-info, #1565c0)";
 const SUCCESS = "var(--spa-success, #2e7d32)";
 const DANGER = "var(--spa-danger, #c62828)";

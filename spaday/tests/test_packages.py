@@ -140,3 +140,37 @@ def test_rejects_invalid_python_paths_and_entry_points(monkeypatch, python_path_
     monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: duplicates)
     with pytest.raises(ValueError, match="multiple .* entry points"):
         resolve_component_packages("duplicate")
+
+
+def test_retag_points_a_components_authoring_surface_at_another_element():
+    """An app shipping its own element implementing the same contract keeps the Python surface."""
+
+    class TheirGrid(Component):
+        tag = "their-grid"
+        schema = ComponentSchema(tag="their-grid", class_name="TheirGrid", props=(PropertySchema(name="rows", kind="json"),))
+
+    Mine = TheirGrid.retag("my-grid")
+    assert Mine.tag == "my-grid"
+    assert Mine.schema.tag == "my-grid"  # ComponentPackage requires the two to agree
+    assert Mine(rows=[1]).to_node()["tag"] == "my-grid"
+    assert TheirGrid.tag == "their-grid"  # the original is untouched
+
+
+def test_a_retagged_component_goes_into_a_package_descriptor():
+    """The point of retag: substitute your own element behind a peer's authoring surface."""
+
+    class TheirGrid(Component):
+        tag = "their-grid"
+        schema = ComponentSchema(tag="their-grid", class_name="TheirGrid")
+
+    package = ComponentPackage(name="mine", assets_dir=".", assets=(("js", "mine.js"),), components=(TheirGrid.retag("my-grid"),))
+    assert [component.tag for component in package.components] == ["my-grid"]
+    assert package.catalog[0].tag == "my-grid"
+
+
+def test_retag_requires_a_tag():
+    class Anon(Component):
+        tag = "anon"
+
+    with pytest.raises(ValueError, match="retag requires a tag"):
+        Anon.retag("")

@@ -68,6 +68,7 @@ Select an installed integration by its entry-point name, for example `serve(page
 - **How-to guides** — [author a component tree](docs/src/components.md),
   [add behavior and reactivity](docs/src/behavior.md),
   [serve and embed an app](docs/src/serving.md),
+  [theme it and ship your own variant](docs/src/customizing.md),
   [use it in a notebook](docs/src/notebook.md),
   [run Python UI logic in Pyodide](docs/src/pyodide.md),
   [sync to a server over transports](docs/src/transports.md),

@@ -42,7 +42,19 @@ def test_reconnect_bootstrap_reopens_the_socket():
 
 
 def test_scripts_are_injected():
-    assert 'import "/static/handlers.js";' in bootstrap(scripts=["/static/handlers.js"])
+    html = bootstrap(scripts=["/static/handlers.js"])
+    assert '"/static/handlers.js"' in html and "import(u)" in html
+
+
+def test_a_failing_extra_script_cannot_abort_the_page():
+    """A third-party bundle that throws while loading (two copies of one custom element, say) must
+    cost that script only — a static import would abort the module before `mount` and render
+    nothing at all."""
+    html = bootstrap(scripts=["/static/handlers.js"])
+    assert 'import "/static/handlers.js";' not in html  # not a static import
+    scripts = html[html.index("await Promise.all([") :]
+    assert ".catch(" in scripts[: scripts.index("\n")]  # the rejection is caught
+    assert html.index("await Promise.all([") < html.index("mount(")  # still awaited before mount
 
 
 def test_stylesheets_and_styles_are_injected_with_the_nonce():

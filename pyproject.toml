@@ -289,6 +289,7 @@ pages = [
     "docs/src/behavior.md",
     "docs/src/components.md",
     "docs/src/serving.md",
+    "docs/src/customizing.md",
     "docs/src/transports.md",
     "docs/src/notebook.md",
     "docs/src/pyodide.md",
