@@ -287,7 +287,9 @@ def _script(
         # `mount`, and the page renders nothing at all. Awaited here, so handlers are still
         # registered before the tree mounts; a failure costs that one script, not the page.
         urls = ", ".join(json.dumps(script) for script in scripts)
-        lines.append(f"await Promise.all([{urls}].map((u) => import(u).catch((e) => console.error(`spaday: extra script ${{u}} failed to load`, e))));")
+        lines.append(
+            f"await Promise.all([{urls}].map((u) => import(u).catch((e) => console.error(`spaday: extra script ${{u}} failed to load`, e))));"
+        )
     lines.append(f'await init({{ module_or_path: "{js}{assets["wasm"]}" }});')
     if wired:
         lines.append(f'await wasm.default({{ module_or_path: "{js}{assets["transports_wasm"]}" }});')

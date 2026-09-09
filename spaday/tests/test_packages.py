@@ -144,6 +144,7 @@ def test_rejects_invalid_python_paths_and_entry_points(monkeypatch, python_path_
 
 def test_retag_points_a_components_authoring_surface_at_another_element():
     """An app shipping its own element implementing the same contract keeps the Python surface."""
+
     class TheirGrid(Component):
         tag = "their-grid"
         schema = ComponentSchema(tag="their-grid", class_name="TheirGrid", props=(PropertySchema(name="rows", kind="json"),))
@@ -157,6 +158,7 @@ def test_retag_points_a_components_authoring_surface_at_another_element():
 
 def test_a_retagged_component_goes_into_a_package_descriptor():
     """The point of retag: substitute your own element behind a peer's authoring surface."""
+
     class TheirGrid(Component):
         tag = "their-grid"
         schema = ComponentSchema(tag="their-grid", class_name="TheirGrid")
