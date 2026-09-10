@@ -337,9 +337,20 @@ their schemas, and serve your own JS:</p>
 <span class="n">bootstrap</span><span class="p">(</span><span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="n">mine</span><span class="p">],</span> <span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Your bundle must register the tags the schemas name, with the attributes they declare — that is the
-whole contract. Nothing checks it for you, so a browser test asserting the tags are defined is worth
-writing.</p>
+<p>Your bundle must register the tags the schemas name — that is the contract, and breaking it fails
+silently: an unregistered tag renders an inert element and nothing reports it. <code class="docutils literal notranslate"><span class="pre">check_script</span></code> builds
+a browser-side check from the schemas your package already carries, so test it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_script</span>
+
+<span class="n">problems</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">check_script</span><span class="p">([</span><span class="n">mine</span><span class="p">]))</span>   <span class="c1"># any browser driver</span>
+<span class="k">assert</span> <span class="n">problems</span> <span class="o">==</span> <span class="p">[]</span>
+</pre></div>
+</div>
+<p>It verifies that every declared tag is a defined custom element, and that every <code class="docutils literal notranslate"><span class="pre">json</span></code>-kind prop is
+exposed as a DOM property — the runtime falls back to an attribute when an element has no property,
+and an attribute can only carry a string, so an attribute-only <code class="docutils literal notranslate"><span class="pre">json</span></code> prop would stringify your
+object to <code class="docutils literal notranslate"><span class="pre">&quot;[object</span> <span class="pre">Object]&quot;</span></code>. String, number, boolean and enum props survive that fallback, so they
+are not required to be properties.</p>
 <p>Two packages with the same <code class="docutils literal notranslate"><span class="pre">name</span></code> are rejected, which is the point: an app gets the peer’s bundle or
 yours, never both. That also means substitution is the simplest fix for the collision in
 <a class="reference internal" href="#share-one-engine-between-two-libraries"><span class="xref myst">Share one engine</span></a> — with one copy on the page, there is
