@@ -21,7 +21,10 @@ bundle is really usable and a reported problem is really a defect:
   DOM property when the element has one and falls back to an attribute otherwise, and an attribute
   can only carry a string -- so a ``json`` prop that is attribute-only turns an object into
   ``"[object Object]"``. Other kinds (string, enum, number, boolean) survive that fallback, so
-  requiring properties for them would report defects that are not defects.
+  requiring properties for them would report defects that are not defects. A prop named with a
+  hyphen (``did-ssr``, ``href-template``) is left out as well: no element has a property by that
+  name, so the runtime carries it as an attribute whichever bundle implements the element, the
+  package's own included -- it is not something a bundle can get wrong.
 
 Slots and events are not checked: neither can be verified without rendering and dispatching, and a
 guess either way would be noise.
@@ -63,7 +66,7 @@ def expectations(packages: Sequence[ComponentPackage]) -> tuple[dict, ...]:
     out = []
     for package in packages:
         for schema in package.catalog:
-            out.append({"tag": schema.tag, "jsonProps": [prop.name for prop in schema.props if prop.kind == "json"]})
+            out.append({"tag": schema.tag, "jsonProps": [prop.name for prop in schema.props if prop.kind == "json" and "-" not in prop.name]})
     return tuple(out)
 
 

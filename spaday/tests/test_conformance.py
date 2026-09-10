@@ -20,6 +20,7 @@ def _package(name: str = "demo") -> ComponentPackage:
                 PropertySchema(name="series", kind="json"),
                 PropertySchema(name="title", kind="string"),
                 PropertySchema(name="height", kind="number"),
+                PropertySchema(name="render-hint", kind="json"),
             ),
         )
 
@@ -29,6 +30,12 @@ def _package(name: str = "demo") -> ComponentPackage:
 def test_expectations_name_the_tag_and_only_its_json_props():
     """Only json props are required to be DOM properties; the rest survive the attribute fallback."""
     assert expectations([_package()]) == ({"tag": "demo-chart", "jsonProps": ["series"]},)
+
+
+def test_a_hyphenated_name_is_not_asked_to_be_a_property():
+    """No element has a ``render-hint`` property, so every bundle -- the package's own too -- carries
+    it as an attribute; requiring the property would fail them all and tell none of them apart."""
+    assert "render-hint" not in expectations([_package()])[0]["jsonProps"]
 
 
 def test_the_script_is_self_contained():
