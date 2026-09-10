@@ -43,6 +43,7 @@ from .bootstrap import Js, Wire
 from .catalog import ComponentSchema, PropertyKind, PropertySchema
 from .cem import classes, generate
 from .component import Component, Paragraph, Strong, Text, element
+from .conformance import check_script
 from .packages import ComponentPackage, discover_component_package_names, discover_component_packages, resolve_component_packages
 from .render import render_html
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
@@ -53,6 +54,7 @@ from .worker import WorkerApp
 __version__ = "0.7.13"
 
 __all__ = [
+    "check_script",
     # theming token reference (css custom properties are set via Component.css)
     "SHELL_TOKENS",
     "CallEndpoint",
