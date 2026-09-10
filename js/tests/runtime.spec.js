@@ -43,6 +43,98 @@ test("SetProp updates a live element via its DOM property", async ({
   expect(value).toBe("abc");
 });
 
+test("props reach an element whose class is defined after it mounts", async ({
+  page,
+}) => {
+  // a package whose bundle defines its elements late -- one that awaits at the top level, or loads
+  // lazily -- must still get every prop, through the property its class declares
+  const r = await page.evaluate(async () => {
+    const c = document.createElement("div");
+    document.body.appendChild(c);
+    const el = window.__spaday.mount(c, {
+      tag: "late-grid",
+      props: {
+        rows: { List: [{ Int: 1 }, { Int: 2 }] },
+        theme: { Str: "dark" },
+      },
+    });
+    const before = {
+      rows: el.getAttribute("rows"),
+      theme: el.getAttribute("theme"),
+    };
+    customElements.define(
+      "late-grid",
+      class extends HTMLElement {
+        #theme = "light";
+        rows = null;
+        // property-only, like a hand-written element that never reads its attributes
+        get theme() {
+          return this.#theme;
+        }
+        set theme(value) {
+          this.#theme = value;
+        }
+      },
+    );
+    await customElements.whenDefined("late-grid");
+    return { before, rows: el.rows, theme: el.theme };
+  });
+  // an object waits rather than stringifying into an attribute...
+  expect(r.before.rows).toBeNull();
+  // ...while a primitive also lands as an attribute straight away, as it always has
+  expect(r.before.theme).toBe("dark");
+  expect(r.rows).toEqual([1, 2]);
+  expect(r.theme).toBe("dark");
+});
+
+test("writes before the definition collapse to the last, and a removal cancels one", async ({
+  page,
+}) => {
+  const r = await page.evaluate(async () => {
+    const { mount, applyPatch } = window.__spaday;
+    // detached: the definition upgrades only elements in the document, so this one must be upgraded
+    const el = mount(document.createElement("div"), {
+      tag: "late-panel",
+      props: {
+        config: { Map: { layout: { Int: 1 } } },
+        extra: { Map: { x: { Int: 1 } } },
+      },
+    });
+    applyPatch(el, {
+      ops: [
+        {
+          SetProp: {
+            path: [],
+            name: "config",
+            value: { Map: { layout: { Int: 2 } } },
+          },
+        },
+        { RemoveProp: { path: [], name: "extra" } },
+      ],
+    });
+    let writes = 0;
+    customElements.define(
+      "late-panel",
+      class extends HTMLElement {
+        #config = null;
+        extra = "untouched";
+        get config() {
+          return this.#config;
+        }
+        set config(value) {
+          writes += 1;
+          this.#config = value;
+        }
+      },
+    );
+    await customElements.whenDefined("late-panel");
+    return { config: el.config, writes, extra: el.extra };
+  });
+  expect(r.config).toEqual({ layout: 2 });
+  expect(r.writes).toBe(1);
+  expect(r.extra).toBe("untouched");
+});
+
 test("named slots route children via the slot attribute", async ({ page }) => {
   const html = await page.evaluate(() => {
     const c = document.createElement("div");
