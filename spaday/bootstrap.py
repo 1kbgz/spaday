@@ -190,6 +190,36 @@ def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: str | 
     return "\n    ".join(tags)
 
 
+def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None) -> str:
+    """The page's import map: every specifier a selected package publishes, resolved to the URL that
+    package is served from.
+
+    Must precede every module script on the page, which is why it is emitted first -- a map that
+    arrives after the first module load is ignored by the browser, silently. Two packages publishing
+    the same specifier at different URLs is an error naming both, since picking one silently is the
+    ambiguity ``imports`` exists to remove; publishing the same specifier at the same URL is fine.
+    """
+    resolved: dict[str, str] = {}
+    owners: dict[str, str] = {}
+    for package in packages:
+        prefix = package_url_prefix(package, base)
+        for specifier, path in package.imports:
+            url = f"{prefix}/{path}"
+            if specifier in resolved and resolved[specifier] != url:
+                raise ValueError(
+                    f"component packages {owners[specifier]!r} and {package.name!r} both publish the import "
+                    f"{specifier!r} at different URLs ({resolved[specifier]} and {url}); select only one of them, "
+                    f"or override the packages so a single copy is published"
+                )
+            resolved[specifier] = url
+            owners[specifier] = package.name
+    if not resolved:
+        return ""
+    n = f' nonce="{nonce}"' if nonce else ""
+    body = json.dumps({"imports": resolved}, indent=2, sort_keys=True)
+    return f'<script type="importmap"{n}>\n{body}\n</script>'
+
+
 def _wire_block(spec: dict, base: str, idx: int) -> list:
     """The generated JS for ONE wire spec in a multi-model page: a transports ``Client``, a namespaced
     ``connectStore`` into the shared ``store``, the ``WebSocket`` feeding it, and a ``<namespace>.connected``
@@ -402,7 +432,10 @@ def bootstrap(
     component_packages = resolve_component_packages(packages)
     style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
     style_tags += [f"<style{n}>{css}</style>" for css in styles]
-    head_markup = "\n    ".join(p for p in (_package_head(component_packages, base, nonce), *style_tags, head) if p)
+    # the import map must come before any module script, including the packages' own
+    head_markup = "\n    ".join(
+        p for p in (_importmap(component_packages, base, nonce), _package_head(component_packages, base, nonce), *style_tags, head) if p
+    )
     script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout, persist, url)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
