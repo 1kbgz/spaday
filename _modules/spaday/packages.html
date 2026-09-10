@@ -273,12 +273,24 @@
 <span class="sd">    :class:`~spaday.component.Component` subclasses. Generated CEM classes</span>
 <span class="sd">    already carry schemas; hand-authored classes set ``Component.schema``.</span>
 <span class="sd">    ``catalog`` returns those schemas without constructing components.</span>
+
+<span class="sd">    ``imports`` publishes vendored modules under their bare specifiers as</span>
+<span class="sd">    ``(specifier, relative_path)`` pairs, which :func:`~spaday.bootstrap.bootstrap`</span>
+<span class="sd">    emits as an import map. It exists for engines that register global custom</span>
+<span class="sd">    element names -- Perspective, a design system -- where a second copy on the</span>
+<span class="sd">    page throws from ``customElements.define`` and the two cannot coexist. A</span>
+<span class="sd">    package that publishes its copy this way lets every other library on the page</span>
+<span class="sd">    resolve the same bare specifier to it, so there is one copy rather than a</span>
+<span class="sd">    collision. A specifier ending in ``/`` maps a whole subtree, per the import-map</span>
+<span class="sd">    spec. Two packages publishing the same specifier at different paths is an</span>
+<span class="sd">    error: it is the ambiguity the feature exists to remove.</span>
 <span class="sd">    """</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">assets_dir</span><span class="p">:</span> <span class="n">Path</span>
     <span class="n">assets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
     <span class="n">components</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">Component</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">imports</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">_PACKAGE_NAME</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
@@ -293,6 +305,18 @@
             <span class="n">normalized</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">kind</span><span class="p">,</span> <span class="n">asset_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()))</span>
         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"assets_dir"</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span>
         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"assets"</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">normalized</span><span class="p">))</span>
+        <span class="n">imports</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">specifier</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">imports</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">specifier</span> <span class="ow">or</span> <span class="n">specifier</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">!=</span> <span class="n">specifier</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">specifier</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package import specifier </span><span class="si">{</span><span class="n">specifier</span><span class="si">!r}</span><span class="s2"> must be a bare specifier with no whitespace"</span><span class="p">)</span>
+            <span class="n">import_path</span> <span class="o">=</span> <span class="n">PurePosixPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">import_path</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">import_path</span><span class="o">.</span><span class="n">parts</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"component package import paths must be relative and cannot contain '..'"</span><span class="p">)</span>
+            <span class="c1"># a specifier mapping a subtree must map to one, per the import-map spec</span>
+            <span class="k">if</span> <span class="n">specifier</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package import </span><span class="si">{</span><span class="n">specifier</span><span class="si">!r}</span><span class="s2"> and its path must either both end in '/' or neither"</span><span class="p">)</span>
+            <span class="n">imports</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">specifier</span><span class="p">,</span> <span class="n">import_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span> <span class="o">+</span> <span class="p">(</span><span class="s2">"/"</span> <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)))</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"imports"</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">imports</span><span class="p">))</span>
         <span class="n">components</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span>
         <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>

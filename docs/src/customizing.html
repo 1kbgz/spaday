@@ -370,7 +370,24 @@ the same URL — neither side needs to know about the other.</p>
 <p>Libraries that bundle an engine registering global custom element names (Perspective, WebAwesome)
 cannot load twice on a page: the second copy throws from <code class="docutils literal notranslate"><span class="pre">customElements.define</span></code>. In order of
 preference:</p>
-<ol class="arabic simple">
+<ol class="arabic">
+<li><p><strong>Publish one copy behind an import map</strong> — a package can publish its vendored modules under
+their bare specifiers, and <code class="docutils literal notranslate"><span class="pre">bootstrap</span></code> emits them as an import map ahead of every module script:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ComponentPackage</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"perspective"</span><span class="p">,</span>
+    <span class="n">assets_dir</span><span class="o">=</span><span class="n">DIST</span><span class="p">,</span>
+    <span class="n">assets</span><span class="o">=</span><span class="p">((</span><span class="s2">"js"</span><span class="p">,</span> <span class="s2">"cdn/index.js"</span><span class="p">),),</span>
+    <span class="n">imports</span><span class="o">=</span><span class="p">((</span><span class="s2">"@perspective-dev/"</span><span class="p">,</span> <span class="s2">"vendor/"</span><span class="p">),),</span>   <span class="c1"># → /components/perspective/vendor/</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Any other library on the page then resolves <code class="docutils literal notranslate"><span class="pre">&#64;perspective-dev/client</span></code> to that one copy and needs
+no API at all. A specifier ending in <code class="docutils literal notranslate"><span class="pre">/</span></code> maps a whole subtree. Two packages publishing the same
+specifier at different URLs is an error naming both, because silently picking one is the
+ambiguity this removes. The map must precede the first module load — <code class="docutils literal notranslate"><span class="pre">bootstrap</span></code> handles the
+ordering, but if you are embedding a <code class="docutils literal notranslate"><span class="pre">fragment=True</span></code> snippet, put it in the page before any
+other module script, since a late map is ignored silently.</p>
+</li>
 <li><p><strong>Substitute</strong> — if you have your own wrapper, serve one bundle (above). One copy, no collision.</p></li>
 <li><p><strong>Reuse the object</strong> — where the engine hands out a client, lend it rather than importing a
 second copy.</p></li>
