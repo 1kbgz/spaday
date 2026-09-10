@@ -51,7 +51,7 @@ from .theme import SHELL_TOKENS
 from .validate import ValidationError, validate
 from .worker import WorkerApp
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 __all__ = [
     "check_script",
