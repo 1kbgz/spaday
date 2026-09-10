@@ -1,7 +1,7 @@
 <a href="https://github.com/1kbgz/spaday">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/1kbgz/spaday/raw/main/docs/img/logo-dark.png?raw=true">
-    <img alt="spaday logo, a face with a facemask and lemon slices bounded by a browser window" src="https://github.com/1kbgz/spaday/raw/main/docs/img/logo-light.png?raw=true" width="500">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/1kbgz/spaday/raw/main/docs/img/logo-dark.webp?raw=true">
+    <img alt="spaday logo, a face with a facemask and lemon slices bounded by a browser window" src="https://github.com/1kbgz/spaday/raw/main/docs/img/logo-light.webp?raw=true" width="500">
   </picture>
 </a>
 
