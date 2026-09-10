@@ -138,9 +138,30 @@ Libraries that bundle an engine registering global custom element names (Perspec
 cannot load twice on a page: the second copy throws from `customElements.define`. In order of
 preference:
 
+1. **Publish one copy behind an import map** — a package can publish its vendored modules under
+   their bare specifiers, and `bootstrap` emits them as an import map ahead of every module script:
+
+   ```python
+   ComponentPackage(
+       name="perspective",
+       assets_dir=DIST,
+       assets=(("js", "cdn/index.js"),),
+       imports=(("@perspective-dev/", "vendor/"),),   # → /components/perspective/vendor/
+   )
+   ```
+
+   Any other library on the page then resolves `@perspective-dev/client` to that one copy and needs
+   no API at all. A specifier ending in `/` maps a whole subtree. Two packages publishing the same
+   specifier at different URLs is an error naming both, because silently picking one is the
+   ambiguity this removes. The map must precede the first module load — `bootstrap` handles the
+   ordering, but if you are embedding a `fragment=True` snippet, put it in the page before any
+   other module script, since a late map is ignored silently.
+
 1. **Substitute** — if you have your own wrapper, serve one bundle (above). One copy, no collision.
+
 1. **Reuse the object** — where the engine hands out a client, lend it rather than importing a
    second copy.
+
 1. **Survive the collision** — packages that register elements install a define-guard, so the
    losing bundle skips names already taken instead of throwing and taking the page with it. This
    keeps the page alive; it does not make two copies agree, and two copies at different versions is

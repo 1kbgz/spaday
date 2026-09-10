@@ -174,3 +174,59 @@ def test_retag_requires_a_tag():
 
     with pytest.raises(ValueError, match="retag requires a tag"):
         Anon.retag("")
+
+
+def _vendored(name: str, imports: tuple[tuple[str, str], ...]) -> ComponentPackage:
+    return ComponentPackage(name=name, assets_dir=".", assets=(("js", "cdn/index.js"),), imports=imports)
+
+
+def test_a_package_publishes_its_vendored_modules_as_an_import_map():
+    html = bootstrap(packages=[_vendored("perspective", (("@perspective-dev/client", "vendor/client.js"),))], fragment=True)
+    assert '"@perspective-dev/client": "/components/perspective/vendor/client.js"' in html
+    assert '<script type="importmap">' in html
+
+
+def test_the_import_map_precedes_every_module_script():
+    """A map that arrives after the first module load is ignored by the browser, silently."""
+    html = bootstrap(packages=[_vendored("perspective", (("@perspective-dev/client", "vendor/client.js"),))], fragment=True)
+    assert html.index('type="importmap"') < html.index('type="module"')
+
+
+def test_the_import_map_is_nonce_stamped():
+    html = bootstrap(packages=[_vendored("perspective", (("x", "vendor/x.js"),))], fragment=True, nonce="abc123")
+    assert '<script type="importmap" nonce="abc123">' in html
+
+
+def test_a_trailing_slash_specifier_maps_a_subtree():
+    html = bootstrap(packages=[_vendored("perspective", (("@perspective-dev/", "vendor/"),))], fragment=True)
+    assert '"@perspective-dev/": "/components/perspective/vendor/"' in html
+
+
+def test_two_packages_publishing_one_specifier_differently_is_an_error():
+    """Picking one silently is the ambiguity `imports` exists to remove."""
+    packages = [_vendored("one", (("regular-table", "vendor/rt.js"),)), _vendored("two", (("regular-table", "vendor/rt.js"),))]
+    with pytest.raises(ValueError, match="both publish the import 'regular-table'"):
+        bootstrap(packages=packages, fragment=True)
+
+
+def test_the_same_specifier_at_the_same_url_is_not_a_conflict():
+    package = _vendored("perspective", (("@perspective-dev/client", "vendor/client.js"),))
+    html = bootstrap(packages=[package], fragment=True)
+    assert html.count('"@perspective-dev/client"') == 1
+
+
+def test_no_import_map_is_emitted_when_no_package_publishes_one():
+    assert "importmap" not in bootstrap(packages=[_vendored("plain", ())], fragment=True)
+
+
+def test_import_paths_are_validated_like_asset_paths():
+    for bad in (("@x", "/absolute.js"), ("@x", "../escape.js"), ("bad specifier", "x.js")):
+        with pytest.raises(ValueError):
+            _vendored("p", (bad,))
+
+
+def test_a_subtree_specifier_must_map_to_a_subtree():
+    with pytest.raises(ValueError, match="both end in '/'"):
+        _vendored("p", (("@scope/", "vendor/file.js"),))
+    with pytest.raises(ValueError, match="both end in '/'"):
+        _vendored("p", (("@scope/thing", "vendor/"),))

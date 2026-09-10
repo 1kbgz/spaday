@@ -27,12 +27,24 @@ class ComponentPackage:
     :class:`~spaday.component.Component` subclasses. Generated CEM classes
     already carry schemas; hand-authored classes set ``Component.schema``.
     ``catalog`` returns those schemas without constructing components.
+
+    ``imports`` publishes vendored modules under their bare specifiers as
+    ``(specifier, relative_path)`` pairs, which :func:`~spaday.bootstrap.bootstrap`
+    emits as an import map. It exists for engines that register global custom
+    element names -- Perspective, a design system -- where a second copy on the
+    page throws from ``customElements.define`` and the two cannot coexist. A
+    package that publishes its copy this way lets every other library on the page
+    resolve the same bare specifier to it, so there is one copy rather than a
+    collision. A specifier ending in ``/`` maps a whole subtree, per the import-map
+    spec. Two packages publishing the same specifier at different paths is an
+    error: it is the ambiguity the feature exists to remove.
     """
 
     name: str
     assets_dir: Path
     assets: Sequence[tuple[str, str]]
     components: Sequence[type[Component]] = ()
+    imports: Sequence[tuple[str, str]] = ()
 
     def __post_init__(self) -> None:
         if not _PACKAGE_NAME.fullmatch(self.name):
@@ -47,6 +59,18 @@ class ComponentPackage:
             normalized.append((kind, asset_path.as_posix()))
         object.__setattr__(self, "assets_dir", Path(self.assets_dir))
         object.__setattr__(self, "assets", tuple(normalized))
+        imports = []
+        for specifier, path in self.imports:
+            if not specifier or specifier.strip() != specifier or any(c.isspace() for c in specifier):
+                raise ValueError(f"component package import specifier {specifier!r} must be a bare specifier with no whitespace")
+            import_path = PurePosixPath(path)
+            if import_path.is_absolute() or not path or ".." in import_path.parts:
+                raise ValueError("component package import paths must be relative and cannot contain '..'")
+            # a specifier mapping a subtree must map to one, per the import-map spec
+            if specifier.endswith("/") != path.endswith("/"):
+                raise ValueError(f"component package import {specifier!r} and its path must either both end in '/' or neither")
+            imports.append((specifier, import_path.as_posix() + ("/" if path.endswith("/") else "")))
+        object.__setattr__(self, "imports", tuple(imports))
         components = tuple(self.components)
         seen: set[str] = set()
         for component in components:
