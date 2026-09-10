@@ -183,8 +183,35 @@ preference:
    keeps the page alive; it does not make two copies agree, and two copies at different versions is
    still a bug to fix rather than a state to ship.
 
-`spaday-webawesome` publishes the version it bundles as `globalThis.__spadayWebawesome.version`, so
-a page holding a second copy can compare and refuse rather than half-work.
+### Record the versions, and let spaday reconcile them
+
+A package also records which library versions it serves, and which it imports but leaves to the page's
+copy, with the range it was built against:
+
+```python
+ComponentPackage(
+    name="webawesome",
+    ...,
+    provides={"@awesome.me/webawesome": "3.1.0"},  # written by the package's JS build
+)
+ComponentPackage(
+    name="my-widgets",
+    ...,
+    requires={"@awesome.me/webawesome": "^3.1.0"},  # imported, not shipped
+)
+```
+
+`serve()` and `bootstrap()` check the selected packages before they build a page. Two packages serving
+one library at different versions is an error naming both packages and both versions, and so is a
+`requires` whose range the served version misses, or that no selected package serves: the page would
+otherwise load a copy that half-works. Two packages serving the *same* version may both publish it in
+their import maps; the page imports the first. Ranges use npm's syntax — `^3.1.0`, `~25.2`, `1.x`,
+`>=1.2 <2`, `||` — so a range can be copied from a `package.json`.
+
+That covers the copies spaday serves. A copy it does not — one inside your own bundle — is the
+define-guard's case above: the first registration wins, and the losing package logs which elements it
+found already registered, with the library and version it serves. Each bundle also publishes the
+version it serves on a global (`globalThis.__spadayWebawesome.version`, and so on).
 
 ### Third-party bundles cannot blank your page
 

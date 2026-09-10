@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib import import_module
 from importlib.metadata import entry_points
@@ -11,9 +11,11 @@ from pathlib import Path, PurePosixPath
 
 from .catalog import ComponentSchema
 from .component import Component
+from .semver import parse_range, parse_version, satisfies
 
 ENTRY_POINT_GROUP = "spaday.component_packages"
 _PACKAGE_NAME = re.compile(r"[a-z0-9][a-z0-9._-]*\Z")
+_NPM_NAME = re.compile(r"(?:@[a-z0-9][a-z0-9._~-]*/)?[a-z0-9][a-z0-9._~-]*\Z")
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,18 @@ class ComponentPackage:
     collision. A specifier ending in ``/`` maps a whole subtree, per the import-map
     spec. Two packages publishing the same specifier at different paths is an
     error: it is the ambiguity the feature exists to remove.
+
+    ``provides`` records the JS libraries the package puts on the page, by npm
+    name, with the exact version it serves (``{"@awesome.me/webawesome": "3.1.0"}``);
+    a package's build writes them, so the Python side knows what the browser gets.
+    ``requires`` records libraries the package's own bundle imports without
+    shipping, with the npm version range it was built against
+    (``{"@awesome.me/webawesome": "^3.1.0"}``). :func:`resolve_component_packages`
+    reconciles them across the packages selected for a page: a page holds one copy
+    of a library, so two packages serving it at different versions, or a
+    requirement no selected package satisfies, is an error naming the packages and
+    versions, where the second copy would otherwise half-work. Packages serving the
+    same version of a library may both publish it; the page imports the first.
     """
 
     name: str
@@ -45,6 +59,8 @@ class ComponentPackage:
     assets: Sequence[tuple[str, str]]
     components: Sequence[type[Component]] = ()
     imports: Sequence[tuple[str, str]] = ()
+    provides: Mapping[str, str] | Sequence[tuple[str, str]] = ()
+    requires: Mapping[str, str] | Sequence[tuple[str, str]] = ()
 
     def __post_init__(self) -> None:
         if not _PACKAGE_NAME.fullmatch(self.name):
@@ -71,6 +87,8 @@ class ComponentPackage:
                 raise ValueError(f"component package import {specifier!r} and its path must either both end in '/' or neither")
             imports.append((specifier, import_path.as_posix() + ("/" if path.endswith("/") else "")))
         object.__setattr__(self, "imports", tuple(imports))
+        object.__setattr__(self, "provides", _libraries(self.provides, "provides", parse_version))
+        object.__setattr__(self, "requires", _libraries(self.requires, "requires", parse_range))
         components = tuple(self.components)
         seen: set[str] = set()
         for component in components:
@@ -91,6 +109,57 @@ class ComponentPackage:
         return tuple(
             component.schema.model_copy(update={"class_name": component.__name__}) for component in self.components if component.schema is not None
         )
+
+
+def _libraries(value: Mapping[str, str] | Sequence[tuple[str, str]], field: str, parse) -> tuple[tuple[str, str], ...]:
+    """Normalize ``provides`` / ``requires`` to sorted ``(npm name, version or range)`` pairs, rejecting
+    a name npm would not accept, a version or range that does not parse, and a library named twice."""
+    pairs = tuple(value.items() if isinstance(value, Mapping) else value)
+    for name, spec in pairs:
+        if not isinstance(name, str) or not _NPM_NAME.fullmatch(name):
+            raise ValueError(f"component package {field} names {name!r}, which is not an npm package name")
+        if not isinstance(spec, str):
+            raise ValueError(f"component package {field} gives {name!r} a {type(spec).__name__}, not a version string")
+        try:
+            parse(spec)
+        except ValueError as error:
+            raise ValueError(f"component package {field} gives {name!r} {spec!r}: {error}") from None
+    names = [name for name, _ in pairs]
+    duplicate = next((name for name in names if names.count(name) > 1), None)
+    if duplicate is not None:
+        raise ValueError(f"component package {field} names {duplicate!r} more than once")
+    return tuple(sorted(pairs))
+
+
+def npm_package(specifier: str) -> str:
+    """The npm package a bare import specifier belongs to: ``@scope/name/dist/x.js`` → ``@scope/name``."""
+    parts = specifier.split("/")
+    return "/".join(parts[:2] if specifier.startswith("@") else parts[:1])
+
+
+def _reconcile(packages: Sequence[ComponentPackage]) -> None:
+    """Reject a page whose packages disagree about a JS library: served at two versions, or required at
+    a version no selected package serves."""
+    served: dict[str, tuple[str, str]] = {}
+    for package in packages:
+        for library, version in package.provides:
+            if library in served and served[library][0] != version:
+                other, owner = served[library]
+                raise ValueError(
+                    f"component packages {owner!r} and {package.name!r} serve different versions of {library} "
+                    f"({other} and {version}); a page can hold only one copy, so select one of them or align their versions"
+                )
+            served.setdefault(library, (version, package.name))
+    for package in packages:
+        for library, range_ in package.requires:
+            if library not in served:
+                raise ValueError(
+                    f"component package {package.name!r} requires {library} {range_}, which no selected package serves; "
+                    "select the package that provides it"
+                )
+            version, owner = served[library]
+            if not satisfies(version, range_):
+                raise ValueError(f"component package {package.name!r} requires {library} {range_}, but {owner!r} serves {version}")
 
 
 PackageRef = ComponentPackage | str
@@ -153,6 +222,7 @@ def resolve_component_packages(packages: PackageRef | Sequence[PackageRef] = ())
     duplicate = next((name for name in names if names.count(name) > 1), None)
     if duplicate is not None:
         raise ValueError(f"component package {duplicate!r} was selected more than once")
+    _reconcile(resolved)
     return resolved
 
 

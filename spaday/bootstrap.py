@@ -39,7 +39,7 @@ from pathlib import Path
 from typing import Literal, Union
 
 from .component import Component
-from .packages import ComponentPackage, PackageRef, package_url_prefix, resolve_component_packages
+from .packages import ComponentPackage, PackageRef, npm_package, package_url_prefix, resolve_component_packages
 from .spaday import encode_frame  # compiled core (always available); used by tree_frame
 
 #: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called
@@ -197,22 +197,27 @@ def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | Non
     Must precede every module script on the page, which is why it is emitted first -- a map that
     arrives after the first module load is ignored by the browser, silently. Two packages publishing
     the same specifier at different URLs is an error naming both, since picking one silently is the
-    ambiguity ``imports`` exists to remove; publishing the same specifier at the same URL is fine.
+    ambiguity ``imports`` exists to remove -- unless both declare they serve the same version of the
+    library it belongs to, in which case the two copies are interchangeable and the first is used.
+    Publishing the same specifier at the same URL is fine.
     """
     resolved: dict[str, str] = {}
-    owners: dict[str, str] = {}
+    owners: dict[str, ComponentPackage] = {}
     for package in packages:
         prefix = package_url_prefix(package, base)
         for specifier, path in package.imports:
             url = f"{prefix}/{path}"
             if specifier in resolved and resolved[specifier] != url:
+                version = dict(package.provides).get(npm_package(specifier))
+                if version is not None and version == dict(owners[specifier].provides).get(npm_package(specifier)):
+                    continue  # the same version of the library: serve the first copy
                 raise ValueError(
-                    f"component packages {owners[specifier]!r} and {package.name!r} both publish the import "
+                    f"component packages {owners[specifier].name!r} and {package.name!r} both publish the import "
                     f"{specifier!r} at different URLs ({resolved[specifier]} and {url}); select only one of them, "
                     f"or override the packages so a single copy is published"
                 )
             resolved[specifier] = url
-            owners[specifier] = package.name
+            owners[specifier] = package
     if not resolved:
         return ""
     n = f' nonce="{nonce}"' if nonce else ""

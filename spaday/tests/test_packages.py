@@ -230,3 +230,64 @@ def test_a_subtree_specifier_must_map_to_a_subtree():
         _vendored("p", (("@scope/", "vendor/file.js"),))
     with pytest.raises(ValueError, match="both end in '/'"):
         _vendored("p", (("@scope/thing", "vendor/"),))
+
+
+def _serving(name: str, provides=(), requires=(), imports=()) -> ComponentPackage:
+    return ComponentPackage(name=name, assets_dir=".", assets=(("js", "cdn/index.js"),), imports=imports, provides=provides, requires=requires)
+
+
+def test_a_package_records_the_libraries_it_serves_and_needs():
+    package = _serving("wa", provides={"@awesome.me/webawesome": "3.1.0"}, requires=[("lit", "^3.0.0")])
+    assert package.provides == (("@awesome.me/webawesome", "3.1.0"),)
+    assert package.requires == (("lit", "^3.0.0"),)
+
+
+def test_library_names_versions_and_ranges_are_validated():
+    with pytest.raises(ValueError, match="not an npm package name"):
+        _serving("p", provides={"Not A Name": "1.0.0"})
+    with pytest.raises(ValueError, match="'lit' '3.1': '3.1' is not a semantic version"):
+        _serving("p", provides={"lit": "3.1"})  # what is served is one exact version
+    with pytest.raises(ValueError, match="requires gives 'lit' '>=banana'"):
+        _serving("p", requires={"lit": ">=banana"})
+    with pytest.raises(ValueError, match="names 'lit' more than once"):
+        _serving("p", provides=[("lit", "3.1.0"), ("lit", "3.2.0")])
+
+
+def test_two_packages_serving_one_library_at_different_versions_is_an_error():
+    """A page holds one copy of an element library; the second would register nothing and half-work."""
+    first, second = _serving("webawesome", {"@awesome.me/webawesome": "3.1.0"}), _serving("theirs", {"@awesome.me/webawesome": "3.2.0"})
+    with pytest.raises(ValueError, match=r"'webawesome' and 'theirs' serve different versions of @awesome.me/webawesome \(3.1.0 and 3.2.0\)"):
+        resolve_component_packages((first, second))
+    same = _serving("mirror", {"@awesome.me/webawesome": "3.1.0"})
+    assert resolve_component_packages((first, same)) == (first, same)
+
+
+def test_a_requirement_must_be_served_at_a_version_inside_its_range():
+    provider = _serving("webawesome", {"@awesome.me/webawesome": "3.1.0"})
+    assert resolve_component_packages((provider, _serving("downstream", requires={"@awesome.me/webawesome": "^3.0.0"})))
+    with pytest.raises(ValueError, match=r"'downstream' requires @awesome.me/webawesome \^2.0.0, but 'webawesome' serves 3.1.0"):
+        resolve_component_packages((provider, _serving("downstream", requires={"@awesome.me/webawesome": "^2.0.0"})))
+    with pytest.raises(ValueError, match="which no selected package serves"):
+        resolve_component_packages((_serving("downstream", requires={"@awesome.me/webawesome": "^3.0.0"}),))
+
+
+def test_bootstrap_rejects_a_page_whose_packages_disagree():
+    with pytest.raises(ValueError, match="serve different versions"):
+        bootstrap(packages=[_serving("one", {"lit": "3.1.0"}), _serving("two", {"lit": "3.2.0"})], fragment=True)
+
+
+def test_two_copies_of_the_same_version_share_one_import():
+    """Interchangeable copies are not the ambiguity the import-map check guards against: the first wins."""
+    one = _serving("one", {"regular-table": "0.6.0"}, imports=(("regular-table", "vendor/rt.js"),))
+    two = _serving("two", {"regular-table": "0.6.0"}, imports=(("regular-table", "vendor/rt.js"),))
+    html = bootstrap(packages=[one, two], fragment=True)
+    assert '"regular-table": "/components/one/vendor/rt.js"' in html
+    assert "/components/two/vendor/rt.js" not in html
+
+
+def test_npm_package_names_the_library_a_specifier_belongs_to():
+    from spaday.packages import npm_package
+
+    assert npm_package("@awesome.me/webawesome/dist/components/button/button.js") == "@awesome.me/webawesome"
+    assert npm_package("@vaadin/grid/") == "@vaadin/grid"
+    assert npm_package("regular-table/dist/esm/index.js") == "regular-table"
