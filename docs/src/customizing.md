@@ -102,7 +102,9 @@ bootstrap(packages=[mine], ...)
 ```
 
 Your bundle must register the tags the schemas name — that is the contract, and breaking it fails
-silently: an unregistered tag renders an inert element and nothing reports it. `check_script` builds
+silently: an unregistered tag renders an inert element and nothing reports it. It may register them
+late, after the page has mounted: props written to an element before its tag is defined are set
+through its properties once it is. `check_script` builds
 a browser-side check from the schemas your package already carries, so test it:
 
 ```python
