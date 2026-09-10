@@ -101,9 +101,22 @@ mine = dataclasses.replace(
 bootstrap(packages=[mine], ...)
 ```
 
-Your bundle must register the tags the schemas name, with the attributes they declare — that is the
-whole contract. Nothing checks it for you, so a browser test asserting the tags are defined is worth
-writing.
+Your bundle must register the tags the schemas name — that is the contract, and breaking it fails
+silently: an unregistered tag renders an inert element and nothing reports it. `check_script` builds
+a browser-side check from the schemas your package already carries, so test it:
+
+```python
+from spaday import check_script
+
+problems = page.evaluate(check_script([mine]))   # any browser driver
+assert problems == []
+```
+
+It verifies that every declared tag is a defined custom element, and that every `json`-kind prop is
+exposed as a DOM property — the runtime falls back to an attribute when an element has no property,
+and an attribute can only carry a string, so an attribute-only `json` prop would stringify your
+object to `"[object Object]"`. String, number, boolean and enum props survive that fallback, so they
+are not required to be properties.
 
 Two packages with the same `name` are rejected, which is the point: an app gets the peer's bundle or
 yours, never both. That also means substitution is the simplest fix for the collision in
