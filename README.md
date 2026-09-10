@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/github/license/1kbgz/spaday)](https://github.com/1kbgz/spaday)
 [![PyPI](https://img.shields.io/pypi/v/spaday.svg)](https://pypi.python.org/pypi/spaday)
 
-Build reactive web-component UIs **configured in Python, executed in the browser**.
+Reactive web-component UIs **configured in Python, executed in the browser**.
 
 ## Overview
 
