@@ -412,6 +412,10 @@ fn base_type(members: &[&str]) -> PropType {
     if members.iter().all(|m| is_quoted(m)) {
         return PropType::Enum(members.iter().map(|m| unquote(m).to_string()).collect());
     }
+    // `'_self' | '_blank' | string`: the literals only suggest values; `string` admits any of them
+    if members.contains(&"string") && members.iter().all(|m| *m == "string" || is_quoted(m)) {
+        return PropType::Str;
+    }
     if members.len() == 1 {
         return match members[0] {
             "boolean" => PropType::Bool,
@@ -528,6 +532,26 @@ mod cem_tests {
         assert_eq!(by("opaque").type_text, None); // the kind already says "unmodeled"
         assert_eq!(by("loose").type_text, None);
         assert_eq!(by("rows").type_text.as_deref(), Some("string[]"));
+    }
+
+    #[test]
+    fn test_string_literals_alongside_string_are_a_string() {
+        let manifest = r#"{"modules":[{"declarations":[{
+          "kind":"class","name":"El","customElement":true,"tagName":"an-el",
+          "attributes":[
+            {"name":"formtarget","type":{"text":"'_self' | '_blank' | '_parent' | '_top' | string"}},
+            {"name":"target","type":{"text":"string | '_self' | null"}},
+            {"name":"mixed","type":{"text":"'auto' | number"}}
+          ]
+        }]}]}"#;
+        let s = &parse_manifest(manifest).unwrap()[0];
+        let by = |n: &str| s.props.iter().find(|p| p.name == n).unwrap();
+        // the literals only suggest values, so the attribute fallback carries every one of them
+        assert_eq!(by("formtarget").ty, PropType::Str);
+        assert_eq!(by("formtarget").type_text, None);
+        assert_eq!(by("target").ty, PropType::Optional(Box::new(PropType::Str)));
+        // a literal beside anything but `string` is still a mixed union
+        assert_eq!(by("mixed").ty, PropType::Any);
     }
 
     #[test]
