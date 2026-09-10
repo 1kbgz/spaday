@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from spaday import Component, ComponentSchema, PropertySchema, apply, classes, diff, generate, parse_cem, validate
+from spaday.cem import render
 
 FIXTURES = Path(__file__).parent / "fixtures"
 FIXTURE = str(FIXTURES / "webawesome.cem.json")
@@ -197,6 +198,15 @@ def test_typed_signatures_rendered():
     assert 'size: Literal["small", "medium", "large"] | None = None' in code
     assert "name: str | None = None" in code
     assert "checked: bool | None = None" in code
+
+
+def test_a_summary_ending_in_a_quote_still_generates_valid_python():
+    """A summary that ends by quoting something -- one of UI5's ends in a quoted module path -- must
+    not run into the docstring's closing quotes."""
+    schema = {"tag_name": "an-el", "class_name": "AnEl", "summary": 'Built on "base.js"', "props": [], "fields": [], "events": [], "slots": []}
+    ns: dict = {}
+    exec(render([schema]), ns)  # noqa: S102
+    assert ns["AnEl"].__doc__ == 'Built on "base.js"'
 
 
 def test_python_keyword_attribute_is_escaped():

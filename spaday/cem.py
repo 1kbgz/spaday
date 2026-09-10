@@ -137,6 +137,8 @@ def _render_class(schema: dict) -> _ClassBody:
     # Collapse to a single line so the docstring is stable under `ruff format` (which re-indents
     # multi-line docstrings, an AST-visible change the drift test would otherwise trip over).
     doc = " ".join((schema.get("summary") or "").split()).replace("\\", "\\\\").replace('"""', "'''")
+    if doc.endswith('"'):
+        doc = doc[:-1] + '\\"'  # a quote right before the closing """ would end the string one early
     head = [f"class {name}(Component):"]
     if doc:
         head.append(f'    """{doc}"""')
