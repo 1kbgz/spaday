@@ -116,7 +116,8 @@ It verifies that every declared tag is a defined custom element, and that every 
 exposed as a DOM property — the runtime falls back to an attribute when an element has no property,
 and an attribute can only carry a string, so an attribute-only `json` prop would stringify your
 object to `"[object Object]"`. String, number, boolean and enum props survive that fallback, so they
-are not required to be properties.
+are not required to be properties. Neither are props named with a hyphen: no element has a property
+by that name, so they are carried as attributes whichever bundle implements the element.
 
 Two packages with the same `name` are rejected, which is the point: an app gets the peer's bundle or
 yours, never both. That also means substitution is the simplest fix for the collision in

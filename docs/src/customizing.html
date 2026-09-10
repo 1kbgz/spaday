@@ -350,7 +350,8 @@ a browser-side check from the schemas your package already carries, so test it:<
 exposed as a DOM property — the runtime falls back to an attribute when an element has no property,
 and an attribute can only carry a string, so an attribute-only <code class="docutils literal notranslate"><span class="pre">json</span></code> prop would stringify your
 object to <code class="docutils literal notranslate"><span class="pre">&quot;[object</span> <span class="pre">Object]&quot;</span></code>. String, number, boolean and enum props survive that fallback, so they
-are not required to be properties.</p>
+are not required to be properties. Neither are props named with a hyphen: no element has a property
+by that name, so they are carried as attributes whichever bundle implements the element.</p>
 <p>Two packages with the same <code class="docutils literal notranslate"><span class="pre">name</span></code> are rejected, which is the point: an app gets the peer’s bundle or
 yours, never both. That also means substitution is the simplest fix for the collision in
 <a class="reference internal" href="#share-one-engine-between-two-libraries"><span class="xref myst">Share one engine</span></a> — with one copy on the page, there is
