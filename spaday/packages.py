@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 from .catalog import ComponentSchema
 from .component import Component
 from .semver import parse_range, parse_version, satisfies
+from .ui.design import Design
 
 ENTRY_POINT_GROUP = "spaday.component_packages"
 _PACKAGE_NAME = re.compile(r"[a-z0-9][a-z0-9._-]*\Z")
@@ -44,6 +45,9 @@ class ComponentPackage:
     ``provides`` records the JS libraries the package puts on the page, by npm
     name, with the exact version it serves (``{"@awesome.me/webawesome": "3.1.0"}``);
     a package's build writes them, so the Python side knows what the browser gets.
+    ``design`` publishes the package's :class:`~spaday.ui.design.Design` — how it renders the
+    generic controls of :mod:`spaday.ui` — which a page selecting the package renders with.
+
     ``requires`` records libraries the package's own bundle imports without
     shipping, with the npm version range it was built against
     (``{"@awesome.me/webawesome": "^3.1.0"}``). :func:`resolve_component_packages`
@@ -61,8 +65,11 @@ class ComponentPackage:
     imports: Sequence[tuple[str, str]] = ()
     provides: Mapping[str, str] | Sequence[tuple[str, str]] = ()
     requires: Mapping[str, str] | Sequence[tuple[str, str]] = ()
+    design: Design | None = None
 
     def __post_init__(self) -> None:
+        if self.design is not None and not isinstance(self.design, Design):
+            raise TypeError(f"component package design must be a spaday.ui.Design, got {type(self.design).__name__}")
         if not _PACKAGE_NAME.fullmatch(self.name):
             raise ValueError("component package name must contain only lowercase letters, digits, '.', '_', or '-'")
         normalized = []

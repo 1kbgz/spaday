@@ -44,6 +44,17 @@ pub struct Binding {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compute: Option<serde_json::Value>,
     pub mode: BindMode,
+    /// Two-way only: the DOM event on which the control's value is written back to the field, for a
+    /// control whose change event is not `change`/`input` (a Lion control's `model-value-changed`).
+    /// Absent, the runtime listens for its default events.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event: Option<EventName>,
+    /// Drive the prop by calling a method pair instead of assigning it: `[open, close]` — the first
+    /// is called when the field turns truthy, the second when it turns falsy. For overlays that open
+    /// through methods (`<dialog>`'s `showModal()`/`close()`, a popover's `showPopover()`); the prop
+    /// itself is then what the runtime reads to know the current state.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub methods: Option<[EventName; 2]>,
 }
 
 /// A node in the component tree.

@@ -23,6 +23,7 @@ import anywidget
 import traitlets
 
 from .component import Component
+from .ui.design import Design, resolve, select_design
 
 _EXT = Path(__file__).parent / "extension"
 _ESM = _EXT / "cdn" / "widget.js"
@@ -30,8 +31,8 @@ _ESM = _EXT / "cdn" / "widget.js"
 Tree = Component | dict
 
 
-def _to_node(tree: Tree) -> dict:
-    return tree.to_node() if isinstance(tree, Component) else tree
+def _to_node(tree: Tree, design: Design | str | None) -> dict:
+    return resolve(tree.to_node() if isinstance(tree, Component) else tree, select_design(design))
 
 
 class Widget(anywidget.AnyWidget):
@@ -43,16 +44,17 @@ class Widget(anywidget.AnyWidget):
     # two-way-bound control updates Python here, and a Python-side change updates the bound props.
     _state = traitlets.Dict().tag(sync=True)
 
-    def __init__(self, tree: Tree, state: dict | None = None, **kwargs: Any) -> None:
+    def __init__(self, tree: Tree, state: dict | None = None, *, design: Design | str | None = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self._tree = _to_node(tree)
+        self._design = design  # renders the tree's generic controls (spaday.ui); None is the native baseline
+        self._tree = _to_node(tree, design)
         self._state = dict(state or {})
         self._intent_handlers: list[Callable[[dict], None]] = []
         self.on_msg(self._on_msg)
 
     def update(self, tree: Tree) -> None:
         """Replace the rendered tree; the browser applies a minimal diff to the live DOM."""
-        self._tree = _to_node(tree)
+        self._tree = _to_node(tree, self._design)
 
     @property
     def state(self) -> dict:

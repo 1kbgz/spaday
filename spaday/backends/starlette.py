@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 
 from ..bootstrap import AssetLayout, Page, Wire, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
+from ..ui.design import Design, select_design
 
 if TYPE_CHECKING:  # annotations only — starlette is imported inside the functions (optional extra)
     from starlette.applications import Starlette
@@ -67,6 +68,7 @@ def mount(
     nonce: str | None = None,
     persist: dict[str, str] | None = None,
     url: dict[str, str] | None = None,
+    design: Design | str | None = None,
 ) -> Starlette:
     """Add spaday's routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under
     ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``
@@ -82,6 +84,7 @@ def mount(
 
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
+    page_design = select_design(design, component_packages)
     body = bootstrap(
         base=prefix,
         packages=component_packages,
@@ -106,10 +109,10 @@ def mount(
         return FileResponse(html) if html is not None else HTMLResponse(body)
 
     async def tree_route_json(_request):
-        return Response(tree_json(page), media_type="application/json")
+        return Response(tree_json(page, page_design), media_type="application/json")
 
     async def tree_route_frame(_request):
-        return Response(tree_frame(page), media_type="application/octet-stream")
+        return Response(tree_frame(page, design=page_design), media_type="application/octet-stream")
 
     tree_route = Route(f"{prefix}/tree", tree_route_frame) if tree == "frame" else Route(f"{prefix}/tree.json", tree_route_json)
     package_mounts = [Mount(package_url_prefix(package, prefix), StaticFiles(directory=package.assets_dir)) for package in component_packages]

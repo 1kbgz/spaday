@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 
 from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
+from ..ui.design import Design, select_design
 
 if TYPE_CHECKING:  # annotations only — tornado is imported inside the functions (not a spaday dependency)
     from tornado.web import Application
@@ -43,6 +44,7 @@ def mount(
     stylesheets: Sequence[str] = (),
     styles: Sequence[str] = (),
     head: str = "",
+    design: Design | str | None = None,
 ) -> Application:
     """Add spaday's handlers to an existing Tornado ``app`` under ``prefix``. ``routes`` is a list of
     Tornado handler tuples (``(pattern, Handler[, kwargs])`` — including your ``{prefix}/ws`` handler when
@@ -51,6 +53,7 @@ def mount(
 
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
+    page_design = select_design(design, component_packages)
     body = bootstrap(
         base=prefix,
         packages=component_packages,
@@ -78,7 +81,7 @@ def mount(
         class _Tree(RequestHandler):
             def get(self):
                 self.set_header("Content-Type", "application/octet-stream")
-                self.write(tree_frame(page))
+                self.write(tree_frame(page, design=page_design))
 
         tree_rule = (rf"{pre}/tree", _Tree)
     else:
@@ -86,7 +89,7 @@ def mount(
         class _Tree(RequestHandler):
             def get(self):
                 self.set_header("Content-Type", "application/json")
-                self.write(tree_json(page))
+                self.write(tree_json(page, page_design))
 
         tree_rule = (rf"{pre}/tree\.json", _Tree)
 

@@ -16,6 +16,20 @@ The Python surface of spaday. Peer-package component classes are not listed here
 .. autoclass:: spaday.components.shell.Each
 ```
 
+## Generic controls
+
+Controls any design renders; see [Use generic controls](components.md#use-generic-controls-any-design-renders).
+
+```{eval-rst}
+.. automodule:: spaday.ui.controls
+   :members: Button, TextInput, Checkbox, Switch, Select, Dialog, Control
+
+.. automodule:: spaday.ui.design
+   :members: Design, ControlSpec, Part, Wrap, Options, Value, Open, resolve, select_design
+
+.. autodata:: spaday.ui.native.NATIVE
+```
+
 ## Action DSL
 
 Behavior attached to a component with `Component.on`; see [Add behavior and reactivity](behavior.md).

@@ -77,6 +77,10 @@ export type { WorkerLink } from "./worker";
 // High-level layout/shell primitives — defines the spa-* custom elements on import.
 export { SHELL_TAGS } from "./shell";
 
+// The native baseline for the generic controls (`spaday.ui`): plain form elements styled from the
+// shell palette. Importing installs the stylesheet.
+export { UI_CSS } from "./ui";
+
 // Prop-value (`Value`) encode/decode.
 export { tag, untag } from "./value";
 export type { Value } from "./value";

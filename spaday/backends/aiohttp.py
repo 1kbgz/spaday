@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
+from ..ui.design import Design, select_design
 
 if TYPE_CHECKING:  # annotations only — aiohttp is imported inside the functions (not a spaday dependency)
     from aiohttp import web
@@ -42,6 +43,7 @@ def mount(
     stylesheets: Sequence[str] = (),
     styles: Sequence[str] = (),
     head: str = "",
+    design: Design | str | None = None,
 ) -> web.Application:
     """Add spaday's routes to an existing aiohttp ``app`` under ``prefix``. ``routes`` is a list of
     ``aiohttp.web`` route defs (``web.get(...)`` — including your ``{prefix}/ws`` handler when wiring
@@ -50,6 +52,7 @@ def mount(
 
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
+    page_design = select_design(design, component_packages)
     body = bootstrap(
         base=prefix,
         packages=component_packages,
@@ -72,13 +75,13 @@ def mount(
     if tree == "frame":
 
         async def tree_handler(_request):
-            return web.Response(body=tree_frame(page), content_type="application/octet-stream")
+            return web.Response(body=tree_frame(page, design=page_design), content_type="application/octet-stream")
 
         tree_route = web.get(f"{prefix}/tree", tree_handler)
     else:
 
         async def tree_handler(_request):
-            return web.Response(text=tree_json(page), content_type="application/json")
+            return web.Response(text=tree_json(page, page_design), content_type="application/json")
 
         tree_route = web.get(f"{prefix}/tree.json", tree_handler)
 

@@ -41,6 +41,7 @@ from typing import Literal, Union
 from .component import Component
 from .packages import ComponentPackage, PackageRef, npm_package, package_url_prefix, resolve_component_packages
 from .spaday import encode_frame  # compiled core (always available); used by tree_frame
+from .ui.design import Design, resolve, select_design
 
 #: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called
 #: per request, so the tree can reflect current state).
@@ -167,16 +168,23 @@ def _resolve(page: Page) -> Component:
     return page() if callable(page) else page
 
 
-def tree_json(page: Page) -> str:
+def tree_node(page: Page, design: Design | str | None = None) -> dict:
+    """The authored tree as a node dict, its generic controls (:mod:`spaday.ui`) rendered by
+    ``design`` — a :class:`~spaday.ui.design.Design`, ``"native"``, or ``None`` for the native
+    baseline. A backend passes the design it chose from the page's packages."""
+    return resolve(_resolve(page).to_node(), select_design(design))
+
+
+def tree_json(page: Page, design: Design | str | None = None) -> str:
     """The authored tree as a JSON string (serve at ``GET {base}/tree.json``)."""
-    return json.dumps(_resolve(page).to_node())
+    return json.dumps(tree_node(page, design))
 
 
-def tree_frame(page: Page, *, id: str = "spa-tree") -> bytes:
+def tree_frame(page: Page, *, id: str = "spa-tree", design: Design | str | None = None) -> bytes:
     """The authored tree as a transports Snapshot frame (serve at ``GET {base}/tree`` for ``tree="frame"``)
     — the same length-prefixed, codec-tagged envelope transports uses for model state, so the UI tree and
     the model data ride one wire."""
-    return encode_frame(json.dumps(_resolve(page).to_node()), id, "snapshot", 0, "application/json")
+    return encode_frame(json.dumps(tree_node(page, design)), id, "snapshot", 0, "application/json")
 
 
 def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None) -> str:
