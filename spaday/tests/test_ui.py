@@ -251,3 +251,62 @@ def test_bound_state_reaches_a_designs_value_prop_untouched_by_value_maps():
     design = _design(button=ControlSpec(tag="x-button", props={"intent": "variant"}, values={"intent": {"primary": "brand"}}))
     node = _plain(resolve(Button().compute("intent", field("tone")).to_node(), design))
     assert "variant" in node["bindings"] and node["bindings"]["variant"]["compute"]["expr"] == "field"
+
+
+def test_the_conformance_server_serves_the_page_with_the_chosen_design(monkeypatch):
+    import uvicorn
+
+    started = []
+    monkeypatch.setattr(uvicorn, "run", lambda app, **options: started.append((app, options)))
+    conformance.main(["8123", "--design", "native"])
+    app, options = started[0]
+    assert options == {"host": "127.0.0.1", "port": 8123, "log_level": "warning"}
+    from starlette.testclient import TestClient
+
+    tree = TestClient(app).get("/tree.json").json()
+    assert tree["props"]["id"] == {"Str": "conformance"} and "ui-" not in json.dumps(tree)
+
+
+def test_a_plain_dict_tree_resolves_too():
+    """A tree authored as dicts carries untagged values; they pass through the same mapping."""
+    node = resolve({"tag": "ui-button", "props": {"label": "Go", "intent": "danger", "disabled": True}}, NATIVE, fallback=NATIVE)
+    assert _plain(node)["props"] == {"type": "button", "data-ui": "button", "textContent": "Go", "data-intent": "danger", "disabled": True}
+
+
+def test_bound_parts_and_unsupported_bindings():
+    design = _design(
+        button=ControlSpec(tag="x-button", label=Part(kind="text"), props={"size": None}),
+        input=ControlSpec(tag="x-input", help=Part(kind="slot", name="hint"), error=Part(kind="none")),
+    )
+    button = _plain(resolve(Button().bind("label", "caption").bind("size", "sz").bind("readonly", "ro").to_node(), design))
+    # a bound label lands on the text; a binding the design maps to nothing, or does not know, is dropped
+    assert button["bindings"] == {"textContent": {"field": "caption", "mode": "one-way"}}
+    text = _plain(resolve(TextInput(error="Bad").bind("help", "hint").to_node(), design))
+    assert "error" not in text["props"]  # the design has nowhere to show it
+    assert text["slots"]["hint"][0]["bindings"] == {"textContent": {"field": "hint", "mode": "one-way"}}
+
+
+def test_options_bound_only_and_a_dialog_opened_one_way():
+    design = _design(
+        select=ControlSpec(tag="x-select", options=Options(kind="prop", name="items")),
+        dialog=ControlSpec(tag="x-dialog", open=Open(prop="opened", event="x-closed", methods=("show", "hide"))),
+    )
+    select = _plain(resolve(Select().bind("options", "plans").to_node(), design))
+    assert "items" not in select["props"] and select["bindings"] == {"items": {"field": "plans", "mode": "one-way"}}
+    dialog = _plain(resolve(Dialog(open=True).to_node(), design))
+    assert dialog["props"] == {"opened": True} and "bindings" not in dialog
+    one_way = _plain(resolve(Dialog().bind("open", "o").to_node(), design))
+    # one-way: driven by the methods, but the close event has nothing to write back to
+    assert one_way["bindings"] == {"opened": {"field": "o", "mode": "one-way", "methods": ["show", "hide"]}}
+
+
+def test_named_slots_pass_through_and_a_bare_wrap_has_no_props():
+    design = _design(
+        dialog=ControlSpec(tag="x-dialog", label=Part(kind="child", tag="h1", after=True)),
+        input=ControlSpec(tag="x-input", wrap=Wrap(tag="x-field"), label=Part(kind="sibling")),
+    )
+    dialog = _plain(resolve(Dialog(element("p"), label="Title").child_in("footer", Button(label="OK")).to_node(), design))
+    assert [c["tag"] for c in dialog["slots"]["default"]] == ["p", "h1"]  # `after` puts the title last
+    assert dialog["slots"]["footer"][0]["tag"] == "button"  # a generic child in a named slot resolves too
+    field = resolve(TextInput(label="Name").to_node(), design)
+    assert field["tag"] == "x-field" and "props" not in field

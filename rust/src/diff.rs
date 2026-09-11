@@ -502,8 +502,8 @@ mod diff_tests {
                     field: Some("lit".into()), // field changed
                     compute: None,
                     mode: BindMode::TwoWay,
-                event: None,
-                methods: None,
+                    event: None,
+                    methods: None,
                 },
             )
             .bind(
@@ -512,8 +512,8 @@ mod diff_tests {
                     field: Some("locked".into()), // added
                     compute: None,
                     mode: BindMode::OneWay,
-                event: None,
-                methods: None,
+                    event: None,
+                    methods: None,
                 },
             );
         let patch = assert_round_trip(&old, &new);
@@ -572,8 +572,8 @@ mod diff_tests {
             field: Some(field.into()),
             compute: None,
             mode: BindMode::OneWay,
-                event: None,
-                methods: None,
+            event: None,
+            methods: None,
         };
         let old = Node::new("spa-each")
             .prop("itemKey", "id")
