@@ -82,6 +82,52 @@ App().css(wa_color_brand_fill_loud="#0C4253")  # → --spa-accent, --spa-info, a
 A canvas component cannot read CSS, so `spaday-lightweight-charts` samples the resolved value of its
 tokens and hands them to the chart. Theming it looks identical from Python.
 
+## Render the generic controls with your own design
+
+The generic controls (`spaday.ui`) reach a design system through a `Design`: data mapping each control
+kind to the element that renders it and to where its generic surface lands there. A design-system
+package publishes one on its `ComponentPackage`; an in-house design system publishes its own the same
+way, and needs no Python beyond it:
+
+```python
+from spaday.ui import ControlSpec, Design, Open, Options, Part, Value
+
+DESIGN = Design(
+    name="acme",
+    controls={
+        "button": ControlSpec(
+            tag="acme-button",
+            label=Part(kind="text"),                       # the label is the button's text
+            props={"intent": "tone", "size": "size", "disabled": "disabled"},
+            values={"intent": {"primary": "brand"}},       # the design's word for it
+        ),
+        "input": ControlSpec(
+            tag="acme-field",
+            label=Part(kind="attr", name="label"),
+            help=Part(kind="slot", name="hint"),           # an element in the `hint` slot
+            error=Part(kind="attr", name="error-text"),
+            invalid={"invalid": True},                     # set while an error is shown
+            value=Value(prop="value", event="acme-change"), # written back on the design's event
+        ),
+        "select": ControlSpec(tag="acme-select", options=Options(kind="prop", name="items")),
+        "dialog": ControlSpec(
+            tag="acme-dialog",
+            open=Open(prop="opened", event="acme-closed", methods=("show", "hide")),
+        ),
+    },
+)
+package = ComponentPackage(name="acme", ..., design=DESIGN)
+```
+
+`Part` places a label, help text or error message as an attribute, a slotted element, the control's
+text, a child inside it, or a sibling in a `Wrap` around it (a `bp-field`, a `fluent-field`, a plain
+`<label>`). `Options` renders a select's choices as child elements — optionally inside one wrapper —
+or as a list property. `Value` and `Open` name the state property and its change event, and `Open`'s
+method pair drives an overlay that opens by method. A control the design leaves out renders with the
+native baseline. `python -m spaday.ui.conformance PORT --package acme` serves the conformance page
+with your design, so the same browser checks spaday runs against the baseline (`js/tests/ui.spec.js`)
+run against yours.
+
 ## Serve your own bundle
 
 A `ComponentPackage` is a frozen dataclass of `(name, assets_dir, assets, components)`, and

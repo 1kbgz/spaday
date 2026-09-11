@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
+from ..ui.design import Design, select_design
 
 if TYPE_CHECKING:  # annotations only — flask is imported inside the functions (not a spaday dependency)
     from flask import Flask
@@ -40,6 +41,7 @@ def mount(
     stylesheets: Sequence[str] = (),
     styles: Sequence[str] = (),
     head: str = "",
+    design: Design | str | None = None,
 ) -> Flask:
     """Add spaday's routes to an existing Flask ``app`` under ``prefix``. ``routes`` is a list of
     ``(rule, endpoint, view_func)`` tuples. Endpoints are keyed by ``prefix`` so several spaday pages can
@@ -48,6 +50,7 @@ def mount(
 
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
+    page_design = select_design(design, component_packages)
     body = bootstrap(
         base=prefix,
         packages=component_packages,
@@ -67,9 +70,11 @@ def mount(
 
     app.add_url_rule(f"{prefix}/", f"spaday_index_{key}", lambda: Response(body, mimetype="text/html"))
     if tree == "frame":
-        app.add_url_rule(f"{prefix}/tree", f"spaday_tree_{key}", lambda: Response(tree_frame(page), mimetype="application/octet-stream"))
+        app.add_url_rule(
+            f"{prefix}/tree", f"spaday_tree_{key}", lambda: Response(tree_frame(page, design=page_design), mimetype="application/octet-stream")
+        )
     else:
-        app.add_url_rule(f"{prefix}/tree.json", f"spaday_tree_{key}", lambda: Response(tree_json(page), mimetype="application/json"))
+        app.add_url_rule(f"{prefix}/tree.json", f"spaday_tree_{key}", lambda: Response(tree_json(page, page_design), mimetype="application/json"))
     app.add_url_rule(f"{prefix}/js/<path:path>", f"spaday_js_{key}", lambda path: send_from_directory(js_dir, path))
     for package in component_packages:
         package_dir = package.assets_dir

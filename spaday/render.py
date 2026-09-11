@@ -21,14 +21,15 @@ import html
 from typing import Any
 
 from .component import DEFAULT_SLOT, Component
+from .ui.design import Design, resolve, select_design
 
 #: Raw-HTML void elements (no close tag). Web components are never void.
 _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
 
 
-def render_html(tree: Component | dict) -> str:
+def render_html(tree: Component | dict, design: Design | str | None = None) -> str:
     """Render a component (or an already-built node dict) to a light-DOM HTML string for hydration."""
-    return _render(tree.to_node() if isinstance(tree, Component) else tree, None)
+    return _render(resolve(tree.to_node() if isinstance(tree, Component) else tree, select_design(design)), None)
 
 
 def _render(node: dict, slot: str) -> str:
