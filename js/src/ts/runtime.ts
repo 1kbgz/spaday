@@ -22,6 +22,10 @@ export interface Binding {
   field?: string;
   compute?: unknown;
   mode: string;
+  /** two-way: the event the control's value is written back on, instead of the defaults */
+  event?: string;
+  /** call `[open, close]` on the element as the field turns truthy / falsy, instead of setting the prop */
+  methods?: [string, string];
 }
 
 export interface Node {
@@ -230,9 +234,14 @@ function readProp(el: Element, name: string): unknown {
 // component tree. Authored via `Component.bind_root_class` / `bind_root_attr`. A class is a boolean, so
 // it coerces; an attribute keeps its value, and is written as an attribute even when the name shadows a
 // property of `<html>` (`title`, `lang`, `dir`, …).
-function bindingApply(el: Element, prop: string): (value: unknown) => void {
+function bindingApply(
+  el: Element,
+  prop: string,
+  spec: Binding,
+): (value: unknown) => void {
   const ROOT_CLASS = "root-class:";
   const ROOT_ATTR = "root-attr:";
+  if (spec.methods) return methodApply(el, prop, spec.methods);
   if (prop.startsWith(ROOT_CLASS)) {
     const name = prop.slice(ROOT_CLASS.length);
     return (v) => document.documentElement.classList.toggle(name, !!v);
@@ -244,6 +253,31 @@ function bindingApply(el: Element, prop: string): (value: unknown) => void {
   return (v) => setProp(el, prop, v);
 }
 
+// A prop driven by a method pair (`[open, close]`) rather than assignment — overlays that open
+// through `showModal()` / `show()` / `showPopover()`. The prop names the element's own state, read
+// back so a call is skipped when the element is already there (`showModal()` on an open dialog
+// throws) and so a two-way binding can report a self-close. An element defined after the page mounts
+// gets the call once it is.
+function methodApply(
+  el: Element,
+  prop: string,
+  [open, close]: [string, string],
+): (value: unknown) => void {
+  return (value) => {
+    const want = !!value;
+    const run = () => {
+      if (!!readProp(el, prop) === want) return;
+      const method = (el as unknown as Record<string, unknown>)[
+        want ? open : close
+      ];
+      if (typeof method === "function") method.call(el);
+    };
+    if (el.localName.includes("-") && !customElements.get(el.localName))
+      void customElements.whenDefined(el.localName).then(run);
+    else run();
+  };
+}
+
 function wireBinding(
   el: Element,
   prop: string,
@@ -253,7 +287,7 @@ function wireBinding(
 ): void {
   unwireBinding(el, prop); // replace any prior wiring for this prop
   const teardowns: Array<() => void> = [];
-  const apply = bindingApply(el, prop);
+  const apply = bindingApply(el, prop, spec);
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads
     // changes. One-way by nature — there is nothing to write back. One settled state change can notify
@@ -289,9 +323,10 @@ function wireBinding(
         if (typeof v.checkValidity === "function" && !v.checkValidity()) return;
         store.set(spec.field!, readProp(el, prop));
       };
-      for (const ev of VALUE_EVENTS) el.addEventListener(ev, onChange);
+      const events = spec.event ? [spec.event] : VALUE_EVENTS;
+      for (const ev of events) el.addEventListener(ev, onChange);
       teardowns.push(() => {
-        for (const ev of VALUE_EVENTS) el.removeEventListener(ev, onChange);
+        for (const ev of events) el.removeEventListener(ev, onChange);
       });
     }
   }
