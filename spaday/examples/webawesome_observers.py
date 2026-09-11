@@ -25,6 +25,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .visible { outline: 3px solid #22c55e; }
 </style>"""
 
+INITIAL_STATE = {"resize_wide": False}
+
 
 def build_page() -> App:
     """Return a browser-utility page whose behavior stays inside custom elements."""
@@ -124,7 +126,7 @@ def create_app():
     return serve(
         build_page,
         packages=["webawesome"],
-        store={"resize_wide": False},
+        store=INITIAL_STATE,
         routes=[Route("/partial.html", partial)],
         title="spaday — browser observers",
         head=STYLE,

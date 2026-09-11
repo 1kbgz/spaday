@@ -36,6 +36,7 @@ session = transports.Session()
 controls = Controls()
 session.host(controls)
 server = transports.Server(session)
+STYLE = "<style>body { font-family: system-ui, sans-serif; margin: 2rem; } label { font-weight: 600; margin-right: 0.5rem; }</style>"
 
 
 def page():
@@ -57,7 +58,7 @@ app = serve(
     routes=[WebSocketRoute("/ws", transports.ws_endpoint(server))],
     background=[transports.autosync(server)],
     title="spaday × transports — reactive bindings",
-    head="<style>body { font-family: system-ui, sans-serif; margin: 2rem; } label { font-weight: 600; margin-right: 0.5rem; }</style>",
+    head=STYLE,
 )
 
 

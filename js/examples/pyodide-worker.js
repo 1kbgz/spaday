@@ -1,5 +1,22 @@
 const PYODIDE_VERSION = "314.0.4";
-const wheel = new URL(self.location.href).searchParams.get("wheel") || "spaday";
+const wheelOverride = new URL(self.location.href).searchParams.get("wheel");
+
+async function resolveWheel() {
+  if (wheelOverride) return wheelOverride;
+  try {
+    const indexUrl = new URL("../../pypi/all.json", self.location.href);
+    const response = await fetch(indexUrl);
+    if (!response.ok)
+      throw new Error(`wheel index returned ${response.status}`);
+    const index = await response.json();
+    const files = Object.values(index.spaday.releases).flat();
+    const wheel = files.find((file) => file.filename.endsWith(".whl"));
+    if (!wheel) throw new Error("wheel index contains no spaday wheel");
+    return new URL(`../../pypi/${wheel.filename}`, self.location.href).href;
+  } catch {
+    return "spaday";
+  }
+}
 
 const ready = (async () => {
   self.postMessage({ type: "status", message: "Loading Pyodide…" });
@@ -9,6 +26,7 @@ const ready = (async () => {
   const pyodide = await loadPyodide();
   self.postMessage({ type: "status", message: "Installing spaday…" });
   await pyodide.loadPackage("micropip");
+  const wheel = await resolveWheel();
   pyodide.globals.set("wheel", wheel);
   await pyodide.runPythonAsync(`
 import micropip
@@ -28,7 +46,9 @@ self.addEventListener("message", async (event) => {
       return;
     }
     pyodide.globals.set("intent_json", JSON.stringify(event.data));
-    self.postMessage(JSON.parse(pyodide.runPython("app.dispatch_json(intent_json)")));
+    self.postMessage(
+      JSON.parse(pyodide.runPython("app.dispatch_json(intent_json)")),
+    );
   } catch (error) {
     self.postMessage({ type: "error", message: String(error) });
   }

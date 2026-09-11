@@ -44,6 +44,8 @@ wa-page { min-height: 100vh; }
 }
 </style>"""
 
+INITIAL_STATE = {"section": "overview"}
+
 
 def _navigation_button(label: str, section: str) -> WaButton:
     active = eq(field("section"), section)
@@ -218,7 +220,7 @@ def create_app():
     return serve(
         build_page,
         packages=["webawesome"],
-        store={"section": "overview"},
+        store=INITIAL_STATE,
         title="spaday — application navigation",
         head=STYLE,
     )
