@@ -28,6 +28,14 @@ SERIES = [
     {"time": "2026-07-22", "value": 110.4},
 ]
 
+INITIAL_STATE = {
+    "chart_type": "area",
+    "show_chart": True,
+    "dark": False,
+    "orders": ORDERS,
+    "series": SERIES,
+}
+
 
 def build_page():
     """Return a dashboard whose chart and table are driven by local reactive state."""
@@ -101,13 +109,7 @@ def create_app():
     return serve(
         build_page,
         packages=["webawesome", "lightweight-charts"],
-        store={
-            "chart_type": "area",
-            "show_chart": True,
-            "dark": False,
-            "orders": ORDERS,
-            "series": SERIES,
-        },
+        store=INITIAL_STATE,
         title="spaday — data dashboard",
         head=STYLE,
     )

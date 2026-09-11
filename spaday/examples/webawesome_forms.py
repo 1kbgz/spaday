@@ -31,6 +31,24 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .settings-grid > * { min-width: 0; }
 </style>"""
 
+INITIAL_STATE = {
+    "name": "Ada Lovelace",
+    "email": "ada@example.com",
+    "role": "engineer",
+    "bio": "",
+    "dark": False,
+    "notifications": ["email"],
+    "density": "comfortable",
+    "accent": "#2563eb",
+    "start_date": "2026-08-01",
+    "reminder": "09:30",
+    "seats": 8,
+    "digest": 8,
+    "rating": 4,
+    "save_result": None,
+    "form_error": None,
+}
+
 
 def build_page() -> App:
     """Return a local-state settings form with reset and save actions."""
@@ -173,23 +191,7 @@ def create_app():
     return serve(
         build_page,
         packages=["webawesome"],
-        store={
-            "name": "Ada Lovelace",
-            "email": "ada@example.com",
-            "role": "engineer",
-            "bio": "",
-            "dark": False,
-            "notifications": ["email"],
-            "density": "comfortable",
-            "accent": "#2563eb",
-            "start_date": "2026-08-01",
-            "reminder": "09:30",
-            "seats": 8,
-            "digest": 8,
-            "rating": 4,
-            "save_result": None,
-            "form_error": None,
-        },
+        store=INITIAL_STATE,
         routes=[Route("/api/settings", save_settings, methods=["POST"])],
         title="spaday — settings form",
         head=STYLE,

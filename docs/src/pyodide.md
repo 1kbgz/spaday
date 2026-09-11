@@ -85,19 +85,50 @@ Run the focused Playwright test against the wheel already in `dist/pyodide/`:
 make test-pyodide-browser
 ```
 
-## Run it all in JupyterLite
+## Browse the standalone examples
+
+[Open the standalone gallery](https://1kbgz.github.io/spaday/lite/js/examples/standalone.html) to run
+the focused examples without installing Python. Use the picker to switch among seven core examples.
+Peer packages host their own standalone examples; for example, [open spaday-trees in Pyodide](https://1kbgz.github.io/spaday-trees/lite/).
+
+The page installs the Python wheels in a Pyodide Web Worker and loads each wheel's browser assets on
+the main thread. When an example exports a transports `Server`, the runner detects it and uses
+`postMessage` as an in-browser wire:
+
+```text
+browser Store → transports JS Client → Web Worker → Python Server/Session
+              ← authoritative accepted patch ←
+```
+
+This preserves Python model validation, background updates, and server-authoritative edits. No HTTP
+or WebSocket server is created.
+
+Use the deployed server examples for behavior that inherently crosses browser processes: shared state
+between tabs or users, clustering, SSR, host-framework mounting, and external services. When Pyodide
+does connect to a deployed service, transports already detects `sys.platform == "emscripten"` and
+implements `Client.connect()` with the browser's native `WebSocket` or `EventSource`.
+
+## Run the notebook examples in JupyterLite
 
 Both ends WebAssembly: the Pyodide kernel runs your Python, and the [notebook widget](notebook.md)
 (which bundles the spaday runtime and wasm core) renders the tree in the notebook frontend — no
-server. A hosted build publishes with these docs at
-[/spaday/lite/](https://1kbgz.github.io/spaday/lite/) — open `lab/index.html` → `spaday-demo.ipynb`.
+server. [Open the interactive examples](https://1kbgz.github.io/spaday/lite/lab/index.html?path=spaday-demo.ipynb)
+and run all cells. The notebook runs these packaged examples directly:
+
+- [`widget.py`](../../spaday/examples/widget.py) for rendering and client-side actions;
+- [`devices.py`](../../spaday/examples/devices.py) for reactive device controls;
+
+The [standalone worker example](https://1kbgz.github.io/spaday/lite/js/examples/pyodide.html) runs
+[`pyodide.py`](../../spaday/examples/pyodide.py) with fully interactive Python-owned state and
+rendering. Its worker loads the Pyodide wheel published with the documentation site.
 
 ```bash
 make jupyterlite        # builds the site into dist/lite (wheel + demo notebook included)
 make test-jupyterlite   # or: drive the site's REPL in Chromium end-to-end
 ```
 
-Serve `dist/lite` from any static host. The spaday wheel installs from the site's own wheel index
+Serve `dist/lite` from any static host. The build copies the core wheel, dependency wheels and browser
+assets, standalone runner, and notebook into the site. The spaday wheel installs from the site's own wheel index
 (`%pip install spaday anywidget`); `anywidget` and `pydantic` come from PyPI. Widget **frontend**
 extensions cannot be `%pip install`ed at runtime — the site build bundles them (`jupyterlab_widgets`
 for the ipywidgets manager plus `anywidget`; see the `jupyterlite` Make target). A Lite site built

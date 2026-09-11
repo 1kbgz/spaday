@@ -32,6 +32,9 @@ pip install -e ".[widget]"
 The [Pyodide example](../../js/examples/pyodide.html) runs
 [`pyodide.py`](./pyodide.py) inside a Web Worker. Follow
 [Run a spaday app in Pyodide](../../docs/src/pyodide.md) to build its wheel and browser runtime.
+The [hosted standalone gallery](https://1kbgz.github.io/spaday/lite/js/examples/standalone.html) runs
+the focused component examples without a local install. Peer packages host their own examples; open
+the [spaday-trees example](https://1kbgz.github.io/spaday-trees/lite/) directly.
 
 ## Omnibus: the complete application
 

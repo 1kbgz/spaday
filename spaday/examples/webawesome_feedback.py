@@ -28,6 +28,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .status-card { border: 1px solid var(--wa-color-neutral-border-normal); border-radius: .6rem; padding: 1rem; }
 </style>"""
 
+INITIAL_STATE = {"busy": True, "progress": 64}
+
 
 def build_page():
     """Return a status center driven by a local reactive store."""
@@ -111,7 +113,7 @@ def create_app():
     return serve(
         build_page,
         packages=["webawesome"],
-        store={"busy": True, "progress": 64},
+        store=INITIAL_STATE,
         title="spaday — status and feedback",
         head=STYLE,
     )
