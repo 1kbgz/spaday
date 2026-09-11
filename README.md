@@ -54,7 +54,6 @@ pip install "spaday[widget]"  # + the Jupyter / anywidget host
 Install only the integrations an application uses. Each package provides typed Python components and
 registers its browser assets with spaday:
 
-
 ### Design Systems
 
 - [spaday-blueprint](https://github.com/1kbgz/spaday-blueprint) — [BlueprintUI](https://blueprintui.dev/docs/components).
