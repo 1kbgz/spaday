@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Serve and embed a spaday app" href="serving.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Ship your own variant - spaday v0.8.1</title>
+        <title>Ship your own variant - spaday v0.8.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.1</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.2</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -189,7 +189,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.1</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.2</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -410,8 +410,33 @@ losing bundle skips names already taken instead of throwing and taking the page 
 keeps the page alive; it does not make two copies agree, and two copies at different versions is
 still a bug to fix rather than a state to ship.</p></li>
 </ol>
-<p><code class="docutils literal notranslate"><span class="pre">spaday-webawesome</span></code> publishes the version it bundles as <code class="docutils literal notranslate"><span class="pre">globalThis.__spadayWebawesome.version</span></code>, so
-a page holding a second copy can compare and refuse rather than half-work.</p>
+<section id="record-the-versions-and-let-spaday-reconcile-them">
+<h3>Record the versions, and let spaday reconcile them<a class="headerlink" href="#record-the-versions-and-let-spaday-reconcile-them" title="Link to this heading">¶</a></h3>
+<p>A package also records which library versions it serves, and which it imports but leaves to the page’s
+copy, with the range it was built against:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ComponentPackage</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"webawesome"</span><span class="p">,</span>
+    <span class="o">...</span><span class="p">,</span>
+    <span class="n">provides</span><span class="o">=</span><span class="p">{</span><span class="s2">"@awesome.me/webawesome"</span><span class="p">:</span> <span class="s2">"3.1.0"</span><span class="p">},</span>  <span class="c1"># written by the package's JS build</span>
+<span class="p">)</span>
+<span class="n">ComponentPackage</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"my-widgets"</span><span class="p">,</span>
+    <span class="o">...</span><span class="p">,</span>
+    <span class="n">requires</span><span class="o">=</span><span class="p">{</span><span class="s2">"@awesome.me/webawesome"</span><span class="p">:</span> <span class="s2">"^3.1.0"</span><span class="p">},</span>  <span class="c1"># imported, not shipped</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">serve()</span></code> and <code class="docutils literal notranslate"><span class="pre">bootstrap()</span></code> check the selected packages before they build a page. Two packages serving
+one library at different versions is an error naming both packages and both versions, and so is a
+<code class="docutils literal notranslate"><span class="pre">requires</span></code> whose range the served version misses, or that no selected package serves: the page would
+otherwise load a copy that half-works. Two packages serving the <em>same</em> version may both publish it in
+their import maps; the page imports the first. Ranges use npm’s syntax — <code class="docutils literal notranslate"><span class="pre">^3.1.0</span></code>, <code class="docutils literal notranslate"><span class="pre">~25.2</span></code>, <code class="docutils literal notranslate"><span class="pre">1.x</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&gt;=1.2</span> <span class="pre">&lt;2</span></code>, <code class="docutils literal notranslate"><span class="pre">||</span></code> — so a range can be copied from a <code class="docutils literal notranslate"><span class="pre">package.json</span></code>.</p>
+<p>That covers the copies spaday serves. A copy it does not — one inside your own bundle — is the
+define-guard’s case above: the first registration wins, and the losing package logs which elements it
+found already registered, with the library and version it serves. Each bundle also publishes the
+version it serves on a global (<code class="docutils literal notranslate"><span class="pre">globalThis.__spadayWebawesome.version</span></code>, and so on).</p>
+</section>
 <section id="third-party-bundles-cannot-blank-your-page">
 <h3>Third-party bundles cannot blank your page<a class="headerlink" href="#third-party-bundles-cannot-blank-your-page" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">bootstrap(scripts=[...])</span></code> loads extra ES modules before the tree mounts. A failure in one is caught
@@ -489,6 +514,7 @@ registering costs you that script, not every component on the page.</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#share-one-engine-between-two-libraries">Share one engine between two libraries</a><ul>
+<li><a class="reference internal" href="#record-the-versions-and-let-spaday-reconcile-them">Record the versions, and let spaday reconcile them</a></li>
 <li><a class="reference internal" href="#third-party-bundles-cannot-blank-your-page">Third-party bundles cannot blank your page</a></li>
 </ul>
 </li>
@@ -503,7 +529,7 @@ registering costs you that script, not every component on the page.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=ec16d22d"></script>
+</div><script src="../../_static/documentation_options.js?v=dbee5847"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

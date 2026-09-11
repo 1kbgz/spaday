@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.bootstrap - spaday v0.8.1</title>
+        <title>spaday.bootstrap - spaday v0.8.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.1</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.2</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.1</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.2</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -283,7 +283,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.packages</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentPackage</span><span class="p">,</span> <span class="n">PackageRef</span><span class="p">,</span> <span class="n">package_url_prefix</span><span class="p">,</span> <span class="n">resolve_component_packages</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.packages</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentPackage</span><span class="p">,</span> <span class="n">PackageRef</span><span class="p">,</span> <span class="n">npm_package</span><span class="p">,</span> <span class="n">package_url_prefix</span><span class="p">,</span> <span class="n">resolve_component_packages</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_frame</span>  <span class="c1"># compiled core (always available); used by tree_frame</span>
 
 <span class="c1">#: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called</span>
@@ -453,22 +453,27 @@
 <span class="sd">    Must precede every module script on the page, which is why it is emitted first -- a map that</span>
 <span class="sd">    arrives after the first module load is ignored by the browser, silently. Two packages publishing</span>
 <span class="sd">    the same specifier at different URLs is an error naming both, since picking one silently is the</span>
-<span class="sd">    ambiguity ``imports`` exists to remove; publishing the same specifier at the same URL is fine.</span>
+<span class="sd">    ambiguity ``imports`` exists to remove -- unless both declare they serve the same version of the</span>
+<span class="sd">    library it belongs to, in which case the two copies are interchangeable and the first is used.</span>
+<span class="sd">    Publishing the same specifier at the same URL is fine.</span>
 <span class="sd">    """</span>
     <span class="n">resolved</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">owners</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">owners</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ComponentPackage</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
         <span class="n">prefix</span> <span class="o">=</span> <span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">specifier</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">imports</span><span class="p">:</span>
             <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span>
             <span class="k">if</span> <span class="n">specifier</span> <span class="ow">in</span> <span class="n">resolved</span> <span class="ow">and</span> <span class="n">resolved</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span> <span class="o">!=</span> <span class="n">url</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">provides</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">npm_package</span><span class="p">(</span><span class="n">specifier</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">version</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">(</span><span class="n">owners</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span><span class="o">.</span><span class="n">provides</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">npm_package</span><span class="p">(</span><span class="n">specifier</span><span class="p">)):</span>
+                    <span class="k">continue</span>  <span class="c1"># the same version of the library: serve the first copy</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"component packages </span><span class="si">{</span><span class="n">owners</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> and </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> both publish the import "</span>
+                    <span class="sa">f</span><span class="s2">"component packages </span><span class="si">{</span><span class="n">owners</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> and </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> both publish the import "</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">specifier</span><span class="si">!r}</span><span class="s2"> at different URLs (</span><span class="si">{</span><span class="n">resolved</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">); select only one of them, "</span>
                     <span class="sa">f</span><span class="s2">"or override the packages so a single copy is published"</span>
                 <span class="p">)</span>
             <span class="n">resolved</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span> <span class="o">=</span> <span class="n">url</span>
-            <span class="n">owners</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span> <span class="o">=</span> <span class="n">package</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">owners</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span> <span class="o">=</span> <span class="n">package</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">resolved</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">""</span>
     <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">' nonce="</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">"'</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">""</span>
@@ -746,7 +751,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=ec16d22d"></script>
+</div><script src="../../_static/documentation_options.js?v=dbee5847"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

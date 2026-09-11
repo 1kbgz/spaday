@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.packages - spaday v0.8.1</title>
+        <title>spaday.packages - spaday v0.8.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.1</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.2</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.1</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.8.2</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -247,7 +247,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_module</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">entry_points</span>
@@ -255,9 +255,11 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentSchema</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.semver</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_range</span><span class="p">,</span> <span class="n">parse_version</span><span class="p">,</span> <span class="n">satisfies</span>
 
 <span class="n">ENTRY_POINT_GROUP</span> <span class="o">=</span> <span class="s2">"spaday.component_packages"</span>
 <span class="n">_PACKAGE_NAME</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[a-z0-9][a-z0-9._-]*\Z"</span><span class="p">)</span>
+<span class="n">_NPM_NAME</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(?:@[a-z0-9][a-z0-9._~-]*/)?[a-z0-9][a-z0-9._~-]*\Z"</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="ComponentPackage">
@@ -284,6 +286,18 @@
 <span class="sd">    collision. A specifier ending in ``/`` maps a whole subtree, per the import-map</span>
 <span class="sd">    spec. Two packages publishing the same specifier at different paths is an</span>
 <span class="sd">    error: it is the ambiguity the feature exists to remove.</span>
+
+<span class="sd">    ``provides`` records the JS libraries the package puts on the page, by npm</span>
+<span class="sd">    name, with the exact version it serves (``{"@awesome.me/webawesome": "3.1.0"}``);</span>
+<span class="sd">    a package's build writes them, so the Python side knows what the browser gets.</span>
+<span class="sd">    ``requires`` records libraries the package's own bundle imports without</span>
+<span class="sd">    shipping, with the npm version range it was built against</span>
+<span class="sd">    (``{"@awesome.me/webawesome": "^3.1.0"}``). :func:`resolve_component_packages`</span>
+<span class="sd">    reconciles them across the packages selected for a page: a page holds one copy</span>
+<span class="sd">    of a library, so two packages serving it at different versions, or a</span>
+<span class="sd">    requirement no selected package satisfies, is an error naming the packages and</span>
+<span class="sd">    versions, where the second copy would otherwise half-work. Packages serving the</span>
+<span class="sd">    same version of a library may both publish it; the page imports the first.</span>
 <span class="sd">    """</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -291,6 +305,8 @@
     <span class="n">assets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
     <span class="n">components</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">Component</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
     <span class="n">imports</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">provides</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">requires</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">_PACKAGE_NAME</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
@@ -317,6 +333,8 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package import </span><span class="si">{</span><span class="n">specifier</span><span class="si">!r}</span><span class="s2"> and its path must either both end in '/' or neither"</span><span class="p">)</span>
             <span class="n">imports</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">specifier</span><span class="p">,</span> <span class="n">import_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span> <span class="o">+</span> <span class="p">(</span><span class="s2">"/"</span> <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)))</span>
         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"imports"</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">imports</span><span class="p">))</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"provides"</span><span class="p">,</span> <span class="n">_libraries</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">provides</span><span class="p">,</span> <span class="s2">"provides"</span><span class="p">,</span> <span class="n">parse_version</span><span class="p">))</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"requires"</span><span class="p">,</span> <span class="n">_libraries</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">requires</span><span class="p">,</span> <span class="s2">"requires"</span><span class="p">,</span> <span class="n">parse_range</span><span class="p">))</span>
         <span class="n">components</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span>
         <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>
@@ -338,6 +356,57 @@
             <span class="n">component</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"class_name"</span><span class="p">:</span> <span class="n">component</span><span class="o">.</span><span class="vm">__name__</span><span class="p">})</span> <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="k">if</span> <span class="n">component</span><span class="o">.</span><span class="n">schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_libraries</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Normalize ``provides`` / ``requires`` to sorted ``(npm name, version or range)`` pairs, rejecting</span>
+<span class="sd">    a name npm would not accept, a version or range that does not parse, and a library named twice."""</span>
+    <span class="n">pairs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_NPM_NAME</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> names </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">, which is not an npm package name"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> gives </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> a </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, not a version string"</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">parse</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> gives </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> </span><span class="si">{</span><span class="n">spec</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">]</span>
+    <span class="n">duplicate</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="n">names</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">duplicate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> names </span><span class="si">{</span><span class="n">duplicate</span><span class="si">!r}</span><span class="s2"> more than once"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">pairs</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">npm_package</span><span class="p">(</span><span class="n">specifier</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The npm package a bare import specifier belongs to: ``@scope/name/dist/x.js`` → ``@scope/name``."""</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">specifier</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="n">specifier</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"@"</span><span class="p">)</span> <span class="k">else</span> <span class="n">parts</span><span class="p">[:</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_reconcile</span><span class="p">(</span><span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Reject a page whose packages disagree about a JS library: served at two versions, or required at</span>
+<span class="sd">    a version no selected package serves."""</span>
+    <span class="n">served</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">library</span><span class="p">,</span> <span class="n">version</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">provides</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">library</span> <span class="ow">in</span> <span class="n">served</span> <span class="ow">and</span> <span class="n">served</span><span class="p">[</span><span class="n">library</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">version</span><span class="p">:</span>
+                <span class="n">other</span><span class="p">,</span> <span class="n">owner</span> <span class="o">=</span> <span class="n">served</span><span class="p">[</span><span class="n">library</span><span class="p">]</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"component packages </span><span class="si">{</span><span class="n">owner</span><span class="si">!r}</span><span class="s2"> and </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> serve different versions of </span><span class="si">{</span><span class="n">library</span><span class="si">}</span><span class="s2"> "</span>
+                    <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">other</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">); a page can hold only one copy, so select one of them or align their versions"</span>
+                <span class="p">)</span>
+            <span class="n">served</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">library</span><span class="p">,</span> <span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">library</span><span class="p">,</span> <span class="n">range_</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">requires</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">library</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">served</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> requires </span><span class="si">{</span><span class="n">library</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">range_</span><span class="si">}</span><span class="s2">, which no selected package serves; "</span>
+                    <span class="s2">"select the package that provides it"</span>
+                <span class="p">)</span>
+            <span class="n">version</span><span class="p">,</span> <span class="n">owner</span> <span class="o">=</span> <span class="n">served</span><span class="p">[</span><span class="n">library</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">satisfies</span><span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">range_</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> requires </span><span class="si">{</span><span class="n">library</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">range_</span><span class="si">}</span><span class="s2">, but </span><span class="si">{</span><span class="n">owner</span><span class="si">!r}</span><span class="s2"> serves </span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 
 <span class="n">PackageRef</span> <span class="o">=</span> <span class="n">ComponentPackage</span> <span class="o">|</span> <span class="nb">str</span>
@@ -402,6 +471,7 @@
     <span class="n">duplicate</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="n">names</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">duplicate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">duplicate</span><span class="si">!r}</span><span class="s2"> was selected more than once"</span><span class="p">)</span>
+    <span class="n">_reconcile</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">resolved</span></div>
 
 
@@ -455,7 +525,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=ec16d22d"></script>
+</div><script src="../../_static/documentation_options.js?v=dbee5847"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
