@@ -249,6 +249,8 @@ def test_library_names_versions_and_ranges_are_validated():
         _serving("p", provides={"lit": "3.1"})  # what is served is one exact version
     with pytest.raises(ValueError, match="requires gives 'lit' '>=banana'"):
         _serving("p", requires={"lit": ">=banana"})
+    with pytest.raises(ValueError, match="gives 'lit' a int, not a version string"):
+        _serving("p", provides={"lit": 3})
     with pytest.raises(ValueError, match="names 'lit' more than once"):
         _serving("p", provides=[("lit", "3.1.0"), ("lit", "3.2.0")])
 

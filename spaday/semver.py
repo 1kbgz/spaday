@@ -50,9 +50,6 @@ class Version:
     def __lt__(self, other: Version) -> bool:
         return self._key() < other._key()
 
-    def __hash__(self) -> int:
-        return hash(self._key())
-
     def __str__(self) -> str:
         pre = "-" + ".".join(str(part) for part in self.prerelease) if self.prerelease else ""
         return f"{self.major}.{self.minor}.{self.patch}{pre}"
@@ -103,9 +100,7 @@ def _partial(text: str) -> tuple[int | None, int | None, int | None, tuple[int |
 
 def _simple(token: str) -> list[Comparator]:
     """Desugar one range token (``^1.2``, ``>=1.2.3``, ``1.x``) into comparators."""
-    match = _SIMPLE.match(token)
-    if match is None:
-        raise ValueError(f"{token!r} is not a version range")
+    match = _SIMPLE.match(token)  # any token matches; its partial version is checked below
     op, (major, minor, patch, pre) = match.group("op") or "", _partial(match.group("partial"))
     if major is None:
         # "*", "x", ">=*": any version; "<*" and ">*" match nothing
