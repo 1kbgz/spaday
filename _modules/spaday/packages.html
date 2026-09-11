@@ -256,6 +256,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentSchema</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.semver</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_range</span><span class="p">,</span> <span class="n">parse_version</span><span class="p">,</span> <span class="n">satisfies</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.ui.design</span><span class="w"> </span><span class="kn">import</span> <span class="n">Design</span>
 
 <span class="n">ENTRY_POINT_GROUP</span> <span class="o">=</span> <span class="s2">"spaday.component_packages"</span>
 <span class="n">_PACKAGE_NAME</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[a-z0-9][a-z0-9._-]*\Z"</span><span class="p">)</span>
@@ -290,6 +291,9 @@
 <span class="sd">    ``provides`` records the JS libraries the package puts on the page, by npm</span>
 <span class="sd">    name, with the exact version it serves (``{"@awesome.me/webawesome": "3.1.0"}``);</span>
 <span class="sd">    a package's build writes them, so the Python side knows what the browser gets.</span>
+<span class="sd">    ``design`` publishes the package's :class:`~spaday.ui.design.Design` — how it renders the</span>
+<span class="sd">    generic controls of :mod:`spaday.ui` — which a page selecting the package renders with.</span>
+
 <span class="sd">    ``requires`` records libraries the package's own bundle imports without</span>
 <span class="sd">    shipping, with the npm version range it was built against</span>
 <span class="sd">    (``{"@awesome.me/webawesome": "^3.1.0"}``). :func:`resolve_component_packages`</span>
@@ -307,8 +311,11 @@
     <span class="n">imports</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
     <span class="n">provides</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
     <span class="n">requires</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">design</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">design</span><span class="p">,</span> <span class="n">Design</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"component package design must be a spaday.ui.Design, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">design</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">_PACKAGE_NAME</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"component package name must contain only lowercase letters, digits, '.', '_', or '-'"</span><span class="p">)</span>
         <span class="n">normalized</span> <span class="o">=</span> <span class="p">[]</span>

@@ -285,6 +285,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">.component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Component</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.packages</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentPackage</span><span class="p">,</span> <span class="n">PackageRef</span><span class="p">,</span> <span class="n">npm_package</span><span class="p">,</span> <span class="n">package_url_prefix</span><span class="p">,</span> <span class="n">resolve_component_packages</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_frame</span>  <span class="c1"># compiled core (always available); used by tree_frame</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.ui.design</span><span class="w"> </span><span class="kn">import</span> <span class="n">Design</span><span class="p">,</span> <span class="n">resolve</span><span class="p">,</span> <span class="n">select_design</span>
 
 <span class="c1">#: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called</span>
 <span class="c1">#: per request, so the tree can reflect current state).</span>
@@ -417,21 +418,28 @@
     <span class="k">return</span> <span class="n">page</span><span class="p">()</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">page</span><span class="p">)</span> <span class="k">else</span> <span class="n">page</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">tree_node</span><span class="p">(</span><span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span> <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The authored tree as a node dict, its generic controls (:mod:`spaday.ui`) rendered by</span>
+<span class="sd">    ``design`` — a :class:`~spaday.ui.design.Design`, ``"native"``, or ``None`` for the native</span>
+<span class="sd">    baseline. A backend passes the design it chose from the page's packages."""</span>
+    <span class="k">return</span> <span class="n">resolve</span><span class="p">(</span><span class="n">_resolve</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to_node</span><span class="p">(),</span> <span class="n">select_design</span><span class="p">(</span><span class="n">design</span><span class="p">))</span>
+
+
 <div class="viewcode-block" id="tree_json">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.bootstrap.tree_json">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span> <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The authored tree as a JSON string (serve at ``GET {base}/tree.json``)."""</span>
-    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">_resolve</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to_node</span><span class="p">())</span></div>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">tree_node</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">design</span><span class="p">))</span></div>
 
 
 
 <div class="viewcode-block" id="tree_frame">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.bootstrap.tree_frame">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">tree_frame</span><span class="p">(</span><span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"spa-tree"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">tree_frame</span><span class="p">(</span><span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"spa-tree"</span><span class="p">,</span> <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The authored tree as a transports Snapshot frame (serve at ``GET {base}/tree`` for ``tree="frame"``)</span>
 <span class="sd">    — the same length-prefixed, codec-tagged envelope transports uses for model state, so the UI tree and</span>
 <span class="sd">    the model data ride one wire."""</span>
-    <span class="k">return</span> <span class="n">encode_frame</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">_resolve</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to_node</span><span class="p">()),</span> <span class="nb">id</span><span class="p">,</span> <span class="s2">"snapshot"</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"application/json"</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">encode_frame</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">tree_node</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">design</span><span class="p">)),</span> <span class="nb">id</span><span class="p">,</span> <span class="s2">"snapshot"</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"application/json"</span><span class="p">)</span></div>
 
 
 

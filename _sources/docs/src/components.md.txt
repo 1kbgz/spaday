@@ -75,6 +75,45 @@ Flow regions are `HEADER_LEFT` / `HEADER_CENTER` / `HEADER_RIGHT`, `GUTTER_LEFT`
 Footer only appears when its regions have contributions. `DRAWER_LEFT`, `DRAWER_RIGHT`, `DRAWER_BOTTOM`,
 and `OVERLAY` append directly under `App`, after flow chrome, for top-layer UI.
 
+## Use generic controls any design renders
+
+A typed catalog ties a page to one design system: `WaButton` is a `wa-button`. The generic controls
+in `spaday.ui` are the layer between the shell and a catalog — a button, a text input, a checkbox, a
+switch, a select and a dialog with one vocabulary — and the page's **design** decides what element
+each becomes:
+
+```python
+from spaday import Paragraph, SetField
+from spaday.components.shell import Column
+from spaday.ui import Button, Dialog, Select, Switch, TextInput
+
+page = Column(
+    TextInput(label="Name", help="As on your passport").bind("value", "name", mode="two-way"),
+    Select(label="Plan", options=["basic", "plus"]).bind("value", "plan", mode="two-way"),
+    Switch(label="Dark theme").bind("value", "dark", mode="two-way"),
+    Button(label="Save", intent="primary").on("click", SetField("open", True)),
+    Dialog(Paragraph("Saved."), Button(label="OK").on("click", SetField("open", False)), label="Done")
+    .bind("open", "open", mode="two-way"),
+)
+serve(page, packages=["webawesome"])   # rendered with WebAwesome's design
+serve(page)                            # rendered with the native baseline: plain form elements, themed
+```
+
+The vocabulary is sized to what every design can express: `label` / `help` / `error`, `disabled` /
+`required` / `readonly`, `intent` (`neutral` / `primary` / `info` / `success` / `warning` / `danger`),
+`appearance` (`filled` / `outline` / `plain`) and `size` (`sm` / `md` / `lg`). Bind `value` on every
+control — a string for an input or a select, a boolean for a checkbox or a switch — and `open` on a
+dialog; the binding reaches whatever property and event the design's element uses (`checked`, a Lion
+control's `model-value-changed`, a `<dialog>`'s `showModal()`), and a dialog closing itself writes the
+field back.
+
+A page renders with one design: the one the selected package publishes, or `design=` to choose
+between several (`"native"` is always available). A design that lacks a control renders it with the
+baseline and marks it `data-ui-fallback`; what a design cannot express is dropped rather than
+half-rendered. For the design's own spelling on one control, `for_design("webawesome", pill=True)`
+sets props only that design sees. At the top level the switch is exported as `ToggleSwitch`, beside
+the shell's `Switch` router.
+
 ## Tabs and navigation
 
 `Tabs` builds a WebAwesome `wa-tab-group` from `(label, content)` pairs — no hand-pairing of tab headers

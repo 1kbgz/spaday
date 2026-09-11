@@ -320,6 +320,50 @@ round, so restyling WebAwesome carries the shell, the graphs, the tables and the
 tokens and hands them to the chart. Theming it looks identical from Python.</p>
 </section>
 </section>
+<section id="render-the-generic-controls-with-your-own-design">
+<h2>Render the generic controls with your own design<a class="headerlink" href="#render-the-generic-controls-with-your-own-design" title="Link to this heading">¶</a></h2>
+<p>The generic controls (<code class="docutils literal notranslate"><span class="pre">spaday.ui</span></code>) reach a design system through a <code class="docutils literal notranslate"><span class="pre">Design</span></code>: data mapping each control
+kind to the element that renders it and to where its generic surface lands there. A design-system
+package publishes one on its <code class="docutils literal notranslate"><span class="pre">ComponentPackage</span></code>; an in-house design system publishes its own the same
+way, and needs no Python beyond it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.ui</span><span class="w"> </span><span class="kn">import</span> <span class="n">ControlSpec</span><span class="p">,</span> <span class="n">Design</span><span class="p">,</span> <span class="n">Open</span><span class="p">,</span> <span class="n">Options</span><span class="p">,</span> <span class="n">Part</span><span class="p">,</span> <span class="n">Value</span>
+
+<span class="n">DESIGN</span> <span class="o">=</span> <span class="n">Design</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span>
+    <span class="n">controls</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"button"</span><span class="p">:</span> <span class="n">ControlSpec</span><span class="p">(</span>
+            <span class="n">tag</span><span class="o">=</span><span class="s2">"acme-button"</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">Part</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"text"</span><span class="p">),</span>                       <span class="c1"># the label is the button's text</span>
+            <span class="n">props</span><span class="o">=</span><span class="p">{</span><span class="s2">"intent"</span><span class="p">:</span> <span class="s2">"tone"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">:</span> <span class="s2">"size"</span><span class="p">,</span> <span class="s2">"disabled"</span><span class="p">:</span> <span class="s2">"disabled"</span><span class="p">},</span>
+            <span class="n">values</span><span class="o">=</span><span class="p">{</span><span class="s2">"intent"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"primary"</span><span class="p">:</span> <span class="s2">"brand"</span><span class="p">}},</span>       <span class="c1"># the design's word for it</span>
+        <span class="p">),</span>
+        <span class="s2">"input"</span><span class="p">:</span> <span class="n">ControlSpec</span><span class="p">(</span>
+            <span class="n">tag</span><span class="o">=</span><span class="s2">"acme-field"</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">Part</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"attr"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"label"</span><span class="p">),</span>
+            <span class="n">help</span><span class="o">=</span><span class="n">Part</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"slot"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"hint"</span><span class="p">),</span>           <span class="c1"># an element in the `hint` slot</span>
+            <span class="n">error</span><span class="o">=</span><span class="n">Part</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"attr"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"error-text"</span><span class="p">),</span>
+            <span class="n">invalid</span><span class="o">=</span><span class="p">{</span><span class="s2">"invalid"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>                     <span class="c1"># set while an error is shown</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">Value</span><span class="p">(</span><span class="n">prop</span><span class="o">=</span><span class="s2">"value"</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="s2">"acme-change"</span><span class="p">),</span> <span class="c1"># written back on the design's event</span>
+        <span class="p">),</span>
+        <span class="s2">"select"</span><span class="p">:</span> <span class="n">ControlSpec</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="s2">"acme-select"</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">Options</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"prop"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"items"</span><span class="p">)),</span>
+        <span class="s2">"dialog"</span><span class="p">:</span> <span class="n">ControlSpec</span><span class="p">(</span>
+            <span class="n">tag</span><span class="o">=</span><span class="s2">"acme-dialog"</span><span class="p">,</span>
+            <span class="nb">open</span><span class="o">=</span><span class="n">Open</span><span class="p">(</span><span class="n">prop</span><span class="o">=</span><span class="s2">"opened"</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="s2">"acme-closed"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">(</span><span class="s2">"show"</span><span class="p">,</span> <span class="s2">"hide"</span><span class="p">)),</span>
+        <span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+<span class="n">package</span> <span class="o">=</span> <span class="n">ComponentPackage</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">design</span><span class="o">=</span><span class="n">DESIGN</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Part</span></code> places a label, help text or error message as an attribute, a slotted element, the control’s
+text, a child inside it, or a sibling in a <code class="docutils literal notranslate"><span class="pre">Wrap</span></code> around it (a <code class="docutils literal notranslate"><span class="pre">bp-field</span></code>, a <code class="docutils literal notranslate"><span class="pre">fluent-field</span></code>, a plain
+<code class="docutils literal notranslate"><span class="pre">&lt;label&gt;</span></code>). <code class="docutils literal notranslate"><span class="pre">Options</span></code> renders a select’s choices as child elements — optionally inside one wrapper —
+or as a list property. <code class="docutils literal notranslate"><span class="pre">Value</span></code> and <code class="docutils literal notranslate"><span class="pre">Open</span></code> name the state property and its change event, and <code class="docutils literal notranslate"><span class="pre">Open</span></code>’s
+method pair drives an overlay that opens by method. A control the design leaves out renders with the
+native baseline. <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.ui.conformance</span> <span class="pre">PORT</span> <span class="pre">--package</span> <span class="pre">acme</span></code> serves the conformance page
+with your design, so the same browser checks spaday runs against the baseline (<code class="docutils literal notranslate"><span class="pre">js/tests/ui.spec.js</span></code>)
+run against yours.</p>
+</section>
 <section id="serve-your-own-bundle">
 <h2>Serve your own bundle<a class="headerlink" href="#serve-your-own-bundle" title="Link to this heading">¶</a></h2>
 <p>A <code class="docutils literal notranslate"><span class="pre">ComponentPackage</span></code> is a frozen dataclass of <code class="docutils literal notranslate"><span class="pre">(name,</span> <span class="pre">assets_dir,</span> <span class="pre">assets,</span> <span class="pre">components)</span></code>, and
@@ -508,6 +552,7 @@ registering costs you that script, not every component on the page.</p>
 <li><a class="reference internal" href="#when-the-design-system-should-drive">When the design system should drive</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#render-the-generic-controls-with-your-own-design">Render the generic controls with your own design</a></li>
 <li><a class="reference internal" href="#serve-your-own-bundle">Serve your own bundle</a></li>
 <li><a class="reference internal" href="#point-a-component-at-your-own-element">Point a component at your own element</a><ul>
 <li><a class="reference internal" href="#you-may-not-need-the-python-surface-at-all">You may not need the Python surface at all</a></li>
