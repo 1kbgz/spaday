@@ -45,8 +45,8 @@ install:  ## install python library
 #########
 .PHONY: lint-py lint-js lint-rs lint-docs lint lints
 lint-py:  ## run python linter with ruff
-	python -m ruff check spaday benchmarks
-	python -m ruff format --check spaday benchmarks
+	python -m ruff check spaday benchmarks js/examples/copy_pyodide_assets.py
+	python -m ruff format --check spaday benchmarks js/examples/copy_pyodide_assets.py
 
 lint-js:  ## run js linter
 	cd js; pnpm lint
@@ -157,7 +157,7 @@ jupyterlite:  ## build the JupyterLite demo site into dist/lite (needs the Pyodi
 	python -m pip download --no-deps --only-binary=:all: --platform pyemscripten_2026_0_wasm32 --python-version 314 --implementation cp --abi cp314 --dest examples/lite/pypi "transports==0.8.0"
 	uvx --with jupyterlite-pyodide-kernel==0.8.3 --with jupyter-server --with jupyterlab-widgets==3.0.15 --with anywidget --from jupyterlite-core==0.8.2 jupyter lite build --lite-dir examples/lite --output-dir $(CURDIR)/dist/lite
 	mkdir -p dist/lite/js/examples dist/lite/js/dist/esm dist/lite/js/dist/pkg
-	python tools/copy_example_assets.py dist/lite/pypi dist/lite/components
+	python js/examples/copy_pyodide_assets.py dist/lite/pypi dist/lite/components
 	cp js/examples/pyodide.html js/examples/pyodide-worker.js js/examples/standalone.html js/examples/standalone-worker.js js/examples/standalone-examples.js dist/lite/js/examples/
 	cp js/dist/esm/index.js dist/lite/js/dist/esm/
 	cp js/dist/pkg/spaday_bg.wasm dist/lite/js/dist/pkg/
