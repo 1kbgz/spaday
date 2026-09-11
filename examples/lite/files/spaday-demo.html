@@ -179,7 +179,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -243,7 +243,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
@@ -251,8 +251,8 @@
           <section class="tex2jax_ignore mathjax_ignore" id="spaday-in-jupyterlite">
 <h1>spaday in JupyterLite<a class="headerlink" href="#spaday-in-jupyterlite" title="Link to this heading">¶</a></h1>
 <p>The kernel is Python compiled to WebAssembly (Pyodide), and the widget bundles the spaday
-runtime and its wasm core — a spaday UI renders in the notebook with no server. Run the
-cells in order.</p>
+runtime and its wasm core. These are the real examples shipped in <code class="docutils literal notranslate"><span class="pre">spaday.examples</span></code>, running
+with no application server and nothing installed on your computer. Choose <strong>Run → Run All Cells</strong>.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">spaday</span> <span class="n">anywidget</span>
@@ -260,36 +260,39 @@ cells in order.</p>
 </div>
 </div>
 </div>
+<section id="client-side-actions-and-python-intents">
+<h2>Client-side actions and Python intents<a class="headerlink" href="#client-side-actions-and-python-intents" title="Link to this heading">¶</a></h2>
+<p><strong>Toggle panel</strong> runs entirely in the browser. The standalone worker linked below is the reliable
+demo for Python round-trips; JupyterLite does not consistently deliver custom widget messages.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Row</span><span class="p">,</span> <span class="n">Stack</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.examples.widget</span><span class="w"> </span><span class="kn">import</span> <span class="n">demo</span> <span class="k">as</span> <span class="n">widget_demo</span>
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">tree</span><span class="p">(</span><span class="n">count</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">Stack</span><span class="p">(</span>
-        <span class="n">element</span><span class="p">(</span><span class="s2">"h2"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"spaday in JupyterLite"</span><span class="p">),</span>
-        <span class="n">Row</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"strong"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">count</span><span class="p">)),</span> <span class="n">element</span><span class="p">(</span><span class="s2">"em"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"clicks"</span><span class="p">)),</span>
-    <span class="p">)</span>
-
-
-<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">tree</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-<span class="n">w</span>  <span class="c1"># display it: the tree renders as live spa-* web components</span>
+<span class="n">actions</span> <span class="o">=</span> <span class="n">widget_demo</span><span class="p">()</span>
+<span class="n">actions</span>
 </pre></div>
 </div>
 </div>
 </div>
+</section>
+<section id="two-way-state">
+<h2>Two-way state<a class="headerlink" href="#two-way-state" title="Link to this heading">¶</a></h2>
+<p>The device cards use switches two-way-bound to widget state.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># replace the tree; the browser applies a minimal diff to the live DOM</span>
-<span class="n">w</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">tree</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday.examples.devices</span><span class="w"> </span><span class="kn">import</span> <span class="n">demo</span> <span class="k">as</span> <span class="n">devices_demo</span>
+
+<span class="n">devices</span> <span class="o">=</span> <span class="n">devices_demo</span><span class="p">()</span>
+<span class="n">devices</span>
 </pre></div>
 </div>
 </div>
 </div>
-<p>Bindings, two-way state, and <code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> intents round-trip with the kernel too — see the
-<a class="reference external" href="https://1kbgz.github.io/spaday/notebook.html">notebook guide</a> for <code class="docutils literal notranslate"><span class="pre">Widget(state=...)</span></code>,
-<code class="docutils literal notranslate"><span class="pre">on_state</span></code>, and <code class="docutils literal notranslate"><span class="pre">on_intent</span></code>.</p>
+<p>Run the <a class="reference external" href="https://1kbgz.github.io/spaday/lite/js/examples/pyodide.html">standalone Pyodide worker example</a>
+to see fully interactive Python-owned state and rendering. Continue with the
+<a class="reference external" href="https://1kbgz.github.io/spaday/notebook.html">notebook guide</a> for the complete <code class="docutils literal notranslate"><span class="pre">Widget</span></code>, state,
+and intent APIs.</p>
+</section>
 </section>
 
         </article>
@@ -317,8 +320,28 @@ cells in order.</p>
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">spaday in JupyterLite</a><ul>
+<li><a class="reference internal" href="#client-side-actions-and-python-intents">Client-side actions and Python intents</a></li>
+<li><a class="reference internal" href="#two-way-state">Two-way state</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

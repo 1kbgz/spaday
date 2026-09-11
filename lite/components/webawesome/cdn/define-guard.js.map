@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/ts/define-guard.ts"],
+  "sourcesContent": ["/** Tolerate another bundle having already registered elements this bundle also registers.\n *\n * This bundle registers every WebAwesome element at import. An application that also ships\n * WebAwesome \u2014 its own curated subset, or another copy at a different version \u2014 registers the\n * same tag names, and whichever bundle loads second would throw from `customElements.define`\n * and die entirely, taking the whole catalog with it. Importing this module FIRST makes\n * `define` idempotent (skip names that already exist); `restoreDefine()` puts the real one back\n * immediately after the upstream imports, so the guard never leaks to other scripts.\n *\n * First registration wins, so this keeps the page alive; it does not make two copies agree.\n * One copy on the page is still the goal \u2014 see the package README.\n */\n\nconst original = customElements.define.bind(customElements);\n\ncustomElements.define = (\n  name: string,\n  ctor: CustomElementConstructor,\n  options?: ElementDefinitionOptions,\n) => {\n  if (!customElements.get(name)) original(name, ctor, options);\n};\n\nexport function restoreDefine(): void {\n  customElements.define = original;\n}\n"],
+  "mappings": "AAaA,IAAMA,EAAW,eAAe,OAAO,KAAK,cAAc,EAE1D,eAAe,OAAS,CACtBC,EACAC,EACAC,IACG,CACE,eAAe,IAAIF,CAAI,GAAGD,EAASC,EAAMC,EAAMC,CAAO,CAC7D,EAEO,SAASC,GAAsB,CACpC,eAAe,OAASJ,CAC1B",
+  "names": ["original", "name", "ctor", "options", "restoreDefine"]
+}

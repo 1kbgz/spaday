@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spaday browser examples</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@awesome.me/webawesome": "../../components/webawesome/vendor/@awesome.me/webawesome/dist/webawesome.js",
+          "@awesome.me/webawesome/dist/": "../../components/webawesome/vendor/@awesome.me/webawesome/dist/"
+        }
+      }
+    </script>
+    <style>
+      #demo-toolbar {
+        position: sticky;
+        z-index: 10000;
+        top: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-sizing: border-box;
+        min-height: 3rem;
+        padding: 0.55rem 0.85rem;
+        border-bottom: 1px solid #cbd5e1;
+        color: #172033;
+        background: #fffffff2;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+        backdrop-filter: blur(12px);
+      }
+      #demo-toolbar label {
+        font-weight: 700;
+      }
+      #demo-toolbar select {
+        max-width: min(28rem, 48vw);
+        padding: 0.35rem;
+        font: inherit;
+      }
+      #demo-status {
+        margin-left: auto;
+        color: #475569;
+      }
+      #demo-note {
+        padding: 0.55rem 0.85rem;
+        color: #92400e;
+        background: #fffbeb;
+        font:
+          13px/1.4 system-ui,
+          sans-serif;
+      }
+      #demo-error {
+        margin: 1rem;
+        color: #b91c1c;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <nav id="demo-toolbar">
+      <label for="demo-picker">Example</label>
+      <select id="demo-picker"></select>
+      <span id="demo-status">Starting…</span>
+    </nav>
+    <aside id="demo-note" hidden></aside>
+    <div id="demo-root"></div>
+    <pre id="demo-error" hidden></pre>
+    <script type="module">
+      import { connectStore, init, mount, Store } from "../dist/esm/index.js";
+      import { ASSETS, EXAMPLES } from "./standalone-examples.js";
+
+      const params = new URLSearchParams(location.search);
+      const exampleName = params.get("example") || "webawesome-navigation";
+      const config = EXAMPLES[exampleName];
+      const picker = document.querySelector("#demo-picker");
+      const status = document.querySelector("#demo-status");
+      const note = document.querySelector("#demo-note");
+      let receiveWires = () => {};
+
+      for (const [name, example] of Object.entries(EXAMPLES)) {
+        picker.add(
+          new Option(example.title, name, false, name === exampleName),
+        );
+      }
+      picker.addEventListener("change", () => {
+        const next = new URL(location.href);
+        next.searchParams.set("example", picker.value);
+        location.href = next;
+      });
+
+      async function loadAsset(asset) {
+        const url = new URL(asset.path, import.meta.url);
+        if (asset.type === "js") {
+          await import(url.href);
+          return;
+        }
+        await new Promise((resolve, reject) => {
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = url.href;
+          link.onload = resolve;
+          link.onerror = reject;
+          document.head.appendChild(link);
+        });
+      }
+
+      try {
+        if (!config) throw new Error(`Unknown example: ${exampleName}`);
+        document.title = `${config.title} — spaday`;
+        if (config.note) {
+          note.textContent = config.note;
+          note.hidden = false;
+        }
+
+        const assets = config.assets.flatMap((name) => ASSETS[name]);
+        await Promise.all([
+          init({ module_or_path: "../dist/pkg/spaday_bg.wasm" }),
+          ...assets.map(loadAsset),
+        ]);
+
+        const workerUrl = new URL("./standalone-worker.js", location.href);
+        workerUrl.searchParams.set("example", exampleName);
+        const worker = new Worker(workerUrl, { type: "module" });
+
+        worker.addEventListener("message", (event) => {
+          if (event.data.type === "status")
+            status.textContent = event.data.message;
+          if (event.data.type === "error") {
+            status.textContent = "Unable to start";
+            const output = document.querySelector("#demo-error");
+            output.hidden = false;
+            output.textContent = event.data.message;
+          }
+          if (event.data.type === "wires") receiveWires(event.data.wires);
+          if (event.data.type === "snapshot") {
+            const { tree, state, style, wires, localServer } =
+              event.data.payload;
+            if (style) document.head.insertAdjacentHTML("beforeend", style);
+            const store = new Store(state);
+            const start = async () => {
+              if (localServer) {
+                status.textContent = "Connecting in-browser model…";
+                const transports =
+                  await import("../../components/transports/cdn/index.js");
+                await transports.wasm.default({
+                  module_or_path:
+                    "../../components/transports/pkg/transports_bg.wasm",
+                });
+                const client = new transports.Client();
+                const link = connectStore(
+                  store,
+                  client,
+                  (frame) => worker.postMessage({ type: "wire", frame }),
+                  transports,
+                );
+                receiveWires = (frames) => {
+                  for (const frame of frames) link.receive(frame);
+                  const received = Number(
+                    document.documentElement.dataset.transportMessages || 0,
+                  );
+                  document.documentElement.dataset.transportMessages = String(
+                    received + frames.length,
+                  );
+                };
+                receiveWires(wires);
+                window.setInterval(
+                  () => worker.postMessage({ type: "flush" }),
+                  100,
+                );
+              }
+              mount(document.querySelector("#demo-root"), tree, store);
+              status.textContent = localServer
+                ? "Ready · Python model in browser"
+                : "Ready";
+              document.documentElement.dataset.ready = "true";
+            };
+            start().catch((error) => {
+              status.textContent = "Unable to start";
+              const output = document.querySelector("#demo-error");
+              output.hidden = false;
+              output.textContent = String(error);
+            });
+          }
+        });
+        worker.postMessage({ type: "start" });
+      } catch (error) {
+        status.textContent = "Unable to start";
+        const output = document.querySelector("#demo-error");
+        output.hidden = false;
+        output.textContent = String(error);
+      }
+    </script>
+  </body>
+</html>

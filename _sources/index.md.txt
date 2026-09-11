@@ -47,6 +47,10 @@ docs/src/api.md
 
 Reactive web-component UIs **configured in Python, executed in the browser**.
 
+**[Browse the standalone examples](https://1kbgz.github.io/spaday/lite/js/examples/standalone.html)**
+or [open the interactive notebook](https://1kbgz.github.io/spaday/lite/lab/index.html?path=spaday-demo.ipynb).
+Python runs in Pyodide, so nothing needs to be installed locally.
+
 ## Overview
 
 Construct a UI as a tree of typed Python components from opt-in packages or any library that ships a
