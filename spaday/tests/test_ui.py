@@ -222,6 +222,11 @@ def test_options_as_a_property_and_a_wrapped_child_list():
     listbox = node["slots"]["default"][0]
     assert listbox["tag"] == "x-listbox" and listbox["slots"]["default"][0]["props"] == {"value": "a", "label": "a"}
 
+    checked = _design(select=ControlSpec(tag="x-radio-group", options=Options(kind="children", tag="x-radio", selected="checked")))
+    node = _plain(resolve(Select(options=["a", "b"], value="b").to_node(), checked))
+    assert node["slots"]["default"][0]["props"] == {"value": "a", "textContent": "a"}
+    assert node["slots"]["default"][1]["props"] == {"value": "b", "checked": True, "textContent": "b"}
+
 
 def test_typed_disabled_options_can_cross_a_string_dom_value():
     design = _design(
