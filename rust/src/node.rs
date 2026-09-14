@@ -33,6 +33,26 @@ pub enum BindMode {
     TwoWay,
 }
 
+/// Conversion applied where a bound value crosses the DOM property boundary.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum BindingCodec {
+    #[serde(rename = "number")]
+    Number,
+    #[serde(rename = "json")]
+    Json,
+}
+
+/// How a bound generic options list is shaped for a concrete control.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BindingOptions {
+    pub value: String,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codec: Option<BindingCodec>,
+}
+
 /// A reactive binding of a prop to state. Either a `field` — the prop tracks that state field (and a
 /// two-way binding writes it back when the control changes) — or a `compute` expression *derived* from
 /// state fields (one-way; recomputed when any field it reads changes). The runtime's signal store
@@ -55,6 +75,12 @@ pub struct Binding {
     /// itself is then what the runtime reads to know the current state.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub methods: Option<[EventName; 2]>,
+    /// Encode values written to the DOM property and decode values read back from it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codec: Option<BindingCodec>,
+    /// Transform a bound generic options list to the concrete control's item field names.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub options: Option<BindingOptions>,
 }
 
 /// A node in the component tree.

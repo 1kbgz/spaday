@@ -2,10 +2,10 @@
 
 ::
 
-    from spaday.ui import Button, TextInput, Select, Dialog
+    from spaday.ui import Button, NumberInput, Select, Dialog
 
     page = Column(
-        TextInput(label="Name").bind("value", "name", mode="two-way"),
+        NumberInput(label="Seats", min=1).bind("value", "seats", mode="two-way"),
         Select(label="Plan", options=["basic", "plus"]).bind("value", "plan", mode="two-way"),
         Button(label="Save", intent="primary").on("click", SetField("saved", True)),
     )
@@ -16,7 +16,26 @@ See :mod:`spaday.ui.controls` for the vocabulary and :mod:`spaday.ui.design` for
 describes its elements.
 """
 
-from .controls import APPEARANCES, CONTROLS, INTENTS, SIZES, Button, Checkbox, Control, Dialog, Select, Switch, TextInput
+from .controls import (
+    APPEARANCES,
+    CONTROLS,
+    INTENTS,
+    SIZES,
+    Alert,
+    Button,
+    Checkbox,
+    Control,
+    DateInput,
+    Dialog,
+    NumberInput,
+    Progress,
+    RadioGroup,
+    Select,
+    Slider,
+    Switch,
+    TextArea,
+    TextInput,
+)
 from .design import ControlSpec, Design, Open, Options, Part, Value, Wrap, resolve, select_design
 from .native import NATIVE
 
@@ -26,17 +45,24 @@ __all__ = [
     "INTENTS",
     "NATIVE",
     "SIZES",
+    "Alert",
     "Button",
     "Checkbox",
     "Control",
     "ControlSpec",
+    "DateInput",
     "Design",
     "Dialog",
+    "NumberInput",
     "Open",
     "Options",
     "Part",
+    "Progress",
+    "RadioGroup",
     "Select",
+    "Slider",
     "Switch",
+    "TextArea",
     "TextInput",
     "Value",
     "Wrap",

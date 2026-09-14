@@ -336,7 +336,16 @@ class Component:
         self._events[event] = action.to_dict()
         return self
 
-    def bind(self, prop: str, field: str, *, mode: str = "one-way", event: str | None = None, methods: tuple[str, str] | None = None) -> "Component":
+    def bind(
+        self,
+        prop: str,
+        field: str,
+        *,
+        mode: str = "one-way",
+        event: str | None = None,
+        methods: tuple[str, str] | None = None,
+        codec: str | None = None,
+    ) -> "Component":
         """Reactively bind a ``prop`` to a state ``field`` in the runtime's signal store.
 
         ``mode="one-way"`` keeps the prop in sync with the field; ``"two-way"`` also writes the field
@@ -349,6 +358,8 @@ class Component:
         as the field turns truthy / falsy instead of setting it, for an overlay that opens by method
         (``bind("open", "confirm", mode="two-way", event="close", methods=("showModal", "close"))`` on
         a ``<dialog>``); the prop then names the element's own state, read back on ``event``.
+        ``codec="number"`` converts an empty value to ``None`` and other values to numbers on
+        write-back; ``"json"`` JSON-encodes values sent to the element and decodes them on return.
         """
         if mode not in ("one-way", "two-way"):
             raise ValueError(f"bind mode must be 'one-way' or 'two-way', not {mode!r}")
@@ -359,6 +370,10 @@ class Component:
             if len(methods) != 2 or not all(isinstance(m, str) and m for m in methods):
                 raise ValueError("bind methods must be an (open, close) pair of method names")
             binding["methods"] = list(methods)
+        if codec not in (None, "number", "json"):
+            raise ValueError(f"binding codec must be 'number' or 'json', not {codec!r}")
+        if codec is not None:
+            binding["codec"] = codec
         self._bindings[prop] = binding
         return self
 

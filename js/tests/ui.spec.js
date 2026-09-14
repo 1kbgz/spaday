@@ -40,6 +40,172 @@ test.describe("binding features for designs", () => {
     expect(r).toEqual({ afterInput: "", afterCustom: "typed" });
   });
 
+  test("binding codecs preserve numeric and typed choice values", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(() => {
+      const store = new window.__spaday.Store({ count: 2, choice: 1 });
+      const number = window.__spaday.mount(
+        document.body,
+        {
+          tag: "input",
+          props: { type: { Str: "number" }, step: { Str: "any" } },
+          bindings: {
+            value: { field: "count", mode: "two-way", codec: "number" },
+          },
+        },
+        store,
+      );
+      const choice = window.__spaday.mount(
+        document.body,
+        {
+          tag: "select",
+          bindings: {
+            value: { field: "choice", mode: "two-way", codec: "json" },
+          },
+          slots: {
+            default: [
+              {
+                tag: "option",
+                props: { value: { Str: "1" }, textContent: { Str: "One" } },
+              },
+            ],
+          },
+        },
+        store,
+      );
+      number.value = "4.5";
+      number.dispatchEvent(new Event("input"));
+      choice.value = "1";
+      choice.dispatchEvent(new Event("change"));
+      const values = { count: store.get("count"), choice: store.get("choice") };
+      number.value = "";
+      number.dispatchEvent(new Event("input"));
+      choice.value = "";
+      choice.dispatchEvent(new Event("change"));
+      return {
+        values,
+        emptyNumber: store.get("count"),
+        emptyChoice: store.get("choice"),
+      };
+    });
+    expect(r).toEqual({
+      values: { count: 4.5, choice: 1 },
+      emptyNumber: null,
+      emptyChoice: null,
+    });
+  });
+
+  test("a bound options list is reshaped for its concrete control", async ({
+    page,
+  }) => {
+    const items = await page.evaluate(() => {
+      customElements.define(
+        "x-options",
+        class extends HTMLElement {
+          items = [];
+        },
+      );
+      const store = new window.__spaday.Store({
+        choices: [
+          1,
+          { value: true, label: "Yes", disabled: true },
+          1e-7,
+          1e21,
+          { value: -0, label: null },
+        ],
+      });
+      const control = window.__spaday.mount(
+        document.body,
+        {
+          tag: "x-options",
+          bindings: {
+            items: {
+              field: "choices",
+              mode: "one-way",
+              options: {
+                value: "key",
+                label: "text",
+                disabled: "unavailable",
+                codec: "json",
+              },
+            },
+          },
+        },
+        store,
+      );
+      return control.items;
+    });
+    expect(items).toEqual([
+      { key: "1", text: "1" },
+      { key: "true", text: "Yes", unavailable: true },
+      { key: "1e-7", text: "1e-7" },
+      { key: "1e+21", text: "1e+21" },
+      { key: "0", text: "0" },
+    ]);
+  });
+
+  test("the native select preserves typed and disabled options", async ({
+    page,
+  }) => {
+    const result = await page.evaluate(async () => {
+      const store = new window.__spaday.Store({
+        options: [
+          1,
+          { value: 2, label: "Two" },
+          { value: true, disabled: true },
+        ],
+        choice: 1,
+      });
+      const control = window.__spaday.mount(
+        document.body,
+        {
+          tag: "spa-select",
+          bindings: {
+            options: {
+              field: "options",
+              mode: "one-way",
+              options: { value: "value", label: "label", disabled: "disabled" },
+            },
+            value: { field: "choice", mode: "two-way" },
+          },
+        },
+        store,
+      );
+      await customElements.whenDefined("spa-select");
+      const select = control.querySelector("select");
+      select.value = "1";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      return {
+        choice: store.get("choice"),
+        valueType: typeof store.get("choice"),
+        labels: Array.from(select.options).map((option) => option.textContent),
+        disabled: select.options[2].disabled,
+      };
+    });
+    expect(result).toEqual({
+      choice: 2,
+      valueType: "number",
+      labels: ["1", "Two", "true"],
+      disabled: true,
+    });
+  });
+
+  test("required native select disables a placeholder set before required", async ({
+    page,
+  }) => {
+    const disabled = await page.evaluate(async () => {
+      const control = document.createElement("spa-select");
+      control.placeholder = "Pick one";
+      control.required = true;
+      control.options = ["a"];
+      document.body.append(control);
+      await customElements.whenDefined("spa-select");
+      return control.querySelector("option").disabled;
+    });
+    expect(disabled).toBe(true);
+  });
+
   test("a binding can drive an overlay by its method pair and follow its own close", async ({
     page,
   }) => {
@@ -118,23 +284,62 @@ test.describe("the conformance page with the native baseline", () => {
   test("every control round-trips through the store", async ({ page }) => {
     await page.goto(url);
     const state = page.locator("#state");
-    await expect(state).toHaveText("|false|false|basic|false|false");
+    await expect(state).toHaveText(
+      "||2|2026-09-14|false|false|basic|1|5|25|false|false",
+    );
     await input(page, "name").fill("Ada");
-    await expect(state).toHaveText("Ada|false|false|basic|false|false");
+    await expect(state).toHaveText(
+      "Ada||2|2026-09-14|false|false|basic|1|5|25|false|false",
+    );
     await page.locator("#agree").click();
     await page.locator("#dark").click();
-    await expect(state).toHaveText("Ada|true|true|basic|false|false");
+    await expect(state).toHaveText(
+      "Ada||2|2026-09-14|true|true|basic|1|5|25|false|false",
+    );
     await page.locator("#save").click();
-    await expect(state).toHaveText("Ada|true|true|basic|true|false");
+    await expect(state).toHaveText(
+      "Ada||2|2026-09-14|true|true|basic|1|5|25|true|false",
+    );
     await page.locator("#reset").click();
-    await expect(state).toHaveText("|true|true|basic|false|false");
+    await expect(state).toHaveText(
+      "||2|2026-09-14|true|true|basic|1|5|25|false|false",
+    );
+  });
+
+  test("text, number, date, radio and slider values round-trip", async ({
+    page,
+  }) => {
+    await page.goto(url);
+    const state = page.locator("#state");
+    await page.locator("#notes").fill("Ready");
+    await input(page, "count").fill("4");
+    await input(page, "date").fill("2026-10-01");
+    await page.locator("#priority input").nth(1).click();
+    await page.locator("#volume").evaluate((element) => {
+      const slider = element;
+      slider.value = "8";
+      slider.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await expect(state).toHaveText(
+      "|Ready|4|2026-10-01|false|false|basic|2|8|25|false|false",
+    );
+    await expect(page.locator("#alert")).toContainText("Portable");
+    await expect(page.locator("#progress")).toHaveJSProperty("value", 25);
+    await expect(
+      page.getByRole("radiogroup", { name: "Priority" }),
+    ).toBeVisible();
+    const stateBeforeCaptionClick = await state.textContent();
+    await page.getByText("Priority", { exact: true }).click();
+    await expect(state).toHaveText(stateBeforeCaptionClick);
   });
 
   test("a select changes the bound field", async ({ page }) => {
     await page.goto(url);
     const select = page.locator("#plan");
-    if ((await select.evaluate((el) => el.localName)) === "select")
-      await select.selectOption("plus");
+    const tag = await select.evaluate((element) => element.localName);
+    if (tag === "spa-select")
+      await select.locator("select").selectOption({ label: "Plus" });
+    else if (tag === "select") await select.selectOption("plus");
     else {
       await select.click();
       await page.getByRole("option", { name: "Plus" }).click();
@@ -158,7 +363,7 @@ test.describe("the conformance page with the native baseline", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveJSProperty("open", false);
     await expect(page.locator("#state")).toHaveText(
-      "|false|false|basic|false|false",
+      "||2|2026-09-14|false|false|basic|1|5|25|false|false",
     );
   });
 

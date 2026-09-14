@@ -4,12 +4,19 @@ import pytest
 
 import spaday
 from spaday import (
+    Alert,
     Button,
     Checkbox,
     ComponentPackage,
+    DateInput,
     Design,
     Dialog,
+    NumberInput,
+    Progress,
+    RadioGroup,
     Select,
+    Slider,
+    TextArea,
     TextInput,
     ToggleSwitch,
     ValidationError,
@@ -36,15 +43,41 @@ def _plain(node: dict) -> dict:
 
 
 def test_controls_serialize_to_generic_nodes_with_schemas():
-    assert set(CONTROLS) == {"button", "input", "checkbox", "switch", "select", "dialog"}
+    assert set(CONTROLS) == {
+        "alert",
+        "button",
+        "checkbox",
+        "date-input",
+        "dialog",
+        "input",
+        "number-input",
+        "progress",
+        "radio-group",
+        "select",
+        "slider",
+        "switch",
+        "textarea",
+    }
     assert ToggleSwitch is Switch
     node = Button(label="Save", intent="primary").to_node()
     assert node == {"tag": "ui-button", "props": {"label": {"Str": "Save"}, "intent": {"Str": "primary"}}}
     with pytest.raises(TypeError, match="expects kind 'enum'"):
         Button(intent=3)
+    input_type = next(prop for prop in TextInput.schema.props if prop.name == "type")
+    assert "number" not in input_type.choices
     # validate() knows the generic vocabulary, and hints at it
     with pytest.raises(ValidationError, match="<ui-button> unknown prop 'intnet'"):
         validate(Column(Button(label="x", intnet="primary")))
+
+
+def test_the_wider_controls_have_typed_generic_contracts():
+    assert TextArea(label="Notes", value="hello", rows=4).to_node()["tag"] == "ui-textarea"
+    assert NumberInput(label="Count", value=3, min=0, max=10, step=1).to_node()["props"]["value"] == {"Int": 3}
+    assert DateInput(label="When", value="2026-09-14", min="2026-01-01").to_node()["tag"] == "ui-date-input"
+    assert Slider(label="Volume", value=0.5, min=0, max=1, step=0.1).to_node()["props"]["value"] == {"Float": 0.5}
+    assert RadioGroup(options=[1, {"value": 2, "label": "Two", "disabled": True}], value=1).to_node()["props"]["value"] == {"Int": 1}
+    assert Alert("Saved", intent="success").to_node()["tag"] == "ui-alert"
+    assert Progress(label="Upload", value=None, max=100).to_node()["tag"] == "ui-progress"
 
 
 def test_native_button_and_dialog():
@@ -89,15 +122,51 @@ def test_native_field_wraps_the_control_with_its_parts():
 
 
 def test_native_select_renders_options_as_children_and_preselects_the_value():
-    node = _plain(resolve(Select(label="Plan", options=["a", {"value": "b", "label": "B"}], value="b", placeholder="Pick").to_node(), NATIVE))
+    node = _plain(
+        resolve(
+            Select(label="Plan", options=[1, {"value": 2, "label": "Two", "disabled": True}], value=2, placeholder="Pick").to_node(),
+            NATIVE,
+        )
+    )
     select = node["slots"]["default"][1]
-    assert select["tag"] == "select" and "placeholder" not in select["props"]  # unsupported here, dropped
-    assert [(o["props"]["value"], o["props"]["textContent"], o["props"].get("selected")) for o in select["slots"]["default"]] == [
-        ("a", "a", None),
-        ("b", "B", True),
-    ]
-    with pytest.raises(ValueError, match="binds its options, which design 'native' renders as child elements"):
-        resolve(Select(label="Plan").bind("options", "plans").to_node(), NATIVE)
+    assert select["tag"] == "spa-select"
+    assert select["props"]["options"] == [{"value": 1, "label": "1"}, {"value": 2, "label": "Two", "disabled": True}]
+    assert select["props"]["value"] == 2 and select["props"]["placeholder"] == "Pick"
+    bound = _plain(resolve(Select(label="Plan").bind("options", "plans").to_node(), NATIVE))
+    assert bound["slots"]["default"][1]["bindings"] == {
+        "options": {
+            "field": "plans",
+            "mode": "one-way",
+            "options": {"value": "value", "label": "label", "disabled": "disabled"},
+        }
+    }
+
+
+def test_the_wider_controls_have_native_fallbacks():
+    textarea = _plain(resolve(TextArea(label="Notes", rows=5, minlength=2, maxlength=20).bind("value", "notes", mode="two-way").to_node(), NATIVE))
+    assert textarea["slots"]["default"][1]["props"] == {"data-ui": "textarea", "rows": 5, "minlength": 2, "maxlength": 20}
+    number = _plain(resolve(NumberInput(label="Count", min=0, max=10, step=1).bind("value", "count", mode="two-way").to_node(), NATIVE))
+    assert number["slots"]["default"][1]["props"] == {"type": "number", "data-ui": "number-input", "min": 0, "max": 10, "step": 1}
+    assert number["slots"]["default"][1]["bindings"] == {"value": {"field": "count", "mode": "two-way", "codec": "number"}}
+    date = _plain(resolve(DateInput(label="When", min="2026-01-01", max="2026-12-31").to_node(), NATIVE))
+    assert date["slots"]["default"][1]["props"] == {
+        "type": "date",
+        "data-ui": "date-input",
+        "min": "2026-01-01",
+        "max": "2026-12-31",
+    }
+    slider = _plain(resolve(Slider(label="Volume", value=5, min=0, max=10, step=1).bind("value", "volume", mode="two-way").to_node(), NATIVE))
+    assert slider["slots"]["default"][1]["props"] == {"type": "range", "data-ui": "slider", "min": 0, "max": 10, "step": 1, "value": 5}
+    assert slider["slots"]["default"][1]["bindings"]["value"]["codec"] == "number"
+    radios = _plain(resolve(RadioGroup(label="Priority", options=["low", "high"], value="low").to_node(), NATIVE))
+    assert radios["slots"]["default"][1]["tag"] == "spa-radio-group"
+    assert _plain(resolve(Alert("Saved", intent="success").to_node(), NATIVE))["props"] == {
+        "role": "alert",
+        "data-ui": "alert",
+        "data-intent": "success",
+    }
+    progress = _plain(resolve(Progress(label="Upload", value=25, max=100).to_node(), NATIVE))
+    assert progress["slots"]["default"][1]["props"] == {"data-ui": "progress", "value": 25, "max": 100}
 
 
 def _design(**controls) -> Design:
@@ -135,13 +204,95 @@ def test_a_design_maps_names_values_parts_events_and_bindings():
 
 def test_options_as_a_property_and_a_wrapped_child_list():
     by_prop = _design(select=ControlSpec(tag="x-select", options=Options(kind="prop", name="items", value="key", label="text")))
-    node = _plain(resolve(Select(options=["a", {"value": "b", "label": "B"}]).bind("options", "plans").to_node(), by_prop))
+    resolved = resolve(Select(options=["a", {"value": "b", "label": "B"}]).bind("options", "plans").to_node(), by_prop)
+    node = _plain(resolved)
     assert node["props"]["items"] == [{"key": "a", "text": "a"}, {"key": "b", "text": "B"}]
-    assert node["bindings"] == {"items": {"field": "plans", "mode": "one-way"}}
+    assert node["bindings"] == {
+        "items": {
+            "field": "plans",
+            "mode": "one-way",
+            "options": {"value": "key", "label": "text", "disabled": "disabled"},
+        }
+    }
+    empty = json.dumps({"tag": "x-select"})
+    patch = spaday.diff(empty, json.dumps(resolved))
+    assert json.loads(spaday.apply(empty, patch)) == resolved
     wrapped = _design(select=ControlSpec(tag="x-dropdown", options=Options(kind="children", tag="x-option", wrap="x-listbox", label="label")))
     node = _plain(resolve(Select(options=["a"]).to_node(), wrapped))
     listbox = node["slots"]["default"][0]
     assert listbox["tag"] == "x-listbox" and listbox["slots"]["default"][0]["props"] == {"value": "a", "label": "a"}
+
+
+def test_typed_disabled_options_can_cross_a_string_dom_value():
+    design = _design(
+        select=ControlSpec(
+            tag="x-select",
+            options=Options(kind="children", tag="x-option", value="value", label="text", disabled="disabled"),
+            value=Value(codec="json"),
+        )
+    )
+    resolved = resolve(
+        Select(options=[1.0, {"value": True, "label": "Yes", "disabled": True}], value=1).bind("value", "choice", mode="two-way").to_node(),
+        design,
+    )
+    node = _plain(resolved)
+    assert node["props"]["value"] == "1"
+    assert node["bindings"]["value"]["codec"] == "json"
+    first, second = node["slots"]["default"]
+    assert first["props"]["value"] == "1"
+    assert second["props"] == {"value": "true", "disabled": True, "textContent": "Yes"}
+    unicode_node = _plain(resolve(Select(options=["café"], value="café").to_node(), design))
+    assert unicode_node["props"]["value"] == '"café"'
+    assert unicode_node["slots"]["default"][0]["props"]["value"] == '"café"'
+    numbers = _plain(resolve(Select(options=[1e-7, 1e21, {"value": -0.0, "label": None}], value=0).to_node(), design))
+    assert [(option["props"]["value"], option["props"]["textContent"]) for option in numbers["slots"]["default"]] == [
+        ("1e-7", "1e-7"),
+        ("1e+21", "1e+21"),
+        ("0", "0"),
+    ]
+    assert numbers["slots"]["default"][2]["props"]["selected"] is True
+    with pytest.raises(ValueError, match="safe range"):
+        resolve(Select(options=[2**53]).to_node(), design)
+    empty = json.dumps({"tag": "x-select"})
+    patch = spaday.diff(empty, json.dumps(resolved))
+    assert json.loads(spaday.apply(empty, patch)) == resolved
+
+
+def test_option_values_validate_and_format_for_javascript():
+    design = _design(
+        select=ControlSpec(
+            tag="x-select",
+            options=Options(kind="children"),
+            value=Value(codec="json"),
+        )
+    )
+    node = _plain(resolve(Select(options=[True, False, 1e-6], value=True).to_node(), design))
+    assert [(option["props"]["value"], option["props"]["textContent"]) for option in node["slots"]["default"]] == [
+        ("true", "true"),
+        ("false", "false"),
+        ("0.000001", "0.000001"),
+    ]
+    assert node["slots"]["default"][0]["props"]["selected"] is True
+    assert "selected" not in node["slots"]["default"][1]["props"]
+
+    invalid_options = [
+        ([{"label": "Missing value"}], "needs a 'value'"),
+        ([None], "strings, numbers or booleans"),
+        ([["nested"]], "strings, numbers or booleans"),
+        ([float("inf")], "must be finite"),
+    ]
+    for options, message in invalid_options:
+        with pytest.raises(ValueError, match=message):
+            resolve(Select(options=options).to_node(), design)
+
+
+def test_generic_props_are_derived_from_the_control_schema():
+    design = _design(textarea=ControlSpec(tag="x-textarea", props={"rows": None}))
+    node = _plain(resolve(TextArea(rows=4, maxlength=20, id="notes", data_test="kept").to_node(), design))
+    assert node["props"] == {"id": "notes", "data_test": "kept"}
+    single = _plain(resolve(Select(options=["a"], multiple=True).bind("multiple", "many").to_node(), NATIVE))
+    select = single["slots"]["default"][0]
+    assert "multiple" not in select.get("props", {}) and "multiple" not in select.get("bindings", {})
 
 
 def test_a_wrapped_design_keeps_key_outside_and_id_on_the_control():
@@ -165,7 +316,7 @@ def test_a_missing_control_falls_back_to_native_and_says_so():
     node = _plain(resolve(Button(label="Go").to_node(), _design()))
     assert node["tag"] == "button" and node["props"]["data-ui-fallback"] == "native"
     with pytest.raises(ValueError, match="not a generic control"):
-        resolve({"tag": "ui-slider"}, _design())
+        resolve({"tag": "ui-unknown"}, _design())
 
 
 def test_for_design_sets_a_designs_own_props():
@@ -193,6 +344,12 @@ def test_bind_carries_event_and_methods_through_the_core():
     assert json.loads(spaday.apply(element("dialog").to_json(), patch)) == node.to_node()
     with pytest.raises(ValueError, match="pair of method names"):
         element("dialog").bind("open", "o", methods=("show",))
+    numeric = element("input").bind("value", "count", mode="two-way", codec="number")
+    assert numeric.to_node()["bindings"]["value"]["codec"] == "number"
+    patch = spaday.diff(element("input").to_json(), numeric.to_json())
+    assert json.loads(spaday.apply(element("input").to_json(), patch)) == numeric.to_node()
+    with pytest.raises(ValueError, match="binding codec"):
+        element("input").bind("value", "x", codec="integer")
 
 
 def test_select_design_follows_the_selected_packages():
@@ -242,7 +399,20 @@ def test_the_conformance_page_covers_every_control():
 
     walk(node)
     assert {f"ui-{kind}" for kind in CONTROLS} <= tags
-    assert set(conformance.store()) == {"name", "agree", "dark", "plan", "saved", "open"}
+    assert set(conformance.store()) == {
+        "agree",
+        "count",
+        "dark",
+        "date",
+        "name",
+        "notes",
+        "open",
+        "plan",
+        "priority",
+        "progress",
+        "saved",
+        "volume",
+    }
     assert "ui-" not in json.dumps(resolve(node, NATIVE))
 
 
@@ -292,7 +462,13 @@ def test_options_bound_only_and_a_dialog_opened_one_way():
         dialog=ControlSpec(tag="x-dialog", open=Open(prop="opened", event="x-closed", methods=("show", "hide"))),
     )
     select = _plain(resolve(Select().bind("options", "plans").to_node(), design))
-    assert "items" not in select["props"] and select["bindings"] == {"items": {"field": "plans", "mode": "one-way"}}
+    assert "items" not in select["props"] and select["bindings"] == {
+        "items": {
+            "field": "plans",
+            "mode": "one-way",
+            "options": {"value": "value", "label": "text", "disabled": "disabled"},
+        }
+    }
     dialog = _plain(resolve(Dialog(open=True).to_node(), design))
     assert dialog["props"] == {"opened": True} and "bindings" not in dialog
     one_way = _plain(resolve(Dialog().bind("open", "o").to_node(), design))

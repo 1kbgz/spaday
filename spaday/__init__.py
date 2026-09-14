@@ -48,7 +48,22 @@ from .packages import ComponentPackage, discover_component_package_names, discov
 from .render import render_html
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
 from .theme import SHELL_TOKENS
-from .ui import Button, Checkbox, Design, Dialog, Select, Switch as ToggleSwitch, TextInput
+from .ui import (
+    Alert,
+    Button,
+    Checkbox,
+    DateInput,
+    Design,
+    Dialog,
+    NumberInput,
+    Progress,
+    RadioGroup,
+    Select,
+    Slider,
+    Switch as ToggleSwitch,
+    TextArea,
+    TextInput,
+)
 from .validate import ValidationError, validate
 from .worker import WorkerApp
 
@@ -81,11 +96,18 @@ __all__ = [
     "Text",
     "Toggle",
     # generic controls (spaday.ui) — ToggleSwitch is spaday.ui.Switch, beside the shell's Switch router
+    "Alert",
     "Button",
     "Checkbox",
+    "DateInput",
     "Design",
     "Dialog",
+    "NumberInput",
+    "Progress",
+    "RadioGroup",
     "Select",
+    "Slider",
+    "TextArea",
     "TextInput",
     "ToggleSwitch",
     "ToggleField",

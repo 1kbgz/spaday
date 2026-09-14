@@ -493,6 +493,8 @@ mod diff_tests {
                 mode: BindMode::TwoWay,
                 event: None,
                 methods: None,
+                codec: None,
+                options: None,
             },
         );
         let new = Node::new("wa-switch")
@@ -504,6 +506,8 @@ mod diff_tests {
                     mode: BindMode::TwoWay,
                     event: None,
                     methods: None,
+                    codec: None,
+                    options: None,
                 },
             )
             .bind(
@@ -514,6 +518,8 @@ mod diff_tests {
                     mode: BindMode::OneWay,
                     event: None,
                     methods: None,
+                    codec: None,
+                    options: None,
                 },
             );
         let patch = assert_round_trip(&old, &new);
@@ -533,6 +539,8 @@ mod diff_tests {
                 mode: BindMode::OneWay,
                 event: None,
                 methods: None,
+                codec: None,
+                options: None,
             },
         );
         let patch = assert_round_trip(&old, &new);
@@ -574,6 +582,8 @@ mod diff_tests {
             mode: BindMode::OneWay,
             event: None,
             methods: None,
+            codec: None,
+            options: None,
         };
         let old = Node::new("spa-each")
             .prop("itemKey", "id")
