@@ -242,8 +242,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for spaday.ui.controls</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Generic controls: a button, a text input, a checkbox, a switch, a select and a dialog that any</span>
-<span class="sd">design system renders.</span>
+<span></span><span class="sd">"""Generic controls that any design system renders.</span>
 
 <span class="sd">An application authors these once — ``Button(label="Save", intent="primary")`` — and the page's</span>
 <span class="sd">:class:`~spaday.ui.design.Design` decides which element that becomes: a ``wa-button``, a</span>
@@ -256,9 +255,9 @@
 <span class="sd">- ``intent`` — ``neutral`` / ``primary`` / ``info`` / ``success`` / ``warning`` / ``danger`` — the</span>
 <span class="sd">  same tones the shell palette carries; ``appearance`` — ``filled`` / ``outline`` / ``plain``;</span>
 <span class="sd">  ``size`` — ``sm`` / ``md`` / ``lg``;</span>
-<span class="sd">- ``value``, the one prop to bind: a string for an input or a select, a boolean for a checkbox</span>
-<span class="sd">  or a switch (``bind("value", "agree", mode="two-way")`` reaches whatever property the design's</span>
-<span class="sd">  element uses, ``checked`` included); ``open`` for a dialog.</span>
+<span class="sd">- ``value``, the prop to bind: a string for text and dates, a number for numeric controls, a boolean</span>
+<span class="sd">  for a checkbox or switch, or a scalar option value for select and radio controls;</span>
+<span class="sd">- ``open`` for a dialog.</span>
 
 <span class="sd">A control serializes to a ``ui-*`` node carrying that vocabulary; :func:`spaday.ui.resolve` turns it</span>
 <span class="sd">into the design's elements before the tree leaves Python, so the browser only ever sees concrete</span>
@@ -278,7 +277,7 @@
 <span class="n">INTENTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"neutral"</span><span class="p">,</span> <span class="s2">"primary"</span><span class="p">,</span> <span class="s2">"info"</span><span class="p">,</span> <span class="s2">"success"</span><span class="p">,</span> <span class="s2">"warning"</span><span class="p">,</span> <span class="s2">"danger"</span><span class="p">)</span>
 <span class="n">APPEARANCES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"filled"</span><span class="p">,</span> <span class="s2">"outline"</span><span class="p">,</span> <span class="s2">"plain"</span><span class="p">)</span>
 <span class="n">SIZES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"sm"</span><span class="p">,</span> <span class="s2">"md"</span><span class="p">,</span> <span class="s2">"lg"</span><span class="p">)</span>
-<span class="n">INPUT_TYPES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"search"</span><span class="p">,</span> <span class="s2">"tel"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">)</span>
+<span class="n">INPUT_TYPES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">,</span> <span class="s2">"search"</span><span class="p">,</span> <span class="s2">"tel"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">)</span>
 
 <span class="n">Intent</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"neutral"</span><span class="p">,</span> <span class="s2">"primary"</span><span class="p">,</span> <span class="s2">"info"</span><span class="p">,</span> <span class="s2">"success"</span><span class="p">,</span> <span class="s2">"warning"</span><span class="p">,</span> <span class="s2">"danger"</span><span class="p">]</span>
 <span class="n">Appearance</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"filled"</span><span class="p">,</span> <span class="s2">"outline"</span><span class="p">,</span> <span class="s2">"plain"</span><span class="p">]</span>
@@ -299,6 +298,11 @@
 <span class="n">_INTENT</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"intent"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">,</span> <span class="s2">"The tone: neutral, primary, or one of the shell palette's info / success / warning / danger."</span><span class="p">,</span> <span class="n">INTENTS</span><span class="p">)</span>
 <span class="n">_APPEARANCE</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"appearance"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">,</span> <span class="s2">"How the tone is drawn: filled, outline, or plain."</span><span class="p">,</span> <span class="n">APPEARANCES</span><span class="p">)</span>
 <span class="n">_SIZE</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"size"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">,</span> <span class="s2">"The control's size."</span><span class="p">,</span> <span class="n">SIZES</span><span class="p">)</span>
+<span class="n">_VALUE_TEXT</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"The value; bind it two-way to a store field."</span><span class="p">)</span>
+<span class="n">_VALUE_NUMBER</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"The numeric value; bind it two-way to a store field."</span><span class="p">)</span>
+<span class="n">_MIN_NUMBER</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"min"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"The minimum allowed value."</span><span class="p">)</span>
+<span class="n">_MAX_NUMBER</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"max"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"The maximum allowed value."</span><span class="p">)</span>
+<span class="n">_STEP</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"step"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"The interval between allowed values."</span><span class="p">)</span>
 <span class="n">_OVERRIDES</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="n">OVERRIDES_PROP</span><span class="p">,</span> <span class="s2">"json"</span><span class="p">,</span> <span class="s2">"Per-design props, set with for_design()."</span><span class="p">,</span> <span class="n">type_text</span><span class="o">=</span><span class="s2">"Record&lt;string, Record&lt;string, unknown&gt;&gt;"</span><span class="p">)</span>
 
 
@@ -384,7 +388,7 @@
             <span class="n">_LABEL</span><span class="p">,</span>
             <span class="n">_HELP</span><span class="p">,</span>
             <span class="n">_ERROR</span><span class="p">,</span>
-            <span class="n">_prop</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"The text; bind it two-way to a store field."</span><span class="p">),</span>
+            <span class="n">_VALUE_TEXT</span><span class="p">,</span>
             <span class="n">_prop</span><span class="p">(</span><span class="s2">"placeholder"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"Text shown while empty."</span><span class="p">),</span>
             <span class="n">_prop</span><span class="p">(</span><span class="s2">"type"</span><span class="p">,</span> <span class="s2">"enum"</span><span class="p">,</span> <span class="s2">"The input type."</span><span class="p">,</span> <span class="n">INPUT_TYPES</span><span class="p">),</span>
             <span class="n">_DISABLED</span><span class="p">,</span>
@@ -406,7 +410,7 @@
         <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">placeholder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"search"</span><span class="p">,</span> <span class="s2">"tel"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">,</span> <span class="s2">"search"</span><span class="p">,</span> <span class="s2">"tel"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">disabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">readonly</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -424,6 +428,216 @@
                 <span class="s2">"value"</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
                 <span class="s2">"placeholder"</span><span class="p">:</span> <span class="n">placeholder</span><span class="p">,</span>
                 <span class="s2">"type"</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span>
+                <span class="s2">"disabled"</span><span class="p">:</span> <span class="n">disabled</span><span class="p">,</span>
+                <span class="s2">"required"</span><span class="p">:</span> <span class="n">required</span><span class="p">,</span>
+                <span class="s2">"readonly"</span><span class="p">:</span> <span class="n">readonly</span><span class="p">,</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s2">"size"</span><span class="p">:</span> <span class="n">size</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="o">**</span><span class="n">props</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="TextArea">
+<a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.controls.TextArea">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TextArea</span><span class="p">(</span><span class="n">Control</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A multiline text input. Bind ``value`` (a string) two-way to a store field."""</span>
+
+    <span class="n">kind</span> <span class="o">=</span> <span class="s2">"textarea"</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"ui-textarea"</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">ComponentSchema</span><span class="p">(</span>
+        <span class="n">tag</span><span class="o">=</span><span class="s2">"ui-textarea"</span><span class="p">,</span>
+        <span class="n">class_name</span><span class="o">=</span><span class="s2">"TextArea"</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="s2">"A multiline text input any design renders."</span><span class="p">,</span>
+        <span class="n">props</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">_LABEL</span><span class="p">,</span>
+            <span class="n">_HELP</span><span class="p">,</span>
+            <span class="n">_ERROR</span><span class="p">,</span>
+            <span class="n">_VALUE_TEXT</span><span class="p">,</span>
+            <span class="n">_prop</span><span class="p">(</span><span class="s2">"placeholder"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"Text shown while empty."</span><span class="p">),</span>
+            <span class="n">_prop</span><span class="p">(</span><span class="s2">"rows"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"The visible number of text rows."</span><span class="p">),</span>
+            <span class="n">_prop</span><span class="p">(</span><span class="s2">"minlength"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"The minimum text length."</span><span class="p">),</span>
+            <span class="n">_prop</span><span class="p">(</span><span class="s2">"maxlength"</span><span class="p">,</span> <span class="s2">"number"</span><span class="p">,</span> <span class="s2">"The maximum text length."</span><span class="p">),</span>
+            <span class="n">_DISABLED</span><span class="p">,</span>
+            <span class="n">_REQUIRED</span><span class="p">,</span>
+            <span class="n">_READONLY</span><span class="p">,</span>
+            <span class="n">_NAME</span><span class="p">,</span>
+            <span class="n">_SIZE</span><span class="p">,</span>
+            <span class="n">_OVERRIDES</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="s2">"input"</span><span class="p">),</span>
+        <span class="n">slots</span><span class="o">=</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">placeholder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">minlength</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">maxlength</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">disabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">readonly</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">size</span><span class="p">:</span> <span class="n">Size</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+            <span class="n">props</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+                <span class="s2">"help"</span><span class="p">:</span> <span class="n">help</span><span class="p">,</span>
+                <span class="s2">"error"</span><span class="p">:</span> <span class="n">error</span><span class="p">,</span>
+                <span class="s2">"value"</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+                <span class="s2">"placeholder"</span><span class="p">:</span> <span class="n">placeholder</span><span class="p">,</span>
+                <span class="s2">"rows"</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
+                <span class="s2">"minlength"</span><span class="p">:</span> <span class="n">minlength</span><span class="p">,</span>
+                <span class="s2">"maxlength"</span><span class="p">:</span> <span class="n">maxlength</span><span class="p">,</span>
+                <span class="s2">"disabled"</span><span class="p">:</span> <span class="n">disabled</span><span class="p">,</span>
+                <span class="s2">"required"</span><span class="p">:</span> <span class="n">required</span><span class="p">,</span>
+                <span class="s2">"readonly"</span><span class="p">:</span> <span class="n">readonly</span><span class="p">,</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s2">"size"</span><span class="p">:</span> <span class="n">size</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="o">**</span><span class="n">props</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="NumberInput">
+<a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.controls.NumberInput">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NumberInput</span><span class="p">(</span><span class="n">Control</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A numeric input. Its value is a number, or ``None`` while an optional field is empty."""</span>
+
+    <span class="n">kind</span> <span class="o">=</span> <span class="s2">"number-input"</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"ui-number-input"</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">ComponentSchema</span><span class="p">(</span>
+        <span class="n">tag</span><span class="o">=</span><span class="s2">"ui-number-input"</span><span class="p">,</span>
+        <span class="n">class_name</span><span class="o">=</span><span class="s2">"NumberInput"</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="s2">"A numeric input any design renders."</span><span class="p">,</span>
+        <span class="n">props</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">_LABEL</span><span class="p">,</span>
+            <span class="n">_HELP</span><span class="p">,</span>
+            <span class="n">_ERROR</span><span class="p">,</span>
+            <span class="n">_VALUE_NUMBER</span><span class="p">,</span>
+            <span class="n">_MIN_NUMBER</span><span class="p">,</span>
+            <span class="n">_MAX_NUMBER</span><span class="p">,</span>
+            <span class="n">_STEP</span><span class="p">,</span>
+            <span class="n">_prop</span><span class="p">(</span><span class="s2">"placeholder"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"Text shown while empty."</span><span class="p">),</span>
+            <span class="n">_DISABLED</span><span class="p">,</span>
+            <span class="n">_REQUIRED</span><span class="p">,</span>
+            <span class="n">_READONLY</span><span class="p">,</span>
+            <span class="n">_NAME</span><span class="p">,</span>
+            <span class="n">_SIZE</span><span class="p">,</span>
+            <span class="n">_OVERRIDES</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="s2">"input"</span><span class="p">),</span>
+        <span class="n">slots</span><span class="o">=</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">placeholder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">disabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">readonly</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">size</span><span class="p">:</span> <span class="n">Size</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+            <span class="n">props</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+                <span class="s2">"help"</span><span class="p">:</span> <span class="n">help</span><span class="p">,</span>
+                <span class="s2">"error"</span><span class="p">:</span> <span class="n">error</span><span class="p">,</span>
+                <span class="s2">"value"</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+                <span class="s2">"min"</span><span class="p">:</span> <span class="nb">min</span><span class="p">,</span>
+                <span class="s2">"max"</span><span class="p">:</span> <span class="nb">max</span><span class="p">,</span>
+                <span class="s2">"step"</span><span class="p">:</span> <span class="n">step</span><span class="p">,</span>
+                <span class="s2">"placeholder"</span><span class="p">:</span> <span class="n">placeholder</span><span class="p">,</span>
+                <span class="s2">"disabled"</span><span class="p">:</span> <span class="n">disabled</span><span class="p">,</span>
+                <span class="s2">"required"</span><span class="p">:</span> <span class="n">required</span><span class="p">,</span>
+                <span class="s2">"readonly"</span><span class="p">:</span> <span class="n">readonly</span><span class="p">,</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s2">"size"</span><span class="p">:</span> <span class="n">size</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="o">**</span><span class="n">props</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="DateInput">
+<a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.controls.DateInput">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DateInput</span><span class="p">(</span><span class="n">Control</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A calendar-date input whose value, minimum and maximum are ISO ``YYYY-MM-DD`` strings."""</span>
+
+    <span class="n">kind</span> <span class="o">=</span> <span class="s2">"date-input"</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"ui-date-input"</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">ComponentSchema</span><span class="p">(</span>
+        <span class="n">tag</span><span class="o">=</span><span class="s2">"ui-date-input"</span><span class="p">,</span>
+        <span class="n">class_name</span><span class="o">=</span><span class="s2">"DateInput"</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="s2">"An ISO calendar-date input any design renders."</span><span class="p">,</span>
+        <span class="n">props</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">_LABEL</span><span class="p">,</span>
+            <span class="n">_HELP</span><span class="p">,</span>
+            <span class="n">_ERROR</span><span class="p">,</span>
+            <span class="n">_VALUE_TEXT</span><span class="p">,</span>
+            <span class="n">_prop</span><span class="p">(</span><span class="s2">"min"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"The earliest ISO date allowed."</span><span class="p">),</span>
+            <span class="n">_prop</span><span class="p">(</span><span class="s2">"max"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"The latest ISO date allowed."</span><span class="p">),</span>
+            <span class="n">_DISABLED</span><span class="p">,</span>
+            <span class="n">_REQUIRED</span><span class="p">,</span>
+            <span class="n">_READONLY</span><span class="p">,</span>
+            <span class="n">_NAME</span><span class="p">,</span>
+            <span class="n">_SIZE</span><span class="p">,</span>
+            <span class="n">_OVERRIDES</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="s2">"input"</span><span class="p">),</span>
+        <span class="n">slots</span><span class="o">=</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">min</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">max</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">disabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">readonly</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">size</span><span class="p">:</span> <span class="n">Size</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+            <span class="n">props</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+                <span class="s2">"help"</span><span class="p">:</span> <span class="n">help</span><span class="p">,</span>
+                <span class="s2">"error"</span><span class="p">:</span> <span class="n">error</span><span class="p">,</span>
+                <span class="s2">"value"</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+                <span class="s2">"min"</span><span class="p">:</span> <span class="nb">min</span><span class="p">,</span>
+                <span class="s2">"max"</span><span class="p">:</span> <span class="nb">max</span><span class="p">,</span>
                 <span class="s2">"disabled"</span><span class="p">:</span> <span class="n">disabled</span><span class="p">,</span>
                 <span class="s2">"required"</span><span class="p">:</span> <span class="n">required</span><span class="p">,</span>
                 <span class="s2">"readonly"</span><span class="p">:</span> <span class="n">readonly</span><span class="p">,</span>
@@ -512,11 +726,135 @@
 
 
 
+<span class="n">_OPTIONS</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span>
+    <span class="s2">"options"</span><span class="p">,</span>
+    <span class="s2">"json"</span><span class="p">,</span>
+    <span class="s2">"Choices as scalar values or {value, label, disabled} objects."</span><span class="p">,</span>
+    <span class="n">type_text</span><span class="o">=</span><span class="s2">"Array&lt;string | number | boolean | {value: string | number | boolean, label: string, disabled?: boolean}&gt;"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">_CHOICE_VALUE</span> <span class="o">=</span> <span class="n">_prop</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"json"</span><span class="p">,</span> <span class="s2">"The selected scalar value; bind it two-way to a store field."</span><span class="p">,</span> <span class="n">type_text</span><span class="o">=</span><span class="s2">"string | number | boolean"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RadioGroup">
+<a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.controls.RadioGroup">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RadioGroup</span><span class="p">(</span><span class="n">Control</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A single-choice group over ``options``. Values may be strings, numbers or booleans."""</span>
+
+    <span class="n">kind</span> <span class="o">=</span> <span class="s2">"radio-group"</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"ui-radio-group"</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">ComponentSchema</span><span class="p">(</span>
+        <span class="n">tag</span><span class="o">=</span><span class="s2">"ui-radio-group"</span><span class="p">,</span>
+        <span class="n">class_name</span><span class="o">=</span><span class="s2">"RadioGroup"</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="s2">"A radio group any design renders."</span><span class="p">,</span>
+        <span class="n">props</span><span class="o">=</span><span class="p">(</span><span class="n">_LABEL</span><span class="p">,</span> <span class="n">_HELP</span><span class="p">,</span> <span class="n">_ERROR</span><span class="p">,</span> <span class="n">_OPTIONS</span><span class="p">,</span> <span class="n">_CHOICE_VALUE</span><span class="p">,</span> <span class="n">_DISABLED</span><span class="p">,</span> <span class="n">_REQUIRED</span><span class="p">,</span> <span class="n">_NAME</span><span class="p">,</span> <span class="n">_SIZE</span><span class="p">,</span> <span class="n">_OVERRIDES</span><span class="p">),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,),</span>
+        <span class="n">slots</span><span class="o">=</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">options</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">disabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">size</span><span class="p">:</span> <span class="n">Size</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+            <span class="n">props</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+                <span class="s2">"help"</span><span class="p">:</span> <span class="n">help</span><span class="p">,</span>
+                <span class="s2">"error"</span><span class="p">:</span> <span class="n">error</span><span class="p">,</span>
+                <span class="s2">"options"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">"value"</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+                <span class="s2">"disabled"</span><span class="p">:</span> <span class="n">disabled</span><span class="p">,</span>
+                <span class="s2">"required"</span><span class="p">:</span> <span class="n">required</span><span class="p">,</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s2">"size"</span><span class="p">:</span> <span class="n">size</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="o">**</span><span class="n">props</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Slider">
+<a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.controls.Slider">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Slider</span><span class="p">(</span><span class="n">Control</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A single-thumb numeric slider."""</span>
+
+    <span class="n">kind</span> <span class="o">=</span> <span class="s2">"slider"</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"ui-slider"</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">ComponentSchema</span><span class="p">(</span>
+        <span class="n">tag</span><span class="o">=</span><span class="s2">"ui-slider"</span><span class="p">,</span>
+        <span class="n">class_name</span><span class="o">=</span><span class="s2">"Slider"</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="s2">"A single-thumb numeric slider any design renders."</span><span class="p">,</span>
+        <span class="n">props</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">_LABEL</span><span class="p">,</span>
+            <span class="n">_HELP</span><span class="p">,</span>
+            <span class="n">_ERROR</span><span class="p">,</span>
+            <span class="n">_VALUE_NUMBER</span><span class="p">,</span>
+            <span class="n">_MIN_NUMBER</span><span class="p">,</span>
+            <span class="n">_MAX_NUMBER</span><span class="p">,</span>
+            <span class="n">_STEP</span><span class="p">,</span>
+            <span class="n">_DISABLED</span><span class="p">,</span>
+            <span class="n">_REQUIRED</span><span class="p">,</span>
+            <span class="n">_NAME</span><span class="p">,</span>
+            <span class="n">_SIZE</span><span class="p">,</span>
+            <span class="n">_OVERRIDES</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="s2">"input"</span><span class="p">),</span>
+        <span class="n">slots</span><span class="o">=</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">disabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">size</span><span class="p">:</span> <span class="n">Size</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+            <span class="n">props</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"label"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+                <span class="s2">"help"</span><span class="p">:</span> <span class="n">help</span><span class="p">,</span>
+                <span class="s2">"error"</span><span class="p">:</span> <span class="n">error</span><span class="p">,</span>
+                <span class="s2">"value"</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+                <span class="s2">"min"</span><span class="p">:</span> <span class="nb">min</span><span class="p">,</span>
+                <span class="s2">"max"</span><span class="p">:</span> <span class="nb">max</span><span class="p">,</span>
+                <span class="s2">"step"</span><span class="p">:</span> <span class="n">step</span><span class="p">,</span>
+                <span class="s2">"disabled"</span><span class="p">:</span> <span class="n">disabled</span><span class="p">,</span>
+                <span class="s2">"required"</span><span class="p">:</span> <span class="n">required</span><span class="p">,</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                <span class="s2">"size"</span><span class="p">:</span> <span class="n">size</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="o">**</span><span class="n">props</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="Select">
 <a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.controls.Select">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Select</span><span class="p">(</span><span class="n">Control</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""A single-choice select over ``options`` — a list of values, or of ``{"value": …, "label": …}``.</span>
-<span class="sd">    Bind ``value`` two-way.</span>
+<span class="w">    </span><span class="sd">"""A single-choice select over scalar values or ``{value, label, disabled}`` objects. Bind</span>
+<span class="sd">    ``value`` two-way.</span>
 
 <span class="sd">    ``Select(label="Plan", options=["basic", "plus"]).bind("value", "plan", mode="two-way")``</span>
 
@@ -534,8 +872,8 @@
             <span class="n">_LABEL</span><span class="p">,</span>
             <span class="n">_HELP</span><span class="p">,</span>
             <span class="n">_ERROR</span><span class="p">,</span>
-            <span class="n">_prop</span><span class="p">(</span><span class="s2">"options"</span><span class="p">,</span> <span class="s2">"json"</span><span class="p">,</span> <span class="s2">"The choices: values, or {value, label} objects."</span><span class="p">,</span> <span class="n">type_text</span><span class="o">=</span><span class="s2">"Array&lt;string | {value: string, label: string}&gt;"</span><span class="p">),</span>
-            <span class="n">_prop</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"The chosen value; bind it two-way to a store field."</span><span class="p">),</span>
+            <span class="n">_OPTIONS</span><span class="p">,</span>
+            <span class="n">_CHOICE_VALUE</span><span class="p">,</span>
             <span class="n">_prop</span><span class="p">(</span><span class="s2">"placeholder"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">,</span> <span class="s2">"Text shown while nothing is chosen."</span><span class="p">),</span>
             <span class="n">_DISABLED</span><span class="p">,</span>
             <span class="n">_REQUIRED</span><span class="p">,</span>
@@ -554,7 +892,7 @@
         <span class="n">help</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">options</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">placeholder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">disabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -608,10 +946,103 @@
 
 
 
-<span class="n">CONTROLS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">Control</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">kind</span><span class="p">:</span> <span class="bp">cls</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Button</span><span class="p">,</span> <span class="n">TextInput</span><span class="p">,</span> <span class="n">Checkbox</span><span class="p">,</span> <span class="n">Switch</span><span class="p">,</span> <span class="n">Select</span><span class="p">,</span> <span class="n">Dialog</span><span class="p">)}</span>
+<div class="viewcode-block" id="Alert">
+<a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.controls.Alert">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Alert</span><span class="p">(</span><span class="n">Control</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A message that needs the user's attention. Its children are the message body."""</span>
+
+    <span class="n">kind</span> <span class="o">=</span> <span class="s2">"alert"</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"ui-alert"</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">ComponentSchema</span><span class="p">(</span>
+        <span class="n">tag</span><span class="o">=</span><span class="s2">"ui-alert"</span><span class="p">,</span>
+        <span class="n">class_name</span><span class="o">=</span><span class="s2">"Alert"</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="s2">"An alert any design renders."</span><span class="p">,</span>
+        <span class="n">props</span><span class="o">=</span><span class="p">(</span><span class="n">_LABEL</span><span class="p">,</span> <span class="n">_INTENT</span><span class="p">,</span> <span class="n">_OVERRIDES</span><span class="p">),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">slots</span><span class="o">=</span><span class="p">(</span><span class="s2">""</span><span class="p">,),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="n">Child</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">intent</span><span class="p">:</span> <span class="n">Intent</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="p">{</span><span class="s2">"label"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span> <span class="s2">"intent"</span><span class="p">:</span> <span class="n">intent</span><span class="p">},</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Progress">
+<a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.controls.Progress">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Progress</span><span class="p">(</span><span class="n">Control</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Progress toward ``max``. Omit ``value`` for an indeterminate indicator."""</span>
+
+    <span class="n">kind</span> <span class="o">=</span> <span class="s2">"progress"</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="s2">"ui-progress"</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">ComponentSchema</span><span class="p">(</span>
+        <span class="n">tag</span><span class="o">=</span><span class="s2">"ui-progress"</span><span class="p">,</span>
+        <span class="n">class_name</span><span class="o">=</span><span class="s2">"Progress"</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="s2">"A progress indicator any design renders."</span><span class="p">,</span>
+        <span class="n">props</span><span class="o">=</span><span class="p">(</span><span class="n">_LABEL</span><span class="p">,</span> <span class="n">_VALUE_NUMBER</span><span class="p">,</span> <span class="n">_MAX_NUMBER</span><span class="p">,</span> <span class="n">_OVERRIDES</span><span class="p">),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">(),</span>
+        <span class="n">slots</span><span class="o">=</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="p">{</span><span class="s2">"label"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span> <span class="s2">"max"</span><span class="p">:</span> <span class="nb">max</span><span class="p">},</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span></div>
+
+
+
+<span class="n">CONTROLS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">Control</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">kind</span><span class="p">:</span> <span class="bp">cls</span>
+    <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="n">Alert</span><span class="p">,</span>
+        <span class="n">Button</span><span class="p">,</span>
+        <span class="n">Checkbox</span><span class="p">,</span>
+        <span class="n">DateInput</span><span class="p">,</span>
+        <span class="n">Dialog</span><span class="p">,</span>
+        <span class="n">NumberInput</span><span class="p">,</span>
+        <span class="n">Progress</span><span class="p">,</span>
+        <span class="n">RadioGroup</span><span class="p">,</span>
+        <span class="n">Select</span><span class="p">,</span>
+        <span class="n">Slider</span><span class="p">,</span>
+        <span class="n">Switch</span><span class="p">,</span>
+        <span class="n">TextArea</span><span class="p">,</span>
+        <span class="n">TextInput</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">}</span>
 <span class="sd">"""Every generic control by kind — the keys a :class:`~spaday.ui.design.Design` describes."""</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"APPEARANCES"</span><span class="p">,</span> <span class="s2">"CONTROLS"</span><span class="p">,</span> <span class="s2">"INTENTS"</span><span class="p">,</span> <span class="s2">"SIZES"</span><span class="p">,</span> <span class="s2">"Button"</span><span class="p">,</span> <span class="s2">"Checkbox"</span><span class="p">,</span> <span class="s2">"Control"</span><span class="p">,</span> <span class="s2">"Dialog"</span><span class="p">,</span> <span class="s2">"Select"</span><span class="p">,</span> <span class="s2">"Switch"</span><span class="p">,</span> <span class="s2">"TextInput"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"APPEARANCES"</span><span class="p">,</span>
+    <span class="s2">"CONTROLS"</span><span class="p">,</span>
+    <span class="s2">"INTENTS"</span><span class="p">,</span>
+    <span class="s2">"SIZES"</span><span class="p">,</span>
+    <span class="s2">"Alert"</span><span class="p">,</span>
+    <span class="s2">"Button"</span><span class="p">,</span>
+    <span class="s2">"Checkbox"</span><span class="p">,</span>
+    <span class="s2">"Control"</span><span class="p">,</span>
+    <span class="s2">"DateInput"</span><span class="p">,</span>
+    <span class="s2">"Dialog"</span><span class="p">,</span>
+    <span class="s2">"NumberInput"</span><span class="p">,</span>
+    <span class="s2">"Progress"</span><span class="p">,</span>
+    <span class="s2">"RadioGroup"</span><span class="p">,</span>
+    <span class="s2">"Select"</span><span class="p">,</span>
+    <span class="s2">"Slider"</span><span class="p">,</span>
+    <span class="s2">"Switch"</span><span class="p">,</span>
+    <span class="s2">"TextArea"</span><span class="p">,</span>
+    <span class="s2">"TextInput"</span><span class="p">,</span>
+<span class="p">]</span>
 </pre></div>
         </article>
       </div>

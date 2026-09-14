@@ -357,12 +357,13 @@ way, and needs no Python beyond it:</p>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">Part</span></code> places a label, help text or error message as an attribute, a slotted element, the control’s
 text, a child inside it, or a sibling in a <code class="docutils literal notranslate"><span class="pre">Wrap</span></code> around it (a <code class="docutils literal notranslate"><span class="pre">bp-field</span></code>, a <code class="docutils literal notranslate"><span class="pre">fluent-field</span></code>, a plain
-<code class="docutils literal notranslate"><span class="pre">&lt;label&gt;</span></code>). <code class="docutils literal notranslate"><span class="pre">Options</span></code> renders a select’s choices as child elements — optionally inside one wrapper —
-or as a list property. <code class="docutils literal notranslate"><span class="pre">Value</span></code> and <code class="docutils literal notranslate"><span class="pre">Open</span></code> name the state property and its change event, and <code class="docutils literal notranslate"><span class="pre">Open</span></code>’s
-method pair drives an overlay that opens by method. A control the design leaves out renders with the
-native baseline. <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.ui.conformance</span> <span class="pre">PORT</span> <span class="pre">--package</span> <span class="pre">acme</span></code> serves the conformance page
-with your design, so the same browser checks spaday runs against the baseline (<code class="docutils literal notranslate"><span class="pre">js/tests/ui.spec.js</span></code>)
-run against yours.</p>
+<code class="docutils literal notranslate"><span class="pre">&lt;label&gt;</span></code>). <code class="docutils literal notranslate"><span class="pre">Options</span></code> renders <code class="docutils literal notranslate"><span class="pre">Select</span></code> and <code class="docutils literal notranslate"><span class="pre">RadioGroup</span></code> choices as child elements, optionally inside
+one wrapper, or as a list property. It maps <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">label</span></code>, and <code class="docutils literal notranslate"><span class="pre">disabled</span></code> for both literal and bound
+option lists. <code class="docutils literal notranslate"><span class="pre">Value</span></code> names the state property and its change event; its <code class="docutils literal notranslate"><span class="pre">number</span></code> and <code class="docutils literal notranslate"><span class="pre">json</span></code> codecs
+handle DOM controls that expose only strings. <code class="docutils literal notranslate"><span class="pre">Open</span></code> names overlay state and can supply the method pair
+used to open and close it. A control the design leaves out renders with the native baseline.
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.ui.conformance</span> <span class="pre">PORT</span> <span class="pre">--package</span> <span class="pre">acme</span></code> serves the conformance page with your design, so
+the same browser checks spaday runs against the baseline (<code class="docutils literal notranslate"><span class="pre">js/tests/ui.spec.js</span></code>) run against yours.</p>
 </section>
 <section id="serve-your-own-bundle">
 <h2>Serve your own bundle<a class="headerlink" href="#serve-your-own-bundle" title="Link to this heading">¶</a></h2>
