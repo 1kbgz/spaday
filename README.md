@@ -66,13 +66,14 @@ registers its browser assets with spaday:
 
 ### Individual Components
 
-- [spaday-trees](https://github.com/1kbgz/spaday-trees) — virtualized project and repository trees from [Pierre](https://trees.software/docs).
-- [spaday-perspective](https://github.com/1kbgz/spaday-perspective) — live [Perspective](https://perspective-dev.github.io) workspaces and datagrids.
-- [spaday-lightweight-charts](https://github.com/1kbgz/spaday-lightweight-charts) — reactive [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts).
 - [spaday-dagre](https://github.com/1kbgz/spaday-dagre) — interactive directed-graph rendering with [dagre](https://github.com/dagrejs/dagre) layout.
+- [spaday-lightweight-charts](https://github.com/1kbgz/spaday-lightweight-charts) — reactive [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts).
+- [spaday-perspective](https://github.com/1kbgz/spaday-perspective) — live [Perspective](https://perspective-dev.github.io) workspaces and datagrids.
 - [spaday-regular-layout](https://github.com/1kbgz/spaday-regular-layout) — [serializable resizable panel layouts](https://github.com/texodus/regular-layout).
 - [spaday-regular-table](https://github.com/1kbgz/spaday-regular-table) — [viewport-virtualized high-performance data tables](https://github.com/finos/regular-table).
 - [spaday-studio](https://github.com/1kbgz/spaday-studio) — AI-native visual development environment.
+- [spaday-trees](https://github.com/1kbgz/spaday-trees) — virtualized project and repository trees from [Pierre](https://trees.software/docs).
+- [spaday-vega](https://github.com/1kbgz/spaday-vega) — [Vega](https://vega.github.io/vega/) and [Vega-Lite](https://vega.github.io/vega-lite/) visualizations.
 
 Select an installed integration by its entry-point name, for example `serve(page, packages=["trees"])`.
 
