@@ -318,15 +318,16 @@
 <a class="viewcode-back" href="../../../docs/src/api.html#spaday.ui.design.Options">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Options</span><span class="p">(</span><span class="n">_Data</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""How a select's ``options`` land: as child elements (``tag`` each, the value on attribute</span>
-<span class="sd">    ``value``, the label as text or on attribute ``label``, and disabled state on ``disabled``,</span>
-<span class="sd">    optionally inside one ``wrap`` element), or as a list on property ``name``. The field names apply</span>
-<span class="sd">    to literal and bound option lists."""</span>
+<span class="sd">    ``value``, the label as text or on attribute ``label``, disabled state on ``disabled``, and the</span>
+<span class="sd">    chosen state on ``selected``, optionally inside one ``wrap`` element), or as a list on property</span>
+<span class="sd">    ``name``. The value, label, and disabled field names apply to literal and bound option lists."""</span>
 
     <span class="n">kind</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"children"</span><span class="p">,</span> <span class="s2">"prop"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"children"</span>
     <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"option"</span>
     <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"value"</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"text"</span>
     <span class="n">disabled</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"disabled"</span>
+    <span class="n">selected</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"selected"</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"items"</span>
     <span class="n">wrap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span></div>
 
@@ -594,8 +595,8 @@
                     <span class="n">option_props</span> <span class="o">=</span> <span class="p">{</span><span class="n">spec</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">encoded</span><span class="p">}</span>
                     <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">"disabled"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">spec</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">disabled</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="n">option_props</span><span class="p">[</span><span class="n">spec</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">disabled</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-                    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_same_value</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"value"</span><span class="p">],</span> <span class="n">value</span><span class="p">):</span>
-                        <span class="n">option_props</span><span class="p">[</span><span class="s2">"selected"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># a value set before its options exist selects nothing</span>
+                    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_same_value</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"value"</span><span class="p">],</span> <span class="n">value</span><span class="p">)</span> <span class="ow">and</span> <span class="n">spec</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">selected</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">option_props</span><span class="p">[</span><span class="n">spec</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">selected</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># a value set before its options exist selects nothing</span>
                     <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">label</span> <span class="o">==</span> <span class="s2">"text"</span><span class="p">:</span>
                         <span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_element</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">option_props</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s2">"label"</span><span class="p">]))</span>
                     <span class="k">else</span><span class="p">:</span>
