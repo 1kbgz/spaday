@@ -66,15 +66,16 @@ class Wrap(_Data):
 
 class Options(_Data):
     """How a select's ``options`` land: as child elements (``tag`` each, the value on attribute
-    ``value``, the label as text or on attribute ``label``, and disabled state on ``disabled``,
-    optionally inside one ``wrap`` element), or as a list on property ``name``. The field names apply
-    to literal and bound option lists."""
+    ``value``, the label as text or on attribute ``label``, disabled state on ``disabled``, and the
+    chosen state on ``selected``, optionally inside one ``wrap`` element), or as a list on property
+    ``name``. The value, label, and disabled field names apply to literal and bound option lists."""
 
     kind: Literal["children", "prop"] = "children"
     tag: str = "option"
     value: str = "value"
     label: str = "text"
     disabled: str | None = "disabled"
+    selected: str | None = "selected"
     name: str = "items"
     wrap: str = ""
 
@@ -329,8 +330,8 @@ class _Resolver:
                     option_props = {spec.options.value: encoded}
                     if item["disabled"] and spec.options.disabled is not None:
                         option_props[spec.options.disabled] = True
-                    if value is not None and _same_value(item["value"], value):
-                        option_props["selected"] = True  # a value set before its options exist selects nothing
+                    if value is not None and _same_value(item["value"], value) and spec.options.selected is not None:
+                        option_props[spec.options.selected] = True  # a value set before its options exist selects nothing
                     if spec.options.label == "text":
                         children.append(_element(spec.options.tag, option_props, item["label"]))
                     else:

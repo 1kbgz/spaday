@@ -122,8 +122,9 @@ package = ComponentPackage(name="acme", ..., design=DESIGN)
 `Part` places a label, help text or error message as an attribute, a slotted element, the control's
 text, a child inside it, or a sibling in a `Wrap` around it (a `bp-field`, a `fluent-field`, a plain
 `<label>`). `Options` renders `Select` and `RadioGroup` choices as child elements, optionally inside
-one wrapper, or as a list property. It maps `value`, `label`, and `disabled` for both literal and bound
-option lists. `Value` names the state property and its change event; its `number` and `json` codecs
+one wrapper, or as a list property. It maps `value`, `label`, and `disabled` for literal and bound
+option lists. For child options, `selected` names the boolean property that marks the current choice;
+use `selected="checked"` for radio elements. `Value` names the state property and its change event; its `number` and `json` codecs
 handle DOM controls that expose only strings. `Open` names overlay state and can supply the method pair
 used to open and close it. A control the design leaves out renders with the native baseline.
 `python -m spaday.ui.conformance PORT --package acme` serves the conformance page with your design, so
