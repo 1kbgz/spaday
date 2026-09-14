@@ -26,6 +26,15 @@ export interface Binding {
   event?: string;
   /** call `[open, close]` on the element as the field turns truthy / falsy, instead of setting the prop */
   methods?: [string, string];
+  /** conversion where a value crosses the DOM property boundary */
+  codec?: "number" | "json";
+  /** reshape a bound generic options list for the concrete control */
+  options?: {
+    value: string;
+    label: string;
+    disabled?: string;
+    codec?: "number" | "json";
+  };
 }
 
 export interface Node {
@@ -228,6 +237,44 @@ function readProp(el: Element, name: string): unknown {
   return el.hasAttribute(name) ? el.getAttribute(name) : null;
 }
 
+function encodeBoundValue(value: unknown, codec?: Binding["codec"]): unknown {
+  if (codec === "number") return value == null ? "" : value;
+  if (codec === "json") return value == null ? "" : JSON.stringify(value);
+  return value;
+}
+
+function encodeBoundOptions(
+  value: unknown,
+  options: NonNullable<Binding["options"]>,
+): unknown {
+  if (!Array.isArray(value)) return [];
+  return value.map((choice) => {
+    const item =
+      typeof choice === "object" && choice !== null && "value" in choice
+        ? (choice as { value: unknown; label?: unknown; disabled?: unknown })
+        : { value: choice, label: choice, disabled: false };
+    const result: Record<string, unknown> = {
+      [options.value]: encodeBoundValue(item.value, options.codec),
+      [options.label]: String(item.label ?? item.value),
+    };
+    if (item.disabled && options.disabled) result[options.disabled] = true;
+    return result;
+  });
+}
+
+function decodeBoundValue(value: unknown, codec?: Binding["codec"]): unknown {
+  if (codec === "number") {
+    if (value === "" || value == null) return null;
+    const number = Number(value);
+    return Number.isNaN(number) ? null : number;
+  }
+  if (codec === "json") {
+    if (value === "" || value == null) return null;
+    if (typeof value === "string") return JSON.parse(value);
+  }
+  return value;
+}
+
 // The setter a binding drives. Normally a prop on the bound element; a `root-class:NAME` or
 // `root-attr:NAME` binding instead writes the document root (`<html>`) — page-level theming (e.g.
 // WebAwesome's `wa-dark`, or a `:root[data-density='comfortable']` token set) that lives outside the
@@ -287,7 +334,13 @@ function wireBinding(
 ): void {
   unwireBinding(el, prop); // replace any prior wiring for this prop
   const teardowns: Array<() => void> = [];
-  const apply = bindingApply(el, prop, spec);
+  const applyValue = bindingApply(el, prop, spec);
+  const apply = (value: unknown) =>
+    applyValue(
+      spec.options
+        ? encodeBoundOptions(value, spec.options)
+        : encodeBoundValue(value, spec.codec),
+    );
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads
     // changes. One-way by nature — there is nothing to write back. One settled state change can notify
@@ -321,7 +374,10 @@ function wireBinding(
         // doomed round-trip. Controls without constraint validation always pass.
         const v = el as unknown as { checkValidity?: () => boolean };
         if (typeof v.checkValidity === "function" && !v.checkValidity()) return;
-        store.set(spec.field!, readProp(el, prop));
+        store.set(
+          spec.field!,
+          decodeBoundValue(readProp(el, prop), spec.codec),
+        );
       };
       const events = spec.event ? [spec.event] : VALUE_EVENTS;
       for (const ev of events) el.addEventListener(ev, onChange);

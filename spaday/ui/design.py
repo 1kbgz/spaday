@@ -17,6 +17,9 @@ describe fall back to the native baseline (:data:`spaday.ui.native.NATIVE`) and 
 
 from __future__ import annotations
 
+import json
+import math
+from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -29,9 +32,6 @@ GENERIC_PREFIX = "ui-"
 OVERRIDES_PROP = "ui:overrides"
 #: The text parts every control may carry, resolved through a :class:`Part` each.
 PARTS = ("label", "help", "error")
-#: Generic props a design maps through ``ControlSpec.props``; one it leaves unmapped is dropped, so a
-#: control never leaks a spelling its design does not know.
-GENERIC_PROPS = frozenset({"intent", "appearance", "size", "disabled", "required", "readonly", "placeholder", "name", "type", "multiple"})
 
 
 class _Data(BaseModel):
@@ -66,23 +66,27 @@ class Wrap(_Data):
 
 class Options(_Data):
     """How a select's ``options`` land: as child elements (``tag`` each, the value on attribute
-    ``value``, the label as text or on attribute ``label``, optionally inside one ``wrap`` element), or
-    as a list on property ``name`` (each item ``{value: …, label: …}`` under those keys)."""
+    ``value``, the label as text or on attribute ``label``, and disabled state on ``disabled``,
+    optionally inside one ``wrap`` element), or as a list on property ``name``. The field names apply
+    to literal and bound option lists."""
 
     kind: Literal["children", "prop"] = "children"
     tag: str = "option"
     value: str = "value"
     label: str = "text"
+    disabled: str | None = "disabled"
     name: str = "items"
     wrap: str = ""
 
 
 class Value(_Data):
     """The property carrying a control's value (``checked`` for a toggle) and, for a two-way binding,
-    the event it changes on when that is not the runtime's default ``change``/``input``."""
+    the event it changes on when that is not the runtime's default ``change``/``input``. ``codec``
+    handles controls whose DOM property exposes a number or typed choice as a string."""
 
     prop: str = "value"
     event: str | None = None
+    codec: Literal["number", "json"] | None = None
 
 
 class Open(_Data):
@@ -120,8 +124,7 @@ class ControlSpec(_Data):
 
 
 class Design(_Data):
-    """A design system's realizations of the generic controls, by control kind (``"button"``,
-    ``"input"``, ``"checkbox"``, ``"switch"``, ``"select"``, ``"dialog"``)."""
+    """A design system's realizations, keyed by generic control kind."""
 
     name: str
     controls: dict[str, ControlSpec] = Field(default_factory=dict)
@@ -160,10 +163,69 @@ def _option_items(options: Any) -> list[dict[str, Any]]:
     items = []
     for option in options or ():
         if isinstance(option, dict):
-            items.append({"value": option.get("value"), "label": option.get("label", option.get("value"))})
+            if "value" not in option:
+                raise ValueError("an option object needs a 'value'")
+            value = option["value"]
+            label = option.get("label")
+            items.append({"value": value, "label": _option_label(value if label is None else label), "disabled": bool(option.get("disabled", False))})
         else:
-            items.append({"value": option, "label": option})
+            value = option
+            items.append({"value": value, "label": _option_label(value), "disabled": False})
+        if value is None or not isinstance(value, (str, int, float, bool)):
+            raise ValueError(f"option values must be strings, numbers or booleans, not {value!r}")
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError(f"option values must be finite, not {value!r}")
+        if isinstance(value, int) and not isinstance(value, bool) and abs(value) > 2**53 - 1:
+            raise ValueError(f"integer option values must fit JavaScript's safe range, not {value!r}")
     return items
+
+
+def _option_label(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, float):
+        return _javascript_number(value)
+    return str(value)
+
+
+def _javascript_number(value: float) -> str:
+    """Format a finite float like JavaScript's ``String`` / ``JSON.stringify`` for option tokens."""
+    if value == 0:
+        return "0"
+    text = repr(value).lower()
+    if "e" not in text:
+        return text.removesuffix(".0")
+    mantissa, exponent_text = text.split("e")
+    exponent = int(exponent_text)
+    if 1e-6 <= abs(value) < 1e21:
+        return format(Decimal(text), "f")
+    mantissa = mantissa.removesuffix(".0")
+    return f"{mantissa}e{'+' if exponent >= 0 else ''}{exponent}"
+
+
+def _generic_props() -> frozenset[str]:
+    """The control vocabulary derived from every generic schema. A realization must map one of
+    these props explicitly or it is dropped; element escape hatches outside the vocabulary pass."""
+    from .controls import CONTROLS
+
+    handled = {*PARTS, "open", "options", "value", OVERRIDES_PROP}
+    return frozenset(prop.name for control in CONTROLS.values() for prop in control.schema.props if prop.name not in handled)
+
+
+def _encode_value(value: Any, codec: str | None) -> Any:
+    if codec != "json":
+        return value
+    if isinstance(value, float):
+        return _javascript_number(value)
+    return json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+
+
+def _same_value(left: Any, right: Any) -> bool:
+    if isinstance(left, bool) or isinstance(right, bool):
+        return type(left) is type(right) and left == right
+    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+        return left == right
+    return type(left) is type(right) and left == right
 
 
 class _Resolver:
@@ -182,6 +244,7 @@ class _Resolver:
 
     def control(self, node: dict) -> dict:
         kind = node["tag"][len(GENERIC_PREFIX) :]
+        generic_props = _generic_props()
         spec = self.design.controls.get(kind)
         fallback = spec is None
         if fallback:
@@ -235,11 +298,25 @@ class _Resolver:
         if spec.options is not None and (options is not None or options_binding is not None):
             if spec.options.kind == "prop":
                 if options is not None:
-                    out[spec.options.name] = [
-                        {spec.options.value: item["value"], spec.options.label: item["label"]} for item in _option_items(options)
-                    ]
+                    out[spec.options.name] = []
+                    for item in _option_items(options):
+                        rendered = {
+                            spec.options.value: _encode_value(item["value"], spec.value.codec),
+                            spec.options.label: item["label"],
+                        }
+                        if item["disabled"] and spec.options.disabled is not None:
+                            rendered[spec.options.disabled] = True
+                        out[spec.options.name].append(rendered)
                 if options_binding is not None:
-                    bindings[spec.options.name] = options_binding
+                    bindings[spec.options.name] = {
+                        **options_binding,
+                        "options": {
+                            "value": spec.options.value,
+                            "label": spec.options.label,
+                            **({"disabled": spec.options.disabled} if spec.options.disabled is not None else {}),
+                            **({"codec": spec.value.codec} if spec.value.codec is not None else {}),
+                        },
+                    }
             else:
                 if options_binding is not None:
                     raise ValueError(
@@ -248,8 +325,11 @@ class _Resolver:
                     )
                 children = []
                 for item in _option_items(options):
-                    option_props = {spec.options.value: item["value"]}
-                    if item["value"] == value and value is not None:
+                    encoded = _encode_value(item["value"], spec.value.codec)
+                    option_props = {spec.options.value: encoded}
+                    if item["disabled"] and spec.options.disabled is not None:
+                        option_props[spec.options.disabled] = True
+                    if value is not None and _same_value(item["value"], value):
                         option_props["selected"] = True  # a value set before its options exist selects nothing
                     if spec.options.label == "text":
                         children.append(_element(spec.options.tag, option_props, item["label"]))
@@ -259,11 +339,13 @@ class _Resolver:
                     children = [{"tag": spec.options.wrap, "slots": {DEFAULT_SLOT: children}}]
                 after.extend(children)
         if value is not None:
-            out[spec.value.prop] = value
+            out[spec.value.prop] = _encode_value(value, spec.value.codec)
         if "value" in bindings:
             binding = bindings.pop("value")
             if binding.get("mode") == "two-way" and spec.value.event:
                 binding = {**binding, "event": spec.value.event}
+            if spec.value.codec:
+                binding = {**binding, "codec": spec.value.codec}
             bindings[spec.value.prop] = binding
 
         opened = props.pop("open", None)
@@ -285,7 +367,7 @@ class _Resolver:
                 if target is None:
                     continue
                 out[target] = spec.values.get(name, {}).get(v, v) if isinstance(v, str) else v
-            elif name not in GENERIC_PROPS:
+            elif name not in generic_props and name != "multiple":
                 out[name] = v  # id, class, style, data-*, aria-* and other generic element props
         for name in list(bindings):
             if name in spec.props:
@@ -293,7 +375,7 @@ class _Resolver:
                 binding = bindings.pop(name)
                 if target is not None:
                     bindings[target] = binding
-            elif name in GENERIC_PROPS:
+            elif name in generic_props or name == "multiple":
                 bindings.pop(name)
         out.update(overrides)
 

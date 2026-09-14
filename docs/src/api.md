@@ -22,7 +22,7 @@ Controls any design renders; see [Use generic controls](components.md#use-generi
 
 ```{eval-rst}
 .. automodule:: spaday.ui.controls
-   :members: Button, TextInput, Checkbox, Switch, Select, Dialog, Control
+   :members: Button, TextInput, TextArea, NumberInput, DateInput, Checkbox, Switch, Select, RadioGroup, Slider, Dialog, Alert, Progress, Control
 
 .. automodule:: spaday.ui.design
    :members: Design, ControlSpec, Part, Wrap, Options, Value, Open, resolve, select_design

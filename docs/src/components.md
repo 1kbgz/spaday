@@ -77,35 +77,43 @@ and `OVERLAY` append directly under `App`, after flow chrome, for top-layer UI.
 
 ## Use generic controls any design renders
 
-A typed catalog ties a page to one design system: `WaButton` is a `wa-button`. The generic controls
-in `spaday.ui` are the layer between the shell and a catalog — a button, a text input, a checkbox, a
-switch, a select and a dialog with one vocabulary — and the page's **design** decides what element
-each becomes:
+A typed catalog ties a page to one design system: `WaButton` is a `wa-button`. The 13 generic
+controls in `spaday.ui` cover actions, text, numbers, dates, boolean and single-choice input,
+progress, alerts, and dialogs. The page's **design** decides what element each becomes:
 
 ```python
 from spaday import Paragraph, SetField
 from spaday.components.shell import Column
-from spaday.ui import Button, Dialog, Select, Switch, TextInput
+from spaday.ui import Alert, Button, Dialog, NumberInput, Select, Switch, TextArea, TextInput
 
 page = Column(
     TextInput(label="Name", help="As on your passport").bind("value", "name", mode="two-way"),
+    TextArea(label="Notes").bind("value", "notes", mode="two-way"),
+    NumberInput(label="Seats", min=1, max=20).bind("value", "seats", mode="two-way"),
     Select(label="Plan", options=["basic", "plus"]).bind("value", "plan", mode="two-way"),
     Switch(label="Dark theme").bind("value", "dark", mode="two-way"),
+    Alert("Check the details before saving.", intent="info"),
     Button(label="Save", intent="primary").on("click", SetField("open", True)),
     Dialog(Paragraph("Saved."), Button(label="OK").on("click", SetField("open", False)), label="Done")
     .bind("open", "open", mode="two-way"),
 )
 serve(page, packages=["webawesome"])   # rendered with WebAwesome's design
-serve(page)                            # rendered with the native baseline: plain form elements, themed
+serve(page)                            # rendered with the themed native baseline
 ```
 
 The vocabulary is sized to what every design can express: `label` / `help` / `error`, `disabled` /
 `required` / `readonly`, `intent` (`neutral` / `primary` / `info` / `success` / `warning` / `danger`),
 `appearance` (`filled` / `outline` / `plain`) and `size` (`sm` / `md` / `lg`). Bind `value` on every
-control — a string for an input or a select, a boolean for a checkbox or a switch — and `open` on a
-dialog; the binding reaches whatever property and event the design's element uses (`checked`, a Lion
-control's `model-value-changed`, a `<dialog>`'s `showModal()`), and a dialog closing itself writes the
-field back.
+control. Text controls and dates use strings, `NumberInput` and `Slider` use numbers, boolean controls
+use booleans, and `Select` and `RadioGroup` preserve string, numeric, and boolean option values. Bind
+`open` on a dialog. The binding reaches whatever property and event the design's element uses
+(`checked`, a Lion control's `model-value-changed`, a `<dialog>`'s `showModal()`), and a dialog closing
+itself writes the field back.
+
+The complete initial set is `Button`, `TextInput`, `TextArea`, `NumberInput`, `DateInput`, `Checkbox`,
+`Switch`, `Select`, `RadioGroup`, `Slider`, `Dialog`, `Alert`, and `Progress`. A `DateInput` exchanges
+ISO `YYYY-MM-DD` strings; the design may render it with a popup picker. `Progress(value=None)` is
+indeterminate.
 
 A page renders with one design: the one the selected package publishes, or `design=` to choose
 between several (`"native"` is always available). A design that lacks a control renders it with the
