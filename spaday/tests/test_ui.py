@@ -258,6 +258,34 @@ def test_typed_disabled_options_can_cross_a_string_dom_value():
     assert json.loads(spaday.apply(empty, patch)) == resolved
 
 
+def test_option_values_validate_and_format_for_javascript():
+    design = _design(
+        select=ControlSpec(
+            tag="x-select",
+            options=Options(kind="children"),
+            value=Value(codec="json"),
+        )
+    )
+    node = _plain(resolve(Select(options=[True, False, 1e-6], value=True).to_node(), design))
+    assert [(option["props"]["value"], option["props"]["textContent"]) for option in node["slots"]["default"]] == [
+        ("true", "true"),
+        ("false", "false"),
+        ("0.000001", "0.000001"),
+    ]
+    assert node["slots"]["default"][0]["props"]["selected"] is True
+    assert "selected" not in node["slots"]["default"][1]["props"]
+
+    invalid_options = [
+        ([{"label": "Missing value"}], "needs a 'value'"),
+        ([None], "strings, numbers or booleans"),
+        ([["nested"]], "strings, numbers or booleans"),
+        ([float("inf")], "must be finite"),
+    ]
+    for options, message in invalid_options:
+        with pytest.raises(ValueError, match=message):
+            resolve(Select(options=options).to_node(), design)
+
+
 def test_generic_props_are_derived_from_the_control_schema():
     design = _design(textarea=ControlSpec(tag="x-textarea", props={"rows": None}))
     node = _plain(resolve(TextArea(rows=4, maxlength=20, id="notes", data_test="kept").to_node(), design))
