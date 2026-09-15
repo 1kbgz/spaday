@@ -239,6 +239,82 @@ test.describe("binding features for designs", () => {
     });
     expect(r).toEqual({ states: [false, true, true, false], field: false });
   });
+
+  test("a method binding can read nested overlay state", async ({ page }) => {
+    const r = await page.evaluate(() => {
+      class WrappedDialog extends HTMLElement {
+        dialog = { open: false };
+
+        show() {
+          this.dialog.open = true;
+        }
+
+        hide() {
+          this.dialog.open = false;
+          this.dispatchEvent(new Event("toggle"));
+        }
+      }
+      if (!customElements.get("wrapped-dialog"))
+        customElements.define("wrapped-dialog", WrappedDialog);
+      const store = new window.__spaday.Store({ open: false });
+      const el = window.__spaday.mount(
+        document.body,
+        {
+          tag: "wrapped-dialog",
+          bindings: {
+            open: {
+              field: "open",
+              mode: "two-way",
+              event: "toggle",
+              methods: ["show", "hide"],
+              state: "dialog.open",
+            },
+          },
+        },
+        store,
+      );
+      store.set("open", true);
+      const shown = el.dialog.open;
+      store.set("open", true);
+      el.hide();
+      return { shown, hidden: !el.dialog.open, field: store.get("open") };
+    });
+    expect(r).toEqual({ shown: true, hidden: true, field: false });
+  });
+
+  test("a binding can wait for connection and assigned children", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(async () => {
+      class DeferredElement extends HTMLElement {
+        current;
+
+        set value(value) {
+          if (!this.isConnected || !this.querySelector("span"))
+            throw new Error("not ready");
+          this.current = value;
+        }
+      }
+      if (!customElements.get("deferred-element"))
+        customElements.define("deferred-element", DeferredElement);
+      const store = new window.__spaday.Store({ choice: "a" });
+      const el = window.__spaday.mount(
+        document.body,
+        {
+          tag: "deferred-element",
+          slots: { default: [{ tag: "span" }] },
+          bindings: {
+            value: { field: "choice", mode: "one-way", defer: true },
+          },
+        },
+        store,
+      );
+      store.set("choice", "b");
+      await new Promise(requestAnimationFrame);
+      return { value: el.current, children: el.children.length };
+    });
+    expect(r).toEqual({ value: "b", children: 1 });
+  });
 });
 
 test.describe("the conformance page with the native baseline", () => {

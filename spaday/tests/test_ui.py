@@ -222,10 +222,68 @@ def test_options_as_a_property_and_a_wrapped_child_list():
     listbox = node["slots"]["default"][0]
     assert listbox["tag"] == "x-listbox" and listbox["slots"]["default"][0]["props"] == {"value": "a", "label": "a"}
 
+    deferred = _design(select=ControlSpec(tag="x-select", value=Value(codec="json", defer=True)))
+    node = _plain(resolve(Select(value="a").to_node(), deferred))
+    assert "value" not in node.get("props", {})
+    assert node["bindings"] == {
+        "value": {
+            "compute": {"expr": "lit", "value": "a"},
+            "mode": "one-way",
+            "defer": True,
+            "codec": "json",
+        }
+    }
+
     checked = _design(select=ControlSpec(tag="x-radio-group", options=Options(kind="children", tag="x-radio", selected="checked")))
     node = _plain(resolve(Select(options=["a", "b"], value="b").to_node(), checked))
     assert node["slots"]["default"][0]["props"] == {"value": "a", "textContent": "a"}
     assert node["slots"]["default"][1]["props"] == {"value": "b", "checked": True, "textContent": "b"}
+
+    labelled = _design(
+        select=ControlSpec(
+            tag="x-radio-group",
+            options=Options(
+                kind="children",
+                tag="x-radio",
+                fixed={"role": "radio"},
+                selected="checked",
+                label=Part(kind="sibling", tag="span", after=True),
+                label_attr="aria-label",
+                item_wrap=Wrap(tag="label", props={"class": "choice"}, control={"class": "radio"}),
+            ),
+        )
+    )
+    node = _plain(resolve(Select(options=["a", {"value": "b", "label": "Bee"}], value="b").to_node(), labelled))
+    assert node["slots"]["default"] == [
+        {
+            "tag": "label",
+            "props": {"class": "choice"},
+            "slots": {
+                "default": [
+                    {"tag": "x-radio", "props": {"role": "radio", "value": "a", "aria-label": "a", "class": "radio"}},
+                    {"tag": "span", "props": {"textContent": "a"}},
+                ]
+            },
+        },
+        {
+            "tag": "label",
+            "props": {"class": "choice"},
+            "slots": {
+                "default": [
+                    {
+                        "tag": "x-radio",
+                        "props": {"role": "radio", "value": "b", "aria-label": "Bee", "checked": True, "class": "radio"},
+                    },
+                    {"tag": "span", "props": {"textContent": "Bee"}},
+                ]
+            },
+        },
+    ]
+    with pytest.raises(ValueError, match="child-only rendering settings"):
+        resolve(
+            Select(options=["a"]).to_node(),
+            _design(select=ControlSpec(tag="x-select", options=Options(kind="prop", fixed={"role": "option"}))),
+        )
 
 
 def test_typed_disabled_options_can_cross_a_string_dom_value():
@@ -334,21 +392,58 @@ def test_for_design_sets_a_designs_own_props():
 def test_overlays_open_by_method_and_report_their_own_close():
     design = _design(
         dialog=ControlSpec(
-            tag="x-dialog", label=Part(kind="attr", name="heading"), open=Open(prop="opened", event="x-closed", methods=("show", "hide"))
+            tag="x-dialog",
+            label=Part(kind="attr", name="heading"),
+            open=Open(prop="opened", event="x-closed", methods=("show", "hide"), state="dialog.open"),
         )
     )
     node = _plain(resolve(Dialog(label="Hi", open=True).bind("open", "o", mode="two-way").to_node(), design))
-    assert node["props"] == {"heading": "Hi", "opened": True}
-    assert node["bindings"] == {"opened": {"field": "o", "mode": "two-way", "event": "x-closed", "methods": ["show", "hide"]}}
+    assert node["props"] == {"heading": "Hi"}
+    assert node["bindings"] == {
+        "opened": {
+            "field": "o",
+            "mode": "two-way",
+            "event": "x-closed",
+            "methods": ["show", "hide"],
+            "state": "dialog.open",
+        }
+    }
+    literal = _plain(resolve(Dialog(open=True).to_node(), design))
+    assert literal.get("props", {}) == {}
+    assert literal["bindings"] == {
+        "opened": {
+            "compute": {"expr": "lit", "value": True},
+            "mode": "one-way",
+            "methods": ["show", "hide"],
+            "state": "dialog.open",
+        }
+    }
 
 
 def test_bind_carries_event_and_methods_through_the_core():
-    node = element("dialog").bind("open", "o", mode="two-way", event="close", methods=("showModal", "close"))
-    assert node.to_node()["bindings"]["open"] == {"field": "o", "mode": "two-way", "event": "close", "methods": ["showModal", "close"]}
+    node = element("dialog").bind(
+        "open",
+        "o",
+        mode="two-way",
+        event="close",
+        methods=("showModal", "close"),
+        state="dialog.open",
+        defer=True,
+    )
+    assert node.to_node()["bindings"]["open"] == {
+        "field": "o",
+        "mode": "two-way",
+        "event": "close",
+        "methods": ["showModal", "close"],
+        "state": "dialog.open",
+        "defer": True,
+    }
     patch = spaday.diff(element("dialog").to_json(), node.to_json())
     assert json.loads(spaday.apply(element("dialog").to_json(), patch)) == node.to_node()
     with pytest.raises(ValueError, match="pair of method names"):
         element("dialog").bind("open", "o", methods=("show",))
+    with pytest.raises(ValueError, match="dotted property path"):
+        element("dialog").bind("open", "o", state="dialog..open")
     numeric = element("input").bind("value", "count", mode="two-way", codec="number")
     assert numeric.to_node()["bindings"]["value"]["codec"] == "number"
     patch = spaday.diff(element("input").to_json(), numeric.to_json())
@@ -378,6 +473,15 @@ def test_select_design_follows_the_selected_packages():
 def test_a_design_round_trips_as_data():
     dumped = NATIVE.model_dump_json()
     assert Design.model_validate_json(dumped) == NATIVE
+    custom = _design(
+        select=ControlSpec(
+            tag="x-radio-group",
+            options=Options(label=Part(kind="sibling"), item_wrap=Wrap(tag="label")),
+        ),
+        input=ControlSpec(tag="x-input", value=Value(defer=True)),
+        dialog=ControlSpec(tag="x-dialog", open=Open(methods=("show", "hide"), state="dialog.open")),
+    )
+    assert Design.model_validate_json(custom.model_dump_json()) == custom
     with pytest.raises(ValueError):
         ControlSpec(tag="x", labl=Part())  # a typo in a spec is an error, not a silently dropped mapping
 

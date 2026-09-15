@@ -344,6 +344,8 @@ class Component:
         mode: str = "one-way",
         event: str | None = None,
         methods: tuple[str, str] | None = None,
+        state: str | None = None,
+        defer: bool = False,
         codec: str | None = None,
     ) -> "Component":
         """Reactively bind a ``prop`` to a state ``field`` in the runtime's signal store.
@@ -358,6 +360,10 @@ class Component:
         as the field turns truthy / falsy instead of setting it, for an overlay that opens by method
         (``bind("open", "confirm", mode="two-way", event="close", methods=("showModal", "close"))`` on
         a ``<dialog>``); the prop then names the element's own state, read back on ``event``.
+        ``state`` names a different property, including a dotted path, when that readable state lives
+        below the element (for example ``"dialog.open"`` on a wrapper around ``<dialog>``).
+        ``defer=True`` coalesces property writes until the next animation frame, after the element is
+        connected and its children have been assigned.
         ``codec="number"`` converts an empty value to ``None`` and other values to numbers on
         write-back; ``"json"`` JSON-encodes values sent to the element and decodes them on return.
         """
@@ -370,6 +376,12 @@ class Component:
             if len(methods) != 2 or not all(isinstance(m, str) and m for m in methods):
                 raise ValueError("bind methods must be an (open, close) pair of method names")
             binding["methods"] = list(methods)
+        if state is not None:
+            if not isinstance(state, str) or not state or any(not part for part in state.split(".")):
+                raise ValueError("bind state must be a non-empty dotted property path")
+            binding["state"] = state
+        if defer:
+            binding["defer"] = True
         if codec not in (None, "number", "json"):
             raise ValueError(f"binding codec must be 'number' or 'json', not {codec!r}")
         if codec is not None:
