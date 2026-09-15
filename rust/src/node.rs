@@ -75,6 +75,13 @@ pub struct Binding {
     /// itself is then what the runtime reads to know the current state.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub methods: Option<[EventName; 2]>,
+    /// Read state from this property, or dotted property path, when method-driven wrappers keep it
+    /// somewhere other than the bound prop.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    /// Coalesce writes until the next animation frame, after connection and slot assignment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub defer: Option<bool>,
     /// Encode values written to the DOM property and decode values read back from it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codec: Option<BindingCodec>,

@@ -66,38 +66,48 @@ class Wrap(_Data):
 
 class Options(_Data):
     """How a select's ``options`` land: as child elements (``tag`` each, the value on attribute
-    ``value``, the label as text or on attribute ``label``, disabled state on ``disabled``, and the
-    chosen state on ``selected``, optionally inside one ``wrap`` element), or as a list on property
-    ``name``. The value, label, and disabled field names apply to literal and bound option lists."""
+    ``value``, the label as text, on attribute ``label``, or through a :class:`Part`, disabled state
+    on ``disabled``, and the chosen state on ``selected``). ``fixed`` sets props on every child,
+    ``label_attr`` repeats its label in an attribute, and ``item_wrap`` can wrap each child option;
+    ``wrap`` can wrap the complete child list. Property options use the field names on ``value``,
+    ``label``, and ``disabled``."""
 
     kind: Literal["children", "prop"] = "children"
     tag: str = "option"
+    fixed: dict[str, Any] = Field(default_factory=dict)
     value: str = "value"
-    label: str = "text"
+    label: str | Part = "text"
+    label_attr: str | None = None
     disabled: str | None = "disabled"
     selected: str | None = "selected"
     name: str = "items"
     wrap: str = ""
+    item_wrap: Wrap | None = None
 
 
 class Value(_Data):
     """The property carrying a control's value (``checked`` for a toggle) and, for a two-way binding,
     the event it changes on when that is not the runtime's default ``change``/``input``. ``codec``
-    handles controls whose DOM property exposes a number or typed choice as a string."""
+    handles controls whose DOM property exposes a number or typed choice as a string. ``defer`` waits
+    until the next animation frame before writing, for controls whose setter requires connected
+    children."""
 
     prop: str = "value"
     event: str | None = None
     codec: Literal["number", "json"] | None = None
+    defer: bool = False
 
 
 class Open(_Data):
     """How an overlay opens: property ``prop`` holds its state; ``methods`` — ``(open, close)`` — are
     called instead of setting it when the element opens by method; ``event`` reports a close the
-    element did itself (Escape, a backdrop click), so a two-way binding follows."""
+    element did itself (Escape, a backdrop click), so a two-way binding follows. ``state`` names a
+    different readable property, including a dotted path, for a method-driven wrapper element."""
 
     prop: str = "open"
     event: str | None = None
     methods: tuple[str, str] | None = None
+    state: str | None = None
 
 
 class ControlSpec(_Data):
@@ -298,6 +308,10 @@ class _Resolver:
         value = props.pop("value", None)
         if spec.options is not None and (options is not None or options_binding is not None):
             if spec.options.kind == "prop":
+                if not isinstance(spec.options.label, str):
+                    raise ValueError(f"design {self.design.name!r} gives property options a label Part; use a field name")
+                if spec.options.fixed or spec.options.label_attr is not None or spec.options.item_wrap is not None:
+                    raise ValueError(f"design {self.design.name!r} gives property options child-only rendering settings")
                 if options is not None:
                     out[spec.options.name] = []
                     for item in _option_items(options):
@@ -327,32 +341,84 @@ class _Resolver:
                 children = []
                 for item in _option_items(options):
                     encoded = _encode_value(item["value"], spec.value.codec)
-                    option_props = {spec.options.value: encoded}
+                    option_props = {**spec.options.fixed, spec.options.value: encoded}
+                    if spec.options.label_attr is not None:
+                        option_props[spec.options.label_attr] = item["label"]
                     if item["disabled"] and spec.options.disabled is not None:
                         option_props[spec.options.disabled] = True
                     if value is not None and _same_value(item["value"], value) and spec.options.selected is not None:
                         option_props[spec.options.selected] = True  # a value set before its options exist selects nothing
-                    if spec.options.label == "text":
-                        children.append(_element(spec.options.tag, option_props, item["label"]))
+                    label = spec.options.label
+                    item_wrap = spec.options.item_wrap
+                    if isinstance(label, str):
+                        option = (
+                            _element(spec.options.tag, option_props, item["label"])
+                            if label == "text"
+                            else _element(spec.options.tag, {**option_props, label: item["label"]})
+                        )
+                        item_siblings_before: list[dict] = []
+                        item_siblings_after: list[dict] = []
                     else:
-                        children.append(_element(spec.options.tag, {**option_props, spec.options.label: item["label"]}))
+                        option = _element(spec.options.tag, option_props)
+                        label_node = _element(
+                            label.tag,
+                            {**label.props, **({"slot": label.name} if label.kind == "slot" else {})},
+                            item["label"],
+                        )
+                        item_siblings_before = []
+                        item_siblings_after = []
+                        if label.kind == "attr":
+                            option["props"][label.name] = _tag(item["label"])
+                        elif label.kind == "text":
+                            option["props"]["textContent"] = _tag(item["label"])
+                        elif label.kind == "slot":
+                            option["slots"] = {label.name: [label_node]}
+                        elif label.kind == "child":
+                            option["slots"] = {DEFAULT_SLOT: [label_node]}
+                        elif label.kind == "sibling":
+                            if item_wrap is None:
+                                raise ValueError(f"design {self.design.name!r} places an option label beside its control but declares no item_wrap")
+                            (item_siblings_after if label.after else item_siblings_before).append(label_node)
+                    if item_wrap is not None and item_wrap.control:
+                        option.setdefault("props", {}).update({k: _tag(v) for k, v in item_wrap.control.items()})
+                    if item_wrap is None:
+                        children.append(option)
+                    else:
+                        children.append(
+                            {
+                                "tag": item_wrap.tag,
+                                **({"props": {k: _tag(v) for k, v in item_wrap.props.items()}} if item_wrap.props else {}),
+                                "slots": {DEFAULT_SLOT: [*item_siblings_before, option, *item_siblings_after]},
+                            }
+                        )
                 if spec.options.wrap:
                     children = [{"tag": spec.options.wrap, "slots": {DEFAULT_SLOT: children}}]
                 after.extend(children)
         if value is not None:
-            out[spec.value.prop] = _encode_value(value, spec.value.codec)
+            if spec.value.defer and "value" not in bindings:
+                bindings[spec.value.prop] = {
+                    "compute": {"expr": "lit", "value": value},
+                    "mode": "one-way",
+                    "defer": True,
+                    **({"codec": spec.value.codec} if spec.value.codec else {}),
+                }
+            elif not spec.value.defer:
+                out[spec.value.prop] = _encode_value(value, spec.value.codec)
         if "value" in bindings:
             binding = bindings.pop("value")
             if binding.get("mode") == "two-way" and spec.value.event:
                 binding = {**binding, "event": spec.value.event}
             if spec.value.codec:
                 binding = {**binding, "codec": spec.value.codec}
+            if spec.value.defer:
+                binding = {**binding, "defer": True}
             bindings[spec.value.prop] = binding
 
         opened = props.pop("open", None)
         open_binding = bindings.pop("open", None)
         if spec.open is not None:
-            if opened is not None:
+            method_only = spec.open.methods is not None and spec.open.state is not None
+            if opened is not None and not method_only:
                 out[spec.open.prop] = opened
             if open_binding is not None:
                 binding = dict(open_binding)
@@ -360,7 +426,16 @@ class _Resolver:
                     binding["event"] = spec.open.event
                 if spec.open.methods:
                     binding["methods"] = list(spec.open.methods)
+                if spec.open.state:
+                    binding["state"] = spec.open.state
                 bindings[spec.open.prop] = binding
+            elif opened is not None and method_only:
+                bindings[spec.open.prop] = {
+                    "compute": {"expr": "lit", "value": opened},
+                    "mode": "one-way",
+                    "methods": list(spec.open.methods),
+                    "state": spec.open.state,
+                }
 
         for name, v in props.items():
             if name in spec.props:

@@ -26,6 +26,10 @@ export interface Binding {
   event?: string;
   /** call `[open, close]` on the element as the field turns truthy / falsy, instead of setting the prop */
   methods?: [string, string];
+  /** readable element state, including a dotted path, when it differs from the bound prop */
+  state?: string;
+  /** coalesce writes until the next animation frame, after connection and slot assignment */
+  defer?: boolean;
   /** conversion where a value crosses the DOM property boundary */
   codec?: "number" | "json";
   /** reshape a bound generic options list for the concrete control */
@@ -237,6 +241,20 @@ function readProp(el: Element, name: string): unknown {
   return el.hasAttribute(name) ? el.getAttribute(name) : null;
 }
 
+function readBindingState(el: Element, prop: string, state?: string): unknown {
+  if (!state) return readProp(el, prop);
+  let value: unknown = el;
+  for (const part of state.split(".")) {
+    if (
+      value == null ||
+      (typeof value !== "object" && typeof value !== "function")
+    )
+      return undefined;
+    value = (value as Record<string, unknown>)[part];
+  }
+  return value;
+}
+
 function encodeBoundValue(value: unknown, codec?: Binding["codec"]): unknown {
   if (codec === "number") return value == null ? "" : value;
   if (codec === "json") return value == null ? "" : JSON.stringify(value);
@@ -288,7 +306,7 @@ function bindingApply(
 ): (value: unknown) => void {
   const ROOT_CLASS = "root-class:";
   const ROOT_ATTR = "root-attr:";
-  if (spec.methods) return methodApply(el, prop, spec.methods);
+  if (spec.methods) return methodApply(el, prop, spec.methods, spec.state);
   if (prop.startsWith(ROOT_CLASS)) {
     const name = prop.slice(ROOT_CLASS.length);
     return (v) => document.documentElement.classList.toggle(name, !!v);
@@ -309,11 +327,12 @@ function methodApply(
   el: Element,
   prop: string,
   [open, close]: [string, string],
+  state?: string,
 ): (value: unknown) => void {
   return (value) => {
     const want = !!value;
     const run = () => {
-      if (!!readProp(el, prop) === want) return;
+      if (!!readBindingState(el, prop, state) === want) return;
       const method = (el as unknown as Record<string, unknown>)[
         want ? open : close
       ];
@@ -335,12 +354,26 @@ function wireBinding(
   unwireBinding(el, prop); // replace any prior wiring for this prop
   const teardowns: Array<() => void> = [];
   const applyValue = bindingApply(el, prop, spec);
-  const apply = (value: unknown) =>
+  let frame: number | undefined;
+  const applyNow = (value: unknown) =>
     applyValue(
       spec.options
         ? encodeBoundOptions(value, spec.options)
         : encodeBoundValue(value, spec.codec),
     );
+  const apply = spec.defer
+    ? (value: unknown) => {
+        if (frame !== undefined) cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          frame = undefined;
+          applyNow(value);
+        });
+      }
+    : applyNow;
+  if (spec.defer)
+    teardowns.push(() => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    });
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads
     // changes. One-way by nature — there is nothing to write back. One settled state change can notify
@@ -376,7 +409,7 @@ function wireBinding(
         if (typeof v.checkValidity === "function" && !v.checkValidity()) return;
         store.set(
           spec.field!,
-          decodeBoundValue(readProp(el, prop), spec.codec),
+          decodeBoundValue(readBindingState(el, prop, spec.state), spec.codec),
         );
       };
       const events = spec.event ? [spec.event] : VALUE_EVENTS;
