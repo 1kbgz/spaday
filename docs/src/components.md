@@ -240,7 +240,7 @@ from spaday.components import Column, Each, Row, Show
 records = Each(
     Row(
         Strong(item("name")),
-        Show(element("span").text("Ready"), when=item("ready")),
+        Show(item("ready"), element("span").text("Ready")),
         element("button").text("X").on(
             "click",
             CallEndpoint(

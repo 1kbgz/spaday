@@ -1,7 +1,7 @@
 """Server-side rendering: a component tree → light-DOM HTML for first paint (hydrated client-side)."""
 
 from spaday import element, render_html
-from spaday.actions import Toggle, item, this
+from spaday.actions import Toggle, field, item, this
 from spaday.components.shell import App, Each, Main, Show, Stack
 
 
@@ -31,7 +31,7 @@ def test_boolean_and_complex_props_and_behavior():
 
 def test_spa_show_renders_empty():
     # structural reactivity is client-side: the element renders, its subtree is mounted on hydrate
-    html = render_html(Show(field="on").child(element("span").text("x")))
+    html = render_html(Show(field("on"), element("span").text("x")))
     assert html == '<spa-show style="display:contents"></spa-show>'
 
 
