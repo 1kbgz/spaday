@@ -282,6 +282,46 @@ test.describe("binding features for designs", () => {
     expect(r).toEqual({ shown: true, hidden: true, field: false });
   });
 
+  test("an initial method binding waits until the element is connected", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(async () => {
+      class ConnectedDialog extends HTMLElement {
+        dialog = { open: false };
+
+        show() {
+          if (!this.isConnected) throw new Error("not connected");
+          this.dialog.open = true;
+        }
+
+        hide() {
+          this.dialog.open = false;
+        }
+      }
+      if (!customElements.get("connected-dialog"))
+        customElements.define("connected-dialog", ConnectedDialog);
+      const el = window.__spaday.mount(
+        document.body,
+        {
+          tag: "connected-dialog",
+          bindings: {
+            open: {
+              compute: { expr: "lit", value: true },
+              mode: "one-way",
+              methods: ["show", "hide"],
+              state: "dialog.open",
+              defer: true,
+            },
+          },
+        },
+        new window.__spaday.Store({}),
+      );
+      await new Promise(requestAnimationFrame);
+      return { connected: el.isConnected, open: el.dialog.open };
+    });
+    expect(r).toEqual({ connected: true, open: true });
+  });
+
   test("a binding can wait for connection and assigned children", async ({
     page,
   }) => {
@@ -401,6 +441,7 @@ test.describe("the conformance page with the native baseline", () => {
     );
     await expect(page.locator("#alert")).toContainText("Portable");
     await expect(page.locator("#progress")).toHaveJSProperty("value", 25);
+    await expect(page.locator("#progress")).toHaveJSProperty("max", 50);
     await expect(
       page.getByRole("radiogroup", { name: "Priority" }),
     ).toBeVisible();
@@ -446,6 +487,16 @@ test.describe("the conformance page with the native baseline", () => {
   test("labels, help, errors and disabled state render", async ({ page }) => {
     await page.goto(url);
     await expect(page.getByText("Your name")).toBeVisible();
+    await expect(page.getByText("Required")).toBeVisible();
+    await expect(page.locator("#email")).toHaveAttribute("data-invalid", "");
+    await page.locator("#reset").click();
+    await expect(page.locator("#email")).not.toHaveAttribute(
+      "data-invalid",
+      "",
+    );
+    await expect(page.getByText("Required")).toHaveCount(0);
+    await page.locator("#save").click();
+    await expect(page.locator("#email")).toHaveAttribute("data-invalid", "");
     await expect(page.getByText("Required")).toBeVisible();
     await expect(page.locator("#never")).toHaveJSProperty("disabled", true);
     await expect(page.locator("#save")).toHaveText("Save");
