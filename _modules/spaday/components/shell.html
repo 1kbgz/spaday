@@ -262,7 +262,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">overload</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Expr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..component</span><span class="w"> </span><span class="kn">import</span> <span class="n">Child</span><span class="p">,</span> <span class="n">Component</span><span class="p">,</span> <span class="n">element</span>
@@ -578,7 +578,7 @@
 <span class="sd">        # surface failures from the result field …</span>
 <span class="sd">        toasts.compute("message", cond(field("submit_result.ok"), lit(""), field("submit_result.body")))</span>
 <span class="sd">        # … or drive any reactive fallback UI from the same field</span>
-<span class="sd">        page.add(Show(..., when=not_(field("submit_result.ok"))))</span>
+<span class="sd">        page.add(Show(not_(field("submit_result.ok")), ...))</span>
 
 <span class="sd">    **Testing note**: notices render in the element's *shadow root*, so ``innerText``/``textContent``</span>
 <span class="sd">    on ``&lt;spa-toast&gt;`` are ``""`` even while toasts are visible — assert via</span>
@@ -597,10 +597,13 @@
 
 <span class="sd">    Unlike the layout components above this is not a shadow-DOM element but a runtime **structural</span>
 <span class="sd">    binding** (``js/src/ts/runtime.ts``); the wrapper renders ``display:contents`` and is transparent.</span>
-<span class="sd">    Pass ``field`` for a plain store field, or ``when`` for a field-expression</span>
+<span class="sd">    Put a field expression first, followed by the children it controls</span>
 <span class="sd">    (:func:`~spaday.actions.field` / ``not_`` / ``eq`` / ``all_`` / ``any_``)::</span>
 
-<span class="sd">        Show(LightweightChart(...), field="show_chart")</span>
+<span class="sd">        Show(field("show_chart"), LightweightChart(...))</span>
+
+<span class="sd">    The existing ``Show(child, when=expression)`` form remains available, and ``field="name"`` is a</span>
+<span class="sd">    shortcut for a plain store field.</span>
 
 <span class="sd">    A ``field`` condition requires a signal ``Store``. A computed condition may instead read the</span>
 <span class="sd">    current ``Each`` item or a named repeater scope.</span>
@@ -608,16 +611,59 @@
 
     <span class="n">tag</span> <span class="o">=</span> <span class="s2">"spa-show"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="n">Child</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">when</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">condition</span><span class="p">:</span> <span class="n">Expr</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="n">Child</span><span class="p">,</span>
+        <span class="n">field</span><span class="p">:</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">when</span><span class="p">:</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">children</span><span class="p">:</span> <span class="n">Child</span><span class="p">,</span>
+        <span class="n">field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">when</span><span class="p">:</span> <span class="n">Expr</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">when</span><span class="p">:</span> <span class="n">Expr</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">props</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="n">positional</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">children</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Expr</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">when</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Show accepts exactly one positional, field=, or when= condition"</span><span class="p">)</span>
+            <span class="n">positional</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">when</span><span class="p">,</span> <span class="n">children</span> <span class="o">=</span> <span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">Expr</span><span class="p">)</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"Show positional condition must be the first argument"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Show field must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">field</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">when</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">when</span><span class="p">,</span> <span class="n">Expr</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Show when must be an Expr, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">when</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">expression</span> <span class="o">=</span> <span class="n">when</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">when</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">positional</span> <span class="ow">and</span> <span class="n">expression</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">expression</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"expr"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">}</span> <span class="ow">and</span> <span class="n">expression</span><span class="p">[</span><span class="s2">"expr"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"field"</span><span class="p">:</span>
+            <span class="n">field</span><span class="p">,</span> <span class="n">expression</span> <span class="o">=</span> <span class="n">expression</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span> <span class="kc">None</span>
+
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">props</span><span class="o">=</span><span class="p">{</span><span class="s2">"style"</span><span class="p">:</span> <span class="s2">"display:contents"</span><span class="p">},</span> <span class="o">**</span><span class="n">props</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="s2">"when"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"field"</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"one-way"</span><span class="p">}</span>
-        <span class="k">elif</span> <span class="n">when</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">when</span><span class="p">,</span> <span class="n">Expr</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Show when must be an Expr, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">when</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="s2">"when"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"compute"</span><span class="p">:</span> <span class="n">when</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"one-way"</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">expression</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="s2">"when"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"compute"</span><span class="p">:</span> <span class="n">expression</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"one-way"</span><span class="p">}</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Show requires field= (a store field) or when= (a field-expression)"</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Show requires a positional expression, field=, or when="</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Each">
