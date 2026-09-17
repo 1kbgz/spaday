@@ -161,6 +161,35 @@ for route in build_routes(page, packages=["webawesome"]):
 app.include_router(router)
 ```
 
+### Mount several pages with one asset surface
+
+For a conventional multi-page application, use `build_site()` or `mount_site()`. Each `PageSpec` owns
+its page-generation settings. Component packages and spaday's `/js` bundle mount once for the site:
+
+```python
+from starlette.applications import Starlette
+from spaday.backends.starlette import PageSpec, mount_site
+
+app = Starlette()
+mount_site(
+    app,
+    {
+        "/": PageSpec(home, title="Home", packages=["webawesome"]),
+        "/login": PageSpec(login, title="Sign in", packages=["webawesome"], tree="inline"),
+    },
+    prefix="/account",
+)
+```
+
+This serves the pages at `/account/` and `/account/login`. The first page fetches its tree from
+`/account/tree.json`; the inline login page needs no tree route. JSON and frame trees for non-root pages
+live below their page path, such as `/account/settings/tree.json`. Page keys are static paths; add
+parameterized HTTP and websocket endpoints through `routes=`.
+
+`build_site()` returns a `SiteRoutes` object instead of one flat list. Use `site.pages` and
+`site.supplied` for routes that need FastAPI dependencies, and mount `site.assets` publicly. Use
+`site.all()` when every route can be added directly to Starlette.
+
 Backends ship for **Starlette/FastAPI**, **aiohttp**, **Flask**, and **Tornado** — import `serve`/`mount`
 from `spaday.backends.<name>`. They are thin glue over the framework-agnostic generator.
 

@@ -111,6 +111,11 @@ Generate a page and deliver it on any backend; see [Serve and embed](serving.md)
 .. autofunction:: spaday.backends.starlette.serve
 .. autofunction:: spaday.backends.starlette.mount
 .. autofunction:: spaday.backends.starlette.build_routes
+.. autofunction:: spaday.backends.starlette.mount_site
+.. autofunction:: spaday.backends.starlette.build_site
+.. autoclass:: spaday.backends.starlette.PageSpec
+.. autoclass:: spaday.backends.starlette.SiteRoutes
+   :members:
 .. autofunction:: spaday.bootstrap.bootstrap
 .. autoclass:: spaday.Wire
 .. autofunction:: spaday.bootstrap.tree_json

@@ -137,7 +137,7 @@ from spaday import CallEndpoint, field, not_
 from spaday.components.shell import Show
 
 WaButton().text("Send").on("click", CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol")}), result="sent"))
-Show(WaCallout().compute("textContent", field("sent.body")), when=not_(field("sent.ok")))
+Show(not_(field("sent.ok")), WaCallout().compute("textContent", field("sent.body")))
 ```
 
 For transient notices, the shell's `Toast` (`spa-toast`) is the canonical error-reporting surface: a

@@ -411,8 +411,34 @@ public:</p>
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">router</span><span class="p">)</span>
 </pre></div>
 </div>
+<section id="mount-several-pages-with-one-asset-surface">
+<h3>Mount several pages with one asset surface<a class="headerlink" href="#mount-several-pages-with-one-asset-surface" title="Link to this heading">¶</a></h3>
+<p>For a conventional multi-page application, use <code class="docutils literal notranslate"><span class="pre">build_site()</span></code> or <code class="docutils literal notranslate"><span class="pre">mount_site()</span></code>. Each <code class="docutils literal notranslate"><span class="pre">PageSpec</span></code> owns
+its page-generation settings. Component packages and spaday’s <code class="docutils literal notranslate"><span class="pre">/js</span></code> bundle mount once for the site:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">starlette.applications</span><span class="w"> </span><span class="kn">import</span> <span class="n">Starlette</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">PageSpec</span><span class="p">,</span> <span class="n">mount_site</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Starlette</span><span class="p">()</span>
+<span class="n">mount_site</span><span class="p">(</span>
+    <span class="n">app</span><span class="p">,</span>
+    <span class="p">{</span>
+        <span class="s2">"/"</span><span class="p">:</span> <span class="n">PageSpec</span><span class="p">(</span><span class="n">home</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Home"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">]),</span>
+        <span class="s2">"/login"</span><span class="p">:</span> <span class="n">PageSpec</span><span class="p">(</span><span class="n">login</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Sign in"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">],</span> <span class="n">tree</span><span class="o">=</span><span class="s2">"inline"</span><span class="p">),</span>
+    <span class="p">},</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">"/account"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>This serves the pages at <code class="docutils literal notranslate"><span class="pre">/account/</span></code> and <code class="docutils literal notranslate"><span class="pre">/account/login</span></code>. The first page fetches its tree from
+<code class="docutils literal notranslate"><span class="pre">/account/tree.json</span></code>; the inline login page needs no tree route. JSON and frame trees for non-root pages
+live below their page path, such as <code class="docutils literal notranslate"><span class="pre">/account/settings/tree.json</span></code>. Page keys are static paths; add
+parameterized HTTP and websocket endpoints through <code class="docutils literal notranslate"><span class="pre">routes=</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">build_site()</span></code> returns a <code class="docutils literal notranslate"><span class="pre">SiteRoutes</span></code> object instead of one flat list. Use <code class="docutils literal notranslate"><span class="pre">site.pages</span></code> and
+<code class="docutils literal notranslate"><span class="pre">site.supplied</span></code> for routes that need FastAPI dependencies, and mount <code class="docutils literal notranslate"><span class="pre">site.assets</span></code> publicly. Use
+<code class="docutils literal notranslate"><span class="pre">site.all()</span></code> when every route can be added directly to Starlette.</p>
 <p>Backends ship for <strong>Starlette/FastAPI</strong>, <strong>aiohttp</strong>, <strong>Flask</strong>, and <strong>Tornado</strong> — import <code class="docutils literal notranslate"><span class="pre">serve</span></code>/<code class="docutils literal notranslate"><span class="pre">mount</span></code>
 from <code class="docutils literal notranslate"><span class="pre">spaday.backends.&lt;name&gt;</span></code>. They are thin glue over the framework-agnostic generator.</p>
+</section>
 </section>
 <section id="drop-into-a-host-page">
 <h2>Drop into a host page<a class="headerlink" href="#drop-into-a-host-page" title="Link to this heading">¶</a></h2>
@@ -576,7 +602,10 @@ the store; you supply the websocket route and run <code class="docutils literal 
 <li><a class="reference internal" href="#">Serve and embed a spaday app</a><ul>
 <li><a class="reference internal" href="#serve-a-whole-app">Serve a whole app</a></li>
 <li><a class="reference internal" href="#install-an-external-component-package">Install an external component package</a></li>
-<li><a class="reference internal" href="#embed-in-an-existing-app">Embed in an existing app</a></li>
+<li><a class="reference internal" href="#embed-in-an-existing-app">Embed in an existing app</a><ul>
+<li><a class="reference internal" href="#mount-several-pages-with-one-asset-surface">Mount several pages with one asset surface</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#drop-into-a-host-page">Drop into a host page</a></li>
 <li><a class="reference internal" href="#seed-reactive-state-without-a-server">Seed reactive state without a server</a></li>
 <li><a class="reference internal" href="#connect-a-live-model">Connect a live model</a></li>
