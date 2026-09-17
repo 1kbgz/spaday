@@ -68,7 +68,7 @@ from .ui import (
 from .validate import ValidationError, validate
 from .worker import WorkerApp
 
-__version__ = "0.8.2"
+__version__ = "0.9.0"
 
 __all__ = [
     "check_script",
