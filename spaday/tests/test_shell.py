@@ -192,11 +192,43 @@ def test_show_when_authors_a_compute_binding():
     assert binding["compute"] == {"expr": "not", "of": {"expr": "field", "name": "hidden"}}
 
 
+def test_show_accepts_a_condition_before_its_children():
+    condition = not_(field("hidden"))
+    preferred = Show(condition, element("p").text("Ready")).to_node()
+    legacy = Show(element("p").text("Ready"), when=condition).to_node()
+    assert preferred == legacy
+    assert Show(field("ready"), element("span")).to_node() == Show(element("span"), field="ready").to_node()
+
+
+def test_show_condition_first_preserves_component_options_and_serializes():
+    node = Show(not_(field("hidden")), element("span"), key="notice", class_="callout")
+    serialized = json.loads(node.to_json())
+    assert serialized["key"] == "notice"
+    assert serialized["props"]["class"] == {"Str": "callout"}
+    assert serialized["bindings"]["when"]["compute"]["expr"] == "not"
+
+
 def test_show_requires_a_condition():
     with pytest.raises(ValueError):
         Show()
     with pytest.raises(TypeError, match="Show when must be an Expr"):
         Show(when=True)
+
+
+def test_show_rejects_ambiguous_or_misplaced_conditions():
+    child = element("span")
+    with pytest.raises(ValueError, match="exactly one"):
+        Show(field("visible"), child, field="other")
+    assert Show(child, field="visible", when=field("other")).to_node()["bindings"]["when"] == {
+        "field": "visible",
+        "mode": "one-way",
+    }
+    with pytest.raises(TypeError, match="must be the first"):
+        Show(child, field("visible"))
+    with pytest.raises(TypeError, match="must be the first"):
+        Show(field("visible"), field("other"), child)
+    with pytest.raises(TypeError, match="field must be a string"):
+        Show(child, field=field("visible"))
 
 
 def test_each_authors_a_keyed_collection_template():

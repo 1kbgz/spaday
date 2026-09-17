@@ -18,7 +18,7 @@ becomes a left or right gutter by where it sits in a :class:`Body`.
 
 import math
 from enum import Enum
-from typing import Any
+from typing import Any, overload
 
 from ..actions import Expr
 from ..component import Child, Component, element
@@ -334,7 +334,7 @@ class Toast(Component):
         # surface failures from the result field …
         toasts.compute("message", cond(field("submit_result.ok"), lit(""), field("submit_result.body")))
         # … or drive any reactive fallback UI from the same field
-        page.add(Show(..., when=not_(field("submit_result.ok"))))
+        page.add(Show(not_(field("submit_result.ok")), ...))
 
     **Testing note**: notices render in the element's *shadow root*, so ``innerText``/``textContent``
     on ``<spa-toast>`` are ``""`` even while toasts are visible — assert via
@@ -353,10 +353,13 @@ class Show(Component):
 
     Unlike the layout components above this is not a shadow-DOM element but a runtime **structural
     binding** (``js/src/ts/runtime.ts``); the wrapper renders ``display:contents`` and is transparent.
-    Pass ``field`` for a plain store field, or ``when`` for a field-expression
+    Put a field expression first, followed by the children it controls
     (:func:`~spaday.actions.field` / ``not_`` / ``eq`` / ``all_`` / ``any_``)::
 
-        Show(LightweightChart(...), field="show_chart")
+        Show(field("show_chart"), LightweightChart(...))
+
+    The existing ``Show(child, when=expression)`` form remains available, and ``field="name"`` is a
+    shortcut for a plain store field.
 
     A ``field`` condition requires a signal ``Store``. A computed condition may instead read the
     current ``Each`` item or a named repeater scope.
@@ -364,16 +367,59 @@ class Show(Component):
 
     tag = "spa-show"
 
-    def __init__(self, *children: Child, field: str | None = None, when: Any | None = None, key: str | None = None, **props: Any) -> None:
+    @overload
+    def __init__(
+        self,
+        condition: Expr,
+        *children: Child,
+        field: None = None,
+        when: None = None,
+        key: str | None = None,
+        **props: Any,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *children: Child,
+        field: str | None = None,
+        when: Expr | None = None,
+        key: str | None = None,
+        **props: Any,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *args: Any,
+        field: str | None = None,
+        when: Expr | None = None,
+        key: str | None = None,
+        **props: Any,
+    ) -> None:
+        children = args
+        positional = False
+        if children and isinstance(children[0], Expr):
+            if field is not None or when is not None:
+                raise ValueError("Show accepts exactly one positional, field=, or when= condition")
+            positional = True
+            when, children = children[0], children[1:]
+        if any(isinstance(child, Expr) for child in children):
+            raise TypeError("Show positional condition must be the first argument")
+        if field is not None and not isinstance(field, str):
+            raise TypeError(f"Show field must be a string, got {type(field).__name__}")
+        if field is None and when is not None and not isinstance(when, Expr):
+            raise TypeError(f"Show when must be an Expr, got {type(when).__name__}")
+        expression = when.to_dict() if field is None and when is not None else None
+        if positional and expression is not None and set(expression) == {"expr", "name"} and expression["expr"] == "field":
+            field, expression = expression["name"], None
+
         super().__init__(*children, key=key, props={"style": "display:contents"}, **props)
         if field is not None:
             self._bindings["when"] = {"field": field, "mode": "one-way"}
-        elif when is not None:
-            if not isinstance(when, Expr):
-                raise TypeError(f"Show when must be an Expr, got {type(when).__name__}")
-            self._bindings["when"] = {"compute": when.to_dict(), "mode": "one-way"}
+        elif expression is not None:
+            self._bindings["when"] = {"compute": expression, "mode": "one-way"}
         else:
-            raise ValueError("Show requires field= (a store field) or when= (a field-expression)")
+            raise ValueError("Show requires a positional expression, field=, or when=")
 
 
 class Each(Component):
