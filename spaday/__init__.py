@@ -1,5 +1,6 @@
 from . import actions
 from .actions import (
+    ActionSequence,
     CallEndpoint,
     Download,
     Emit,
@@ -89,6 +90,7 @@ __all__ = [
     "PropertySchema",
     "SendPatch",
     "Sequence",
+    "ActionSequence",
     "SetField",
     "SetProp",
     "SetStorage",

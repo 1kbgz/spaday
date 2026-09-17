@@ -412,6 +412,9 @@ class Sequence(Action):
         return {"kind": "seq", "actions": [a.to_dict() for a in self.actions]}
 
 
+ActionSequence = Sequence
+
+
 class Emit(Action):
     """Dispatch a (bubbling) custom DOM event named ``event`` with an optional ``detail`` expression."""
 

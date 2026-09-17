@@ -20,7 +20,8 @@ WaButton().text("Details").on("click", Toggle(by_id("info"), "hidden"))
 
 - `SetProp(target, prop, value)` — set a prop to a value or expression.
 - `SetField(field, value)` / `ToggleField(field)` — write / flip a reactive state field (see below).
-- `Sequence(a, b, …)` — run several actions in order.
+- `Sequence(a, b, …)` — run several actions in order. Import it as `ActionSequence` when another
+  `Sequence` is already in scope.
 - `If(cond, then, els=None)` — branch on a live condition.
 - `Emit(event, detail=None)` — dispatch a custom DOM event.
 - `SendPatch`, `CallEndpoint`, `NamedJs` — see below.

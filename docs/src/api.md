@@ -40,6 +40,7 @@ Behavior attached to a component with `Component.on`; see [Add behavior and reac
 .. autoclass:: spaday.SetProp
 .. autoclass:: spaday.Toggle
 .. autoclass:: spaday.Sequence
+.. autoclass:: spaday.ActionSequence
 .. autoclass:: spaday.Emit
 .. autoclass:: spaday.SendPatch
 .. autoclass:: spaday.If

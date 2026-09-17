@@ -44,6 +44,8 @@ _SCHEMAS_BY_TAG: dict[str, ComponentSchema] = {}
 #: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.
 _GLOBAL_PROPS = {"id", "class", "style", "slot", "part", "title", "role", "hidden", "tabindex", "textContent"}
 _GLOBAL_PREFIXES = ("data-", "aria-")
+#: Native elements with a writable ``text`` DOM property. Other native elements need ``textContent``.
+_TEXT_PROP_TAGS = {"a", "option", "script", "title"}
 
 
 @lru_cache(maxsize=None)
@@ -369,6 +371,7 @@ class Component:
         """
         if mode not in ("one-way", "two-way"):
             raise ValueError(f"bind mode must be 'one-way' or 'two-way', not {mode!r}")
+        self._check_text_binding(prop)
         binding: dict[str, Any] = {"field": field, "mode": mode}
         if event is not None:
             binding["event"] = event
@@ -398,8 +401,13 @@ class Component:
         """
         if not isinstance(expr, Expr):
             raise TypeError(f"computed binding must use an Expr, got {type(expr).__name__}")
+        self._check_text_binding(prop)
         self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
         return self
+
+    def _check_text_binding(self, prop: str) -> None:
+        if prop == "text" and type(self).schema is None and "-" not in self.tag and self.tag not in _TEXT_PROP_TAGS:
+            raise ValueError(f"<{self.tag}> has no 'text' DOM property; use .text(...) or bind 'textContent'")
 
     def bind_root_class(self, name: str, field: str) -> "Component":
         """Toggle a CSS class on the document root (``<html>``) from a boolean reactive state ``field``.
