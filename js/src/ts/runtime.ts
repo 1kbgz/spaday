@@ -361,18 +361,55 @@ function wireBinding(
         ? encodeBoundOptions(value, spec.options)
         : encodeBoundValue(value, spec.codec),
     );
+  // build() wires before mount() attaches. Keep the latest initial method value pending until the
+  // element connects; updates after connection stay synchronous and retain user activation.
+  let connectionQueued = false;
+  let connectionValue: unknown;
+  let connectionObserver: MutationObserver | undefined;
+  const flushConnected = () => {
+    if (!connectionQueued || !el.isConnected) return;
+    connectionQueued = false;
+    connectionObserver?.disconnect();
+    connectionObserver = undefined;
+    applyNow(connectionValue);
+  };
+  const applyConnected = (value: unknown) => {
+    if (!spec.methods || el.isConnected) {
+      connectionQueued = false;
+      connectionObserver?.disconnect();
+      connectionObserver = undefined;
+      applyNow(value);
+      return;
+    }
+    connectionValue = value;
+    if (connectionQueued) return;
+    connectionQueued = true;
+    queueMicrotask(() => {
+      if (!connectionQueued) return;
+      if (el.isConnected) {
+        flushConnected();
+        return;
+      }
+      connectionObserver = new MutationObserver(flushConnected);
+      connectionObserver.observe(document, { childList: true, subtree: true });
+      flushConnected();
+    });
+  };
   const apply = spec.defer
     ? (value: unknown) => {
         if (frame !== undefined) cancelAnimationFrame(frame);
         frame = requestAnimationFrame(() => {
           frame = undefined;
-          applyNow(value);
+          applyConnected(value);
         });
       }
-    : applyNow;
-  if (spec.defer)
+    : applyConnected;
+  if (spec.defer || spec.methods)
     teardowns.push(() => {
       if (frame !== undefined) cancelAnimationFrame(frame);
+      connectionQueued = false;
+      connectionObserver?.disconnect();
+      connectionObserver = undefined;
     });
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads

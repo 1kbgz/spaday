@@ -310,7 +310,6 @@ test.describe("binding features for designs", () => {
               mode: "one-way",
               methods: ["show", "hide"],
               state: "dialog.open",
-              defer: true,
             },
           },
         },
@@ -320,6 +319,61 @@ test.describe("binding features for designs", () => {
       return { connected: el.isConnected, open: el.dialog.open };
     });
     expect(r).toEqual({ connected: true, open: true });
+  });
+
+  test("method updates stay synchronous after connection", async ({ page }) => {
+    const r = await page.evaluate(async () => {
+      const store = new window.__spaday.Store({ open: false });
+      const el = window.__spaday.mount(
+        document.body,
+        {
+          tag: "dialog",
+          bindings: {
+            open: {
+              field: "open",
+              mode: "one-way",
+              methods: ["showModal", "close"],
+            },
+          },
+        },
+        store,
+      );
+      store.set("open", true);
+      const opened = el.open;
+      await Promise.resolve();
+      const stayedOpen = el.open;
+      store.set("open", false);
+      return { opened, stayedOpen, closed: !el.open };
+    });
+    expect(r).toEqual({ opened: true, stayedOpen: true, closed: true });
+  });
+
+  test("an initial method binding waits for deferred attachment", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(async () => {
+      const container = document.createElement("div");
+      const el = window.__spaday.mount(
+        container,
+        {
+          tag: "dialog",
+          bindings: {
+            open: {
+              compute: { expr: "lit", value: true },
+              mode: "one-way",
+              methods: ["showModal", "close"],
+            },
+          },
+        },
+        new window.__spaday.Store({}),
+      );
+      await Promise.resolve();
+      const before = el.open;
+      document.body.append(container);
+      await new Promise(requestAnimationFrame);
+      return { before, connected: el.isConnected, after: el.open };
+    });
+    expect(r).toEqual({ before: false, connected: true, after: true });
   });
 
   test("a binding can wait for connection and assigned children", async ({
@@ -492,7 +546,7 @@ test.describe("the conformance page with the native baseline", () => {
     await page.locator("#reset").click();
     await expect(page.locator("#email")).not.toHaveAttribute(
       "data-invalid",
-      "",
+      /.*/,
     );
     await expect(page.getByText("Required")).toHaveCount(0);
     await page.locator("#save").click();

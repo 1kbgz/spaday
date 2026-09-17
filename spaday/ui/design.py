@@ -282,7 +282,8 @@ class _Resolver:
             if literal is None and binding is None:
                 continue
             placement = getattr(spec, part)
-            for where in placement if isinstance(placement, tuple) else (placement,):
+            destinations = placement if isinstance(placement, tuple) else (placement,)
+            for where in destinations:
                 if where.kind == "attr":
                     out[where.name] = literal
                     if binding:
@@ -303,7 +304,7 @@ class _Resolver:
                         if spec.wrap is None:
                             raise ValueError(f"design {self.design.name!r} places the {part} of {kind!r} beside the control but declares no wrap")
                         (siblings_after if where.after else siblings_before).append(element)
-            if part == "error":
+            if part == "error" and any(where.kind != "none" for where in destinations):
                 if literal:
                     out.update(spec.invalid)
                 if binding and spec.invalid:
@@ -317,7 +318,7 @@ class _Resolver:
                                     "expr": "cond",
                                     "test": source,
                                     "then": {"expr": "lit", "value": invalid},
-                                    "else": {"expr": "lit", "value": None},
+                                    "else": {"expr": "lit", "value": spec.fixed.get(target)},
                                 },
                                 "mode": "one-way",
                             }
@@ -445,7 +446,6 @@ class _Resolver:
                     binding["event"] = spec.open.event
                 if spec.open.methods:
                     binding["methods"] = list(spec.open.methods)
-                    binding["defer"] = True
                 if spec.open.state:
                     binding["state"] = spec.open.state
                 bindings[spec.open.prop] = binding
@@ -455,7 +455,6 @@ class _Resolver:
                     "mode": "one-way",
                     "methods": list(spec.open.methods),
                     **({"state": spec.open.state} if spec.open.state else {}),
-                    "defer": True,
                 }
 
         for name, v in props.items():

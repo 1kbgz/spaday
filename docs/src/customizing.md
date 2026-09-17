@@ -122,7 +122,8 @@ package = ComponentPackage(name="acme", ..., design=DESIGN)
 `Part` places a label, help text or error message as an attribute, a slotted element, the control's
 text, a child inside it, or a sibling in a `Wrap` around it (a `bp-field`, a `fluent-field`, a plain
 `<label>`). A tuple of parts sends the same text to several destinations, such as a visible error slot
-and the control's validation property. `invalid` props follow both literal and bound errors.
+and the control's validation property. `invalid` props follow both literal and bound errors, returning
+to the value in `fixed` (or being removed) when a bound error clears.
 `Options` renders `Select` and `RadioGroup` choices as child elements, optionally inside one list
 wrapper, or as a list property. It maps `value`, `label`, and `disabled` for literal and bound option
 lists. A child option's `label` can also be a `Part`; combine a sibling part with `item_wrap` when each
@@ -133,9 +134,10 @@ that marks the current choice; use `selected="checked"` for radio elements. `Val
 property and its change event; its `number` and `json` codecs handle DOM controls that expose only
 strings. `Value.defer` delays writes until the next animation frame for a setter that requires
 connected children. `Open` names overlay state and can supply the method pair used to open and close
-it. Method calls wait until the element is connected. `state` can name a different readable property,
-including a dotted path such as `dialog.open`, when the custom element wraps the stateful overlay. A
-control the design leaves out renders with the native baseline.
+it instead of assigning the open prop. Method calls are applied once the element is connected; while
+it remains connected, later updates stay synchronous. `state` can name a different readable
+property, including a dotted path such as `dialog.open`, when the custom element wraps the stateful
+overlay. A control the design leaves out renders with the native baseline.
 `python -m spaday.ui.conformance PORT --package acme` serves the conformance page with your design, so
 the same browser checks spaday runs against the baseline (`js/tests/ui.spec.js`) run against yours.
 
