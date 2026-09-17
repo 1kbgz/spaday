@@ -60,6 +60,35 @@ def test_compute_rejects_non_expression_at_authoring_time():
         element("span").compute("textContent", 3)
 
 
+def test_native_text_binding_rejects_silent_no_op():
+    with pytest.raises(ValueError, match=r"use \.text\(\.\.\.\) or bind 'textContent'"):
+        element("span").compute("text", field("message"))
+    with pytest.raises(ValueError, match=r"use \.text\(\.\.\.\) or bind 'textContent'"):
+        element("span").bind("text", "message")
+
+
+def test_native_text_literal_rejects_typo_but_prop_remains_an_escape_hatch():
+    with pytest.raises(ValueError, match=r"use \.text\(\.\.\.\)"):
+        element("span", text="message")
+    assert element("span").prop("text", "message").to_node()["props"]["text"] == {"Str": "message"}
+
+
+def test_custom_element_can_bind_a_text_property():
+    node = element("custom-label").compute("text", field("message")).to_node()
+    assert node["bindings"]["text"]["compute"] == {"expr": "field", "name": "message"}
+
+
+@pytest.mark.parametrize("tag", ["a", "option", "script", "title"])
+def test_native_text_property_can_be_bound(tag):
+    node = element(tag).bind("text", "label").to_node()
+    assert node["bindings"]["text"] == {"field": "label", "mode": "one-way"}
+
+
+def test_text_helper_targets_text_content():
+    node = element("span").text(field("message")).to_node()
+    assert node["bindings"]["textContent"]["compute"] == {"expr": "field", "name": "message"}
+
+
 def test_bind_root_class_targets_the_document_root():
     # page-level theming outside the tree: a field toggles a class on <html> (e.g. WebAwesome's wa-dark)
     node = element("spa-app").bind_root_class("wa-dark", "dark").to_node()

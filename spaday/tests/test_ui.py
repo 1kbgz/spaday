@@ -173,6 +173,11 @@ def _design(**controls) -> Design:
     return Design(name="test", controls=controls)
 
 
+def test_design_rejects_a_text_binding_that_resolves_to_a_dead_native_attribute():
+    with pytest.raises(ValueError, match="<button> has no 'text' DOM property"):
+        resolve(Button(label="Hi").bind("text", "message").to_node(), NATIVE)
+
+
 def test_a_design_maps_names_values_parts_events_and_bindings():
     design = _design(
         button=ControlSpec(

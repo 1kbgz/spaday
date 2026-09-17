@@ -44,6 +44,13 @@ _SCHEMAS_BY_TAG: dict[str, ComponentSchema] = {}
 #: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.
 _GLOBAL_PROPS = {"id", "class", "style", "slot", "part", "title", "role", "hidden", "tabindex", "textContent"}
 _GLOBAL_PREFIXES = ("data-", "aria-")
+#: Native elements with a writable ``text`` DOM property. Other native elements need ``textContent``.
+_TEXT_PROP_TAGS = {"a", "option", "script", "title"}
+
+
+def _check_text_binding_target(tag: str, schema: ComponentSchema | None, prop: str) -> None:
+    if prop == "text" and schema is None and "-" not in tag and tag not in _TEXT_PROP_TAGS:
+        raise ValueError(f"<{tag}> has no 'text' DOM property; use .text(...) or bind 'textContent'")
 
 
 @lru_cache(maxsize=None)
@@ -369,6 +376,7 @@ class Component:
         """
         if mode not in ("one-way", "two-way"):
             raise ValueError(f"bind mode must be 'one-way' or 'two-way', not {mode!r}")
+        self._check_text_binding(prop)
         binding: dict[str, Any] = {"field": field, "mode": mode}
         if event is not None:
             binding["event"] = event
@@ -398,8 +406,12 @@ class Component:
         """
         if not isinstance(expr, Expr):
             raise TypeError(f"computed binding must use an Expr, got {type(expr).__name__}")
+        self._check_text_binding(prop)
         self._bindings[prop] = {"compute": expr.to_dict(), "mode": "one-way"}
         return self
+
+    def _check_text_binding(self, prop: str) -> None:
+        _check_text_binding_target(self.tag, type(self).schema, prop)
 
     def bind_root_class(self, name: str, field: str) -> "Component":
         """Toggle a CSS class on the document root (``<html>``) from a boolean reactive state ``field``.
@@ -469,7 +481,10 @@ def element(tag: str, *children: Child, key: str | None = None, **props: Any) ->
     Children nest positionally; a prop name with a trailing underscore is de-escaped so reserved words
     work (``class_`` → ``class``). e.g. ``element("div", Strong("hi"), id="root", class_="card")``.
     """
-    node = Component(*children, key=key, props={_attr_name(k): v for k, v in props.items()})
+    normalized = {_attr_name(k): v for k, v in props.items()}
+    if "text" in normalized:
+        _check_text_binding_target(tag, None, "text")
+    node = Component(*children, key=key, props=normalized)
     node.tag = tag
     return node
 

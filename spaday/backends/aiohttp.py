@@ -17,7 +17,7 @@ from collections.abc import Awaitable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, select_design
 
@@ -37,7 +37,7 @@ def mount(
     packages: PackageRef | Sequence[PackageRef] = (),
     wire: str | None = None,
     ws: str = "/ws",
-    tree: str = "json",
+    tree: TreeMode = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     stylesheets: Sequence[str] = (),
@@ -59,6 +59,7 @@ def mount(
         wire=wire,
         ws=ws,
         tree=tree,
+        page=page,
         reconnect=reconnect,
         scripts=scripts,
         stylesheets=stylesheets,
@@ -66,26 +67,28 @@ def mount(
         head=head,
         title=title,
         layout=asset_layout,
+        design=page_design,
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
 
     async def homepage(_request):
         return web.Response(text=body, content_type="text/html")
 
+    tree_routes = []
     if tree == "frame":
 
         async def tree_handler(_request):
             return web.Response(body=tree_frame(page, design=page_design), content_type="application/octet-stream")
 
-        tree_route = web.get(f"{prefix}/tree", tree_handler)
-    else:
+        tree_routes.append(web.get(f"{prefix}/tree", tree_handler))
+    elif tree == "json":
 
         async def tree_handler(_request):
             return web.Response(text=tree_json(page, page_design), content_type="application/json")
 
-        tree_route = web.get(f"{prefix}/tree.json", tree_handler)
+        tree_routes.append(web.get(f"{prefix}/tree.json", tree_handler))
 
-    app.add_routes([web.get(f"{prefix}/", homepage), tree_route, *routes])
+    app.add_routes([web.get(f"{prefix}/", homepage), *tree_routes, *routes])
     for package in component_packages:
         app.router.add_static(package_url_prefix(package, prefix), str(package.assets_dir))
     app.router.add_static(f"{prefix}/js", js_dir)

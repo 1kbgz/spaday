@@ -393,3 +393,12 @@ def test_switch_lazy_and_refresh_round_trip_through_core():
     assert button["events"]["click"]["actions"][1] == {"kind": "refresh"}
     # the core accepts all of it: diff/apply round-trip is lossless
     assert json.loads(apply(node, diff(node, node))) == json.loads(node)
+
+
+def test_action_sequence_alias_avoids_collections_sequence_collision():
+    import spaday
+
+    assert spaday.ActionSequence is Sequence
+    assert spaday.actions.ActionSequence is Sequence
+    assert {"ActionSequence", "Sequence"} <= set(spaday.__all__)
+    assert spaday.ActionSequence(SetField("view", "orders")).to_dict()["kind"] == "seq"

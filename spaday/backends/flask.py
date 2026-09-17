@@ -15,7 +15,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, select_design
 
@@ -35,7 +35,7 @@ def mount(
     packages: PackageRef | Sequence[PackageRef] = (),
     wire: str | None = None,
     ws: str = "/ws",
-    tree: str = "json",
+    tree: TreeMode = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     stylesheets: Sequence[str] = (),
@@ -57,6 +57,7 @@ def mount(
         wire=wire,
         ws=ws,
         tree=tree,
+        page=page,
         reconnect=reconnect,
         scripts=scripts,
         stylesheets=stylesheets,
@@ -64,6 +65,7 @@ def mount(
         head=head,
         title=title,
         layout=asset_layout,
+        design=page_design,
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     key = prefix.strip("/").replace("/", "_") or "root"  # unique endpoint names per mount
@@ -73,7 +75,7 @@ def mount(
         app.add_url_rule(
             f"{prefix}/tree", f"spaday_tree_{key}", lambda: Response(tree_frame(page, design=page_design), mimetype="application/octet-stream")
         )
-    else:
+    elif tree == "json":
         app.add_url_rule(f"{prefix}/tree.json", f"spaday_tree_{key}", lambda: Response(tree_json(page, page_design), mimetype="application/json"))
     app.add_url_rule(f"{prefix}/js/<path:path>", f"spaday_js_{key}", lambda path: send_from_directory(js_dir, path))
     for package in component_packages:
