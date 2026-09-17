@@ -162,6 +162,34 @@ def test_base_prefixes_the_tree_js_and_ws_urls():
     assert 'fetch("/tree.json")' in bootstrap()  # default base="" is unprefixed (served at root)
 
 
+def test_tree_url_can_differ_from_the_asset_and_wire_base():
+    html = bootstrap(base="/dash", tree_url="/dash/login/tree.json", wire="transports", layout="source")
+    assert 'fetch("/dash/login/tree.json")' in html
+    assert 'trackRoot(mount(document.body, node, store), node, "/dash/login/tree.json", store);' in html
+    assert "/dash/js/dist/esm/index.js" in html
+    assert "${location.host}/dash/ws" in html
+
+
+def test_frame_tree_url_can_be_overridden_without_enabling_json_refresh():
+    html = bootstrap(tree="frame", tree_url="/account/tree")
+    assert 'fetch("/account/tree")' in html
+    assert 'trackRoot(mount(document.body, node), node, "");' in html
+
+
+def test_inline_tree_rejects_a_tree_url_and_empty_urls_are_invalid():
+    with pytest.raises(ValueError, match="cannot be used"):
+        bootstrap(tree="inline", page=Main("hi"), tree_url="/unused")
+    with pytest.raises(ValueError, match="must not be empty"):
+        bootstrap(tree_url="")
+
+
+def test_tree_url_is_safe_inside_the_generated_module_script():
+    breakout = "</script><script>alert(1)</script>"
+    html = bootstrap(tree_url=breakout)
+    assert breakout not in html
+    assert "\\u003c/script>\\u003cscript>alert(1)\\u003c/script>" in html
+
+
 def test_fragment_emits_a_snippet_not_a_document():
     f = bootstrap(fragment=True, target="#widget", wire="transports")
     assert "<!doctype html>" not in f and "<html" not in f  # a snippet to drop into a host template

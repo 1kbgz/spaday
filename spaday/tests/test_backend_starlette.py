@@ -12,7 +12,7 @@ from starlette.testclient import TestClient
 
 import spaday.packages as package_registry
 from spaday import Button, Design, decode_frame
-from spaday.backends.starlette import build_routes, mount, serve
+from spaday.backends.starlette import PageSpec, build_routes, build_site, mount, mount_site, serve
 from spaday.components.shell import Main
 from spaday.packages import ComponentPackage
 from spaday.ui import ControlSpec
@@ -88,6 +88,194 @@ def test_build_routes_returns_the_complete_prefixed_route_set(tmp_path):
         "/dash/components/fixture",
         "/dash/js",
     ]
+
+
+def test_build_site_hosts_pages_with_independent_tree_modes_and_shared_assets(tmp_path):
+    from starlette.applications import Starlette
+
+    package = ComponentPackage("fixture", tmp_path, ())
+    site = build_site(
+        {
+            "/": PageSpec(Main("home"), packages=[package], title="Home"),
+            "/login": PageSpec(Main("login"), packages=[package], tree="frame", title="Login"),
+            "/help/": PageSpec(Main("help"), tree="inline", title="Help"),
+        },
+        prefix="/dash",
+        routes=[Route("/ping", lambda _request: PlainTextResponse("pong"))],
+        js=tmp_path,
+    )
+    assert [route.path for route in site.pages] == [
+        "/dash/",
+        "/dash/tree.json",
+        "/dash/login",
+        "/dash/login/tree",
+        "/dash/help",
+    ]
+    assert [route.path for route in site.supplied] == ["/dash/ping"]
+    assert [route.path for route in site.assets] == ["/dash/components/fixture", "/dash/js"]
+    assert [route.name for route in site.pages] == [
+        "spaday:page:/",
+        "spaday:tree:/",
+        "spaday:page:/login",
+        "spaday:tree:/login",
+        "spaday:page:/help",
+    ]
+
+    client = TestClient(Starlette(routes=site.all()))
+    home = client.get("/dash/").text
+    login = client.get("/dash/login").text
+    help_page = client.get("/dash/help").text
+    assert "<title>Home</title>" in home and 'fetch("/dash/tree.json")' in home
+    assert "<title>Login</title>" in login and 'fetch("/dash/login/tree")' in login
+    assert json.loads(decode_frame(client.get("/dash/login/tree").content))["payload"] == Main("login").to_node()
+    assert "<title>Help</title>" in help_page and "fetch(" not in help_page
+    assert client.get("/dash/ping").text == "pong"
+
+
+def test_build_site_keeps_each_pages_packages_in_its_own_head(tmp_path):
+    from starlette.applications import Starlette
+
+    first = ComponentPackage("first", tmp_path, (("js", "first.js"),))
+    second = ComponentPackage("second", tmp_path, (("js", "second.js"),))
+    site = build_site(
+        {
+            "/": PageSpec(Main("first"), packages=[first]),
+            "/second": PageSpec(Main("second"), packages=[second]),
+        },
+        js=tmp_path,
+    )
+    client = TestClient(Starlette(routes=site.all()))
+    root = client.get("/").text
+    second_page = client.get("/second").text
+    assert "/components/first/first.js" in root and "/components/second/second.js" not in root
+    assert "/components/second/second.js" in second_page and "/components/first/first.js" not in second_page
+    assert [route.path for route in site.assets] == ["/components/first", "/components/second", "/js"]
+
+
+def test_build_site_rejects_path_and_package_collisions(tmp_path):
+    page = Main("hi")
+    with pytest.raises(ValueError, match="both normalize"):
+        build_site({"/login": page, "//login/": page}, js=tmp_path)
+    with pytest.raises(ValueError, match="tree for page"):
+        build_site({"/": page, "/tree.json": page}, js=tmp_path)
+    with pytest.raises(ValueError, match="asset routes"):
+        build_site({"/js/settings": page}, js=tmp_path)
+
+    first = ComponentPackage("fixture", tmp_path / "one", ())
+    second = ComponentPackage("fixture", tmp_path / "two", ())
+    with pytest.raises(ValueError, match="different component package descriptors"):
+        build_site({"/": PageSpec(page, packages=[first]), "/other": PageSpec(page, packages=[second])}, js=tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("pages", "prefix", "message"),
+    [
+        ({}, "", "at least one"),
+        ({"relative": Main("hi")}, "", "must start"),
+        ({"/with?query": Main("hi")}, "", "cannot contain"),
+        ({"/with%20escape": Main("hi")}, "", "cannot contain"),
+        ({"/a/../b": Main("hi")}, "", "cannot contain"),
+        ({"/users/{user_id}": Main("hi")}, "", "requires static"),
+        ({"/": Main("hi")}, "relative", "must start"),
+    ],
+)
+def test_build_site_rejects_invalid_paths(pages, prefix, message, tmp_path):
+    with pytest.raises(ValueError, match=message):
+        build_site(pages, prefix=prefix, js=tmp_path)
+
+
+def test_build_site_accepts_a_root_slash_prefix(tmp_path):
+    site = build_site({"/": Main("hi")}, prefix="/", js=tmp_path)
+    assert [route.path for route in site.pages] == ["/", "/tree.json"]
+
+
+def test_build_site_rejects_supplied_get_collisions_but_allows_other_scopes(tmp_path):
+    from starlette.applications import Starlette
+
+    with pytest.raises(ValueError, match="supplied route.*conflicts with page"):
+        build_site({"/": Main("hi")}, routes=[Route("/", lambda _request: PlainTextResponse("other"))], js=tmp_path)
+
+    async def websocket_endpoint(websocket):
+        await websocket.accept()
+        await websocket.close()
+
+    post = Route("/", lambda _request: PlainTextResponse("posted"), methods=["POST"])
+    websocket = WebSocketRoute("/", websocket_endpoint)
+    site = build_site({"/": Main("hi")}, routes=[post, websocket], js=tmp_path)
+    client = TestClient(Starlette(routes=site.all()))
+    assert client.post("/").text == "posted"
+    with client.websocket_connect("/"):
+        pass
+
+
+@pytest.mark.parametrize(
+    ("mount_path", "prefix"),
+    [("", ""), ("/js", ""), ("/js/vendor", ""), ("/components", ""), ("/dash", "/dash")],
+)
+def test_build_site_rejects_supplied_mounts_that_shadow_assets(mount_path, prefix, tmp_path):
+    from starlette.applications import Starlette
+    from starlette.routing import Mount
+
+    package = ComponentPackage("fixture", tmp_path, ())
+    route = Mount(mount_path, app=Starlette())
+    with pytest.raises(ValueError, match="shadows the site's asset route"):
+        build_site({"/": PageSpec(Main("hi"), packages=[package])}, prefix=prefix, routes=[route], js=tmp_path)
+
+
+def test_build_site_allows_an_unrelated_supplied_mount(tmp_path):
+    from starlette.applications import Starlette
+    from starlette.routing import Mount
+
+    route = Mount("/static", app=Starlette())
+    site = build_site({"/": Main("hi")}, routes=[route], js=tmp_path)
+    assert site.supplied == (route,)
+
+
+def test_build_site_rejects_supplied_gets_under_assets_but_allows_posts(tmp_path):
+    from starlette.applications import Starlette
+
+    get = Route("/js/custom.js", lambda _request: PlainTextResponse("other"))
+    with pytest.raises(ValueError, match="shadows the site's asset route"):
+        build_site({"/": Main("hi")}, routes=[get], js=tmp_path)
+
+    post = Route("/js/custom.js", lambda _request: PlainTextResponse("posted"), methods=["POST"])
+    site = build_site({"/": Main("hi")}, routes=[post], js=tmp_path)
+    assert TestClient(Starlette(routes=site.all())).post("/js/custom.js").text == "posted"
+
+
+def test_mount_site_adds_all_route_groups(tmp_path):
+    from starlette.applications import Starlette
+
+    app = Starlette()
+    returned = mount_site(app, {"/": Main("home"), "/about": Main("about")}, js=tmp_path)
+    assert returned is app
+    assert [route.path for route in app.routes] == ["/", "/tree.json", "/about", "/about/tree.json", "/js"]
+    assert TestClient(app).get("/about/tree.json").json() == Main("about").to_node()
+
+
+def test_build_site_route_groups_support_fastapi_dependencies(tmp_path):
+    fastapi = pytest.importorskip("fastapi")
+
+    authenticated = []
+
+    async def require_auth():
+        authenticated.append(True)
+
+    (tmp_path / "public.js").write_text("export {};", encoding="utf-8")
+    site = build_site({"/": Main("home")}, js=tmp_path)
+    app = fastapi.FastAPI()
+    router = fastapi.APIRouter(dependencies=[fastapi.Depends(require_auth)])
+    for route in site.pages:
+        router.add_api_route(route.path, route.endpoint, methods=route.methods, include_in_schema=False)
+    app.include_router(router)
+    app.routes.extend(site.assets)
+
+    client = TestClient(app)
+    assert client.get("/").status_code == 200
+    assert client.get("/tree.json").status_code == 200
+    assert authenticated == [True, True]
+    assert client.get("/js/public.js").status_code == 200
+    assert authenticated == [True, True]
 
 
 def test_build_routes_endpoints_work_on_a_fastapi_router(tmp_path):
