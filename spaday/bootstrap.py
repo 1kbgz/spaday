@@ -282,6 +282,7 @@ def _script(
     scripts: Sequence[str],
     ws: str,
     tree: TreeMode,
+    tree_url: str,
     inline_tree: dict | None,
     reconnect: bool,
     store: dict | None = None,
@@ -323,7 +324,7 @@ def _script(
         store_lines.append(f"bindUrl(store, {_script_json({str(k): str(v) for k, v in url.items()})});")
     # the refresh action's re-fetch source: frame and inline pages have no JSON tree URL, so
     # `RefreshTree` there requires an explicit url
-    tree_url = '""' if frame or inline else _script_json(f"{base}/tree.json")
+    refresh_url = '""' if frame or inline else _script_json(tree_url)
     runtime_names = (
         ["mount", "init", "trackRoot"]
         + (["Store"] if (wired or store or persist or url) else [])
@@ -347,12 +348,12 @@ def _script(
     if wired:
         lines.append(f'await wasm.default({{ module_or_path: "{js}{assets["transports_wasm"]}" }});')
     if frame:
-        lines.append(f'const framed = new Uint8Array(await (await fetch("{base}/tree")).arrayBuffer());')
+        lines.append(f"const framed = new Uint8Array(await (await fetch({_script_json(tree_url)})).arrayBuffer());")
         lines.append("const node = JSON.parse(decodeFrame(framed)).payload;")
     elif inline:
         lines.append(f"const node = {_script_json(inline_tree)};")
     else:
-        lines.append(f'const node = await (await fetch("{base}/tree.json")).json();')
+        lines.append(f"const node = await (await fetch({_script_json(tree_url)})).json();")
     if transports and reconnect:
         lines.extend(
             [
@@ -369,7 +370,7 @@ def _script(
                 "  socket.addEventListener('close', () => setTimeout(connect, 1000));",
                 "}",
                 "connect();",
-                f"trackRoot(mount({into}, node, store), node, {tree_url}, store);",
+                f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
         )
     elif transports:
@@ -383,7 +384,7 @@ def _script(
                 'ws.addEventListener("message", (event) =>',
                 '  link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),',
                 ");",
-                f"trackRoot(mount({into}, node, store), node, {tree_url}, store);",
+                f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
         )
     elif wires:  # several models share ONE store, each mirrored under its own namespace (see _wire_block)
@@ -397,11 +398,11 @@ def _script(
             'event.detail.model ? event.detail.model + "." + event.detail.field : event.detail.field, '
             "event.detail.value));"
         )
-        lines.append(f"trackRoot(mount({into}, node, store), node, {tree_url}, store);")
+        lines.append(f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);")
     elif store or persist or url:  # local reactive state (bindings/actions read it), no server wire
-        lines.extend([*store_lines, f"trackRoot(mount({into}, node, store), node, {tree_url}, store);"])
+        lines.extend([*store_lines, f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);"])
     else:
-        lines.append(f"trackRoot(mount({into}, node), node, {tree_url});")
+        lines.append(f"trackRoot(mount({into}, node), node, {refresh_url});")
     return "\n      ".join(lines)
 
 
@@ -413,6 +414,7 @@ def bootstrap(
     ws: str = "/ws",
     tree: TreeMode = "json",
     page: Page | None = None,
+    tree_url: str | None = None,
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     stylesheets: Sequence[str] = (),
@@ -457,6 +459,8 @@ def bootstrap(
     requires ``page`` and embeds its current tree directly in the module script; callable pages are
     evaluated once when this markup is built. ``design`` selects how that inline page resolves generic
     controls; JSON and frame modes apply their design when the separate tree route serializes the page.
+    ``tree_url`` overrides the JSON or frame fetch URL without changing the asset and websocket ``base``;
+    inline trees reject it because they perform no initial tree fetch.
     ``layout`` selects source-checkout or installed-wheel asset URLs; by default it follows
     :func:`bundles_dir`."""
     if tree not in ("json", "frame", "inline"):
@@ -465,6 +469,11 @@ def bootstrap(
     component_packages = resolve_component_packages(packages)
     if tree == "inline" and page is None:
         raise ValueError("tree='inline' requires page")
+    if tree == "inline" and tree_url is not None:
+        raise ValueError("tree_url cannot be used with tree='inline'")
+    if tree_url == "":
+        raise ValueError("tree_url must not be empty")
+    resolved_tree_url = tree_url or f"{base}/tree{'' if tree == 'frame' else '.json'}"
     inline_tree = tree_node(page, select_design(design, component_packages)) if tree == "inline" else None
     style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
     style_tags += [f"<style{n}>{css}</style>" for css in styles]
@@ -472,7 +481,7 @@ def bootstrap(
     head_markup = "\n    ".join(
         p for p in (_importmap(component_packages, base, nonce), _package_head(component_packages, base, nonce), *style_tags, head) if p
     )
-    script = _script(base, wire, scripts, ws, tree, inline_tree, reconnect, store, target, layout, persist, url)
+    script = _script(base, wire, scripts, ws, tree, resolved_tree_url, inline_tree, reconnect, store, target, layout, persist, url)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
         return f'{head_block}<script type="module"{n}>\n  {script}\n</script>\n'
