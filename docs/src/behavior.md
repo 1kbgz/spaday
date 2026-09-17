@@ -166,6 +166,9 @@ routed into the `ns`-namespaced store (see [transports](transports.md)).
 branches — use `Switch`: it keys a store field to named cases, and the runtime indexes straight to
 the matching branch instead of evaluating a predicate per candidate:
 
+Pass the condition first: `Show(field("ready"), content)`. Existing code can keep using
+`Show(content, when=field("ready"))` or the plain-field shortcut `Show(content, field="ready")`.
+
 ```python
 from spaday.components.shell import Switch
 

@@ -10,6 +10,7 @@ There is **no hand-written HTML**: spaday generates the bootstrap page from your
 | Rung             | spaday owns            | Seam                                                     |
 | ---------------- | ---------------------- | -------------------------------------------------------- |
 | No HTML          | the whole app          | `serve(page, …)`                                         |
+| Several pages    | several page routes    | `mount_site(app, pages, …)` / `build_site(pages, …)`     |
 | Some HTML        | a sub-path of your app | `mount(app, page, prefix=…)`                             |
 | Full custom HTML | one node in your page  | `bootstrap(fragment=True, target=…)` + `tree_json(page)` |
 | Notebook         | a cell's widget        | `Widget(component)`                                      |
