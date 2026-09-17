@@ -90,9 +90,9 @@ class Js:
     code: str
 
 
-def _script_json(value) -> str:
+def _script_json(value, **kwargs) -> str:
     """A JSON value safe inside an inline ``<script>`` element."""
-    return json.dumps(value).replace("<", "\\u003c")
+    return json.dumps(value, **kwargs).replace("<", "\\u003c")
 
 
 def _store_literal(value) -> str:
@@ -237,7 +237,7 @@ def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | Non
     if not resolved:
         return ""
     n = f' nonce="{nonce}"' if nonce else ""
-    body = json.dumps({"imports": resolved}, indent=2, sort_keys=True)
+    body = _script_json({"imports": resolved}, indent=2, sort_keys=True)
     return f'<script type="importmap"{n}>\n{body}\n</script>'
 
 
@@ -255,9 +255,9 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
     # defaults true (recurse sub-models, e.g. a form's nested schedule); a model with an opaque map/dict
     # field (a chart's `data`, a Perspective layout) sets "flatten": False so it's mirrored whole.
     if spec.get("flatten", True):
-        extra = f", {json.dumps(ns)}" if ns else ""
+        extra = f", {_script_json(ns)}" if ns else ""
     else:
-        extra = f", {json.dumps(ns) if ns else 'undefined'}, false"
+        extra = f", {_script_json(ns) if ns else 'undefined'}, false"
     session = "?session=${" + _SESSION_ID + "}" if spec.get("session") else ""  # a fresh tenant per page load
     lines = [
         f"const {client} = new Client();",
@@ -270,8 +270,8 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
     ]
     if ns:  # a status element can compute from `<ns>.connected`; a bare (form) wire has no status
         lines += [
-            f'{sock}.addEventListener("open", () => store.set({json.dumps(ns + ".connected")}, true));',
-            f'{sock}.addEventListener("close", () => store.set({json.dumps(ns + ".connected")}, false));',
+            f'{sock}.addEventListener("open", () => store.set({_script_json(ns + ".connected")}, true));',
+            f'{sock}.addEventListener("close", () => store.set({_script_json(ns + ".connected")}, false));',
         ]
     return lines
 
@@ -315,15 +315,15 @@ def _script(
     # subscribe stores every later write. Both sides are guarded — storage may be unavailable.
     store_lines = [f"const store = {store_init};"]
     for field_name, storage_key in (persist or {}).items():
-        f_js, k_js = json.dumps(str(field_name)), json.dumps(str(storage_key))
+        f_js, k_js = _script_json(str(field_name)), _script_json(str(storage_key))
         store_lines.append(f"try {{ const v = localStorage.getItem({k_js}); if (v !== null) store.set({f_js}, JSON.parse(v)); }} catch {{}}")
         store_lines.append(f"store.subscribe({f_js}, (v) => {{ try {{ localStorage.setItem({k_js}, JSON.stringify(v)); }} catch {{}} }});")
     # `url` seeds after `persist`: a deep link beats a remembered preference
     if url:
-        store_lines.append(f"bindUrl(store, {json.dumps({str(k): str(v) for k, v in url.items()})});")
+        store_lines.append(f"bindUrl(store, {_script_json({str(k): str(v) for k, v in url.items()})});")
     # the refresh action's re-fetch source: frame and inline pages have no JSON tree URL, so
     # `RefreshTree` there requires an explicit url
-    tree_url = '""' if frame or inline else json.dumps(f"{base}/tree.json")
+    tree_url = '""' if frame or inline else _script_json(f"{base}/tree.json")
     runtime_names = (
         ["mount", "init", "trackRoot"]
         + (["Store"] if (wired or store or persist or url) else [])
@@ -339,7 +339,7 @@ def _script(
         # while registering (two copies of one custom element, say) aborts this module before
         # `mount`, and the page renders nothing at all. Awaited here, so handlers are still
         # registered before the tree mounts; a failure costs that one script, not the page.
-        urls = ", ".join(json.dumps(script) for script in scripts)
+        urls = ", ".join(_script_json(script) for script in scripts)
         lines.append(
             f"await Promise.all([{urls}].map((u) => import(u).catch((e) => console.error(`spaday: extra script ${{u}} failed to load`, e))));"
         )

@@ -24,7 +24,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..component import DEFAULT_SLOT, _tag
+from ..component import DEFAULT_SLOT, _check_text_binding_target, _tag
 
 #: The generic node tags carry the control's kind: ``ui-button``, ``ui-input``, …
 GENERIC_PREFIX = "ui-"
@@ -454,6 +454,9 @@ class _Resolver:
             elif name in generic_props or name == "multiple":
                 bindings.pop(name)
         out.update(overrides)
+
+        if "text" in bindings:
+            _check_text_binding_target(spec.tag, None, "text")
 
         control: dict[str, Any] = {"tag": spec.tag}
         control_props = {k: v for k, v in out.items() if v is not None}

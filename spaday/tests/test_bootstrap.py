@@ -198,6 +198,13 @@ def test_store_seed_escapes_script_closing_content():
     assert "</script><script>alert(1)</script>" not in html
 
 
+def test_bootstrap_configuration_escapes_script_closing_content():
+    breakout = "</script><script>alert(1)</script>"
+    html = bootstrap(scripts=[breakout], persist={breakout: breakout}, url={breakout: breakout})
+    assert breakout not in html
+    assert html.count("\\u003c/script>\\u003cscript>alert(1)\\u003c/script>") == 7
+
+
 def test_persist_round_trips_a_store_field_through_localstorage():
     # `persist` maps a store field to a localStorage key: the persisted value overrides the seed at
     # boot (before mount, so the tree renders with it), and later writes to the field are stored.

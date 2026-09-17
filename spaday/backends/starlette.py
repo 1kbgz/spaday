@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import asynccontextmanager
+from inspect import signature
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -33,15 +34,27 @@ def _prefixed(routes: Sequence, prefix: str) -> list:
     """Prefix each supplied ``Route``/``WebSocketRoute`` path with ``prefix`` so it lines up with the wire
     URLs :func:`bootstrap` generates under the same prefix (a ``wire`` ws at ``{prefix}/ws`` must match its
     ``WebSocketRoute``). Other route types (``Mount``/``Host``) pass through — prefix those yourself."""
-    if not prefix:
-        return list(routes)
     from starlette.routing import Route, WebSocketRoute
+    from starlette.websockets import WebSocket
+
+    def typed_websocket(endpoint):
+        async def typed_endpoint(websocket):
+            return await endpoint(websocket)
+
+        typed_endpoint.__annotations__["websocket"] = WebSocket
+        typed_endpoint.__name__ = getattr(endpoint, "__name__", typed_endpoint.__name__)
+        return typed_endpoint
 
     out = []
     for r in routes:
         if isinstance(r, WebSocketRoute):
-            out.append(WebSocketRoute(f"{prefix}{r.path}", r.endpoint, name=r.name))
-        elif isinstance(r, Route):
+            endpoint = r.endpoint
+            if len(signature(endpoint).parameters) == 1:
+                endpoint = typed_websocket(endpoint)
+            route = WebSocketRoute(f"{prefix}{r.path}", endpoint, name=r.name)
+            route.app = r.app  # retain middleware around the supplied route for normal Starlette mounting
+            out.append(route)
+        elif prefix and isinstance(r, Route):
             out.append(Route(f"{prefix}{r.path}", r.endpoint, methods=r.methods, name=r.name))
         else:
             out.append(r)

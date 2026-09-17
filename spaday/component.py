@@ -48,6 +48,11 @@ _GLOBAL_PREFIXES = ("data-", "aria-")
 _TEXT_PROP_TAGS = {"a", "option", "script", "title"}
 
 
+def _check_text_binding_target(tag: str, schema: ComponentSchema | None, prop: str) -> None:
+    if prop == "text" and schema is None and "-" not in tag and tag not in _TEXT_PROP_TAGS:
+        raise ValueError(f"<{tag}> has no 'text' DOM property; use .text(...) or bind 'textContent'")
+
+
 @lru_cache(maxsize=None)
 def _settable(schema: ComponentSchema) -> tuple[PropertySchema, ...]:
     """Every input a schema describes: its attributes and its property-only fields. Both are set the
@@ -406,8 +411,7 @@ class Component:
         return self
 
     def _check_text_binding(self, prop: str) -> None:
-        if prop == "text" and type(self).schema is None and "-" not in self.tag and self.tag not in _TEXT_PROP_TAGS:
-            raise ValueError(f"<{self.tag}> has no 'text' DOM property; use .text(...) or bind 'textContent'")
+        _check_text_binding_target(self.tag, type(self).schema, prop)
 
     def bind_root_class(self, name: str, field: str) -> "Component":
         """Toggle a CSS class on the document root (``<html>``) from a boolean reactive state ``field``.
@@ -477,7 +481,10 @@ def element(tag: str, *children: Child, key: str | None = None, **props: Any) ->
     Children nest positionally; a prop name with a trailing underscore is de-escaped so reserved words
     work (``class_`` → ``class``). e.g. ``element("div", Strong("hi"), id="root", class_="card")``.
     """
-    node = Component(*children, key=key, props={_attr_name(k): v for k, v in props.items()})
+    normalized = {_attr_name(k): v for k, v in props.items()}
+    if "text" in normalized:
+        _check_text_binding_target(tag, None, "text")
+    node = Component(*children, key=key, props=normalized)
     node.tag = tag
     return node
 

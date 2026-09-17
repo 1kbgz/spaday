@@ -1,12 +1,13 @@
 import asyncio
 import json
+from typing import Any
 
 import pytest
 
 pytest.importorskip("starlette")  # the Starlette backend — the optional `examples` extra
 
 from starlette.responses import PlainTextResponse
-from starlette.routing import Route
+from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 
 import spaday.packages as package_registry
@@ -110,6 +111,71 @@ def test_build_routes_endpoints_work_on_a_fastapi_router(tmp_path):
     response = TestClient(app).get("/")
     assert response.status_code == 200
     assert authenticated == [True]
+
+
+def test_build_routes_adapts_a_transports_style_websocket_for_fastapi(tmp_path):
+    fastapi = pytest.importorskip("fastapi")
+    from starlette.routing import Mount
+
+    authenticated = []
+
+    async def require_auth():
+        authenticated.append(True)
+
+    async def websocket_endpoint(websocket: Any):
+        await websocket.accept()
+        await websocket.send_text("connected")
+        await websocket.close()
+
+    app = fastapi.FastAPI()
+    router = fastapi.APIRouter(dependencies=[fastapi.Depends(require_auth)])
+    routes = build_routes(
+        Main("hi"),
+        prefix="/dash",
+        routes=[WebSocketRoute("/ws", websocket_endpoint)],
+        js=tmp_path,
+        tree="inline",
+    )
+    for route in routes:
+        if isinstance(route, Mount):
+            app.routes.append(route)
+        elif isinstance(route, WebSocketRoute):
+            router.add_api_websocket_route(route.path, route.endpoint)
+        else:
+            router.add_api_route(route.path, route.endpoint, methods=route.methods, include_in_schema=False)
+    app.include_router(router)
+
+    with TestClient(app).websocket_connect("/dash/ws") as websocket:
+        assert websocket.receive_text() == "connected"
+    assert authenticated == [True]
+
+
+@pytest.mark.parametrize("prefix", ["", "/dash"])
+def test_mount_preserves_supplied_websocket_middleware(tmp_path, prefix):
+    from starlette.applications import Starlette
+    from starlette.middleware import Middleware
+
+    calls = []
+
+    class ProbeMiddleware:
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            calls.append(scope["path"])
+            await self.app(scope, receive, send)
+
+    async def websocket_endpoint(websocket):
+        await websocket.accept()
+        await websocket.close()
+
+    route = WebSocketRoute("/ws", websocket_endpoint, middleware=[Middleware(ProbeMiddleware)])
+    app = Starlette()
+    mount(app, Main("hi"), prefix=prefix, routes=[route], js=tmp_path, tree="inline")
+
+    with TestClient(app).websocket_connect(f"{prefix}/ws"):
+        pass
+    assert calls == [f"{prefix}/ws"]
 
 
 def test_inline_tree_rejects_custom_html(tmp_path):

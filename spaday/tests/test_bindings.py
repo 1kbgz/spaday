@@ -67,6 +67,12 @@ def test_native_text_binding_rejects_silent_no_op():
         element("span").bind("text", "message")
 
 
+def test_native_text_literal_rejects_typo_but_prop_remains_an_escape_hatch():
+    with pytest.raises(ValueError, match=r"use \.text\(\.\.\.\)"):
+        element("span", text="message")
+    assert element("span").prop("text", "message").to_node()["props"]["text"] == {"Str": "message"}
+
+
 def test_custom_element_can_bind_a_text_property():
     node = element("custom-label").compute("text", field("message")).to_node()
     assert node["bindings"]["text"]["compute"] == {"expr": "field", "name": "message"}
