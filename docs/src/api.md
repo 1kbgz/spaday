@@ -18,7 +18,7 @@ The Python surface of spaday. Peer-package component classes are not listed here
 
 ## Generic controls
 
-Controls any design renders; see [Use generic controls](components.md#use-generic-controls-any-design-renders).
+Controls any design renders; see [Use generic controls](generic-controls).
 
 ```{eval-rst}
 .. automodule:: spaday.ui.controls
