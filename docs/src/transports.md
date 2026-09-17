@@ -56,8 +56,12 @@ if __name__ == "__main__":
 
 There are **no event handlers** in the tree — the two-way bindings carry every control→model edit.
 Inbound model patches flow `model → store → bound props`; a two-way control's change becomes a
-server-authoritative `client.edit`, which takes effect when the server echoes it back, so **two browser
-tabs stay in sync**. A complete, runnable version is `spaday/examples/reactive.py`.
+server-authoritative proposal. The control keeps its latest local value while proposals are pending, so
+an older server echo cannot replace newer input. An accepted proposal applies the server's canonical
+value, and a rejection restores the last authoritative value. Other server patches continue to update
+the store while an edit is pending. Generated `Wire` connections use the managed transports client for
+sending and disconnect abandonment. The single-model `reconnect=True` form also retries the connection.
+A complete, runnable version is `spaday/examples/reactive.py`.
 
 ## Go multi-tenant
 

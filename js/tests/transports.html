@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>spaday transports integration test harness</title>
+    <script type="module">
+      import {
+        Store,
+        connectStore,
+        init as initSpaday,
+      } from "/dist/esm/index.js";
+      import {
+        Client,
+        decodeMessage,
+        encodeMessage,
+        fromValue,
+        toValue,
+        wasm as transportsWasm,
+      } from "/node_modules/@1kbgz/transports/dist/esm/index.js";
+
+      await initSpaday({ module_or_path: "/dist/pkg/spaday_bg.wasm" });
+      await transportsWasm.default({
+        module_or_path:
+          "/node_modules/@1kbgz/transports/dist/pkg/transports_bg.wasm",
+      });
+      window.__integration = {
+        Client,
+        Store,
+        connectStore,
+        decodeMessage,
+        encodeMessage,
+        fromValue,
+        toValue,
+      };
+    </script>
+  </head>
+  <body></body>
+</html>

@@ -20,7 +20,7 @@ def test_static_bootstrap_mounts_without_a_wire():
 def test_transports_wire_bootstrap():
     html = bootstrap(wire="transports", ws="/sock")
     assert "connectStore(" in html and "transports_bg.wasm" in html
-    assert "new WebSocket(`ws://${location.host}/sock`)" in html
+    assert "client.connect(`ws://${location.host}/sock`)" in html
     assert "mount(document.body, node, store)" in html
 
 
@@ -38,7 +38,8 @@ def test_frame_tree_bootstrap_decodes_a_frame():
 
 def test_reconnect_bootstrap_reopens_the_socket():
     html = bootstrap(wire="transports", reconnect=True)
-    assert "function connect()" in html and "setTimeout(connect, 1000)" in html
+    assert "client.run(`ws://${location.host}/ws`, { retry: 1000 })" in html
+    assert "connectStore(store, client, undefined" in html
 
 
 def test_scripts_are_injected():
@@ -217,9 +218,11 @@ def test_wire_list_shares_one_store_with_namespaced_connectstores():
     html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}, {"url": "/ws/b", "namespace": "b"}], store={"x": 1})
     assert html.count("const store = new Store(") == 1  # ONE shared store for every model
     assert 'new Store({"x": 1})' in html
-    assert 'connectStore(store, client0, (frame) => ws0.send(frame), { fromValue, toValue }, "a")' in html
-    assert 'connectStore(store, client1, (frame) => ws1.send(frame), { fromValue, toValue }, "b")' in html
-    assert "new WebSocket(`ws://${location.host}/ws`)" in html and "new WebSocket(`ws://${location.host}/ws/b`)" in html
+    assert "connectStore(store, client0, undefined" in html
+    assert "connectStore(store, client1, undefined" in html
+    assert '{ fromValue, toValue }, "a")' in html and '{ fromValue, toValue }, "b")' in html
+    assert "client0.connect(`ws://${location.host}/ws`)" in html
+    assert "client1.connect(`ws://${location.host}/ws/b`)" in html
     assert "transports_bg.wasm" in html and "await wasm.default(" in html  # the transports prologue
     assert html.count("mount(document.body, node, store)") == 1  # one mount of the shared store
 
@@ -236,8 +239,9 @@ def test_wire_list_namespaced_wire_sets_a_connected_flag_bare_wire_does_not():
     html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}, {"url": "/ws/form"}])
     assert 'store.set("a.connected", true)' in html and 'store.set("a.connected", false)' in html
     # the bare (form) wire has no namespace: no connected flag, and a 4-arg connectStore (no namespace arg)
-    assert "connectStore(store, client1, (frame) => ws1.send(frame), { fromValue, toValue });" in html
-    assert "connected" not in html.split("client1")[1]  # nothing after the form client sets a connected flag
+    assert "connectStore(store, client1, undefined" in html
+    assert 'ws1.addEventListener("open"' not in html
+    assert 'ws1.addEventListener("close"' not in html
 
 
 def test_wire_list_generates_the_patch_sink():
@@ -249,13 +253,13 @@ def test_wire_list_generates_the_patch_sink():
 
 def test_wire_list_respects_base_prefix():
     html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}], base="/dash")
-    assert "new WebSocket(`ws://${location.host}/dash/ws`)" in html  # the base prefixes each wire url
+    assert "client0.connect(`ws://${location.host}/dash/ws`)" in html  # the base prefixes each wire url
     assert 'fetch("/dash/tree.json")' in html
 
 
 def test_string_wire_still_generates_a_single_unnamespaced_model():
     html = bootstrap(wire="transports")  # the single-model string form is unchanged
-    assert "connectStore(store, client, (frame) => ws.send(frame), { fromValue, toValue });" in html  # no namespace arg
+    assert "connectStore(store, client, undefined" in html
     assert "client0" not in html and "spaday:patch" not in html  # not the multi-wire codegen
 
 
@@ -265,13 +269,13 @@ def test_wire_typed_helper_matches_the_raw_dict_form():
     typed = bootstrap(wire=[Wire("/ws", namespace="g", flatten=False), Wire("/ws/form")])
     raw = bootstrap(wire=[{"url": "/ws", "namespace": "g", "flatten": False}, {"url": "/ws/form"}])
     assert typed == raw  # Wire(...) serializes to exactly the dict form — same generated page
-    assert 'connectStore(store, client0, (frame) => ws0.send(frame), { fromValue, toValue }, "g", false)' in typed
+    assert '{ fromValue, toValue }, "g", false)' in typed
 
 
 def test_wire_list_flatten_false_passes_the_flatten_arg():
     # an opaque-map model (a chart's `data`) mirrors whole: connectStore gets `, "g", false`
     html = bootstrap(wire=[{"url": "/ws", "namespace": "g", "flatten": False}])
-    assert 'connectStore(store, client0, (frame) => ws0.send(frame), { fromValue, toValue }, "g", false)' in html
+    assert '{ fromValue, toValue }, "g", false)' in html
     # default (flatten omitted) recurses sub-models — no flatten arg
     assert '{ fromValue, toValue }, "a")' in bootstrap(wire=[{"url": "/ws", "namespace": "a"}])
     # flatten=False with no namespace still positions the arg (undefined, false)

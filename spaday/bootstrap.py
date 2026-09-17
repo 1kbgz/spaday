@@ -242,7 +242,7 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
     appends ``?session=<uuid>`` so the model is a fresh per-load tenant (a transports ``Hub``)."""
     url = spec["url"]
     ns = spec.get("namespace")
-    client, sock, link = f"client{idx}", f"ws{idx}", f"link{idx}"
+    client, sock = f"client{idx}", f"ws{idx}"
     # connectStore's optional (namespace, flatten) args — positional, so emit only what's needed. flatten
     # defaults true (recurse sub-models, e.g. a form's nested schedule); a model with an opaque map/dict
     # field (a chart's `data`, a Perspective layout) sets "flatten": False so it's mirrored whole.
@@ -253,12 +253,8 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
     session = "?session=${" + _SESSION_ID + "}" if spec.get("session") else ""  # a fresh tenant per page load
     lines = [
         f"const {client} = new Client();",
-        f"const {sock} = new WebSocket(`ws://${{location.host}}{base}{url}{session}`);",
-        f'{sock}.binaryType = "arraybuffer";',
-        f"const {link} = connectStore(store, {client}, (frame) => {sock}.send(frame), {{ fromValue, toValue }}{extra});",
-        f'{sock}.addEventListener("message", (event) =>',
-        f'  {link}.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),',
-        ");",
+        f"connectStore(store, {client}, undefined, {{ fromValue, toValue }}{extra});",
+        f"const {sock} = {client}.connect(`ws://${{location.host}}{base}{url}{session}`);",
     ]
     if ns:  # a status element can compute from `<ns>.connected`; a bare (form) wire has no status
         lines += [
@@ -346,17 +342,8 @@ def _script(
             [
                 *store_lines,
                 "const client = new Client();",
-                "let socket = null;",
-                "const link = connectStore(store, client, (frame) => socket && socket.send(frame), { fromValue, toValue });",
-                "function connect() {",
-                f"  socket = new WebSocket(`ws://${{location.host}}{base}{ws}`);",
-                '  socket.binaryType = "arraybuffer";',
-                '  socket.addEventListener("message", (event) =>',
-                '    link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),',
-                "  );",
-                "  socket.addEventListener('close', () => setTimeout(connect, 1000));",
-                "}",
-                "connect();",
+                "connectStore(store, client, undefined, { fromValue, toValue });",
+                f"client.run(`ws://${{location.host}}{base}{ws}`, {{ retry: 1000 }});",
                 f"trackRoot(mount({into}, node, store), node, {tree_url}, store);",
             ]
         )
@@ -365,12 +352,8 @@ def _script(
             [
                 *store_lines,
                 "const client = new Client();",
-                f"const ws = new WebSocket(`ws://${{location.host}}{base}{ws}`);",
-                'ws.binaryType = "arraybuffer";',
-                "const link = connectStore(store, client, (frame) => ws.send(frame), { fromValue, toValue });",
-                'ws.addEventListener("message", (event) =>',
-                '  link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),',
-                ");",
+                "connectStore(store, client, undefined, { fromValue, toValue });",
+                f"client.connect(`ws://${{location.host}}{base}{ws}`);",
                 f"trackRoot(mount({into}, node, store), node, {tree_url}, store);",
             ]
         )
