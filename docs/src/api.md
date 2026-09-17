@@ -110,6 +110,7 @@ Generate a page and deliver it on any backend; see [Serve and embed](serving.md)
 ```{eval-rst}
 .. autofunction:: spaday.backends.starlette.serve
 .. autofunction:: spaday.backends.starlette.mount
+.. autofunction:: spaday.backends.starlette.build_routes
 .. autofunction:: spaday.bootstrap.bootstrap
 .. autoclass:: spaday.Wire
 .. autofunction:: spaday.bootstrap.tree_json

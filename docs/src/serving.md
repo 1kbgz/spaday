@@ -47,6 +47,17 @@ In a source checkout it serves built assets from `js/`; from a wheel it automati
 `spaday/extension` assets. Use `layout="source"` or `layout="installed"` only to override detection, such
 as when supplying a matching custom `js=` directory.
 
+For a small page that does not change on the server, use `tree="inline"`:
+
+```python
+app = serve(login_page, tree="inline", packages=["webawesome"])
+```
+
+The component tree is embedded in the bootstrap page, so no `/tree.json` route or second request is
+needed. A callable page is evaluated once while the routes are built. Use the default JSON mode when it
+must be evaluated for each request. `RefreshTree` also needs an explicit `url=` in inline mode because
+there is no default tree route to refresh from.
+
 ## Install an external component package
 
 External integrations use one `ComponentPackage` descriptor for both `<head>` tags and static routes.
@@ -127,6 +138,27 @@ from spaday.backends.starlette import mount
 
 app = Starlette(routes=[Route("/", my_own_homepage)])   # your app, your routes
 mount(app, page, prefix="/panel", packages=["webawesome"])   # spaday lives only under /panel
+```
+
+Starlette hosts that need to choose how each route is registered can call `build_routes()` instead.
+It returns the same page, tree, package, supplied, and core asset routes without changing an app. A
+FastAPI host can register request routes on a router with dependencies while keeping static mounts
+public:
+
+```python
+from fastapi import APIRouter, Depends
+from starlette.routing import Mount, WebSocketRoute
+from spaday.backends.starlette import build_routes
+
+router = APIRouter(dependencies=[Depends(require_auth)])
+for route in build_routes(page, packages=["webawesome"]):
+    if isinstance(route, Mount):
+        app.routes.append(route)
+    elif isinstance(route, WebSocketRoute):
+        router.add_api_websocket_route(route.path, route.endpoint)
+    else:
+        router.add_api_route(route.path, route.endpoint, methods=route.methods, include_in_schema=False)
+app.include_router(router)
 ```
 
 Backends ship for **Starlette/FastAPI**, **aiohttp**, **Flask**, and **Tornado** — import `serve`/`mount`
@@ -214,10 +246,10 @@ app = serve(
 Whatever rung you pick, the generated page expects the host to serve these paths (`{base}` is the
 `prefix`, empty by default) — `serve`/`mount` wire them for you:
 
-| Path                             | Serves                                      |
-| -------------------------------- | ------------------------------------------- |
-| `GET {base}/`                    | the bootstrap HTML (`bootstrap(...)`)       |
-| `GET {base}/tree.json`           | the authored tree (`tree_json(page)`)       |
-| `GET {base}/js/*`                | core assets under `bundles_dir()`           |
-| `GET {base}/components/{name}/*` | assets for each selected `ComponentPackage` |
-| `WS {base}/ws`                   | a transports endpoint (only when wired)     |
+| Path                             | Serves                                                        |
+| -------------------------------- | ------------------------------------------------------------- |
+| `GET {base}/`                    | the bootstrap HTML (`bootstrap(...)`)                         |
+| `GET {base}/tree.json`           | the authored tree (`tree_json(page)`), unless `tree="inline"` |
+| `GET {base}/js/*`                | core assets under `bundles_dir()`                             |
+| `GET {base}/components/{name}/*` | assets for each selected `ComponentPackage`                   |
+| `WS {base}/ws`                   | a transports endpoint (only when wired)                       |

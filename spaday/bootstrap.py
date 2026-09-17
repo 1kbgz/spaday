@@ -10,6 +10,7 @@ What an app would otherwise hand-write in HTML is declared in Python:
   (what every transports example's HTML repeats); without it the page just mounts a static tree.
 - ``tree="frame"`` — fetch the tree as a transports Snapshot frame at ``…/tree`` (UI tree + model data on
   one wire), decoded in the browser, instead of JSON at ``…/tree.json``.
+- ``tree="inline"`` — embed a static tree in the bootstrap markup, with no tree route or request.
 - ``reconnect=True`` — re-open the websocket on drop, re-syncing from the server snapshot.
 - ``scripts=[…]`` — extra ES-module URLs to load (e.g. ``NamedJs`` handlers).
 - ``stylesheets=[…]`` / ``styles=[…]`` — extra ``<link rel="stylesheet">`` URLs / inline ``<style>``
@@ -24,7 +25,8 @@ What an app would otherwise hand-write in HTML is declared in Python:
 (``{base}`` is the prefix, default empty)::
 
     GET {base}/            -> bootstrap(...)        # this HTML
-    GET {base}/tree.json   -> tree_json(page)       # or GET {base}/tree -> tree_frame(page) when tree="frame"
+    GET {base}/tree.json   -> tree_json(page)       # or GET {base}/tree -> tree_frame(page) when tree="frame";
+                                                    # neither route is needed when tree="inline"
     GET {base}/js/*        -> the files under bundles_dir()
     GET {base}/components/{package}/* -> a selected component package's assets
     WS  {base}/ws          -> a transports endpoint # only when wire="transports" (the backend/transports owns it)
@@ -88,6 +90,11 @@ class Js:
     code: str
 
 
+def _script_json(value) -> str:
+    """A JSON value safe inside an inline ``<script>`` element."""
+    return json.dumps(value).replace("<", "\\u003c")
+
+
 def _store_literal(value) -> str:
     """Serialize a ``store`` seed to a JS object literal, inlining :class:`Js` expressions.
 
@@ -97,13 +104,14 @@ def _store_literal(value) -> str:
     if isinstance(value, Js):
         return f"({value.code})"
     if isinstance(value, dict):
-        return "{" + ", ".join(f"{json.dumps(str(k))}: {_store_literal(v)}" for k, v in value.items()) + "}"
+        return "{" + ", ".join(f"{_script_json(str(k))}: {_store_literal(v)}" for k, v in value.items()) + "}"
     if isinstance(value, (list, tuple)):
         return "[" + ", ".join(_store_literal(v) for v in value) + "]"
-    return json.dumps(value)
+    return _script_json(value)
 
 
 AssetLayout = Literal["source", "installed"]
+TreeMode = Literal["json", "frame", "inline"]
 
 _SOURCE_DIR = Path(__file__).parent.parent / "js"
 _EXTENSION_DIR = Path(__file__).parent / "extension"
@@ -273,7 +281,8 @@ def _script(
     wire: str | Sequence[dict | Wire] | None,
     scripts: Sequence[str],
     ws: str,
-    tree: str,
+    tree: TreeMode,
+    inline_tree: dict | None,
     reconnect: bool,
     store: dict | None = None,
     target: str | None = None,
@@ -299,6 +308,7 @@ def _script(
     wires = [asdict(w) if isinstance(w, Wire) else w for w in wire] if isinstance(wire, (list, tuple)) else None
     wired = transports or bool(wires)  # any transports wiring — a single string model or a list of specs
     frame = tree == "frame"
+    inline = tree == "inline"
     store_init = f"new Store({_store_literal(store)})" if store else "new Store()"
     # `persist` wiring sits right after the store's creation: the localStorage override lands before
     # the mount (and before any transports sync), so the tree renders with the persisted value; the
@@ -311,9 +321,9 @@ def _script(
     # `url` seeds after `persist`: a deep link beats a remembered preference
     if url:
         store_lines.append(f"bindUrl(store, {json.dumps({str(k): str(v) for k, v in url.items()})});")
-    # the refresh action's re-fetch source: the plain-JSON tree URL; a frame-wired page has no
-    # JSON url, so `Refresh` there requires an explicit url
-    tree_url = '""' if frame else json.dumps(f"{base}/tree.json")
+    # the refresh action's re-fetch source: frame and inline pages have no JSON tree URL, so
+    # `RefreshTree` there requires an explicit url
+    tree_url = '""' if frame or inline else json.dumps(f"{base}/tree.json")
     runtime_names = (
         ["mount", "init", "trackRoot"]
         + (["Store"] if (wired or store or persist or url) else [])
@@ -339,6 +349,8 @@ def _script(
     if frame:
         lines.append(f'const framed = new Uint8Array(await (await fetch("{base}/tree")).arrayBuffer());')
         lines.append("const node = JSON.parse(decodeFrame(framed)).payload;")
+    elif inline:
+        lines.append(f"const node = {_script_json(inline_tree)};")
     else:
         lines.append(f'const node = await (await fetch("{base}/tree.json")).json();')
     if transports and reconnect:
@@ -399,7 +411,8 @@ def bootstrap(
     packages: PackageRef | Sequence[PackageRef] = (),
     wire: str | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
-    tree: str = "json",
+    tree: TreeMode = "json",
+    page: Page | None = None,
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     stylesheets: Sequence[str] = (),
@@ -413,6 +426,7 @@ def bootstrap(
     layout: AssetLayout | None = None,
     persist: dict[str, str] | None = None,
     url: dict[str, str] | None = None,
+    design: Design | str | None = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
@@ -439,17 +453,26 @@ def bootstrap(
     ``<link rel="stylesheet">`` URLs and ``styles`` inline ``<style>`` blocks to ``<head>`` — both
     nonce-stamped, unlike raw ``head`` markup, which is concatenated verbatim. See the module docstring
     for the rest of the options and the route contract. ``packages`` selects external :class:`~spaday.packages.ComponentPackage`
-    descriptors directly, by ``module:attribute`` path, or by installed entry-point name. ``layout``
-    selects source-checkout or installed-wheel asset URLs; by default it follows :func:`bundles_dir`."""
+    descriptors directly, by ``module:attribute`` path, or by installed entry-point name. ``tree="inline"``
+    requires ``page`` and embeds its current tree directly in the module script; callable pages are
+    evaluated once when this markup is built. ``design`` selects how that inline page resolves generic
+    controls; JSON and frame modes apply their design when the separate tree route serializes the page.
+    ``layout`` selects source-checkout or installed-wheel asset URLs; by default it follows
+    :func:`bundles_dir`."""
+    if tree not in ("json", "frame", "inline"):
+        raise ValueError(f"tree must be 'json', 'frame', or 'inline', not {tree!r}")
     n = f' nonce="{nonce}"' if nonce else ""
     component_packages = resolve_component_packages(packages)
+    if tree == "inline" and page is None:
+        raise ValueError("tree='inline' requires page")
+    inline_tree = tree_node(page, select_design(design, component_packages)) if tree == "inline" else None
     style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
     style_tags += [f"<style{n}>{css}</style>" for css in styles]
     # the import map must come before any module script, including the packages' own
     head_markup = "\n    ".join(
         p for p in (_importmap(component_packages, base, nonce), _package_head(component_packages, base, nonce), *style_tags, head) if p
     )
-    script = _script(base, wire, scripts, ws, tree, reconnect, store, target, layout, persist, url)
+    script = _script(base, wire, scripts, ws, tree, inline_tree, reconnect, store, target, layout, persist, url)
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
         return f'{head_block}<script type="module"{n}>\n  {script}\n</script>\n'

@@ -18,7 +18,7 @@ from collections.abc import Awaitable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..bootstrap import AssetLayout, Page, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, select_design
 
@@ -38,7 +38,7 @@ def mount(
     packages: PackageRef | Sequence[PackageRef] = (),
     wire: str | None = None,
     ws: str = "/ws",
-    tree: str = "json",
+    tree: TreeMode = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     stylesheets: Sequence[str] = (),
@@ -60,6 +60,7 @@ def mount(
         wire=wire,
         ws=ws,
         tree=tree,
+        page=page,
         reconnect=reconnect,
         scripts=scripts,
         stylesheets=stylesheets,
@@ -67,6 +68,7 @@ def mount(
         head=head,
         title=title,
         layout=asset_layout,
+        design=page_design,
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     pre = re.escape(prefix)
@@ -83,15 +85,17 @@ def mount(
                 self.set_header("Content-Type", "application/octet-stream")
                 self.write(tree_frame(page, design=page_design))
 
-        tree_rule = (rf"{pre}/tree", _Tree)
-    else:
+        tree_rules = [(rf"{pre}/tree", _Tree)]
+    elif tree == "json":
 
         class _Tree(RequestHandler):
             def get(self):
                 self.set_header("Content-Type", "application/json")
                 self.write(tree_json(page, page_design))
 
-        tree_rule = (rf"{pre}/tree\.json", _Tree)
+        tree_rules = [(rf"{pre}/tree\.json", _Tree)]
+    else:
+        tree_rules = []
 
     package_handlers = [
         (
@@ -101,7 +105,7 @@ def mount(
         )
         for package in component_packages
     ]
-    handlers = [(rf"{pre}/", _Index), tree_rule, *routes, *package_handlers, (rf"{pre}/js/(.*)", StaticFileHandler, {"path": js_dir})]
+    handlers = [(rf"{pre}/", _Index), *tree_rules, *routes, *package_handlers, (rf"{pre}/js/(.*)", StaticFileHandler, {"path": js_dir})]
     app.add_handlers(r".*", handlers)
     return app
 

@@ -10,10 +10,11 @@ from starlette.routing import Route
 from starlette.testclient import TestClient
 
 import spaday.packages as package_registry
-from spaday import decode_frame
-from spaday.backends.starlette import mount, serve
+from spaday import Button, Design, decode_frame
+from spaday.backends.starlette import build_routes, mount, serve
 from spaday.components.shell import Main
 from spaday.packages import ComponentPackage
+from spaday.ui import ControlSpec
 
 
 class _EntryPoint:
@@ -53,6 +54,69 @@ def test_serve_frame_route_returns_a_decodable_frame(tmp_path):
     client = TestClient(serve(page, js=tmp_path, wire="transports", tree="frame"))
     assert json.loads(decode_frame(client.get("/tree").content))["payload"] == page.to_node()
     assert client.get("/tree.json").status_code == 404  # json route not mounted in frame mode
+
+
+def test_serve_inline_tree_needs_no_tree_route(tmp_path):
+    design = Design(name="fixture", controls={"button": ControlSpec(tag="x-button")})
+    client = TestClient(serve(Button(label="hi"), js=tmp_path, tree="inline", design=design))
+    home = client.get("/").text
+    assert 'const node = {"tag": "x-button"' in home and "fetch(" not in home
+    assert client.get("/tree.json").status_code == 404
+    assert client.get("/tree").status_code == 404
+
+
+def test_build_routes_does_not_mutate_an_app(tmp_path):
+    from starlette.applications import Starlette
+
+    app = Starlette()
+    routes = build_routes(Main("hi"), prefix="/dash", js=tmp_path, tree="inline")
+    assert app.routes == []
+    assert [route.path for route in routes] == ["/dash/", "/dash/js"]
+    app.routes.extend(routes)
+    assert "const node" in TestClient(app).get("/dash/").text
+
+
+def test_build_routes_returns_the_complete_prefixed_route_set(tmp_path):
+    package = ComponentPackage("fixture", tmp_path, ())
+    supplied = Route("/ping", lambda _request: PlainTextResponse("pong"))
+    routes = build_routes(Main("hi"), prefix="/dash", routes=[supplied], packages=[package], js=tmp_path)
+    assert [route.path for route in routes] == [
+        "/dash/",
+        "/dash/tree.json",
+        "/dash/ping",
+        "/dash/components/fixture",
+        "/dash/js",
+    ]
+
+
+def test_build_routes_endpoints_work_on_a_fastapi_router(tmp_path):
+    fastapi = pytest.importorskip("fastapi")
+    from starlette.routing import Mount
+
+    authenticated = []
+
+    async def require_auth():
+        authenticated.append(True)
+
+    app = fastapi.FastAPI()
+    router = fastapi.APIRouter(dependencies=[fastapi.Depends(require_auth)])
+    for route in build_routes(Main("hi"), js=tmp_path, tree="inline"):
+        if isinstance(route, Mount):
+            app.routes.append(route)
+        else:
+            router.add_api_route(route.path, route.endpoint, methods=route.methods, include_in_schema=False)
+    app.include_router(router)
+
+    response = TestClient(app).get("/")
+    assert response.status_code == 200
+    assert authenticated == [True]
+
+
+def test_inline_tree_rejects_custom_html(tmp_path):
+    html = tmp_path / "page.html"
+    html.write_text("<!doctype html><title>custom</title>", encoding="utf-8")
+    with pytest.raises(ValueError, match="cannot be combined with html"):
+        build_routes(Main("hi"), html=html, js=tmp_path, tree="inline")
 
 
 def test_serve_installed_layout_hosts_packaged_assets():

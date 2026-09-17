@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from spaday import decode_frame
+from spaday import decode_frame, element
 from spaday.bootstrap import bootstrap, bundles_dir, tree_frame, tree_json
 from spaday.components.shell import Main
 from spaday.packages import ComponentPackage
@@ -34,6 +34,26 @@ def test_component_package_assets_are_pulled_into_head(tmp_path):
 def test_frame_tree_bootstrap_decodes_a_frame():
     html = bootstrap(wire="transports", tree="frame")
     assert "decodeFrame" in html and 'fetch("/tree")' in html and "/tree.json" not in html
+
+
+def test_inline_tree_bootstrap_embeds_the_page_without_fetching_it():
+    html = bootstrap(tree="inline", page=Main("hi"))
+    assert 'const node = {"tag": "spa-main"' in html
+    assert "fetch(" not in html
+    assert 'trackRoot(mount(document.body, node), node, "");' in html
+
+
+def test_inline_tree_escapes_script_closing_content():
+    html = bootstrap(tree="inline", page=element("span").text("</script><script>alert(1)</script>"))
+    assert '"Str": "\\u003c/script>\\u003cscript>alert(1)\\u003c/script>"' in html
+    assert "</script><script>alert(1)</script>" not in html
+
+
+def test_inline_tree_requires_a_page_and_tree_modes_are_validated():
+    with pytest.raises(ValueError, match="requires page"):
+        bootstrap(tree="inline")
+    with pytest.raises(ValueError, match="tree must be"):
+        bootstrap(tree="other")
 
 
 def test_reconnect_bootstrap_reopens_the_socket():
@@ -170,6 +190,12 @@ def test_store_seed_js_expression_is_client_evaluated():
     html = bootstrap(store={"dark": Js('matchMedia("(prefers-color-scheme: dark)").matches'), "view": "blotter"})
     assert 'new Store({"dark": (matchMedia("(prefers-color-scheme: dark)").matches), "view": "blotter"})' in html
     assert "import { mount, init, trackRoot, Store }" in html  # still a plain seeded store, no wire
+
+
+def test_store_seed_escapes_script_closing_content():
+    html = bootstrap(store={"</script>": "</script><script>alert(1)</script>"})
+    assert 'new Store({"\\u003c/script>": "\\u003c/script>\\u003cscript>alert(1)\\u003c/script>"})' in html
+    assert "</script><script>alert(1)</script>" not in html
 
 
 def test_persist_round_trips_a_store_field_through_localstorage():

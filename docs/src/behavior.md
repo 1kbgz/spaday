@@ -198,7 +198,8 @@ megabytes on first paint.
 
 Finally, `RefreshTree` covers "server state changed, re-render" for apps that don't need a live wire:
 it re-fetches the page's `tree.json` (or an explicit `url=`) and diffs it into the mounted tree with
-the core's patch machinery, so unchanged nodes keep their identity and client state. The diff
+the core's patch machinery, so unchanged nodes keep their identity and client state. Frame and inline
+tree modes have no JSON tree URL, so pass `url=` when using `RefreshTree` with either one. The diff
 descends into structural bindings: a changed branch inside a `Show`/`Switch` re-renders (including
 the stored bodies of a `Switch`'s non-mounted cases), and every loaded `Lazy` body is re-fetched
 from its `src` — swapped only if the payload actually changed. Actions in a

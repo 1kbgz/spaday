@@ -3,6 +3,8 @@
 - ``mount(app, page, *, prefix="", …)`` — add spaday's routes to an **existing** app, at ``{prefix}/`` ·
   ``{prefix}/tree[.json]`` · ``{prefix}/js`` (so spaday drops into a bigger app, optionally under a
   sub-path). This is the primitive.
+- ``build_routes(page, *, prefix="", …)`` — return those routes without changing an app, so a host can
+  register them on its own routers.
 - ``serve(page, …) -> Starlette`` — create an app (with a lifespan for ``background`` coroutines) and
   ``mount`` onto it.
 
@@ -18,12 +20,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..bootstrap import AssetLayout, Page, Wire, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Page, TreeMode, Wire, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, select_design
 
 if TYPE_CHECKING:  # annotations only — starlette is imported inside the functions (optional extra)
     from starlette.applications import Starlette
+    from starlette.routing import BaseRoute
 
 
 def _prefixed(routes: Sequence, prefix: str) -> list:
@@ -45,6 +48,98 @@ def _prefixed(routes: Sequence, prefix: str) -> list:
     return out
 
 
+def build_routes(
+    page: Page,
+    *,
+    prefix: str = "",
+    routes: Sequence = (),
+    html: str | Path | None = None,
+    js: str | Path | None = None,
+    layout: AssetLayout | None = None,
+    title: str = "spaday",
+    packages: PackageRef | Sequence[PackageRef] = (),
+    wire: str | Sequence[dict | Wire] | None = None,
+    ws: str = "/ws",
+    tree: TreeMode = "json",
+    reconnect: bool = False,
+    scripts: Sequence[str] = (),
+    stylesheets: Sequence[str] = (),
+    styles: Sequence[str] = (),
+    head: str = "",
+    store: dict | None = None,
+    nonce: str | None = None,
+    persist: dict[str, str] | None = None,
+    url: dict[str, str] | None = None,
+    design: Design | str | None = None,
+) -> list[BaseRoute]:
+    """Build spaday's Starlette routes (page, tree, ``/js``, plus ``routes``) under
+    ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``
+    becomes ``{prefix}/ws``), so a wired panel's generated ws URL and its endpoint line up — pass the
+    *unprefixed* path (``WebSocketRoute("/ws", …)``) and let ``build_routes`` add the prefix. Generation options
+    pass to :func:`spaday.bootstrap.bootstrap` (incl. ``store`` and ``nonce``, a CSP nonce for the
+    generated scripts); ``html`` serves a hand-authored bootstrap instead; ``js`` overrides the bundle dir.
+    The caller may register the returned routes itself, including translating page and websocket routes
+    onto a FastAPI router with dependencies, or pass the same options to :func:`mount`."""
+    from starlette.requests import Request
+    from starlette.responses import FileResponse, HTMLResponse, Response
+    from starlette.routing import Mount, Route
+    from starlette.staticfiles import StaticFiles
+
+    if tree == "inline" and html is not None:
+        raise ValueError("tree='inline' cannot be combined with html= because the generated inline tree would not be served")
+
+    asset_layout = layout or ("source" if js is not None else None)
+    component_packages = resolve_component_packages(packages)
+    page_design = select_design(design, component_packages)
+    body = bootstrap(
+        base=prefix,
+        packages=component_packages,
+        wire=wire,
+        ws=ws,
+        tree=tree,
+        page=page,
+        reconnect=reconnect,
+        scripts=scripts,
+        stylesheets=stylesheets,
+        styles=styles,
+        head=head,
+        title=title,
+        store=store,
+        nonce=nonce,
+        layout=asset_layout,
+        persist=persist,
+        url=url,
+        design=page_design,
+    )
+    js_dir = Path(js) if js is not None else bundles_dir(asset_layout)
+
+    async def homepage(_request: Request):
+        return FileResponse(html) if html is not None else HTMLResponse(body)
+
+    async def tree_route_json(_request: Request):
+        return Response(tree_json(page, page_design), media_type="application/json")
+
+    async def tree_route_frame(_request: Request):
+        return Response(tree_frame(page, design=page_design), media_type="application/octet-stream")
+
+    # FastAPI resolves endpoint annotations from module globals, while Request is imported lazily here
+    # to keep Starlette optional. Store the class itself instead of the postponed "Request" string.
+    for endpoint in (homepage, tree_route_json, tree_route_frame):
+        endpoint.__annotations__["_request"] = Request
+
+    tree_routes = (
+        [] if tree == "inline" else [Route(f"{prefix}/tree", tree_route_frame) if tree == "frame" else Route(f"{prefix}/tree.json", tree_route_json)]
+    )
+    package_mounts = [Mount(package_url_prefix(package, prefix), StaticFiles(directory=package.assets_dir)) for package in component_packages]
+    return [
+        Route(f"{prefix}/", homepage),
+        *tree_routes,
+        *_prefixed(routes, prefix),
+        *package_mounts,
+        Mount(f"{prefix}/js", StaticFiles(directory=js_dir)),
+    ]
+
+
 def mount(
     app: Starlette,
     page: Page,
@@ -58,7 +153,7 @@ def mount(
     packages: PackageRef | Sequence[PackageRef] = (),
     wire: str | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
-    tree: str = "json",
+    tree: TreeMode = "json",
     reconnect: bool = False,
     scripts: Sequence[str] = (),
     stylesheets: Sequence[str] = (),
@@ -70,60 +165,35 @@ def mount(
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
 ) -> Starlette:
-    """Add spaday's routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under
-    ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``
-    becomes ``{prefix}/ws``), so a wired panel's generated ws URL and its endpoint line up — pass the
-    *unprefixed* path (``WebSocketRoute("/ws", …)``) and let ``mount`` add the prefix. Generation options
-    pass to :func:`spaday.bootstrap.bootstrap` (incl. ``store`` and ``nonce``, a CSP nonce for the
-    generated scripts); ``html`` serves a hand-authored bootstrap instead; ``js`` overrides the bundle dir.
-    ``mount`` only adds routes — **the host owns the app's lifespan**, so run any ``transports.autosync``
-    in your own lifespan (see ``examples/embed.py``). Returns ``app`` for chaining."""
-    from starlette.responses import FileResponse, HTMLResponse, Response
-    from starlette.routing import Mount, Route
-    from starlette.staticfiles import StaticFiles
+    """Add :func:`build_routes` to an existing Starlette ``app`` and return the app for chaining.
 
-    asset_layout = layout or ("source" if js is not None else None)
-    component_packages = resolve_component_packages(packages)
-    page_design = select_design(design, component_packages)
-    body = bootstrap(
-        base=prefix,
-        packages=component_packages,
-        wire=wire,
-        ws=ws,
-        tree=tree,
-        reconnect=reconnect,
-        scripts=scripts,
-        stylesheets=stylesheets,
-        styles=styles,
-        head=head,
-        title=title,
-        store=store,
-        nonce=nonce,
-        layout=asset_layout,
-        persist=persist,
-        url=url,
-    )
-    js_dir = Path(js) if js is not None else bundles_dir(asset_layout)
-
-    async def homepage(_request):
-        return FileResponse(html) if html is not None else HTMLResponse(body)
-
-    async def tree_route_json(_request):
-        return Response(tree_json(page, page_design), media_type="application/json")
-
-    async def tree_route_frame(_request):
-        return Response(tree_frame(page, design=page_design), media_type="application/octet-stream")
-
-    tree_route = Route(f"{prefix}/tree", tree_route_frame) if tree == "frame" else Route(f"{prefix}/tree.json", tree_route_json)
-    package_mounts = [Mount(package_url_prefix(package, prefix), StaticFiles(directory=package.assets_dir)) for package in component_packages]
+    The host owns the app's lifespan, so run any ``transports.autosync`` in your own lifespan (see
+    ``examples/embed.py``).
+    """
     app.routes.extend(
-        [
-            Route(f"{prefix}/", homepage),
-            tree_route,
-            *_prefixed(routes, prefix),
-            *package_mounts,
-            Mount(f"{prefix}/js", StaticFiles(directory=js_dir)),
-        ]
+        build_routes(
+            page,
+            prefix=prefix,
+            routes=routes,
+            html=html,
+            js=js,
+            layout=layout,
+            title=title,
+            packages=packages,
+            wire=wire,
+            ws=ws,
+            tree=tree,
+            reconnect=reconnect,
+            scripts=scripts,
+            stylesheets=stylesheets,
+            styles=styles,
+            head=head,
+            store=store,
+            nonce=nonce,
+            persist=persist,
+            url=url,
+            design=design,
+        )
     )
     return app
 

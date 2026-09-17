@@ -562,7 +562,8 @@ class RefreshTree(Action):
         ))
 
     Only the differences are applied (the core's ``diff``), so unchanged elements keep identity and
-    client state; a page served as a transports frame has no JSON tree URL, so pass ``url``.
+    client state. A page served as a transports frame or with an inline tree has no JSON tree URL, so
+    pass ``url`` in those modes.
     """
 
     def __init__(self, url: str | None = None) -> None:
