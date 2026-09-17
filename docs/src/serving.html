@@ -312,6 +312,14 @@ app is yours.
 In a source checkout it serves built assets from <code class="docutils literal notranslate"><span class="pre">js/</span></code>; from a wheel it automatically serves packaged
 <code class="docutils literal notranslate"><span class="pre">spaday/extension</span></code> assets. Use <code class="docutils literal notranslate"><span class="pre">layout=&quot;source&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">layout=&quot;installed&quot;</span></code> only to override detection, such
 as when supplying a matching custom <code class="docutils literal notranslate"><span class="pre">js=</span></code> directory.</p>
+<p>For a small page that does not change on the server, use <code class="docutils literal notranslate"><span class="pre">tree=&quot;inline&quot;</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">login_page</span><span class="p">,</span> <span class="n">tree</span><span class="o">=</span><span class="s2">"inline"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The component tree is embedded in the bootstrap page, so no <code class="docutils literal notranslate"><span class="pre">/tree.json</span></code> route or second request is
+needed. A callable page is evaluated once while the routes are built. Use the default JSON mode when it
+must be evaluated for each request. <code class="docutils literal notranslate"><span class="pre">RefreshTree</span></code> also needs an explicit <code class="docutils literal notranslate"><span class="pre">url=</span></code> in inline mode because
+there is no default tree route to refresh from.</p>
 </section>
 <section id="install-an-external-component-package">
 <h2>Install an external component package<a class="headerlink" href="#install-an-external-component-package" title="Link to this heading">¶</a></h2>
@@ -382,6 +390,25 @@ only adds routes — <strong>the host owns the app’s lifespan</strong>, so run
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">Starlette</span><span class="p">(</span><span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">Route</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">my_own_homepage</span><span class="p">)])</span>   <span class="c1"># your app, your routes</span>
 <span class="n">mount</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">page</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">"/panel"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">])</span>   <span class="c1"># spaday lives only under /panel</span>
+</pre></div>
+</div>
+<p>Starlette hosts that need to choose how each route is registered can call <code class="docutils literal notranslate"><span class="pre">build_routes()</span></code> instead.
+It returns the same page, tree, package, supplied, and core asset routes without changing an app. A
+FastAPI host can register request routes on a router with dependencies while keeping static mounts
+public:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mount</span><span class="p">,</span> <span class="n">WebSocketRoute</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_routes</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span><span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="n">Depends</span><span class="p">(</span><span class="n">require_auth</span><span class="p">)])</span>
+<span class="k">for</span> <span class="n">route</span> <span class="ow">in</span> <span class="n">build_routes</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">]):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">route</span><span class="p">,</span> <span class="n">Mount</span><span class="p">):</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">routes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">route</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">route</span><span class="p">,</span> <span class="n">WebSocketRoute</span><span class="p">):</span>
+        <span class="n">router</span><span class="o">.</span><span class="n">add_api_websocket_route</span><span class="p">(</span><span class="n">route</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">route</span><span class="o">.</span><span class="n">endpoint</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">router</span><span class="o">.</span><span class="n">add_api_route</span><span class="p">(</span><span class="n">route</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">route</span><span class="o">.</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="n">route</span><span class="o">.</span><span class="n">methods</span><span class="p">,</span> <span class="n">include_in_schema</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">router</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Backends ship for <strong>Starlette/FastAPI</strong>, <strong>aiohttp</strong>, <strong>Flask</strong>, and <strong>Tornado</strong> — import <code class="docutils literal notranslate"><span class="pre">serve</span></code>/<code class="docutils literal notranslate"><span class="pre">mount</span></code>
@@ -474,7 +501,7 @@ the store; you supply the websocket route and run <code class="docutils literal 
 <td><p>the bootstrap HTML (<code class="docutils literal notranslate"><span class="pre">bootstrap(...)</span></code>)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">{base}/tree.json</span></code></p></td>
-<td><p>the authored tree (<code class="docutils literal notranslate"><span class="pre">tree_json(page)</span></code>)</p></td>
+<td><p>the authored tree (<code class="docutils literal notranslate"><span class="pre">tree_json(page)</span></code>), unless <code class="docutils literal notranslate"><span class="pre">tree=&quot;inline&quot;</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">{base}/js/*</span></code></p></td>
 <td><p>core assets under <code class="docutils literal notranslate"><span class="pre">bundles_dir()</span></code></p></td>

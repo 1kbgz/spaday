@@ -707,6 +707,9 @@
 
 
 
+<span class="n">ActionSequence</span> <span class="o">=</span> <span class="n">Sequence</span>
+
+
 <div class="viewcode-block" id="Emit">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Emit">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Emit</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
@@ -866,7 +869,8 @@
 <span class="sd">        ))</span>
 
 <span class="sd">    Only the differences are applied (the core's ``diff``), so unchanged elements keep identity and</span>
-<span class="sd">    client state; a page served as a transports frame has no JSON tree URL, so pass ``url``.</span>
+<span class="sd">    client state. A page served as a transports frame or with an inline tree has no JSON tree URL, so</span>
+<span class="sd">    pass ``url`` in those modes.</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

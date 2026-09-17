@@ -247,6 +247,8 @@
 <span class="sd">- ``mount(app, page, *, prefix="", …)`` — add spaday's routes to an **existing** app, at ``{prefix}/`` ·</span>
 <span class="sd">  ``{prefix}/tree[.json]`` · ``{prefix}/js`` (so spaday drops into a bigger app, optionally under a</span>
 <span class="sd">  sub-path). This is the primitive.</span>
+<span class="sd">- ``build_routes(page, *, prefix="", …)`` — return those routes without changing an app, so a host can</span>
+<span class="sd">  register them on its own routers.</span>
 <span class="sd">- ``serve(page, …) -&gt; Starlette`` — create an app (with a lifespan for ``background`` coroutines) and</span>
 <span class="sd">  ``mount`` onto it.</span>
 
@@ -259,34 +261,143 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">asynccontextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">inspect</span><span class="w"> </span><span class="kn">import</span> <span class="n">signature</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">..bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssetLayout</span><span class="p">,</span> <span class="n">Page</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_frame</span><span class="p">,</span> <span class="n">tree_json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssetLayout</span><span class="p">,</span> <span class="n">Page</span><span class="p">,</span> <span class="n">TreeMode</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_frame</span><span class="p">,</span> <span class="n">tree_json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..packages</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackageRef</span><span class="p">,</span> <span class="n">package_url_prefix</span><span class="p">,</span> <span class="n">resolve_component_packages</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..ui.design</span><span class="w"> </span><span class="kn">import</span> <span class="n">Design</span><span class="p">,</span> <span class="n">select_design</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>  <span class="c1"># annotations only — starlette is imported inside the functions (optional extra)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.applications</span><span class="w"> </span><span class="kn">import</span> <span class="n">Starlette</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseRoute</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_prefixed</span><span class="p">(</span><span class="n">routes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Prefix each supplied ``Route``/``WebSocketRoute`` path with ``prefix`` so it lines up with the wire</span>
 <span class="sd">    URLs :func:`bootstrap` generates under the same prefix (a ``wire`` ws at ``{prefix}/ws`` must match its</span>
 <span class="sd">    ``WebSocketRoute``). Other route types (``Mount``/``Host``) pass through — prefix those yourself."""</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">prefix</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">routes</span><span class="p">)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Route</span><span class="p">,</span> <span class="n">WebSocketRoute</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.websockets</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocket</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">typed_websocket</span><span class="p">(</span><span class="n">endpoint</span><span class="p">):</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">typed_endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">):</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="n">endpoint</span><span class="p">(</span><span class="n">websocket</span><span class="p">)</span>
+
+        <span class="n">typed_endpoint</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">[</span><span class="s2">"websocket"</span><span class="p">]</span> <span class="o">=</span> <span class="n">WebSocket</span>
+        <span class="n">typed_endpoint</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">endpoint</span><span class="p">,</span> <span class="s2">"__name__"</span><span class="p">,</span> <span class="n">typed_endpoint</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">typed_endpoint</span>
 
     <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">routes</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">WebSocketRoute</span><span class="p">):</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">WebSocketRoute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">r</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">Route</span><span class="p">):</span>
+            <span class="n">endpoint</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">endpoint</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">signature</span><span class="p">(</span><span class="n">endpoint</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">endpoint</span> <span class="o">=</span> <span class="n">typed_websocket</span><span class="p">(</span><span class="n">endpoint</span><span class="p">)</span>
+            <span class="n">route</span> <span class="o">=</span> <span class="n">WebSocketRoute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">r</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">route</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">app</span>  <span class="c1"># retain middleware around the supplied route for normal Starlette mounting</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">route</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">prefix</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">Route</span><span class="p">):</span>
             <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">r</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">endpoint</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">methods</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span>
+
+
+<div class="viewcode-block" id="build_routes">
+<a class="viewcode-back" href="../../../docs/src/api.html#spaday.backends.starlette.build_routes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_routes</span><span class="p">(</span>
+    <span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="n">routes</span><span class="p">:</span> <span class="n">Sequence</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">html</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">js</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">layout</span><span class="p">:</span> <span class="n">AssetLayout</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"spaday"</span><span class="p">,</span>
+    <span class="n">packages</span><span class="p">:</span> <span class="n">PackageRef</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PackageRef</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/ws"</span><span class="p">,</span>
+    <span class="n">tree</span><span class="p">:</span> <span class="n">TreeMode</span> <span class="o">=</span> <span class="s2">"json"</span><span class="p">,</span>
+    <span class="n">reconnect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">scripts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">stylesheets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">styles</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">head</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="n">store</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">persist</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseRoute</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Build spaday's Starlette routes (page, tree, ``/js``, plus ``routes``) under</span>
+<span class="sd">    ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``</span>
+<span class="sd">    becomes ``{prefix}/ws``), so a wired panel's generated ws URL and its endpoint line up — pass the</span>
+<span class="sd">    *unprefixed* path (``WebSocketRoute("/ws", …)``) and let ``build_routes`` add the prefix. Generation options</span>
+<span class="sd">    pass to :func:`spaday.bootstrap.bootstrap` (incl. ``store`` and ``nonce``, a CSP nonce for the</span>
+<span class="sd">    generated scripts); ``html`` serves a hand-authored bootstrap instead; ``js`` overrides the bundle dir.</span>
+<span class="sd">    The caller may register the returned routes itself, including translating page and websocket routes</span>
+<span class="sd">    onto a FastAPI router with dependencies, or pass the same options to :func:`mount`."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.requests</span><span class="w"> </span><span class="kn">import</span> <span class="n">Request</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileResponse</span><span class="p">,</span> <span class="n">HTMLResponse</span><span class="p">,</span> <span class="n">Response</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mount</span><span class="p">,</span> <span class="n">Route</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.staticfiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticFiles</span>
+
+    <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"inline"</span> <span class="ow">and</span> <span class="n">html</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"tree='inline' cannot be combined with html= because the generated inline tree would not be served"</span><span class="p">)</span>
+
+    <span class="n">asset_layout</span> <span class="o">=</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"source"</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
+    <span class="n">page_design</span> <span class="o">=</span> <span class="n">select_design</span><span class="p">(</span><span class="n">design</span><span class="p">,</span> <span class="n">component_packages</span><span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span>
+        <span class="n">base</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+        <span class="n">packages</span><span class="o">=</span><span class="n">component_packages</span><span class="p">,</span>
+        <span class="n">wire</span><span class="o">=</span><span class="n">wire</span><span class="p">,</span>
+        <span class="n">ws</span><span class="o">=</span><span class="n">ws</span><span class="p">,</span>
+        <span class="n">tree</span><span class="o">=</span><span class="n">tree</span><span class="p">,</span>
+        <span class="n">page</span><span class="o">=</span><span class="n">page</span><span class="p">,</span>
+        <span class="n">reconnect</span><span class="o">=</span><span class="n">reconnect</span><span class="p">,</span>
+        <span class="n">scripts</span><span class="o">=</span><span class="n">scripts</span><span class="p">,</span>
+        <span class="n">stylesheets</span><span class="o">=</span><span class="n">stylesheets</span><span class="p">,</span>
+        <span class="n">styles</span><span class="o">=</span><span class="n">styles</span><span class="p">,</span>
+        <span class="n">head</span><span class="o">=</span><span class="n">head</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
+        <span class="n">nonce</span><span class="o">=</span><span class="n">nonce</span><span class="p">,</span>
+        <span class="n">layout</span><span class="o">=</span><span class="n">asset_layout</span><span class="p">,</span>
+        <span class="n">persist</span><span class="o">=</span><span class="n">persist</span><span class="p">,</span>
+        <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
+        <span class="n">design</span><span class="o">=</span><span class="n">page_design</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">js_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">js</span><span class="p">)</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">bundles_dir</span><span class="p">(</span><span class="n">asset_layout</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">homepage</span><span class="p">(</span><span class="n">_request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">FileResponse</span><span class="p">(</span><span class="n">html</span><span class="p">)</span> <span class="k">if</span> <span class="n">html</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">tree_route_json</span><span class="p">(</span><span class="n">_request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">page_design</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">tree_route_frame</span><span class="p">(</span><span class="n">_request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_frame</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">design</span><span class="o">=</span><span class="n">page_design</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/octet-stream"</span><span class="p">)</span>
+
+    <span class="c1"># FastAPI resolves endpoint annotations from module globals, while Request is imported lazily here</span>
+    <span class="c1"># to keep Starlette optional. Store the class itself instead of the postponed "Request" string.</span>
+    <span class="k">for</span> <span class="n">endpoint</span> <span class="ow">in</span> <span class="p">(</span><span class="n">homepage</span><span class="p">,</span> <span class="n">tree_route_json</span><span class="p">,</span> <span class="n">tree_route_frame</span><span class="p">):</span>
+        <span class="n">endpoint</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">[</span><span class="s2">"_request"</span><span class="p">]</span> <span class="o">=</span> <span class="n">Request</span>
+
+    <span class="n">tree_routes</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">[]</span> <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"inline"</span> <span class="k">else</span> <span class="p">[</span><span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree"</span><span class="p">,</span> <span class="n">tree_route_frame</span><span class="p">)</span> <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"frame"</span> <span class="k">else</span> <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree.json"</span><span class="p">,</span> <span class="n">tree_route_json</span><span class="p">)]</span>
+    <span class="p">)</span>
+    <span class="n">package_mounts</span> <span class="o">=</span> <span class="p">[</span><span class="n">Mount</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span> <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">component_packages</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/"</span><span class="p">,</span> <span class="n">homepage</span><span class="p">),</span>
+        <span class="o">*</span><span class="n">tree_routes</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">_prefixed</span><span class="p">(</span><span class="n">routes</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span>
+        <span class="o">*</span><span class="n">package_mounts</span><span class="p">,</span>
+        <span class="n">Mount</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/js"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">js_dir</span><span class="p">)),</span>
+    <span class="p">]</span></div>
+
 
 
 <div class="viewcode-block" id="mount">
@@ -304,7 +415,7 @@
     <span class="n">packages</span><span class="p">:</span> <span class="n">PackageRef</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PackageRef</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/ws"</span><span class="p">,</span>
-    <span class="n">tree</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"json"</span><span class="p">,</span>
+    <span class="n">tree</span><span class="p">:</span> <span class="n">TreeMode</span> <span class="o">=</span> <span class="s2">"json"</span><span class="p">,</span>
     <span class="n">reconnect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">scripts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">stylesheets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
@@ -316,60 +427,35 @@
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Starlette</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Add spaday's routes (page, tree, ``/js``, plus ``routes``) to an existing Starlette ``app`` under</span>
-<span class="sd">    ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``</span>
-<span class="sd">    becomes ``{prefix}/ws``), so a wired panel's generated ws URL and its endpoint line up — pass the</span>
-<span class="sd">    *unprefixed* path (``WebSocketRoute("/ws", …)``) and let ``mount`` add the prefix. Generation options</span>
-<span class="sd">    pass to :func:`spaday.bootstrap.bootstrap` (incl. ``store`` and ``nonce``, a CSP nonce for the</span>
-<span class="sd">    generated scripts); ``html`` serves a hand-authored bootstrap instead; ``js`` overrides the bundle dir.</span>
-<span class="sd">    ``mount`` only adds routes — **the host owns the app's lifespan**, so run any ``transports.autosync``</span>
-<span class="sd">    in your own lifespan (see ``examples/embed.py``). Returns ``app`` for chaining."""</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileResponse</span><span class="p">,</span> <span class="n">HTMLResponse</span><span class="p">,</span> <span class="n">Response</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mount</span><span class="p">,</span> <span class="n">Route</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.staticfiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticFiles</span>
+<span class="w">    </span><span class="sd">"""Add :func:`build_routes` to an existing Starlette ``app`` and return the app for chaining.</span>
 
-    <span class="n">asset_layout</span> <span class="o">=</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"source"</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
-    <span class="n">page_design</span> <span class="o">=</span> <span class="n">select_design</span><span class="p">(</span><span class="n">design</span><span class="p">,</span> <span class="n">component_packages</span><span class="p">)</span>
-    <span class="n">body</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span>
-        <span class="n">base</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
-        <span class="n">packages</span><span class="o">=</span><span class="n">component_packages</span><span class="p">,</span>
-        <span class="n">wire</span><span class="o">=</span><span class="n">wire</span><span class="p">,</span>
-        <span class="n">ws</span><span class="o">=</span><span class="n">ws</span><span class="p">,</span>
-        <span class="n">tree</span><span class="o">=</span><span class="n">tree</span><span class="p">,</span>
-        <span class="n">reconnect</span><span class="o">=</span><span class="n">reconnect</span><span class="p">,</span>
-        <span class="n">scripts</span><span class="o">=</span><span class="n">scripts</span><span class="p">,</span>
-        <span class="n">stylesheets</span><span class="o">=</span><span class="n">stylesheets</span><span class="p">,</span>
-        <span class="n">styles</span><span class="o">=</span><span class="n">styles</span><span class="p">,</span>
-        <span class="n">head</span><span class="o">=</span><span class="n">head</span><span class="p">,</span>
-        <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
-        <span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
-        <span class="n">nonce</span><span class="o">=</span><span class="n">nonce</span><span class="p">,</span>
-        <span class="n">layout</span><span class="o">=</span><span class="n">asset_layout</span><span class="p">,</span>
-        <span class="n">persist</span><span class="o">=</span><span class="n">persist</span><span class="p">,</span>
-        <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">js_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">js</span><span class="p">)</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">bundles_dir</span><span class="p">(</span><span class="n">asset_layout</span><span class="p">)</span>
-
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">homepage</span><span class="p">(</span><span class="n">_request</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">FileResponse</span><span class="p">(</span><span class="n">html</span><span class="p">)</span> <span class="k">if</span> <span class="n">html</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">HTMLResponse</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
-
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">tree_route_json</span><span class="p">(</span><span class="n">_request</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_json</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">page_design</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">)</span>
-
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">tree_route_frame</span><span class="p">(</span><span class="n">_request</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">tree_frame</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">design</span><span class="o">=</span><span class="n">page_design</span><span class="p">),</span> <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/octet-stream"</span><span class="p">)</span>
-
-    <span class="n">tree_route</span> <span class="o">=</span> <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree"</span><span class="p">,</span> <span class="n">tree_route_frame</span><span class="p">)</span> <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"frame"</span> <span class="k">else</span> <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree.json"</span><span class="p">,</span> <span class="n">tree_route_json</span><span class="p">)</span>
-    <span class="n">package_mounts</span> <span class="o">=</span> <span class="p">[</span><span class="n">Mount</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span> <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">component_packages</span><span class="p">]</span>
+<span class="sd">    The host owns the app's lifespan, so run any ``transports.autosync`` in your own lifespan (see</span>
+<span class="sd">    ``examples/embed.py``).</span>
+<span class="sd">    """</span>
     <span class="n">app</span><span class="o">.</span><span class="n">routes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
-        <span class="p">[</span>
-            <span class="n">Route</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/"</span><span class="p">,</span> <span class="n">homepage</span><span class="p">),</span>
-            <span class="n">tree_route</span><span class="p">,</span>
-            <span class="o">*</span><span class="n">_prefixed</span><span class="p">(</span><span class="n">routes</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span>
-            <span class="o">*</span><span class="n">package_mounts</span><span class="p">,</span>
-            <span class="n">Mount</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/js"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">js_dir</span><span class="p">)),</span>
-        <span class="p">]</span>
+        <span class="n">build_routes</span><span class="p">(</span>
+            <span class="n">page</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+            <span class="n">routes</span><span class="o">=</span><span class="n">routes</span><span class="p">,</span>
+            <span class="n">html</span><span class="o">=</span><span class="n">html</span><span class="p">,</span>
+            <span class="n">js</span><span class="o">=</span><span class="n">js</span><span class="p">,</span>
+            <span class="n">layout</span><span class="o">=</span><span class="n">layout</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">packages</span><span class="o">=</span><span class="n">packages</span><span class="p">,</span>
+            <span class="n">wire</span><span class="o">=</span><span class="n">wire</span><span class="p">,</span>
+            <span class="n">ws</span><span class="o">=</span><span class="n">ws</span><span class="p">,</span>
+            <span class="n">tree</span><span class="o">=</span><span class="n">tree</span><span class="p">,</span>
+            <span class="n">reconnect</span><span class="o">=</span><span class="n">reconnect</span><span class="p">,</span>
+            <span class="n">scripts</span><span class="o">=</span><span class="n">scripts</span><span class="p">,</span>
+            <span class="n">stylesheets</span><span class="o">=</span><span class="n">stylesheets</span><span class="p">,</span>
+            <span class="n">styles</span><span class="o">=</span><span class="n">styles</span><span class="p">,</span>
+            <span class="n">head</span><span class="o">=</span><span class="n">head</span><span class="p">,</span>
+            <span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
+            <span class="n">nonce</span><span class="o">=</span><span class="n">nonce</span><span class="p">,</span>
+            <span class="n">persist</span><span class="o">=</span><span class="n">persist</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
+            <span class="n">design</span><span class="o">=</span><span class="n">design</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">app</span></div>
 

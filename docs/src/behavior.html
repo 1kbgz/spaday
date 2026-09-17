@@ -267,7 +267,8 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">SetProp(target,</span> <span class="pre">prop,</span> <span class="pre">value)</span></code> — set a prop to a value or expression.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">SetField(field,</span> <span class="pre">value)</span></code> / <code class="docutils literal notranslate"><span class="pre">ToggleField(field)</span></code> — write / flip a reactive state field (see below).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Sequence(a,</span> <span class="pre">b,</span> <span class="pre">…)</span></code> — run several actions in order.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Sequence(a,</span> <span class="pre">b,</span> <span class="pre">…)</span></code> — run several actions in order. Import it as <code class="docutils literal notranslate"><span class="pre">ActionSequence</span></code> when another
+<code class="docutils literal notranslate"><span class="pre">Sequence</span></code> is already in scope.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">If(cond,</span> <span class="pre">then,</span> <span class="pre">els=None)</span></code> — branch on a live condition.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Emit(event,</span> <span class="pre">detail=None)</span></code> — dispatch a custom DOM event.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code>, <code class="docutils literal notranslate"><span class="pre">CallEndpoint</span></code>, <code class="docutils literal notranslate"><span class="pre">NamedJs</span></code> — see below.</p></li>
@@ -426,7 +427,8 @@ catalog of hundreds of server-rendered detail cards, that is the difference betw
 megabytes on first paint.</p>
 <p>Finally, <code class="docutils literal notranslate"><span class="pre">RefreshTree</span></code> covers “server state changed, re-render” for apps that don’t need a live wire:
 it re-fetches the page’s <code class="docutils literal notranslate"><span class="pre">tree.json</span></code> (or an explicit <code class="docutils literal notranslate"><span class="pre">url=</span></code>) and diffs it into the mounted tree with
-the core’s patch machinery, so unchanged nodes keep their identity and client state. The diff
+the core’s patch machinery, so unchanged nodes keep their identity and client state. Frame and inline
+tree modes have no JSON tree URL, so pass <code class="docutils literal notranslate"><span class="pre">url=</span></code> when using <code class="docutils literal notranslate"><span class="pre">RefreshTree</span></code> with either one. The diff
 descends into structural bindings: a changed branch inside a <code class="docutils literal notranslate"><span class="pre">Show</span></code>/<code class="docutils literal notranslate"><span class="pre">Switch</span></code> re-renders (including
 the stored bodies of a <code class="docutils literal notranslate"><span class="pre">Switch</span></code>’s non-mounted cases), and every loaded <code class="docutils literal notranslate"><span class="pre">Lazy</span></code> body is re-fetched
 from its <code class="docutils literal notranslate"><span class="pre">src</span></code> — swapped only if the payload actually changed. Actions in a
