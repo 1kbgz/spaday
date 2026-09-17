@@ -29,15 +29,37 @@ type PatchOp =
   | { Reorder: { path: PathSeg[]; order: number[] } };
 type ReceiveChange =
   | { t: "snapshot"; id: number }
-  | { t: "patch"; id: number; patch: { rev: number; ops: PatchOp[] } };
+  | {
+      t: "patch";
+      id: number;
+      patch: { rev: number; ops: PatchOp[] };
+      proposal?: string;
+    };
+type AckChange =
+  | (Extract<ReceiveChange, { t: "patch" }> & { proposal: string })
+  | { t: "ack"; id: number; rev: number; proposal: string };
+type RejectChange = {
+  t: "reject";
+  id: number;
+  rev: number;
+  error: string;
+  proposal?: string;
+};
 
 export interface ModelClient {
-  recv(data: string | Uint8Array): ReceiveChange | undefined | void;
+  recv(
+    data: string | Uint8Array,
+  ): ReceiveChange | ReceiveChange[] | undefined | void;
   /** Accepted-change listener provided by current transports clients. Optional for older clients. */
   onChange?(listener: (change: ReceiveChange) => void): () => void;
+  onAck?(listener: (ack: AckChange) => void): () => void;
+  onReject?(listener: (reject: RejectChange) => void): () => void;
+  onAbandon?(listener: (proposals: string[]) => void): () => void;
   ids(): number[];
   value(id: number): unknown; // the model as a tagged core Value
-  edit(id: number, value: unknown): string; // an encoded edit frame to send back
+  edit(id: number, value: unknown, proposal?: string): string | Uint8Array; // an encoded edit frame to send back
+  editOps?(id: number, ops: PatchOp[], proposal?: string): string | Uint8Array;
+  proposeOps?(id: number, ops: PatchOp[], proposal?: string): boolean;
 }
 
 /** Convert between tagged core Values and plain JS fields (transports' `fromValue` / `toValue`). */
@@ -49,9 +71,13 @@ export interface ValueCodec {
 export interface StoreLink {
   /** Feed an inbound wire frame; the mirrored model's fields flow into the store (and bound props). */
   receive(data: string | Uint8Array): void;
+  /** Drop optimistic edits after the underlying connection closes. */
+  disconnect(): void;
   /** Stop pushing store changes to the wire. */
   dispose(): void;
 }
+
+let nextStoreProposal = 1;
 
 const isObj = (v: unknown): v is Record<string, unknown> =>
   v != null && typeof v === "object" && !Array.isArray(v);
@@ -395,48 +421,159 @@ function collectionDelta(
 export function connectStore(
   store: Store,
   client: ModelClient,
-  send: (frame: string) => void,
+  send: ((frame: string | Uint8Array) => unknown) | undefined,
   codec: ValueCodec,
   namespace?: string, // prefix every store field with `${namespace}.` — lets several models share one Store
   flatten = true, // recurse nested sub-models to dotted fields; set false to keep an opaque map/dict whole
 ): StoreLink {
   let id: number | undefined;
   let inbound = false; // true while applying a received frame, so we don't echo it straight back out
+  let disposed = false;
   const wired = new Set<string>();
+  const fieldUnsubs = new Map<string, () => void>();
   const unsubs: Array<() => void> = [];
+  const pending = new Map<string, { field: string; value: unknown }>();
+  const latest = new Map<string, string>();
+  const proposalAware =
+    client.editOps !== undefined &&
+    client.onAck !== undefined &&
+    client.onReject !== undefined &&
+    client.onAbandon !== undefined;
+  if (send === undefined && (!proposalAware || client.proposeOps === undefined))
+    throw new TypeError(
+      "connectStore requires send or a proposal-aware client with proposeOps",
+    );
+
+  const dropProposal = (proposal: string): string | undefined => {
+    const edit = pending.get(proposal);
+    if (!edit) return undefined;
+    pending.delete(proposal);
+    if (latest.get(edit.field) === proposal) {
+      latest.delete(edit.field);
+      for (const [candidate, pendingEdit] of pending) {
+        if (pendingEdit.field === edit.field) latest.set(edit.field, candidate);
+      }
+    }
+    return edit.field;
+  };
+
+  const restorePending = () => {
+    for (const [field, proposal] of latest) {
+      const edit = pending.get(proposal);
+      if (!edit) continue;
+      const key = namespace ? `${namespace}.${field}` : field;
+      store.set(key, edit.value);
+    }
+  };
 
   const wireField = (field: string) => {
     const key = namespace ? `${namespace}.${field}` : field;
     if (wired.has(key)) return;
     wired.add(key);
-    unsubs.push(
+    fieldUnsubs.set(
+      key,
       store.subscribe(key, (value) => {
         if (inbound || id === undefined) return;
         const decoded = codec.fromValue(client.value(id));
         const current = isObj(decoded) ? decoded : {};
-        send(
-          client.edit(
-            id,
-            codec.toValue(setPath(current, field.split("."), value)),
-          ),
-        );
+        if (!proposalAware) {
+          if (!send) {
+            queueReconcile();
+            return;
+          }
+          send(
+            client.edit(
+              id,
+              codec.toValue(setPath(current, field.split("."), value)),
+            ),
+          );
+          return;
+        }
+        const proposal = `spaday-${nextStoreProposal++}`;
+        const ops: PatchOp[] = [
+          {
+            Set: {
+              path: field.split(".").map((part) => ({ Key: part })),
+              value: codec.toValue(value),
+            },
+          },
+        ];
+        pending.set(proposal, { field, value });
+        latest.set(field, proposal);
+        try {
+          const sent =
+            send === undefined && client.proposeOps
+              ? client.proposeOps(id, ops, proposal)
+              : send
+                ? send(client.editOps!(id, ops, proposal))
+                : false;
+          if (sent === false) {
+            dropProposal(proposal);
+            queueReconcile();
+          }
+        } catch (error) {
+          dropProposal(proposal);
+          queueReconcile();
+          throw error;
+        }
       }),
     );
+  };
+
+  const unwireBranch = (field: string) => {
+    const key = namespace ? `${namespace}.${field}` : field;
+    for (const [candidate, unsub] of fieldUnsubs) {
+      if (candidate !== key && !candidate.startsWith(`${key}.`)) continue;
+      unsub();
+      fieldUnsubs.delete(candidate);
+      wired.delete(candidate);
+    }
+  };
+
+  const unwireFields = () => {
+    for (const unsub of fieldUnsubs.values()) unsub();
+    fieldUnsubs.clear();
+    wired.clear();
   };
 
   const receiveSnapshot = () => {
     if (id === undefined) return;
     const decoded = codec.fromValue(client.value(id));
     if (!isObj(decoded)) return;
+    unwireFields();
     const entries = flatten ? leaves(decoded) : Object.entries(decoded);
     for (const [field, value] of entries) {
       const key = namespace ? `${namespace}.${field}` : field;
       store.set(key, value);
-      wireField(field.split(".")[0]);
+      wireField(field);
+    }
+    restorePending();
+  };
+
+  const reconcile = () => {
+    inbound = true;
+    try {
+      receiveSnapshot();
+    } finally {
+      inbound = false;
     }
   };
 
-  const receivePatch = (change: Extract<ReceiveChange, { t: "patch" }>) => {
+  let reconcileQueued = false;
+  const queueReconcile = () => {
+    if (disposed || reconcileQueued) return;
+    reconcileQueued = true;
+    queueMicrotask(() => {
+      reconcileQueued = false;
+      if (disposed) return;
+      reconcile();
+    });
+  };
+
+  const receivePatch = (
+    change: Extract<ReceiveChange, { t: "patch" }>,
+    settledField?: string,
+  ) => {
     const staged = new Map<
       string,
       {
@@ -445,6 +582,11 @@ export function connectStore(
         deltas?: CollectionDelta[];
       }
     >();
+    const authoritativeFields = new Set<string>();
+    if (settledField) authoritativeFields.add(settledField.split(".")[0]);
+    for (const field of latest.keys())
+      authoritativeFields.add(field.split(".")[0]);
+    let authoritative: Record<string, unknown> | undefined;
     try {
       for (const op of change.patch.ops) {
         const body =
@@ -468,6 +610,16 @@ export function connectStore(
           throw new Error("model patch path must start with a map key");
         const field = head.Key;
         const key = namespace ? `${namespace}.${field}` : field;
+        if (authoritativeFields.has(field)) {
+          if (!authoritative) {
+            const decoded = codec.fromValue(client.value(change.id));
+            if (!isObj(decoded))
+              throw new Error("model value must be an object");
+            authoritative = decoded;
+          }
+          staged.set(key, { field, value: authoritative[field] });
+          continue;
+        }
         const current = staged.has(key)
           ? staged.get(key)!.value
           : store.get(key);
@@ -494,6 +646,7 @@ export function connectStore(
       return;
     }
     for (const [key, update] of staged) {
+      unwireBranch(update.field);
       const itemKey = store.collectionKey(key);
       const current = store.get(key);
       if (
@@ -505,16 +658,26 @@ export function connectStore(
       )
         store.setCollection(key, update.value, update.deltas);
       else store.set(key, update.value);
-      wireField(update.field);
+      if (flatten && isObj(update.value)) {
+        for (const [field] of leaves(update.value, update.field))
+          wireField(field);
+      } else {
+        wireField(update.field);
+      }
     }
+    restorePending();
   };
 
   const accept = (change: ReceiveChange) => {
     if (id === undefined) id = change.id;
     if (change.id !== id) return;
+    const settledField =
+      change.t === "patch" && change.proposal
+        ? dropProposal(change.proposal)
+        : undefined;
     inbound = true;
     try {
-      if (change.t === "patch") receivePatch(change);
+      if (change.t === "patch") receivePatch(change, settledField);
       else receiveSnapshot();
     } finally {
       inbound = false;
@@ -523,6 +686,30 @@ export function connectStore(
 
   const listensForChanges = client.onChange !== undefined;
   if (client.onChange) unsubs.push(client.onChange(accept));
+  if (client.onAck)
+    unsubs.push(
+      client.onAck((ack) => {
+        if (id !== undefined && ack.id !== id) return;
+        if (dropProposal(ack.proposal) !== undefined) reconcile();
+      }),
+    );
+  if (client.onReject)
+    unsubs.push(
+      client.onReject((reject) => {
+        if (id !== undefined && reject.id !== id) return;
+        if (reject.proposal) dropProposal(reject.proposal);
+        else for (const proposal of pending.keys()) dropProposal(proposal);
+        reconcile();
+      }),
+    );
+  const abandon = (proposals: Iterable<string>) => {
+    let changed = false;
+    for (const proposal of proposals)
+      changed = dropProposal(proposal) !== undefined || changed;
+    if (changed) reconcile();
+  };
+  if (client.onAbandon)
+    unsubs.push(client.onAbandon((proposals) => abandon(proposals)));
 
   return {
     receive(data) {
@@ -531,6 +718,10 @@ export function connectStore(
       // patch, reject, or future message type therefore does no store work. Older clients have no
       // listener API, so retain their recv-return/full-snapshot compatibility paths below.
       if (listensForChanges) return;
+      if (Array.isArray(change)) {
+        for (const accepted of change) accept(accepted);
+        return;
+      }
       if (change) {
         accept(change);
         return;
@@ -544,7 +735,13 @@ export function connectStore(
         inbound = false;
       }
     },
+    disconnect() {
+      if (disposed) return;
+      abandon([...pending.keys()]);
+    },
     dispose() {
+      disposed = true;
+      unwireFields();
       for (const unsub of unsubs) unsub();
     },
   };
