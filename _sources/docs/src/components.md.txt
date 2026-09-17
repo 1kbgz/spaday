@@ -75,6 +75,8 @@ Flow regions are `HEADER_LEFT` / `HEADER_CENTER` / `HEADER_RIGHT`, `GUTTER_LEFT`
 Footer only appears when its regions have contributions. `DRAWER_LEFT`, `DRAWER_RIGHT`, `DRAWER_BOTTOM`,
 and `OVERLAY` append directly under `App`, after flow chrome, for top-layer UI.
 
+(generic-controls)=
+
 ## Use generic controls any design renders
 
 A typed catalog ties a page to one design system: `WaButton` is a `wa-button`. The 13 generic
