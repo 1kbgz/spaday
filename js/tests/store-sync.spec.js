@@ -102,6 +102,140 @@ const LISTENER_FAKE = () => {
   return { client, codec };
 };
 
+const PROPOSAL_FAKE = () => {
+  const changes = [];
+  const acks = [];
+  const rejects = [];
+  const abandons = [];
+  const client = {
+    model: {},
+    sent: [],
+    abandoned: [],
+    recv(data) {
+      const message = JSON.parse(data);
+      if (message.t !== "snapshot") return undefined;
+      this.model = message.value;
+      const change = { t: "snapshot", id: message.id };
+      for (const listener of [...changes]) listener(change);
+      return change;
+    },
+    onChange(listener) {
+      changes.push(listener);
+      return () => changes.splice(changes.indexOf(listener), 1);
+    },
+    onAck(listener) {
+      acks.push(listener);
+      return () => acks.splice(acks.indexOf(listener), 1);
+    },
+    onReject(listener) {
+      rejects.push(listener);
+      return () => rejects.splice(rejects.indexOf(listener), 1);
+    },
+    onAbandon(listener) {
+      abandons.push(listener);
+      return () => abandons.splice(abandons.indexOf(listener), 1);
+    },
+    ids() {
+      return [1];
+    },
+    value() {
+      return this.model;
+    },
+    edit() {
+      throw new Error("proposal-aware clients use editOps");
+    },
+    editOps(id, ops, proposal) {
+      const frame = JSON.stringify({
+        t: "patch",
+        id,
+        patch: { rev: 0, ops },
+        proposal,
+      });
+      this.sent.push(JSON.parse(frame));
+      return frame;
+    },
+    proposeOps(id, ops, proposal) {
+      this.editOps(id, ops, proposal);
+      return true;
+    },
+    abandonProposal(proposal) {
+      this.abandoned.push(proposal);
+      return true;
+    },
+    accept(proposal, field, value) {
+      this.model = { ...this.model, [field]: value };
+      const change = {
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 1,
+          ops: [{ Set: { path: [{ Key: field }], value } }],
+        },
+        proposal,
+      };
+      for (const listener of [...changes]) listener(change);
+      for (const listener of [...acks]) listener(change);
+    },
+    acceptOps(proposal, value, ops) {
+      this.model = value;
+      const change = {
+        t: "patch",
+        id: 1,
+        patch: { rev: 1, ops },
+        proposal,
+      };
+      for (const listener of [...changes]) listener(change);
+      for (const listener of [...acks]) listener(change);
+    },
+    ack(proposal) {
+      for (const listener of [...acks])
+        listener({ t: "ack", id: 1, rev: 1, proposal });
+    },
+    remote(field, value) {
+      this.model = { ...this.model, [field]: value };
+      const change = {
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 1,
+          ops: [{ Set: { path: [{ Key: field }], value } }],
+        },
+      };
+      for (const listener of [...changes]) listener(change);
+    },
+    remoteNested(parent, child, value) {
+      this.model = {
+        ...this.model,
+        [parent]: { ...this.model[parent], [child]: value },
+      };
+      const change = {
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 1,
+          ops: [
+            {
+              Set: {
+                path: [{ Key: parent }, { Key: child }],
+                value,
+              },
+            },
+          ],
+        },
+      };
+      for (const listener of [...changes]) listener(change);
+    },
+    reject(proposal) {
+      for (const listener of [...rejects])
+        listener({ t: "reject", id: 1, rev: 0, error: "invalid", proposal });
+    },
+    abandon(proposals) {
+      for (const listener of [...abandons]) listener(proposals);
+    },
+  };
+  return { client, codec: { fromValue: (v) => v, toValue: (v) => v } };
+};
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/tests/runtime.html");
   await page.waitForFunction(() => window.__spaday);
@@ -156,6 +290,493 @@ test("outbound: a two-way control change is sent as a server-authoritative edit"
   }, FAKE.toString());
   expect(result.sent).toContainEqual({ on: true }); // the control's change went out as an edit
   expect(result.modelStillFalse).toBe(false); // edits are server-authoritative: model unchanged until echo
+});
+
+test("an older accepted edit cannot overwrite newer local input", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+    const observed = [];
+    store.subscribe("doc", (value) => observed.push(value));
+
+    store.set("doc", "B");
+    store.set("doc", "C");
+    const [first, second] = client.sent.map((message) => message.proposal);
+    client.accept(first, "doc", "B");
+    const afterOlder = store.get("doc");
+    client.remote("status", "saved");
+    const afterRemote = store.get("doc");
+    client.accept(second, "doc", "C!");
+
+    return {
+      afterOlder,
+      afterRemote,
+      final: store.get("doc"),
+      status: store.get("status"),
+      observed,
+    };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({
+    afterOlder: "C",
+    afterRemote: "C",
+    final: "C!",
+    status: "saved",
+    observed: ["B", "C", "C!"],
+  });
+});
+
+test("returning to the confirmed value sends an explicit Set proposal", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("doc", "B");
+    store.set("doc", "A");
+    const [first, second] = client.sent;
+    client.accept(first.proposal, "doc", "B");
+    const afterOlder = store.get("doc");
+    client.accept(second.proposal, "doc", "A");
+
+    return {
+      secondOp: second.patch.ops[0],
+      afterOlder,
+      final: store.get("doc"),
+    };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({
+    secondOp: { Set: { path: [{ Key: "doc" }], value: "A" } },
+    afterOlder: "A",
+    final: "A",
+  });
+});
+
+test("rejected and abandoned proposals restore only unshadowed input", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+    const rejections = [];
+    const onReject = (event) => rejections.push(event.detail);
+    document.addEventListener("spaday:reject", onReject);
+
+    store.set("doc", "B");
+    store.set("doc", "C");
+    const [first, second] = client.sent.map((message) => message.proposal);
+    client.reject(first);
+    const afterOlderReject = store.get("doc");
+    const errorAfterOlderReject = store.get("$errors.doc");
+    client.reject(second);
+    const afterLatestReject = store.get("doc");
+    const errorAfterLatestReject = store.get("$errors.doc");
+
+    store.set("doc", "D");
+    const errorAfterNewEdit = store.get("$errors.doc");
+    const third = client.sent[2].proposal;
+    client.abandon([third]);
+    document.removeEventListener("spaday:reject", onReject);
+
+    return {
+      afterOlderReject,
+      errorAfterOlderReject,
+      afterLatestReject,
+      errorAfterLatestReject,
+      errorAfterNewEdit,
+      afterAbandon: store.get("doc"),
+      rejections: rejections.map((rejection) => ({
+        ...rejection,
+        proposal: rejection.proposal === first ? "first" : "second",
+      })),
+    };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({
+    afterOlderReject: "C",
+    errorAfterOlderReject: "",
+    afterLatestReject: "A",
+    errorAfterLatestReject: "invalid",
+    errorAfterNewEdit: "",
+    afterAbandon: "A",
+    rejections: [
+      {
+        id: 1,
+        model: undefined,
+        field: "doc",
+        error: "invalid",
+        proposal: "first",
+        rev: 0,
+      },
+      {
+        id: 1,
+        model: undefined,
+        field: "doc",
+        error: "invalid",
+        proposal: "second",
+        rev: 0,
+      },
+    ],
+  });
+});
+
+test("disconnect and failed sends discard optimistic input", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async (makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    let canSend = false;
+    const link = connectStore(store, client, () => canSend, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+    const observed = [];
+    store.subscribe("doc", (value) => observed.push([value, store.get("doc")]));
+
+    store.set("doc", "dropped");
+    await Promise.resolve();
+    const afterDroppedSend = store.get("doc");
+    const afterDroppedNotifications = observed.slice();
+    canSend = true;
+    store.set("doc", "pending");
+    link.disconnect();
+    store.set("doc", "after-close");
+    await Promise.resolve();
+
+    return {
+      afterDroppedSend,
+      afterDroppedNotifications,
+      afterDisconnect: store.get("doc"),
+      proposals: client.sent.length,
+      abandoned: client.abandoned.length,
+    };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({
+    afterDroppedSend: "A",
+    afterDroppedNotifications: [
+      ["dropped", "dropped"],
+      ["A", "A"],
+    ],
+    afterDisconnect: "A",
+    proposals: 2,
+    abandoned: 2,
+  });
+});
+
+test("a replacement snapshot abandons proposals from a lost send", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => undefined, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("doc", "lost");
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "C" } }));
+    return {
+      doc: store.get("doc"),
+      abandoned: client.abandoned,
+      proposals: client.sent.length,
+    };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({
+    doc: "C",
+    abandoned: [expect.any(String)],
+    proposals: 1,
+  });
+});
+
+test("dispose abandons proposals owned by the store link", async ({ page }) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("doc", "B");
+    link.dispose();
+    return client.abandoned;
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toHaveLength(1);
+});
+
+test("a rejection without a proposal id clears optimistic input", async ({
+  page,
+}) => {
+  const value = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("doc", "optimistic");
+    client.reject();
+    return store.get("doc");
+  }, PROPOSAL_FAKE.toString());
+
+  expect(value).toBe("A");
+});
+
+test("namespaced rejections publish the bound field and reactive error", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const events = [];
+    const onReject = (event) => events.push(event.detail);
+    document.addEventListener("spaday:reject", onReject);
+    const link = connectStore(store, client, () => true, codec, "editor");
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("editor.doc", "invalid");
+    client.reject(client.sent[0].proposal);
+    document.removeEventListener("spaday:reject", onReject);
+    return { error: store.get("$errors.editor.doc"), event: events[0] };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result.error).toBe("invalid");
+  expect(result.event).toMatchObject({
+    id: 1,
+    model: "editor",
+    field: "editor.doc",
+    error: "invalid",
+    rev: 0,
+  });
+});
+
+test("an acknowledgement without a patch restores the authoritative value", async ({
+  page,
+}) => {
+  const value = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("doc", "optimistic");
+    client.ack(client.sent[0].proposal);
+    return store.get("doc");
+  }, PROPOSAL_FAKE.toString());
+
+  expect(value).toBe("A");
+});
+
+test("settling one field does not reset unrelated collections", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { doc: "A", rows: [{ id: 1, name: "one" }] },
+      }),
+    );
+    const collectionChanges = [];
+    store.subscribeCollection("rows", "id", (change) =>
+      collectionChanges.push(change),
+    );
+
+    store.set("doc", "optimistic");
+    client.ack(client.sent[0].proposal);
+    return { doc: store.get("doc"), collectionChanges };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({ doc: "A", collectionChanges: [] });
+});
+
+test("a managed proposal sends without a separate callback", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, undefined, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("doc", "B");
+    const proposal = client.sent[0].proposal;
+    client.accept(proposal, "doc", "B!");
+    return { sent: client.sent.length, value: store.get("doc") };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({ sent: 1, value: "B!" });
+});
+
+test("an accepted list proposal applies index operations to the authoritative mirror", async ({
+  page,
+}) => {
+  const value = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(
+      JSON.stringify({ t: "snapshot", id: 1, value: { tags: ["a"] } }),
+    );
+
+    store.set("tags", ["a", "b", "c"]);
+    client.acceptOps(client.sent[0].proposal, { tags: ["a", "b", "c"] }, [
+      { Insert: { path: [{ Key: "tags" }], index: 1, value: "b" } },
+      { Insert: { path: [{ Key: "tags" }], index: 2, value: "c" } },
+    ]);
+    return store.get("tags");
+  }, PROPOSAL_FAKE.toString());
+
+  expect(value).toEqual(["a", "b", "c"]);
+});
+
+test("a pending nested edit does not hide remote sibling updates", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { profile: { name: "A", status: "idle" } },
+      }),
+    );
+
+    store.set("profile.name", "B");
+    const proposal = client.sent[0];
+    client.remoteNested("profile", "status", "saving");
+    const pending = store.get("profile");
+    client.reject(proposal.proposal);
+
+    return {
+      op: proposal.patch.ops[0],
+      pending,
+      rejected: store.get("profile"),
+      sent: client.sent.length,
+    };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({
+    op: {
+      Set: {
+        path: [{ Key: "profile" }, { Key: "name" }],
+        value: "B",
+      },
+    },
+    pending: { name: "B", status: "saving" },
+    rejected: { name: "A", status: "saving" },
+    sent: 1,
+  });
+});
+
+test("replacing a nested object sends one atomic proposal", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { profile: { name: "A", status: "idle" } },
+      }),
+    );
+
+    store.set("profile", { name: "B", status: "saving", role: "admin" });
+    return client.sent;
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toHaveLength(1);
+  expect(result[0].patch.ops).toEqual([
+    {
+      Set: {
+        path: [{ Key: "profile" }],
+        value: { name: "B", status: "saving", role: "admin" },
+      },
+    },
+  ]);
+});
+
+test("rejecting an object replacement removes optimistic keys", async ({
+  page,
+}) => {
+  const value = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { profile: { name: "A", status: "idle" } },
+      }),
+    );
+
+    store.set("profile", { name: "B", status: "saving", role: "admin" });
+    client.reject(client.sent[0].proposal);
+    return store.get("profile");
+  }, PROPOSAL_FAKE.toString());
+
+  expect(value).toEqual({ name: "A", status: "idle" });
+});
+
+test("a scalar becoming an object wires only its leaf fields", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(
+      JSON.stringify({ t: "snapshot", id: 1, value: { profile: null } }),
+    );
+
+    client.remote("profile", { name: "A" });
+    store.set("profile.name", "B");
+    return client.sent.map((message) => message.patch.ops[0]);
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual([
+    {
+      Set: {
+        path: [{ Key: "profile" }, { Key: "name" }],
+        value: "B",
+      },
+    },
+  ]);
 });
 
 test("inbound updates a two-way control, and applying an inbound frame does not echo back out", async ({
@@ -720,6 +1341,35 @@ test("namespace: two models on one Store don't echo across namespaces", async ({
   }, FAKE.toString());
   expect(result.a).toBe(1); // only the "g" model's connectStore sent an edit
   expect(result.b).toBe(0); // the "s" model is untouched — no cross-namespace echo
+});
+
+test("namespace: replacing the namespace sends each changed model field", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec, "editor");
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { title: "A", status: "idle" },
+      }),
+    );
+
+    store.set("editor", { title: "B", status: "saving" });
+    return client.sent.map((message) => message.patch.ops[0]);
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual(
+    expect.arrayContaining([
+      { Set: { path: [{ Key: "title" }], value: "B" } },
+      { Set: { path: [{ Key: "status" }], value: "saving" } },
+    ]),
+  );
+  expect(result).toHaveLength(2);
 });
 
 test("flatten=false keeps an opaque map field whole — one field, one edit", async ({

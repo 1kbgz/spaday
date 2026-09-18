@@ -289,10 +289,26 @@ class _Resolver:
                 raise ValueError(f"{_describe(node)} is not a generic control that design {self.design.name!r} or the fallback describes")
         props = {name: _plain(v) for name, v in node.get("props", {}).items()}
         bindings = dict(node.get("bindings", {}))
+        value_binding = bindings.get("value")
+        overrides = (props.pop(OVERRIDES_PROP, None) or {}).get(self.design.name, {})
+        if "error" not in props and "error" not in bindings and value_binding and value_binding.get("mode") == "two-way":
+            value_field = value_binding.get("field")
+            if value_field is not None:
+                authored_targets = set(overrides)
+                for name in props.keys() | bindings.keys():
+                    if name in spec.props:
+                        target = spec.props[name]
+                    elif name not in generic_props and name != "multiple":
+                        target = name
+                    else:
+                        target = None
+                    if target is not None:
+                        authored_targets.add(target)
+                if not spec.invalid.keys() & authored_targets:
+                    bindings["error"] = {"field": f"$errors.{value_field}", "mode": "one-way"}
         invalid_bindings: dict[str, dict] = {}
         invalid_requested = False
         authored_targets: set[str] = set()
-        overrides = (props.pop(OVERRIDES_PROP, None) or {}).get(self.design.name, {})
         out: dict[str, Any] = dict(spec.fixed)
         before: list[dict] = []  # parts placed inside the control ahead of its content
         after: list[dict] = []

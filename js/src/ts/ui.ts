@@ -59,6 +59,7 @@ export const UI_CSS = `[data-ui]{box-sizing:border-box;font:inherit;color:inheri
 [data-ui=label]{font-weight:600}
 [data-ui=help]{color:${MUTED};font-size:.8rem}
 [data-ui=error]{color:var(--spa-danger, #c62828);font-size:.8rem}
+[data-ui=error]:empty{display:none}
 [data-ui=input],[data-ui=textarea],[data-ui=number-input],[data-ui=date-input],spa-select[data-ui=select]>select{padding:.45rem .6rem;border:1px solid ${BORDER};border-radius:8px;background:${SURFACE}}
 [data-ui=textarea]{resize:vertical}
 [data-ui=input][data-size=sm],[data-ui=textarea][data-size=sm],[data-ui=number-input][data-size=sm],[data-ui=date-input][data-size=sm],spa-select[data-ui=select][data-size=sm]>select{padding:.3rem .5rem;font-size:.85em}

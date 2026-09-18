@@ -46,7 +46,7 @@ class PageSpec:
     html: str | Path | None = None
     title: str = "spaday"
     packages: PackageRef | Sequence[PackageRef] = ()
-    wire: str | Sequence[dict | Wire] | None = None
+    wire: str | dict | Wire | Sequence[dict | Wire] | None = None
     ws: str = "/ws"
     tree: TreeMode = "json"
     reconnect: bool = False
@@ -186,7 +186,7 @@ def build_routes(
     layout: AssetLayout | None = None,
     title: str = "spaday",
     packages: PackageRef | Sequence[PackageRef] = (),
-    wire: str | Sequence[dict | Wire] | None = None,
+    wire: str | dict | Wire | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
     tree: TreeMode = "json",
     reconnect: bool = False,
@@ -395,7 +395,7 @@ def mount(
     layout: AssetLayout | None = None,
     title: str = "spaday",
     packages: PackageRef | Sequence[PackageRef] = (),
-    wire: str | Sequence[dict | Wire] | None = None,
+    wire: str | dict | Wire | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
     tree: TreeMode = "json",
     reconnect: bool = False,
