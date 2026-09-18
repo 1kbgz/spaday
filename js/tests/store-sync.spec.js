@@ -110,6 +110,7 @@ const PROPOSAL_FAKE = () => {
   const client = {
     model: {},
     sent: [],
+    abandoned: [],
     recv(data) {
       const message = JSON.parse(data);
       if (message.t !== "snapshot") return undefined;
@@ -155,6 +156,10 @@ const PROPOSAL_FAKE = () => {
     },
     proposeOps(id, ops, proposal) {
       this.editOps(id, ops, proposal);
+      return true;
+    },
+    abandonProposal(proposal) {
+      this.abandoned.push(proposal);
       return true;
     },
     accept(proposal, field, value) {
@@ -296,6 +301,8 @@ test("an older accepted edit cannot overwrite newer local input", async ({
     const store = new Store();
     const link = connectStore(store, client, () => {}, codec);
     link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+    const observed = [];
+    store.subscribe("doc", (value) => observed.push(value));
 
     store.set("doc", "B");
     store.set("doc", "C");
@@ -311,6 +318,7 @@ test("an older accepted edit cannot overwrite newer local input", async ({
       afterRemote,
       final: store.get("doc"),
       status: store.get("status"),
+      observed,
     };
   }, PROPOSAL_FAKE.toString());
 
@@ -319,6 +327,7 @@ test("an older accepted edit cannot overwrite newer local input", async ({
     afterRemote: "C",
     final: "C!",
     status: "saved",
+    observed: ["B", "C", "C!"],
   });
 });
 
@@ -362,30 +371,65 @@ test("rejected and abandoned proposals restore only unshadowed input", async ({
     const store = new Store();
     const link = connectStore(store, client, () => {}, codec);
     link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+    const rejections = [];
+    const onReject = (event) => rejections.push(event.detail);
+    document.addEventListener("spaday:reject", onReject);
 
     store.set("doc", "B");
     store.set("doc", "C");
     const [first, second] = client.sent.map((message) => message.proposal);
     client.reject(first);
     const afterOlderReject = store.get("doc");
+    const errorAfterOlderReject = store.get("$errors.doc");
     client.reject(second);
     const afterLatestReject = store.get("doc");
+    const errorAfterLatestReject = store.get("$errors.doc");
 
     store.set("doc", "D");
+    const errorAfterNewEdit = store.get("$errors.doc");
     const third = client.sent[2].proposal;
     client.abandon([third]);
+    document.removeEventListener("spaday:reject", onReject);
 
     return {
       afterOlderReject,
+      errorAfterOlderReject,
       afterLatestReject,
+      errorAfterLatestReject,
+      errorAfterNewEdit,
       afterAbandon: store.get("doc"),
+      rejections: rejections.map((rejection) => ({
+        ...rejection,
+        proposal: rejection.proposal === first ? "first" : "second",
+      })),
     };
   }, PROPOSAL_FAKE.toString());
 
   expect(result).toEqual({
     afterOlderReject: "C",
+    errorAfterOlderReject: "",
     afterLatestReject: "A",
+    errorAfterLatestReject: "invalid",
+    errorAfterNewEdit: "",
     afterAbandon: "A",
+    rejections: [
+      {
+        id: 1,
+        model: undefined,
+        field: "doc",
+        error: "invalid",
+        proposal: "first",
+        rev: 0,
+      },
+      {
+        id: 1,
+        model: undefined,
+        field: "doc",
+        error: "invalid",
+        proposal: "second",
+        rev: 0,
+      },
+    ],
   });
 });
 
@@ -409,12 +453,15 @@ test("disconnect and failed sends discard optimistic input", async ({
     canSend = true;
     store.set("doc", "pending");
     link.disconnect();
+    store.set("doc", "after-close");
+    await Promise.resolve();
 
     return {
       afterDroppedSend,
       afterDroppedNotifications,
       afterDisconnect: store.get("doc"),
       proposals: client.sent.length,
+      abandoned: client.abandoned.length,
     };
   }, PROPOSAL_FAKE.toString());
 
@@ -426,7 +473,50 @@ test("disconnect and failed sends discard optimistic input", async ({
     ],
     afterDisconnect: "A",
     proposals: 2,
+    abandoned: 2,
   });
+});
+
+test("a replacement snapshot abandons proposals from a lost send", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => undefined, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("doc", "lost");
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "C" } }));
+    return {
+      doc: store.get("doc"),
+      abandoned: client.abandoned,
+      proposals: client.sent.length,
+    };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({
+    doc: "C",
+    abandoned: [expect.any(String)],
+    proposals: 1,
+  });
+});
+
+test("dispose abandons proposals owned by the store link", async ({ page }) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("doc", "B");
+    link.dispose();
+    return client.abandoned;
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toHaveLength(1);
 });
 
 test("a rejection without a proposal id clears optimistic input", async ({
@@ -447,6 +537,35 @@ test("a rejection without a proposal id clears optimistic input", async ({
   expect(value).toBe("A");
 });
 
+test("namespaced rejections publish the bound field and reactive error", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const events = [];
+    const onReject = (event) => events.push(event.detail);
+    document.addEventListener("spaday:reject", onReject);
+    const link = connectStore(store, client, () => true, codec, "editor");
+    link.receive(JSON.stringify({ t: "snapshot", id: 1, value: { doc: "A" } }));
+
+    store.set("editor.doc", "invalid");
+    client.reject(client.sent[0].proposal);
+    document.removeEventListener("spaday:reject", onReject);
+    return { error: store.get("$errors.editor.doc"), event: events[0] };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result.error).toBe("invalid");
+  expect(result.event).toMatchObject({
+    id: 1,
+    model: "editor",
+    field: "editor.doc",
+    error: "invalid",
+    rev: 0,
+  });
+});
+
 test("an acknowledgement without a patch restores the authoritative value", async ({
   page,
 }) => {
@@ -463,6 +582,34 @@ test("an acknowledgement without a patch restores the authoritative value", asyn
   }, PROPOSAL_FAKE.toString());
 
   expect(value).toBe("A");
+});
+
+test("settling one field does not reset unrelated collections", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { doc: "A", rows: [{ id: 1, name: "one" }] },
+      }),
+    );
+    const collectionChanges = [];
+    store.subscribeCollection("rows", "id", (change) =>
+      collectionChanges.push(change),
+    );
+
+    store.set("doc", "optimistic");
+    client.ack(client.sent[0].proposal);
+    return { doc: store.get("doc"), collectionChanges };
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual({ doc: "A", collectionChanges: [] });
 });
 
 test("a managed proposal sends without a separate callback", async ({
@@ -548,6 +695,61 @@ test("a pending nested edit does not hide remote sibling updates", async ({
     rejected: { name: "A", status: "saving" },
     sent: 1,
   });
+});
+
+test("replacing a nested object sends one atomic proposal", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { profile: { name: "A", status: "idle" } },
+      }),
+    );
+
+    store.set("profile", { name: "B", status: "saving", role: "admin" });
+    return client.sent;
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toHaveLength(1);
+  expect(result[0].patch.ops).toEqual([
+    {
+      Set: {
+        path: [{ Key: "profile" }],
+        value: { name: "B", status: "saving", role: "admin" },
+      },
+    },
+  ]);
+});
+
+test("rejecting an object replacement removes optimistic keys", async ({
+  page,
+}) => {
+  const value = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec);
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { profile: { name: "A", status: "idle" } },
+      }),
+    );
+
+    store.set("profile", { name: "B", status: "saving", role: "admin" });
+    client.reject(client.sent[0].proposal);
+    return store.get("profile");
+  }, PROPOSAL_FAKE.toString());
+
+  expect(value).toEqual({ name: "A", status: "idle" });
 });
 
 test("a scalar becoming an object wires only its leaf fields", async ({
@@ -1139,6 +1341,35 @@ test("namespace: two models on one Store don't echo across namespaces", async ({
   }, FAKE.toString());
   expect(result.a).toBe(1); // only the "g" model's connectStore sent an edit
   expect(result.b).toBe(0); // the "s" model is untouched — no cross-namespace echo
+});
+
+test("namespace: replacing the namespace sends each changed model field", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => true, codec, "editor");
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        value: { title: "A", status: "idle" },
+      }),
+    );
+
+    store.set("editor", { title: "B", status: "saving" });
+    return client.sent.map((message) => message.patch.ops[0]);
+  }, PROPOSAL_FAKE.toString());
+
+  expect(result).toEqual(
+    expect.arrayContaining([
+      { Set: { path: [{ Key: "title" }], value: "B" } },
+      { Set: { path: [{ Key: "status" }], value: "saving" } },
+    ]),
+  );
+  expect(result).toHaveLength(2);
 });
 
 test("flatten=false keeps an opaque map field whole — one field, one edit", async ({

@@ -60,6 +60,7 @@ export interface ModelClient {
   edit(id: number, value: unknown, proposal?: string): string | Uint8Array; // an encoded edit frame to send back
   editOps?(id: number, ops: PatchOp[], proposal?: string): string | Uint8Array;
   proposeOps?(id: number, ops: PatchOp[], proposal?: string): boolean;
+  abandonProposal?(proposal: string): boolean;
 }
 
 /** Convert between tagged core Values and plain JS fields (transports' `fromValue` / `toValue`). */
@@ -71,7 +72,7 @@ export interface ValueCodec {
 export interface StoreLink {
   /** Feed an inbound wire frame; the mirrored model's fields flow into the store (and bound props). */
   receive(data: string | Uint8Array): void;
-  /** Drop optimistic edits after the underlying connection closes. */
+  /** Drop optimistic edits and reject new edits until another frame arrives. */
   disconnect(): void;
   /** Stop pushing store changes to the wire. */
   dispose(): void;
@@ -429,6 +430,7 @@ export function connectStore(
   let id: number | undefined;
   let inbound = false; // true while applying a received frame, so we don't echo it straight back out
   let disposed = false;
+  let disconnected = false;
   const wired = new Set<string>();
   const fieldUnsubs = new Map<string, () => void>();
   const unsubs: Array<() => void> = [];
@@ -438,7 +440,8 @@ export function connectStore(
     client.editOps !== undefined &&
     client.onAck !== undefined &&
     client.onReject !== undefined &&
-    client.onAbandon !== undefined;
+    client.onAbandon !== undefined &&
+    client.abandonProposal !== undefined;
   if (send === undefined && (!proposalAware || client.proposeOps === undefined))
     throw new TypeError(
       "connectStore requires send or a proposal-aware client with proposeOps",
@@ -457,13 +460,61 @@ export function connectStore(
     return edit.field;
   };
 
-  const restorePending = () => {
-    for (const [field, proposal] of latest) {
-      const edit = pending.get(proposal);
-      if (!edit) continue;
-      const key = namespace ? `${namespace}.${field}` : field;
-      store.set(key, edit.value);
+  const discardProposal = (proposal: string): string | undefined => {
+    client.abandonProposal?.(proposal);
+    return dropProposal(proposal);
+  };
+
+  const storeField = (field: string) =>
+    namespace ? `${namespace}.${field}` : field;
+  const errorField = (field: string) => `$errors.${storeField(field)}`;
+  const clearError = (field: string) => store.set(errorField(field), "");
+  const publishReject = (reject: RejectChange, field?: string) => {
+    if (typeof document === "undefined" || typeof CustomEvent === "undefined")
+      return;
+    document.dispatchEvent(
+      new CustomEvent("spaday:reject", {
+        detail: {
+          id: reject.id,
+          model: namespace,
+          field: field === undefined ? undefined : storeField(field),
+          error: reject.error,
+          proposal: reject.proposal,
+          rev: reject.rev,
+        },
+      }),
+    );
+  };
+
+  const readPlainPath = (value: unknown, parts: string[]): unknown => {
+    let current = value;
+    for (const part of parts) {
+      if (!isObj(current)) return undefined;
+      current = current[part];
     }
+    return current;
+  };
+
+  const overlayPending = (field: string, value: unknown): unknown => {
+    let overlaid = value;
+    for (const [proposal, edit] of pending) {
+      if (latest.get(edit.field) !== proposal) continue;
+      if (edit.field === field) {
+        overlaid = edit.value;
+      } else if (edit.field.startsWith(`${field}.`)) {
+        overlaid = setPath(
+          isObj(overlaid) ? overlaid : {},
+          edit.field.slice(field.length + 1).split("."),
+          edit.value,
+        );
+      } else if (field.startsWith(`${edit.field}.`)) {
+        overlaid = readPlainPath(
+          edit.value,
+          field.slice(edit.field.length + 1).split("."),
+        );
+      }
+    }
+    return overlaid;
   };
 
   const wireField = (field: string) => {
@@ -472,19 +523,28 @@ export function connectStore(
     wired.add(key);
     fieldUnsubs.set(
       key,
-      store.subscribe(key, (value) => {
+      store.subscribe(key, (_value, changedKey) => {
         if (inbound || id === undefined) return;
+        const effectiveKey =
+          changedKey === key || changedKey.startsWith(`${key}.`)
+            ? changedKey
+            : key;
+        const changedField = namespace
+          ? effectiveKey.slice(namespace.length + 1)
+          : effectiveKey;
+        const value = store.get(effectiveKey);
+        clearError(changedField);
+        if (disconnected) {
+          queueReconcile(changedField);
+          return;
+        }
         const decoded = codec.fromValue(client.value(id));
         const current = isObj(decoded) ? decoded : {};
         if (!proposalAware) {
-          if (!send) {
-            queueReconcile();
-            return;
-          }
-          send(
+          send!(
             client.edit(
               id,
-              codec.toValue(setPath(current, field.split("."), value)),
+              codec.toValue(setPath(current, changedField.split("."), value)),
             ),
           );
           return;
@@ -493,13 +553,13 @@ export function connectStore(
         const ops: PatchOp[] = [
           {
             Set: {
-              path: field.split(".").map((part) => ({ Key: part })),
+              path: changedField.split(".").map((part) => ({ Key: part })),
               value: codec.toValue(value),
             },
           },
         ];
-        pending.set(proposal, { field, value });
-        latest.set(field, proposal);
+        pending.set(proposal, { field: changedField, value });
+        latest.set(changedField, proposal);
         try {
           const sent =
             send === undefined && client.proposeOps
@@ -508,12 +568,12 @@ export function connectStore(
                 ? send(client.editOps!(id, ops, proposal))
                 : false;
           if (sent === false) {
-            dropProposal(proposal);
-            queueReconcile();
+            discardProposal(proposal);
+            queueReconcile(changedField);
           }
         } catch (error) {
-          dropProposal(proposal);
-          queueReconcile();
+          discardProposal(proposal);
+          queueReconcile(changedField);
           throw error;
         }
       }),
@@ -536,37 +596,51 @@ export function connectStore(
     wired.clear();
   };
 
-  const receiveSnapshot = () => {
+  const receiveSnapshot = (fields?: Iterable<string>) => {
     if (id === undefined) return;
     const decoded = codec.fromValue(client.value(id));
     if (!isObj(decoded)) return;
+    if (fields) {
+      for (const field of new Set(
+        [...fields].map((candidate) => candidate.split(".")[0]),
+      )) {
+        unwireBranch(field);
+        store.set(storeField(field), overlayPending(field, decoded[field]));
+        wireField(field);
+      }
+      return;
+    }
     unwireFields();
     const entries = flatten ? leaves(decoded) : Object.entries(decoded);
     for (const [field, value] of entries) {
       const key = namespace ? `${namespace}.${field}` : field;
-      store.set(key, value);
-      wireField(field);
+      store.set(key, overlayPending(field, value));
     }
-    restorePending();
+    for (const field of Object.keys(decoded)) wireField(field);
   };
 
-  const reconcile = () => {
+  const reconcile = (fields?: Iterable<string>) => {
     inbound = true;
     try {
-      receiveSnapshot();
+      receiveSnapshot(fields);
     } finally {
       inbound = false;
     }
   };
 
   let reconcileQueued = false;
-  const queueReconcile = () => {
-    if (disposed || reconcileQueued) return;
+  const queuedReconcileFields = new Set<string>();
+  const queueReconcile = (field: string) => {
+    if (disposed) return;
+    queuedReconcileFields.add(field);
+    if (reconcileQueued) return;
     reconcileQueued = true;
     queueMicrotask(() => {
       reconcileQueued = false;
       if (disposed) return;
-      reconcile();
+      const fields = [...queuedReconcileFields];
+      queuedReconcileFields.clear();
+      reconcile(fields);
     });
   };
 
@@ -649,6 +723,7 @@ export function connectStore(
       unwireBranch(update.field);
       const itemKey = store.collectionKey(key);
       const current = store.get(key);
+      update.value = overlayPending(update.field, update.value);
       if (
         update.deltas &&
         itemKey &&
@@ -658,19 +733,15 @@ export function connectStore(
       )
         store.setCollection(key, update.value, update.deltas);
       else store.set(key, update.value);
-      if (flatten && isObj(update.value)) {
-        for (const [field] of leaves(update.value, update.field))
-          wireField(field);
-      } else {
-        wireField(update.field);
-      }
+      wireField(update.field);
     }
-    restorePending();
   };
 
   const accept = (change: ReceiveChange) => {
     if (id === undefined) id = change.id;
     if (change.id !== id) return;
+    if (change.t === "snapshot")
+      for (const proposal of [...pending.keys()]) discardProposal(proposal);
     const settledField =
       change.t === "patch" && change.proposal
         ? dropProposal(change.proposal)
@@ -679,6 +750,7 @@ export function connectStore(
     try {
       if (change.t === "patch") receivePatch(change, settledField);
       else receiveSnapshot();
+      if (settledField) clearError(settledField);
     } finally {
       inbound = false;
     }
@@ -690,29 +762,52 @@ export function connectStore(
     unsubs.push(
       client.onAck((ack) => {
         if (id !== undefined && ack.id !== id) return;
-        if (dropProposal(ack.proposal) !== undefined) reconcile();
+        const field = dropProposal(ack.proposal);
+        if (field !== undefined) {
+          clearError(field);
+          reconcile([field]);
+        }
       }),
     );
   if (client.onReject)
     unsubs.push(
       client.onReject((reject) => {
         if (id !== undefined && reject.id !== id) return;
-        if (reject.proposal) dropProposal(reject.proposal);
-        else for (const proposal of pending.keys()) dropProposal(proposal);
-        reconcile();
+        const fields = new Set<string>();
+        if (reject.proposal) {
+          const edit = pending.get(reject.proposal);
+          const latestRejected =
+            edit !== undefined && latest.get(edit.field) === reject.proposal;
+          discardProposal(reject.proposal);
+          if (edit) fields.add(edit.field);
+          if (edit && latestRejected)
+            store.set(errorField(edit.field), reject.error);
+          publishReject(reject, edit?.field);
+        } else {
+          const pendingFields = [...new Set(latest.keys())];
+          for (const field of pendingFields) fields.add(field);
+          for (const proposal of [...pending.keys()]) discardProposal(proposal);
+          for (const field of pendingFields)
+            store.set(errorField(field), reject.error);
+          publishReject(reject);
+        }
+        if (fields.size) reconcile(fields);
       }),
     );
   const abandon = (proposals: Iterable<string>) => {
-    let changed = false;
-    for (const proposal of proposals)
-      changed = dropProposal(proposal) !== undefined || changed;
-    if (changed) reconcile();
+    const fields = new Set<string>();
+    for (const proposal of proposals) {
+      const field = dropProposal(proposal);
+      if (field !== undefined) fields.add(field);
+    }
+    if (fields.size) reconcile(fields);
   };
   if (client.onAbandon)
     unsubs.push(client.onAbandon((proposals) => abandon(proposals)));
 
   return {
     receive(data) {
+      disconnected = false;
       const change = client.recv(data);
       // Current transports clients deliver only accepted snapshots/patches through onChange. A stale
       // patch, reject, or future message type therefore does no store work. Older clients have no
@@ -737,10 +832,14 @@ export function connectStore(
     },
     disconnect() {
       if (disposed) return;
-      abandon([...pending.keys()]);
+      disconnected = true;
+      const proposals = [...pending.keys()];
+      for (const proposal of proposals) client.abandonProposal?.(proposal);
+      abandon(proposals);
     },
     dispose() {
       disposed = true;
+      for (const proposal of [...pending.keys()]) discardProposal(proposal);
       unwireFields();
       for (const unsub of unsubs) unsub();
     },

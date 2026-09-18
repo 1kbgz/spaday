@@ -154,7 +154,7 @@ jupyterlite:  ## build the JupyterLite demo site into dist/lite (needs the Pyodi
 	mkdir -p examples/lite/pypi
 	cp dist/pyodide/*.whl examples/lite/pypi/
 	python -m pip download --no-deps --only-binary=:all: --dest examples/lite/pypi "spaday-webawesome==0.4.0" "spaday-lightweight-charts==0.2.1"
-	python -m pip download --no-deps --only-binary=:all: --platform pyemscripten_2026_0_wasm32 --python-version 314 --implementation cp --abi cp314 --dest examples/lite/pypi "transports==0.8.4"
+	python -m pip download --no-deps --only-binary=:all: --platform pyemscripten_2026_0_wasm32 --python-version 314 --implementation cp --abi cp314 --dest examples/lite/pypi "transports==0.8.6"
 	uvx --with jupyterlite-pyodide-kernel==0.8.3 --with jupyter-server --with jupyterlab-widgets==3.0.15 --with anywidget --from jupyterlite-core==0.8.2 jupyter lite build --lite-dir examples/lite --output-dir $(CURDIR)/dist/lite
 	mkdir -p dist/lite/js/examples dist/lite/js/dist/esm dist/lite/js/dist/pkg
 	python js/examples/copy_pyodide_assets.py dist/lite/pypi dist/lite/components

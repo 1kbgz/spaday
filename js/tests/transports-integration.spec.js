@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-for (const codec of ["json", "msgpack"]) {
+for (const codec of ["json", "msgpack", "cbor"]) {
   test(`managed sends abandon edits while disconnected with ${codec}`, async ({
     page,
   }) => {
@@ -42,7 +42,7 @@ for (const codec of ["json", "msgpack"]) {
     await page.goto("/tests/transports.html");
     await page.waitForFunction(() => window.__integration);
 
-    const result = await page.evaluate((codec) => {
+    const result = await page.evaluate(async (codec) => {
       const {
         Client,
         Store,
@@ -76,7 +76,7 @@ for (const codec of ["json", "msgpack"]) {
           id: 1,
           type: "Editor",
           rev: 0,
-          value: toValue({ doc: "A", status: "idle" }),
+          value: toValue({ doc: "A", status: "idle", tags: ["a"] }),
         }),
       );
       store.set("doc", "B");
@@ -159,11 +159,55 @@ for (const codec of ["json", "msgpack"]) {
           proposal: fourth.proposal,
         }),
       );
+      store.set("tags", ["a", "b"]);
+      const listProposal = sent[4].proposal;
+      link.receive(
+        encode({
+          t: "patch",
+          id: 1,
+          patch: {
+            rev: 4,
+            ops: [
+              {
+                Insert: {
+                  path: [{ Key: "tags" }],
+                  index: 1,
+                  value: toValue("b"),
+                },
+              },
+            ],
+          },
+          proposal: listProposal,
+        }),
+      );
+      link.receive(
+        encode({
+          t: "batch",
+          msgs: [
+            {
+              t: "patch",
+              id: 1,
+              patch: {
+                rev: 5,
+                ops: [
+                  {
+                    Set: {
+                      path: [{ Key: "status" }],
+                      value: toValue("done"),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      );
 
       return {
         afterOlder,
         final: store.get("doc"),
         status: store.get("status"),
+        tags: store.get("tags"),
         returnOp: fourth.patch.ops[0],
         afterReject,
         pending: client.pendingProposals(),
@@ -173,12 +217,48 @@ for (const codec of ["json", "msgpack"]) {
     expect(result).toEqual({
       afterOlder: "C",
       final: "C!",
-      status: "saving",
+      status: "done",
+      tags: ["a", "b"],
       returnOp: {
         Set: { path: [{ Key: "doc" }], value: { Str: "C!" } },
       },
       afterReject: "C!",
       pending: [],
     });
+  });
+
+  test(`manual failed sends abandon transports proposals with ${codec}`, async ({
+    page,
+  }) => {
+    await page.goto("/tests/transports.html");
+    await page.waitForFunction(() => window.__integration);
+
+    const result = await page.evaluate(async (codec) => {
+      const { Client, Store, connectStore, encodeMessage, fromValue, toValue } =
+        window.__integration;
+      const client = new Client(codec);
+      const store = new Store();
+      const link = connectStore(store, client, () => false, {
+        fromValue,
+        toValue,
+      });
+      const message = JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        type: "Editor",
+        rev: 0,
+        value: toValue({ doc: "A" }),
+      });
+      link.receive(codec === "json" ? message : encodeMessage(message, codec));
+
+      store.set("doc", "offline");
+      await Promise.resolve();
+      return {
+        doc: store.get("doc"),
+        pending: client.pendingProposals(),
+      };
+    }, codec);
+
+    expect(result).toEqual({ doc: "A", pending: [] });
   });
 }

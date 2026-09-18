@@ -6,8 +6,8 @@ What an app would otherwise hand-write in HTML is declared in Python:
 
 - ``packages=["trees", …]`` — pull a component package's styles and registration bundle into ``<head>``, selected by descriptor,
   ``module:attribute`` Python path, or installed entry-point name.
-- ``wire="transports"`` — generate the transports ``Client`` + ``connectStore`` + websocket bootstrap
-  (what every transports example's HTML repeats); without it the page just mounts a static tree.
+- ``wire="transports"`` — generate the default transports ``Client`` + ``connectStore`` + WebSocket
+  bootstrap; pass a :class:`Wire` (or a list) for connection options.
 - ``tree="frame"`` — fetch the tree as a transports Snapshot frame at ``…/tree`` (UI tree + model data on
   one wire), decoded in the browser, instead of JSON at ``…/tree.json``.
 - ``tree="inline"`` — embed a static tree in the bootstrap markup, with no tree route or request.
@@ -62,6 +62,15 @@ class Wire:
     - ``flatten`` — recurse nested sub-models to dotted ``parent.child`` fields (the default, what a form
       binds); set ``False`` for an opaque map/dict field (a chart's time-keyed ``data``, a Perspective
       ``layout``) so it's mirrored whole.
+    - ``codec`` — the transports connection codec (``"json"``, ``"msgpack"``, ``"cbor"``, or a
+      registered custom codec).
+    - ``batch`` — ask the server to batch outbound messages for this connection.
+    - ``reconnect`` — keep reconnecting with transports' managed ``Client.run``. This is opt-in for
+      each wire; ``retry`` is the delay in milliseconds and ``authority`` selects server- or
+      client-authoritative recovery.
+    - ``connected`` — publish a connection-ready boolean to this exact store field. Namespaced wires
+      default to ``<namespace>.connected``; bare wires publish no status unless this is set. The field
+      becomes true when the managed WebSocket opens, including a reconnect that replays no model frame.
 
     ``Wire("/ws", namespace="global", flatten=False)`` reads better than ``{"url": "/ws", …}`` and gives
     editor help; it serializes to exactly that dict.
@@ -71,6 +80,24 @@ class Wire:
     namespace: str | None = None
     session: bool = False
     flatten: bool = True
+    codec: str = "json"
+    batch: bool = False
+    reconnect: bool = False
+    retry: int = 1000
+    authority: Literal["server", "client"] = "server"
+    connected: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.url:
+            raise ValueError("Wire url must not be empty")
+        if not self.codec:
+            raise ValueError("Wire codec must not be empty")
+        if not isinstance(self.retry, int) or isinstance(self.retry, bool) or self.retry <= 0:
+            raise ValueError("Wire retry must be a positive integer number of milliseconds")
+        if self.authority not in ("server", "client"):
+            raise ValueError("Wire authority must be 'server' or 'client'")
+        if self.connected == "":
+            raise ValueError("Wire connected field must not be empty")
 
 
 @dataclass(frozen=True)
@@ -242,15 +269,10 @@ def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | Non
 
 
 def _wire_block(spec: dict, base: str, idx: int) -> list:
-    """The generated JS for ONE wire spec in a multi-model page: a transports ``Client``, a namespaced
-    ``connectStore`` into the shared ``store``, the ``WebSocket`` feeding it, and a ``<namespace>.connected``
-    flag set on open/close (so a status element can ``compute`` from it). The shared ``const store`` must
-    already be declared. A spec is ``{"url": …, "namespace"?: …, "session"?: bool}``: ``namespace`` keeps
-    several models from colliding in the one store (omit it to mirror bare fields, e.g. a form); ``session``
-    appends ``?session=<uuid>`` so the model is a fresh per-load tenant (a transports ``Hub``)."""
+    """Generate one managed transports client and connect it to the shared store."""
     url = spec["url"]
     ns = spec.get("namespace")
-    client, sock = f"client{idx}", f"ws{idx}"
+    client = f"client{idx}"
     # connectStore's optional (namespace, flatten) args — positional, so emit only what's needed. flatten
     # defaults true (recurse sub-models, e.g. a form's nested schedule); a model with an opaque map/dict
     # field (a chart's `data`, a Perspective layout) sets "flatten": False so it's mirrored whole.
@@ -258,23 +280,36 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
         extra = f", {_script_json(ns)}" if ns else ""
     else:
         extra = f", {_script_json(ns) if ns else 'undefined'}, false"
-    session = "?session=${" + _SESSION_ID + "}" if spec.get("session") else ""  # a fresh tenant per page load
+    params = []
+    if spec.get("session"):
+        params.append("session=${" + _SESSION_ID + "}")  # a fresh tenant per page load
+    if spec.get("batch"):
+        params.append("batch=1")
+    query = ("&" if "?" in url else "?") + "&".join(params) if params else ""
+    target = f"`ws://${{location.host}}{base}{url}{query}`"
+    codec = _script_json(spec.get("codec", "json"))
     lines = [
-        f"const {client} = new Client();",
+        f"const {client} = new Client({codec});",
         f"connectStore(store, {client}, undefined, {{ fromValue, toValue }}{extra});",
-        f"const {sock} = {client}.connect(`ws://${{location.host}}{base}{url}{session}`);",
     ]
-    if ns:  # a status element can compute from `<ns>.connected`; a bare (form) wire has no status
+    connected = spec.get("connected") or (f"{ns}.connected" if ns else None)
+    if connected:
         lines += [
-            f'{sock}.addEventListener("open", () => store.set({_script_json(ns + ".connected")}, true));',
-            f'{sock}.addEventListener("close", () => store.set({_script_json(ns + ".connected")}, false));',
+            f"store.set({_script_json(connected)}, false);",
+            f"{client}.onConnect(() => store.set({_script_json(connected)}, true));",
+            f"{client}.onDisconnect(() => store.set({_script_json(connected)}, false));",
         ]
+    if spec.get("reconnect"):
+        options = _script_json({"authority": spec.get("authority", "server"), "retry": spec.get("retry", 1000)})
+        lines.append(f"{client}.run({target}, {options});")
+    else:
+        lines.append(f"{client}.connect({target});")
     return lines
 
 
 def _script(
     base: str,
-    wire: str | Sequence[dict | Wire] | None,
+    wire: str | dict | Wire | Sequence[dict | Wire] | None,
     scripts: Sequence[str],
     ws: str,
     tree: TreeMode,
@@ -288,21 +323,26 @@ def _script(
     url: dict[str, str] | None = None,
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
-    to transports. ``wire="transports"`` mirrors ONE model into the store (Store + Client + connectStore);
-    a ``wire=[{…}, …]`` LIST mirrors SEVERAL models into one store, each under its own namespace (see
-    :func:`_wire_block`), with one ``spaday:patch`` sink routing :class:`~spaday.actions.SendPatch` intents
-    into the store. ``store`` seeds local signal state even without a wire; ``persist`` (field ->
+    to transports. ``wire="transports"`` mirrors one model with default settings; a :class:`Wire` or list
+    configures one or more managed clients (see :func:`_wire_block`). All configured clients share one
+    ``spaday:patch`` sink that routes :class:`~spaday.actions.SendPatch` intents into the store. ``store``
+    seeds local signal state even without a wire; ``persist`` (field ->
     localStorage key) overrides a field's seed with its persisted value at boot and stores later writes;
     ``url`` (field -> query parameter) does the same against the page URL, with history entries.
     Mounts into ``target`` (a CSS selector) when given, else ``document.body``. (``ws``/``reconnect``/
-    ``tree="frame"`` apply to the single-model string form only; a wire list carries each spec's own url
-    and uses a snapshot per socket.)"""
+    ``tree="frame"`` apply to the single-model string form only; a typed wire carries its own URL and
+    uses a snapshot on that connection.)"""
     js = _js(base)
     assets = _ASSETS[_layout(layout)]
     into = f'document.querySelector("{target}")' if target else "document.body"
     transports = wire == "transports"
-    # a wire LIST may mix Wire instances and raw dicts — normalize each to the dict the codegen consumes
-    wires = [asdict(w) if isinstance(w, Wire) else w for w in wire] if isinstance(wire, (list, tuple)) else None
+    # Raw dicts follow the same validation as Wire rather than silently ignoring bad options.
+    if isinstance(wire, (Wire, dict)):
+        wires = [asdict(wire if isinstance(wire, Wire) else Wire(**wire))]
+    elif isinstance(wire, (list, tuple)):
+        wires = [asdict(w if isinstance(w, Wire) else Wire(**w)) for w in wire]
+    else:
+        wires = None
     wired = transports or bool(wires)  # any transports wiring — a single string model or a list of specs
     frame = tree == "frame"
     inline = tree == "inline"
@@ -393,7 +433,7 @@ def bootstrap(
     *,
     base: str = "",
     packages: PackageRef | Sequence[PackageRef] = (),
-    wire: str | Sequence[dict | Wire] | None = None,
+    wire: str | dict | Wire | Sequence[dict | Wire] | None = None,
     ws: str = "/ws",
     tree: TreeMode = "json",
     page: Page | None = None,
@@ -425,9 +465,9 @@ def bootstrap(
     bound field is a router. Strings ride the URL verbatim; a field seeded with another type JSON-encodes
     and reads back as JSON; ``None``/``""`` clears the parameter.
 
-    ``wire="transports"`` mirrors one model into the store over a websocket; ``wire=[{"url": …,
-    "namespace": …, "session": …}, …]`` mirrors **several** models into one store, each namespaced so their
-    fields don't collide (a chart on ``global.*`` next to one on ``session.*``) — the multi-model page.
+    ``wire="transports"`` mirrors one model with the default connection settings. A :class:`Wire`
+    configures one connection; a list mirrors **several** models into one store, each namespaced so their
+    fields don't collide (a chart on ``global.*`` next to one on ``session.*``).
 
     By default returns a whole HTML document. With ``fragment=True`` it returns just the package tags + the
     module ``<script>`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is
@@ -456,6 +496,11 @@ def bootstrap(
         raise ValueError("tree_url cannot be used with tree='inline'")
     if tree_url == "":
         raise ValueError("tree_url must not be empty")
+    typed_wires = isinstance(wire, (dict, Wire, list, tuple))
+    if typed_wires and reconnect:
+        raise ValueError("reconnect= applies only to wire='transports'; set reconnect on each Wire instead")
+    if typed_wires and ws != "/ws":
+        raise ValueError("ws= applies only to wire='transports'; set the URL on each Wire instead")
     resolved_tree_url = tree_url or f"{base}/tree{'' if tree == 'frame' else '.json'}"
     inline_tree = tree_node(page, select_design(design, component_packages)) if tree == "inline" else None
     style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]

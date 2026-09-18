@@ -22,7 +22,7 @@ export type CollectionDelta<Item = unknown> =
   | { kind: "reorder"; keys: readonly CollectionKey[] }
   | { kind: "remove"; key: CollectionKey };
 
-type Subscriber = (value: unknown) => void;
+type Subscriber = (value: unknown, changed: Field) => void;
 type CollectionSubscriber = (delta: CollectionDelta) => void;
 interface CollectionSubscription {
   key: string;
@@ -209,7 +209,7 @@ export class Store {
       const now = this.get(key);
       if (Object.is(before.get(key), now)) continue;
       const subscribers = this.subscribers.get(key);
-      if (subscribers) for (const cb of [...subscribers]) cb(now);
+      if (subscribers) for (const cb of [...subscribers]) cb(now, field);
       const collectionSubscribers = this.collectionSubscribers.get(key);
       if (!collectionSubscribers) continue;
       const changes =
@@ -248,7 +248,7 @@ export class Store {
     );
   }
 
-  /** Subscribe to a field; returns an unsubscribe function. */
+  /** Subscribe to a field; the callback also receives the path that caused the update. */
   subscribe(field: Field, cb: Subscriber): () => void {
     let subs = this.subscribers.get(field);
     if (!subs) {

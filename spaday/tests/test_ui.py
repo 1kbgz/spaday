@@ -115,10 +115,12 @@ def test_native_field_wraps_the_control_with_its_parts():
     assert control["bindings"] == {"value": {"field": "name", "mode": "two-way"}}
     # a toggle's value is its checked state, and its label follows it
     box = _plain(resolve(Checkbox(label="Agree", value=True).bind("value", "agree", mode="two-way").to_node(), NATIVE))
-    control, label = box["slots"]["default"]
+    control, label, error = box["slots"]["default"]
     assert control["props"] == {"type": "checkbox", "data-ui": "checkbox", "checked": True}
-    assert control["bindings"] == {"checked": {"field": "agree", "mode": "two-way"}}
+    assert control["bindings"]["checked"] == {"field": "agree", "mode": "two-way"}
+    assert control["bindings"]["data-invalid"]["compute"]["test"] == {"expr": "field", "name": "$errors.agree"}
     assert label["props"]["textContent"] == "Agree"
+    assert error["bindings"] == {"textContent": {"field": "$errors.agree", "mode": "one-way"}}
 
 
 def test_native_select_renders_options_as_children_and_preselects_the_value():
@@ -147,7 +149,8 @@ def test_the_wider_controls_have_native_fallbacks():
     assert textarea["slots"]["default"][1]["props"] == {"data-ui": "textarea", "rows": 5, "minlength": 2, "maxlength": 20}
     number = _plain(resolve(NumberInput(label="Count", min=0, max=10, step=1).bind("value", "count", mode="two-way").to_node(), NATIVE))
     assert number["slots"]["default"][1]["props"] == {"type": "number", "data-ui": "number-input", "min": 0, "max": 10, "step": 1}
-    assert number["slots"]["default"][1]["bindings"] == {"value": {"field": "count", "mode": "two-way", "codec": "number"}}
+    assert number["slots"]["default"][1]["bindings"]["value"] == {"field": "count", "mode": "two-way", "codec": "number"}
+    assert number["slots"]["default"][2]["bindings"] == {"textContent": {"field": "$errors.count", "mode": "one-way"}}
     date = _plain(resolve(DateInput(label="When", min="2026-01-01", max="2026-12-31").to_node(), NATIVE))
     assert date["slots"]["default"][1]["props"] == {
         "type": "date",
@@ -680,6 +683,37 @@ def test_bound_errors_drive_each_destination_and_invalid_state():
     malformed["bindings"] = {"error": {"mode": "one-way"}}
     with pytest.raises(ValueError, match="without a field or compute expression"):
         resolve(malformed, design)
+
+
+def test_two_way_generic_controls_bind_server_validation_errors_automatically():
+    design = _design(
+        input=ControlSpec(
+            tag="x-input",
+            error=Part(kind="attr", name="error-message"),
+            invalid={"invalid": True},
+            value=Value(prop="value", event="change"),
+        )
+    )
+    text = _plain(resolve(TextInput().bind("value", "profile.name", mode="two-way").to_node(), design))
+    error_binding = {"field": "$errors.profile.name", "mode": "one-way"}
+    assert text["bindings"]["error-message"] == error_binding
+    assert text["bindings"]["invalid"]["compute"]["test"] == {"expr": "field", "name": "$errors.profile.name"}
+
+    explicit = _plain(
+        resolve(
+            TextInput().bind("value", "profile.name", mode="two-way").bind("error", "custom_error").to_node(),
+            design,
+        )
+    )
+    assert explicit["bindings"]["error-message"] == {"field": "custom_error", "mode": "one-way"}
+
+    authored = _plain(resolve(TextInput().prop("invalid", True).bind("value", "name", mode="two-way").to_node(), design))
+    assert authored["props"]["invalid"] is True
+    assert "error-message" not in authored.get("bindings", {})
+
+    overridden = _plain(resolve(TextInput().for_design("test", invalid=False).bind("value", "name", mode="two-way").to_node(), design))
+    assert overridden["props"]["invalid"] is False
+    assert "error-message" not in overridden.get("bindings", {})
 
 
 def test_invalid_destinations_do_not_alias_the_error_expression():

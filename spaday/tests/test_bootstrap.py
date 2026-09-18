@@ -299,10 +299,13 @@ def test_wire_list_session_appends_a_per_load_id():
 def test_wire_list_namespaced_wire_sets_a_connected_flag_bare_wire_does_not():
     html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}, {"url": "/ws/form"}])
     assert 'store.set("a.connected", true)' in html and 'store.set("a.connected", false)' in html
+    assert 'client0.onConnect(() => store.set("a.connected", true))' in html
+    assert "client0.onChange(" not in html
     # the bare (form) wire has no namespace: no connected flag, and a 4-arg connectStore (no namespace arg)
     assert "connectStore(store, client1, undefined" in html
-    assert 'ws1.addEventListener("open"' not in html
-    assert 'ws1.addEventListener("close"' not in html
+    assert "client1.onConnect(" not in html
+    assert "client1.onChange(" not in html
+    assert "client1.onDisconnect(" not in html
 
 
 def test_wire_list_generates_the_patch_sink():
@@ -330,6 +333,7 @@ def test_wire_typed_helper_matches_the_raw_dict_form():
     typed = bootstrap(wire=[Wire("/ws", namespace="g", flatten=False), Wire("/ws/form")])
     raw = bootstrap(wire=[{"url": "/ws", "namespace": "g", "flatten": False}, {"url": "/ws/form"}])
     assert typed == raw  # Wire(...) serializes to exactly the dict form — same generated page
+    assert bootstrap(wire=Wire("/ws", reconnect=True)) == bootstrap(wire={"url": "/ws", "reconnect": True})
     assert '{ fromValue, toValue }, "g", false)' in typed
 
 
@@ -341,3 +345,69 @@ def test_wire_list_flatten_false_passes_the_flatten_arg():
     assert '{ fromValue, toValue }, "a")' in bootstrap(wire=[{"url": "/ws", "namespace": "a"}])
     # flatten=False with no namespace still positions the arg (undefined, false)
     assert "{ fromValue, toValue }, undefined, false)" in bootstrap(wire=[{"url": "/ws", "flatten": False}])
+
+
+def test_wire_exposes_managed_transport_options_and_direct_typed_form():
+    from spaday.bootstrap import Wire
+
+    html = bootstrap(
+        wire=Wire(
+            "/ws?tenant=shared",
+            codec="msgpack",
+            batch=True,
+            reconnect=True,
+            retry=250,
+            authority="client",
+            connected="wire_ready",
+        )
+    )
+    assert 'const client0 = new Client("msgpack")' in html
+    assert 'client0.run(`ws://${location.host}/ws?tenant=shared&batch=1`, {"authority": "client", "retry": 250})' in html
+    assert 'client0.onConnect(() => store.set("wire_ready", true))' in html
+    assert "client0.onChange(" not in html
+    assert 'client0.onDisconnect(() => store.set("wire_ready", false))' in html
+
+
+def test_wire_session_and_batch_share_one_query_string():
+    from spaday.bootstrap import Wire
+
+    html = bootstrap(wire=Wire("/ws", session=True, batch=True))
+    assert "/ws?session=${" in html
+    assert "}&batch=1`" in html
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"url": ""}, "url must not be empty"),
+        ({"url": "/ws", "codec": ""}, "codec must not be empty"),
+        ({"url": "/ws", "retry": 0}, "retry must be a positive integer"),
+        ({"url": "/ws", "authority": "peer"}, "authority must be 'server' or 'client'"),
+        ({"url": "/ws", "connected": ""}, "connected field must not be empty"),
+    ],
+)
+def test_wire_rejects_invalid_transport_options(kwargs, message):
+    from spaday.bootstrap import Wire
+
+    with pytest.raises(ValueError, match=message):
+        Wire(**kwargs)
+
+
+def test_raw_wire_specs_use_wire_validation():
+    with pytest.raises(ValueError, match="retry must be a positive integer"):
+        bootstrap(wire={"url": "/ws", "retry": 0})
+    with pytest.raises(TypeError, match="unexpected keyword argument 'reconect'"):
+        bootstrap(wire=[{"url": "/ws", "reconect": True}])
+
+
+def test_typed_wires_reject_ignored_page_level_connection_options():
+    from spaday.bootstrap import Wire
+
+    with pytest.raises(ValueError, match="set reconnect on each Wire"):
+        bootstrap(wire=Wire("/socket"), reconnect=True)
+    with pytest.raises(ValueError, match="set reconnect on each Wire"):
+        bootstrap(wire={"url": "/socket"}, reconnect=True)
+    with pytest.raises(ValueError, match="set the URL on each Wire"):
+        bootstrap(wire=[Wire("/socket")], ws="/ignored")
+    with pytest.raises(ValueError, match="set the URL on each Wire"):
+        bootstrap(wire={"url": "/socket"}, ws="/ignored")
