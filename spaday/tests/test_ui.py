@@ -189,9 +189,9 @@ def test_a_design_maps_names_values_parts_events_and_bindings():
         ),
         input=ControlSpec(
             tag="x-input",
-            label=Part(kind="attr", name="label"),
-            help=Part(kind="slot", name="hint"),
-            error=Part(kind="attr", name="error-message"),
+            label=(Part(kind="attr", name="label"), Part(kind="slot", name="label")),
+            help=(Part(kind="slot", name="hint"), Part(kind="attr", name="aria-description")),
+            error=(Part(kind="attr", name="error-message"), Part(kind="slot", name="error")),
             invalid={"invalid": True},
             value=Value(prop="text", event="x-changed"),
         ),
@@ -202,8 +202,18 @@ def test_a_design_maps_names_values_parts_events_and_bindings():
     text = _plain(
         resolve(TextInput(label="Name", help="Hint", error="Bad").bind("value", "name", mode="two-way").bind("label", "caption").to_node(), design)
     )
-    assert text["props"] == {"label": "Name", "error-message": "Bad", "invalid": True}
-    assert text["slots"] == {"hint": [{"tag": "span", "props": {"slot": "hint", "textContent": "Hint"}}]}
+    assert text["props"] == {"label": "Name", "aria-description": "Hint", "error-message": "Bad", "invalid": True}
+    assert text["slots"] == {
+        "label": [
+            {
+                "tag": "span",
+                "props": {"slot": "label", "textContent": "Name"},
+                "bindings": {"textContent": {"field": "caption", "mode": "one-way"}},
+            }
+        ],
+        "hint": [{"tag": "span", "props": {"slot": "hint", "textContent": "Hint"}}],
+        "error": [{"tag": "span", "props": {"slot": "error", "textContent": "Bad"}}],
+    }
     assert text["bindings"] == {"text": {"field": "name", "mode": "two-way", "event": "x-changed"}, "label": {"field": "caption", "mode": "one-way"}}
 
 
@@ -483,7 +493,11 @@ def test_a_design_round_trips_as_data():
             tag="x-radio-group",
             options=Options(label=Part(kind="sibling"), item_wrap=Wrap(tag="label")),
         ),
-        input=ControlSpec(tag="x-input", value=Value(defer=True)),
+        input=ControlSpec(
+            tag="x-input",
+            error=(Part(kind="attr", name="custom-error"), Part(kind="slot", name="error")),
+            value=Value(defer=True),
+        ),
         dialog=ControlSpec(tag="x-dialog", open=Open(methods=("show", "hide"), state="dialog.open")),
     )
     assert Design.model_validate_json(custom.model_dump_json()) == custom
@@ -518,6 +532,7 @@ def test_the_conformance_page_covers_every_control():
         "count",
         "dark",
         "date",
+        "email_error",
         "name",
         "notes",
         "open",
@@ -560,14 +575,56 @@ def test_a_plain_dict_tree_resolves_too():
 def test_bound_parts_and_unsupported_bindings():
     design = _design(
         button=ControlSpec(tag="x-button", label=Part(kind="text"), props={"size": None}),
-        input=ControlSpec(tag="x-input", help=Part(kind="slot", name="hint"), error=Part(kind="none")),
+        input=ControlSpec(tag="x-input", help=Part(kind="slot", name="hint"), error=Part(kind="none"), invalid={"invalid": True}),
     )
     button = _plain(resolve(Button().bind("label", "caption").bind("size", "sz").bind("readonly", "ro").to_node(), design))
     # a bound label lands on the text; a binding the design maps to nothing, or does not know, is dropped
     assert button["bindings"] == {"textContent": {"field": "caption", "mode": "one-way"}}
     text = _plain(resolve(TextInput(error="Bad").bind("help", "hint").to_node(), design))
-    assert "error" not in text["props"]  # the design has nowhere to show it
+    assert text.get("props", {}) == {}  # the design drops the error and does not mark the control invalid
     assert text["slots"]["hint"][0]["bindings"] == {"textContent": {"field": "hint", "mode": "one-way"}}
+
+
+def test_bound_errors_drive_each_destination_and_invalid_state():
+    design = _design(
+        input=ControlSpec(
+            tag="x-input",
+            fixed={"aria-invalid": "false"},
+            error=(Part(kind="attr", name="custom-error"), Part(kind="slot", name="error")),
+            invalid={"aria-invalid": "true", "invalid": True},
+        )
+    )
+    text = _plain(resolve(TextInput().bind("error", "message").to_node(), design))
+    error_binding = {"field": "message", "mode": "one-way"}
+
+    def invalid(value, valid=None):
+        return {
+            "compute": {
+                "expr": "cond",
+                "test": {"expr": "field", "name": "message"},
+                "then": {"expr": "lit", "value": value},
+                "else": {"expr": "lit", "value": valid},
+            },
+            "mode": "one-way",
+        }
+
+    assert text["props"] == {"aria-invalid": "false"}
+    assert text["bindings"] == {
+        "custom-error": error_binding,
+        "aria-invalid": invalid("true", "false"),
+        "invalid": invalid(True),
+    }
+    assert text["slots"]["error"][0]["bindings"] == {"textContent": error_binding}
+
+    computed = _plain(resolve(TextInput().compute("error", field("message")).to_node(), design))
+    computed_error = {"compute": {"expr": "field", "name": "message"}, "mode": "one-way"}
+    assert computed["props"] == {"aria-invalid": "false"}
+    assert computed["bindings"] == {
+        "custom-error": computed_error,
+        "aria-invalid": invalid("true", "false"),
+        "invalid": invalid(True),
+    }
+    assert computed["slots"]["error"][0]["bindings"] == {"textContent": computed_error}
 
 
 def test_options_bound_only_and_a_dialog_opened_one_way():
@@ -584,7 +641,13 @@ def test_options_bound_only_and_a_dialog_opened_one_way():
         }
     }
     dialog = _plain(resolve(Dialog(open=True).to_node(), design))
-    assert dialog["props"] == {"opened": True} and "bindings" not in dialog
+    assert dialog["props"] == {} and dialog["bindings"] == {
+        "opened": {
+            "compute": {"expr": "lit", "value": True},
+            "mode": "one-way",
+            "methods": ["show", "hide"],
+        }
+    }
     one_way = _plain(resolve(Dialog().bind("open", "o").to_node(), design))
     # one-way: driven by the methods, but the close event has nothing to write back to
     assert one_way["bindings"] == {"opened": {"field": "o", "mode": "one-way", "methods": ["show", "hide"]}}

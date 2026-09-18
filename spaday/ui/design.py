@@ -111,7 +111,8 @@ class Open(_Data):
 
 
 class ControlSpec(_Data):
-    """One generic control as one design renders it."""
+    """One generic control as one design renders it. A tuple of :class:`Part` objects sends the
+    same label, help text, or error to each destination."""
 
     #: the element rendered
     tag: str
@@ -121,10 +122,11 @@ class ControlSpec(_Data):
     props: dict[str, str | None] = Field(default_factory=dict)
     #: generic prop → {generic value: the design's value}; an unlisted value passes through
     values: dict[str, dict[str, str]] = Field(default_factory=dict)
-    label: Part = Field(default_factory=lambda: Part(kind="attr", name="label"))
-    help: Part = Field(default_factory=lambda: Part(kind="none"))
-    error: Part = Field(default_factory=lambda: Part(kind="none"))
-    #: props set while ``error`` is non-empty (``invalid``, ``value-state="Negative"``)
+    label: Part | tuple[Part, ...] = Field(default_factory=lambda: Part(kind="attr", name="label"))
+    help: Part | tuple[Part, ...] = Field(default_factory=lambda: Part(kind="none"))
+    error: Part | tuple[Part, ...] = Field(default_factory=lambda: Part(kind="none"))
+    #: props set while ``error`` is non-empty (``invalid``, ``value-state="Negative"``); bound
+    #: errors update these props reactively
     invalid: dict[str, Any] = Field(default_factory=dict)
     wrap: Wrap | None = None
     value: Value = Field(default_factory=Value)
@@ -279,29 +281,47 @@ class _Resolver:
             binding = bindings.pop(part, None)
             if literal is None and binding is None:
                 continue
-            where: Part = getattr(spec, part)
-            if where.kind == "attr":
-                out[where.name] = literal
-                if binding:
-                    bindings[where.name] = binding
-            elif where.kind == "text":
-                out["textContent"] = literal
-                if binding:
-                    bindings["textContent"] = binding
-            elif where.kind == "none":
-                continue
-            else:
-                element = _element(where.tag, {**where.props, **({"slot": where.name} if where.kind == "slot" else {})}, literal, binding)
-                if where.kind == "slot":
-                    slots.setdefault(where.name, []).append(element)
-                elif where.kind == "child":
-                    (after if where.after else before).append(element)
+            placement = getattr(spec, part)
+            destinations = placement if isinstance(placement, tuple) else (placement,)
+            for where in destinations:
+                if where.kind == "attr":
+                    out[where.name] = literal
+                    if binding:
+                        bindings[where.name] = binding
+                elif where.kind == "text":
+                    out["textContent"] = literal
+                    if binding:
+                        bindings["textContent"] = binding
+                elif where.kind == "none":
+                    continue
                 else:
-                    if spec.wrap is None:
-                        raise ValueError(f"design {self.design.name!r} places the {part} of {kind!r} beside the control but declares no wrap")
-                    (siblings_after if where.after else siblings_before).append(element)
-            if part == "error" and literal:
-                out.update(spec.invalid)
+                    element = _element(where.tag, {**where.props, **({"slot": where.name} if where.kind == "slot" else {})}, literal, binding)
+                    if where.kind == "slot":
+                        slots.setdefault(where.name, []).append(element)
+                    elif where.kind == "child":
+                        (after if where.after else before).append(element)
+                    else:
+                        if spec.wrap is None:
+                            raise ValueError(f"design {self.design.name!r} places the {part} of {kind!r} beside the control but declares no wrap")
+                        (siblings_after if where.after else siblings_before).append(element)
+            if part == "error" and any(where.kind != "none" for where in destinations):
+                if literal:
+                    out.update(spec.invalid)
+                if binding and spec.invalid:
+                    source = binding.get("compute")
+                    if source is None and binding.get("field") is not None:
+                        source = {"expr": "field", "name": binding["field"]}
+                    if source is not None:
+                        for target, invalid in spec.invalid.items():
+                            bindings[target] = {
+                                "compute": {
+                                    "expr": "cond",
+                                    "test": source,
+                                    "then": {"expr": "lit", "value": invalid},
+                                    "else": {"expr": "lit", "value": spec.fixed.get(target)},
+                                },
+                                "mode": "one-way",
+                            }
 
         options = props.pop("options", None)
         options_binding = bindings.pop("options", None)
@@ -417,7 +437,7 @@ class _Resolver:
         opened = props.pop("open", None)
         open_binding = bindings.pop("open", None)
         if spec.open is not None:
-            method_only = spec.open.methods is not None and spec.open.state is not None
+            method_only = spec.open.methods is not None
             if opened is not None and not method_only:
                 out[spec.open.prop] = opened
             if open_binding is not None:
@@ -434,7 +454,7 @@ class _Resolver:
                     "compute": {"expr": "lit", "value": opened},
                     "mode": "one-way",
                     "methods": list(spec.open.methods),
-                    "state": spec.open.state,
+                    **({"state": spec.open.state} if spec.open.state else {}),
                 }
 
         for name, v in props.items():

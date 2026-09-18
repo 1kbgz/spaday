@@ -24,13 +24,15 @@ def page() -> Component:
     """Every generic control, wired to the store :func:`store` seeds."""
     return Column(
         Row(
-            Button(id="save", label="Save", intent="primary").on("click", SetField("saved", True)),
-            Button(id="reset", label="Reset", appearance="outline").on("click", Sequence(SetField("name", ""), SetField("saved", False))),
+            Button(id="save", label="Save", intent="primary").on("click", Sequence(SetField("saved", True), SetField("email_error", "Required"))),
+            Button(id="reset", label="Reset", appearance="outline").on(
+                "click", Sequence(SetField("name", ""), SetField("saved", False), SetField("email_error", ""))
+            ),
             Button(id="never", label="Disabled", disabled=True),
             gap=".5rem",
         ),
         TextInput(id="name", label="Name", help="Your name", placeholder="Ada").bind("value", "name", mode="two-way"),
-        TextInput(id="email", label="Email", error="Required", type="email"),
+        TextInput(id="email", label="Email", type="email").bind("error", "email_error"),
         TextArea(id="notes", label="Notes", rows=3).bind("value", "notes", mode="two-way"),
         NumberInput(id="count", label="Count", min=0, max=10, step=1).bind("value", "count", mode="two-way"),
         DateInput(id="date", label="Date").bind("value", "date", mode="two-way"),
@@ -40,7 +42,7 @@ def page() -> Component:
         RadioGroup(id="priority", label="Priority", options=[1, {"value": 2, "label": "High"}]).bind("value", "priority", mode="two-way"),
         Slider(id="volume", label="Volume", min=0, max=10, step=1).bind("value", "volume", mode="two-way"),
         Alert("All controls use the same generic contract.", id="alert", label="Portable", intent="info"),
-        Progress(id="progress", label="Progress", max=100).bind("value", "progress"),
+        Progress(id="progress", label="Progress", max=50).bind("value", "progress"),
         Button(id="open", label="Open dialog").on("click", SetField("open", True)),
         Dialog(
             Paragraph("Confirm?"),
@@ -85,6 +87,7 @@ def store() -> dict:
     """The store the page's bindings read and write."""
     return {
         "name": "",
+        "email_error": "Required",
         "notes": "",
         "count": 2,
         "date": "2026-09-14",
