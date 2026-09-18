@@ -121,13 +121,15 @@ package = ComponentPackage(name="acme", ..., design=DESIGN)
 
 `Part` places a label, help text or error message as an attribute, a slotted element, the control's
 text, a child inside it, or a sibling in a `Wrap` around it (a `bp-field`, a `fluent-field`, a plain
-`<label>`). A tuple of parts sends the same text to several destinations, such as a visible error slot
-and the control's validation property. `invalid` props follow both literal and bound errors, returning
-to the value in `fixed` (or being removed) when a bound error clears.
+`<label>`). A non-empty tuple of parts sends the same text to several destinations, such as a visible
+error slot and the control's validation property. `invalid` props follow both literal and bound errors, returning
+to the value in `fixed` (or being removed) when a bound error clears. An `invalid` target cannot also
+have another binding.
 `Options` renders `Select` and `RadioGroup` choices as child elements, optionally inside one list
 wrapper, or as a list property. It maps `value`, `label`, and `disabled` for literal and bound option
-lists. A child option's `label` can also be a `Part`; combine a sibling part with `item_wrap` when each
-radio needs its own visible `<label>`. `label_attr` can repeat that text in an attribute such as
+lists. A child option's `label` can also be one `Part` or a non-empty tuple of parts; combine a sibling
+part with `item_wrap` when each radio needs its own visible `<label>`. `label_attr` can repeat that text
+in an attribute such as
 `aria-label` when the custom element does not derive its accessible name from the wrapper. `fixed`
 sets props required on every child option. For child options, `selected` names the boolean property
 that marks the current choice; use `selected="checked"` for radio elements. `Value` names the state

@@ -231,6 +231,55 @@ function unbindEvent(el: Element, name: string): void {
 // subscribes the prop to its state field; a two-way binding also writes the field when the control changes.
 const bindings = new WeakMap<Element, Map<string, () => void>>();
 const structuralNodes = new WeakMap<Element, Node>();
+type ConnectionCheck = () => boolean;
+const pendingConnections = new Set<WeakRef<ConnectionCheck>>();
+let pendingConnectionObserver: MutationObserver | undefined;
+let pendingConnectionTimer: number | undefined;
+// Document mutations catch the common case immediately. The shared timer also catches insertion
+// inside an existing shadow root, whose mutations do not cross the shadow boundary.
+const CONNECTION_POLL_MS = 50;
+
+function stopConnectionTracking(): void {
+  if (pendingConnections.size > 0) return;
+  pendingConnectionObserver?.disconnect();
+  pendingConnectionObserver = undefined;
+  if (pendingConnectionTimer !== undefined)
+    window.clearTimeout(pendingConnectionTimer);
+  pendingConnectionTimer = undefined;
+}
+
+function flushPendingConnections(): void {
+  for (const ref of pendingConnections) {
+    const check = ref.deref();
+    if (!check || check()) pendingConnections.delete(ref);
+  }
+  if (pendingConnections.size === 0) {
+    stopConnectionTracking();
+    return;
+  }
+  if (pendingConnectionTimer === undefined)
+    pendingConnectionTimer = window.setTimeout(() => {
+      pendingConnectionTimer = undefined;
+      flushPendingConnections();
+    }, CONNECTION_POLL_MS);
+}
+
+function trackConnection(ref: WeakRef<ConnectionCheck>): void {
+  pendingConnections.add(ref);
+  if (!pendingConnectionObserver) {
+    pendingConnectionObserver = new MutationObserver(flushPendingConnections);
+    pendingConnectionObserver.observe(document, {
+      childList: true,
+      subtree: true,
+    });
+  }
+  flushPendingConnections();
+}
+
+function untrackConnection(ref: WeakRef<ConnectionCheck>): void {
+  pendingConnections.delete(ref);
+  stopConnectionTracking();
+}
 // `refreshRoots` re-fetches lazy bodies too (server state changed): each spa-lazy registers a
 // reloader that refetches its src and swaps the mounted body only when the payload changed.
 const lazyReloaders = new WeakMap<Element, () => void>();
@@ -365,19 +414,18 @@ function wireBinding(
   // element connects; updates after connection stay synchronous and retain user activation.
   let connectionQueued = false;
   let connectionValue: unknown;
-  let connectionObserver: MutationObserver | undefined;
   const flushConnected = () => {
-    if (!connectionQueued || !el.isConnected) return;
+    if (!connectionQueued) return true;
+    if (!el.isConnected) return false;
     connectionQueued = false;
-    connectionObserver?.disconnect();
-    connectionObserver = undefined;
     applyNow(connectionValue);
+    return true;
   };
+  const connectionRef = new WeakRef(flushConnected);
   const applyConnected = (value: unknown) => {
     if (!spec.methods || el.isConnected) {
       connectionQueued = false;
-      connectionObserver?.disconnect();
-      connectionObserver = undefined;
+      untrackConnection(connectionRef);
       applyNow(value);
       return;
     }
@@ -386,13 +434,7 @@ function wireBinding(
     connectionQueued = true;
     queueMicrotask(() => {
       if (!connectionQueued) return;
-      if (el.isConnected) {
-        flushConnected();
-        return;
-      }
-      connectionObserver = new MutationObserver(flushConnected);
-      connectionObserver.observe(document, { childList: true, subtree: true });
-      flushConnected();
+      if (!flushConnected()) trackConnection(connectionRef);
     });
   };
   const apply = spec.defer
@@ -408,8 +450,7 @@ function wireBinding(
     teardowns.push(() => {
       if (frame !== undefined) cancelAnimationFrame(frame);
       connectionQueued = false;
-      connectionObserver?.disconnect();
-      connectionObserver = undefined;
+      untrackConnection(connectionRef);
     });
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads

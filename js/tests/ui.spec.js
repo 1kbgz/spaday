@@ -367,13 +367,136 @@ test.describe("binding features for designs", () => {
         },
         new window.__spaday.Store({}),
       );
-      await Promise.resolve();
+      await new Promise(requestAnimationFrame);
       const before = el.open;
       document.body.append(container);
       await new Promise(requestAnimationFrame);
       return { before, connected: el.isConnected, after: el.open };
     });
     expect(r).toEqual({ before: false, connected: true, after: true });
+  });
+
+  test("a method binding follows deferred attachment inside an existing shadow root", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(async () => {
+      const host = document.createElement("div");
+      document.body.append(host);
+      const shadow = host.attachShadow({ mode: "open" });
+      const container = document.createElement("div");
+      const el = window.__spaday.mount(
+        container,
+        {
+          tag: "dialog",
+          bindings: {
+            open: {
+              compute: { expr: "lit", value: true },
+              mode: "one-way",
+              methods: ["showModal", "close"],
+            },
+          },
+        },
+        new window.__spaday.Store({}),
+      );
+      await new Promise(requestAnimationFrame);
+      const before = el.open;
+      shadow.append(container);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return { before, connected: el.isConnected, after: el.open };
+    });
+    expect(r).toEqual({ before: false, connected: true, after: true });
+  });
+
+  test("a pending method binding coalesces updates and skips an unchanged false state", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(async () => {
+      class CountedOverlay extends HTMLElement {
+        open = false;
+        opened = 0;
+        closed = 0;
+
+        show() {
+          this.opened += 1;
+          this.open = true;
+        }
+
+        hide() {
+          this.closed += 1;
+          this.open = false;
+        }
+      }
+      if (!customElements.get("counted-overlay"))
+        customElements.define("counted-overlay", CountedOverlay);
+      const container = document.createElement("div");
+      const store = new window.__spaday.Store({ open: true });
+      const el = window.__spaday.mount(
+        container,
+        {
+          tag: "counted-overlay",
+          bindings: {
+            open: {
+              field: "open",
+              mode: "one-way",
+              methods: ["show", "hide"],
+            },
+          },
+        },
+        store,
+      );
+      store.set("open", false);
+      document.body.append(container);
+      await new Promise(requestAnimationFrame);
+      return { open: el.open, opened: el.opened, closed: el.closed };
+    });
+    expect(r).toEqual({ open: false, opened: 0, closed: 0 });
+  });
+
+  test("removing a binding cancels its pending connection work", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(async () => {
+      class RemovedOverlay extends HTMLElement {
+        open = false;
+        opened = 0;
+
+        show() {
+          this.opened += 1;
+          this.open = true;
+        }
+
+        hide() {
+          this.open = false;
+        }
+      }
+      if (!customElements.get("removed-overlay"))
+        customElements.define("removed-overlay", RemovedOverlay);
+      const container = document.createElement("div");
+      const store = new window.__spaday.Store({ open: true });
+      const el = window.__spaday.mount(
+        container,
+        {
+          tag: "removed-overlay",
+          bindings: {
+            open: {
+              field: "open",
+              mode: "one-way",
+              methods: ["show", "hide"],
+            },
+          },
+        },
+        store,
+      );
+      window.__spaday.applyPatch(
+        el,
+        { ops: [{ RemoveBinding: { path: [], name: "open" } }] },
+        store,
+      );
+      document.body.append(container);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return { open: el.open, opened: el.opened };
+    });
+    expect(r).toEqual({ open: false, opened: 0 });
   });
 
   test("a binding can wait for connection and assigned children", async ({
@@ -549,7 +672,7 @@ test.describe("the conformance page with the native baseline", () => {
       /.*/,
     );
     await expect(page.getByText("Required")).toHaveCount(0);
-    await page.locator("#save").click();
+    await page.locator("#validate").click();
     await expect(page.locator("#email")).toHaveAttribute("data-invalid", "");
     await expect(page.getByText("Required")).toBeVisible();
     await expect(page.locator("#never")).toHaveJSProperty("disabled", true);
