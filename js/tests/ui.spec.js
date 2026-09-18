@@ -401,7 +401,16 @@ test.describe("binding features for designs", () => {
       await new Promise(requestAnimationFrame);
       const before = el.open;
       shadow.append(container);
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve, reject) => {
+        const deadline = performance.now() + 2000;
+        const check = () => {
+          if (el.open) resolve();
+          else if (performance.now() >= deadline)
+            reject(new Error("shadow-root dialog did not open"));
+          else setTimeout(check, 10);
+        };
+        check();
+      });
       return { before, connected: el.isConnected, after: el.open };
     });
     expect(r).toEqual({ before: false, connected: true, after: true });
@@ -444,6 +453,7 @@ test.describe("binding features for designs", () => {
         },
         store,
       );
+      await new Promise(requestAnimationFrame);
       store.set("open", false);
       document.body.append(container);
       await new Promise(requestAnimationFrame);
@@ -456,6 +466,12 @@ test.describe("binding features for designs", () => {
     page,
   }) => {
     const r = await page.evaluate(async () => {
+      const disconnect = MutationObserver.prototype.disconnect;
+      let disconnects = 0;
+      MutationObserver.prototype.disconnect = function () {
+        disconnects += 1;
+        return disconnect.call(this);
+      };
       class RemovedOverlay extends HTMLElement {
         open = false;
         opened = 0;
@@ -487,16 +503,21 @@ test.describe("binding features for designs", () => {
         },
         store,
       );
-      window.__spaday.applyPatch(
-        el,
-        { ops: [{ RemoveBinding: { path: [], name: "open" } }] },
-        store,
-      );
-      document.body.append(container);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      return { open: el.open, opened: el.opened };
+      try {
+        await new Promise(requestAnimationFrame);
+        window.__spaday.applyPatch(
+          el,
+          { ops: [{ RemoveBinding: { path: [], name: "open" } }] },
+          store,
+        );
+        document.body.append(container);
+        await new Promise(requestAnimationFrame);
+        return { open: el.open, opened: el.opened, disconnects };
+      } finally {
+        MutationObserver.prototype.disconnect = disconnect;
+      }
     });
-    expect(r).toEqual({ open: false, opened: 0 });
+    expect(r).toEqual({ open: false, opened: 0, disconnects: 1 });
   });
 
   test("a binding can wait for connection and assigned children", async ({

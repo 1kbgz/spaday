@@ -304,6 +304,14 @@ def test_options_as_a_property_and_a_wrapped_child_list():
             },
         },
     ]
+    ordered = _design(
+        select=ControlSpec(
+            tag="x-select",
+            options=Options(label=(Part(kind="child", tag="b", after=True), Part(kind="child", tag="i"))),
+        )
+    )
+    option = _plain(resolve(Select(options=["a"]).to_node(), ordered))["slots"]["default"][0]
+    assert [child["tag"] for child in option["slots"]["default"]] == ["i", "b"]
     with pytest.raises(ValueError, match="child-only rendering settings"):
         resolve(
             Select(options=["a"]).to_node(),
@@ -517,6 +525,10 @@ def test_a_design_round_trips_as_data():
         ControlSpec(tag="x", label=())
     with pytest.raises(ValueError, match="at least 1 item"):
         Options(label=())
+    with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", error=Part(kind="attr", name="invalid"), invalid={"invalid": True})
+    with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", value=Value(prop="current-value"), invalid={"current-value": True})
 
 
 def test_every_serving_path_resolves_generic_controls():
@@ -649,19 +661,8 @@ def test_bound_errors_drive_each_destination_and_invalid_state():
     )
     assert _plain(resolve(TextInput(error="Bad").to_node(), mixed))["props"] == {"custom-error": "Bad", "invalid": True}
 
-    with pytest.raises(ValueError, match="already has a binding"):
+    with pytest.raises(ValueError, match="also drives"):
         resolve(TextInput().bind("error", "message").bind("invalid", "manual").to_node(), design)
-
-    remapped_collision = _design(
-        input=ControlSpec(
-            tag="x-input",
-            error=Part(kind="attr", name="error"),
-            invalid={"current-value": True},
-            value=Value(prop="current-value"),
-        )
-    )
-    with pytest.raises(ValueError, match="already has a binding"):
-        resolve(TextInput().bind("error", "message").bind("value", "name").to_node(), remapped_collision)
 
     malformed = TextInput().to_node()
     malformed["bindings"] = {"error": {"mode": "one-way"}}
@@ -673,16 +674,28 @@ def test_invalid_destinations_do_not_alias_the_error_expression():
     design = _design(
         input=ControlSpec(
             tag="x-input",
-            error=Part(kind="attr", name="custom-error"),
+            error=(
+                Part(kind="attr", name="custom-error"),
+                Part(kind="attr", name="second-error"),
+                Part(kind="slot", name="error"),
+            ),
             invalid={"aria-invalid": "true", "invalid": True},
         )
     )
     node = resolve(TextInput().compute("error", field("message")).to_node(), design)
-    source = node["bindings"]["custom-error"]["compute"]
+    error_bindings = [
+        node["bindings"]["custom-error"],
+        node["bindings"]["second-error"],
+        node["slots"]["error"][0]["bindings"]["textContent"],
+    ]
+    assert error_bindings[0] == error_bindings[1] == error_bindings[2]
+    assert len({id(binding) for binding in error_bindings}) == 3
+    source = error_bindings[0]["compute"]
     aria_source = node["bindings"]["aria-invalid"]["compute"]["test"]
     invalid_source = node["bindings"]["invalid"]["compute"]["test"]
     assert aria_source == invalid_source == source
-    assert aria_source is not invalid_source and aria_source is not source and invalid_source is not source
+    expressions = [*(binding["compute"] for binding in error_bindings), aria_source, invalid_source]
+    assert len({id(expression) for expression in expressions}) == 5
 
 
 def test_options_bound_only_and_a_dialog_opened_one_way():

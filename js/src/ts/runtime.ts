@@ -235,9 +235,11 @@ type ConnectionCheck = () => boolean;
 const pendingConnections = new Set<WeakRef<ConnectionCheck>>();
 let pendingConnectionObserver: MutationObserver | undefined;
 let pendingConnectionTimer: number | undefined;
+let connectionPollMs = 50;
 // Document mutations catch the common case immediately. The shared timer also catches insertion
-// inside an existing shadow root, whose mutations do not cross the shadow boundary.
-const CONNECTION_POLL_MS = 50;
+// inside an existing shadow root, whose mutations do not cross the shadow boundary. Back off while
+// controls remain detached so an abandoned, still-subscribed binding does not poll aggressively.
+const MAX_CONNECTION_POLL_MS = 1000;
 
 function stopConnectionTracking(): void {
   if (pendingConnections.size > 0) return;
@@ -246,6 +248,7 @@ function stopConnectionTracking(): void {
   if (pendingConnectionTimer !== undefined)
     window.clearTimeout(pendingConnectionTimer);
   pendingConnectionTimer = undefined;
+  connectionPollMs = 50;
 }
 
 function flushPendingConnections(): void {
@@ -260,14 +263,26 @@ function flushPendingConnections(): void {
   if (pendingConnectionTimer === undefined)
     pendingConnectionTimer = window.setTimeout(() => {
       pendingConnectionTimer = undefined;
+      connectionPollMs = Math.min(connectionPollMs * 2, MAX_CONNECTION_POLL_MS);
       flushPendingConnections();
-    }, CONNECTION_POLL_MS);
+    }, connectionPollMs);
+}
+
+function resetConnectionPoll(): void {
+  if (pendingConnectionTimer !== undefined)
+    window.clearTimeout(pendingConnectionTimer);
+  pendingConnectionTimer = undefined;
+  connectionPollMs = 50;
 }
 
 function trackConnection(ref: WeakRef<ConnectionCheck>): void {
+  if (!pendingConnections.has(ref)) resetConnectionPoll();
   pendingConnections.add(ref);
   if (!pendingConnectionObserver) {
-    pendingConnectionObserver = new MutationObserver(flushPendingConnections);
+    pendingConnectionObserver = new MutationObserver(() => {
+      resetConnectionPoll();
+      flushPendingConnections();
+    });
     pendingConnectionObserver.observe(document, {
       childList: true,
       subtree: true,
@@ -421,11 +436,13 @@ function wireBinding(
     applyNow(connectionValue);
     return true;
   };
-  const connectionRef = new WeakRef(flushConnected);
+  const connectionRef = spec.methods
+    ? new WeakRef<ConnectionCheck>(flushConnected)
+    : undefined;
   const applyConnected = (value: unknown) => {
     if (!spec.methods || el.isConnected) {
       connectionQueued = false;
-      untrackConnection(connectionRef);
+      if (connectionRef) untrackConnection(connectionRef);
       applyNow(value);
       return;
     }
@@ -434,7 +451,7 @@ function wireBinding(
     connectionQueued = true;
     queueMicrotask(() => {
       if (!connectionQueued) return;
-      if (!flushConnected()) trackConnection(connectionRef);
+      if (!flushConnected() && connectionRef) trackConnection(connectionRef);
     });
   };
   const apply = spec.defer
@@ -450,7 +467,7 @@ function wireBinding(
     teardowns.push(() => {
       if (frame !== undefined) cancelAnimationFrame(frame);
       connectionQueued = false;
-      untrackConnection(connectionRef);
+      if (connectionRef) untrackConnection(connectionRef);
     });
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads

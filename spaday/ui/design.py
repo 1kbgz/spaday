@@ -23,7 +23,7 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..component import DEFAULT_SLOT, _check_text_binding_target, _tag
 
@@ -139,6 +139,22 @@ class ControlSpec(_Data):
     #: generic event → the design's event name (``change`` → ``model-value-changed``)
     events: dict[str, str] = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def _invalid_targets_are_independent(self) -> ControlSpec:
+        error_parts = self.error if isinstance(self.error, tuple) else (self.error,)
+        driven = {self.value.prop}
+        driven.update(where.name if where.kind == "attr" else "textContent" for where in error_parts if where.kind in {"attr", "text"})
+        driven.update(target for target in self.props.values() if target is not None)
+        if self.options is not None and self.options.kind == "prop":
+            driven.add(self.options.name)
+        if self.open is not None:
+            driven.add(self.open.prop)
+        overlap = self.invalid.keys() & driven
+        if overlap:
+            names = ", ".join(repr(name) for name in sorted(overlap))
+            raise ValueError(f"invalid targets also receive control content or state: {names}")
+        return self
+
 
 class Design(_Data):
     """A design system's realizations, keyed by generic control kind."""
@@ -167,7 +183,7 @@ def _element(tag: str, props: dict[str, Any], text: Any = None, binding: dict | 
     if text is not None:
         node["props"]["textContent"] = _tag(str(text))
     if binding is not None:
-        node["bindings"] = {"textContent": binding}
+        node["bindings"] = {"textContent": deepcopy(binding)}
     return node
 
 
@@ -292,11 +308,11 @@ class _Resolver:
                 if where.kind == "attr":
                     out[where.name] = literal
                     if binding:
-                        bindings[where.name] = binding
+                        bindings[where.name] = deepcopy(binding)
                 elif where.kind == "text":
                     out["textContent"] = literal
                     if binding:
-                        bindings["textContent"] = binding
+                        bindings["textContent"] = deepcopy(binding)
                 elif where.kind == "none":
                     continue
                 else:
@@ -388,6 +404,8 @@ class _Resolver:
                         option = _element(spec.options.tag, option_props)
                         item_siblings_before = []
                         item_siblings_after = []
+                        item_children_before: list[dict] = []
+                        item_children_after: list[dict] = []
                         for where in label if isinstance(label, tuple) else (label,):
                             if where.kind == "attr":
                                 option["props"][where.name] = _tag(item["label"])
@@ -402,13 +420,16 @@ class _Resolver:
                                 if where.kind == "slot":
                                     option.setdefault("slots", {}).setdefault(where.name, []).append(label_node)
                                 elif where.kind == "child":
-                                    option.setdefault("slots", {}).setdefault(DEFAULT_SLOT, []).append(label_node)
+                                    (item_children_after if where.after else item_children_before).append(label_node)
                                 else:
                                     if item_wrap is None:
                                         raise ValueError(
                                             f"design {self.design.name!r} places an option label beside its control but declares no item_wrap"
                                         )
                                     (item_siblings_after if where.after else item_siblings_before).append(label_node)
+                        if item_children_before or item_children_after:
+                            default_children = option.setdefault("slots", {}).setdefault(DEFAULT_SLOT, [])
+                            option["slots"][DEFAULT_SLOT] = [*item_children_before, *default_children, *item_children_after]
                     if item_wrap is not None and item_wrap.control:
                         option.setdefault("props", {}).update({k: _tag(v) for k, v in item_wrap.control.items()})
                     if item_wrap is None:
@@ -485,7 +506,7 @@ class _Resolver:
                 bindings.pop(name)
         for target, binding in invalid_bindings.items():
             if target in bindings:
-                raise ValueError(f"design {self.design.name!r} drives invalid prop {target!r}, which already has a binding")
+                raise ValueError(f"{_describe(node)} binds {target!r}, which design {self.design.name!r} also drives from its error state")
             bindings[target] = binding
         out.update(overrides)
 
