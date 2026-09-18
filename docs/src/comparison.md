@@ -11,11 +11,11 @@ run? Most of the differences between these tools come from that answer. There ar
 answers.
 
 **In Python, on the server.** The browser reports the event, a Python process handles it, and the
-browser shows the result. Streamlit, Gradio, Dash, Panel, Shiny, Solara, NiceGUI, and Reflex all work
+browser shows the result. [Streamlit](https://streamlit.io), [Gradio](https://www.gradio.app), [Dash](https://dash.plotly.com), [Panel](https://panel.holoviz.org), [Shiny](https://shiny.posit.co/py/), [Solara](https://solara.dev), [NiceGUI](https://nicegui.io), and [Reflex](https://reflex.dev) all work
 this way. They differ in how much of the page gets recomputed per event and in how the server keeps
 per-user state, but every interaction is a round trip.
 
-**In JavaScript you wrote.** A frontend built with React, Vue, or Svelte talks to Python over an API.
+**In JavaScript you wrote.** A frontend built with [React](https://react.dev), [Vue](https://vuejs.org), or [Svelte](https://svelte.dev) talks to Python over an API.
 Python runs only when the frontend asks it to.
 
 **In the browser, from a description Python wrote.** This is spaday's answer. Python builds the
@@ -55,13 +55,13 @@ Dash has clientside callbacks, which are JavaScript source strings evaluated in 
 
 spaday differs in both halves. Dash's tree is built from Dash components, which are React components
 wrapped for Python, so a new component means a React build. spaday's tree is built from any
-web-component library that publishes a Custom Elements Manifest, with no wrapper code. Dash's default
+web-component library that publishes a [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest), with no wrapper code. Dash's default
 for behavior is a Python function; spaday's default is a client-side action. spaday's escape hatch is a
 handler registered by name, never an evaluated string, and that is what makes a tree safe to send to
 clients you do not trust.
 
-NiceGUI puts Vue and Quasar components behind Python event handlers that run over a socket, with each
-client's state kept in the Python process. Reflex compiles a Python description into a Next.js app;
+NiceGUI puts Vue and [Quasar](https://quasar.dev) components behind Python event handlers that run over a socket, with each
+client's state kept in the Python process. Reflex compiles a Python description into a [Next.js](https://nextjs.org) app;
 state and event handlers are Python classes on the backend, and events travel over a WebSocket. Both are
 pleasant to write. Both keep the Python process in the loop for every event, and Reflex adds a Node
 build to deployment.
@@ -71,26 +71,26 @@ build to deployment.
 Panel, Shiny for Python, and Solara give you a reactive graph in Python. Widgets are inputs to it,
 dependent values recompute when inputs change, and a Python process per session holds the graph. When
 the interesting work is in Python, this is a strong model: you write the analysis as a reactive graph and
-the UI comes with it. Panel runs on the Bokeh server and also offers JavaScript links between widgets
+the UI comes with it. Panel runs on the [Bokeh](https://bokeh.org) server and also offers JavaScript links between widgets
 for cases that should not round trip. Shiny's reactivity is per session and fine-grained. Solara writes
-React-style components in Python on top of ipywidgets.
+React-style components in Python on top of [ipywidgets](https://ipywidgets.readthedocs.io).
 
 spaday's reactive engine lives in the browser and is narrower by design: it evaluates field bindings
 and computed expressions over a signal store rather than arbitrary Python. That narrowness is what makes
 it shippable as data and lets a two-way control or a derived value update with no server. These tools
-and spaday also combine. spaday's widget is an anywidget, so a spaday tree can sit inside a Panel,
-Solara, Shiny, or Marimo app when one of those is the host you want.
+and spaday also combine. spaday's widget is an [anywidget](https://anywidget.dev), so a spaday tree can sit inside a Panel,
+Solara, Shiny, or [Marimo](https://marimo.io) app when one of those is the host you want.
 
 ## Notebook widgets: ipywidgets and Voilà
 
-ipywidgets sync widget state over the Jupyter comm, and Voilà turns a notebook into an app by running a
+ipywidgets sync widget state over the Jupyter comm, and [Voilà](https://voila.readthedocs.io) turns a notebook into an app by running a
 kernel per viewer. spaday's notebook host is the same engine as its web host with a different wire. A
 tree developed in a notebook is served as a web app unchanged, and the web app needs no kernel per
 viewer.
 
 ## A Python server with a JavaScript frontend
 
-A FastAPI or Django API with a frontend written in React, Vue, or Svelte is the most flexible option and
+A [FastAPI](https://fastapi.tiangolo.com) or [Django](https://www.djangoproject.com) API with a frontend written in React, Vue, or Svelte is the most flexible option and
 the one most web teams reach for. Everything the browser can do is available, the frontend scales as far
 as the API does, and the component ecosystem is all of npm. The costs are a second codebase, a build
 pipeline, an API contract between the two, and the fact that people who only write Python cannot change
@@ -108,16 +108,16 @@ of a page you own.
 
 ## Server-rendered HTML: templates and htmx
 
-Django or Jinja templates, with htmx or Turbo for partial updates, render HTML on the server and swap
+Django or [Jinja](https://jinja.palletsprojects.com) templates, with [htmx](https://htmx.org) or [Turbo](https://turbo.hotwired.dev) for partial updates, render HTML on the server and swap
 fragments into the page. This is a good fit for CRUD apps with modest interactivity, and it needs no
 client framework at all. Each interaction is still a request, client-side state is whatever the DOM
 holds, and the components are the HTML you write. spaday differs on all three counts. The price is a
 wasm runtime in the page, about a megabyte for the core and another for transports before compression,
-which is the size of an ordinary React bundle and an order of magnitude under a Pyodide download.
+which is the size of an ordinary React bundle and an order of magnitude under a [Pyodide](https://pyodide.org) download.
 
 ## Python in the browser: PyScript, Pyodide, Shinylive, and Panel's convert
 
-PyScript, Shinylive, and `panel convert` take a different route to getting the server out of the
+[PyScript](https://pyscript.net), [Shinylive](https://shinylive.io/py/), and [`panel convert`](https://panel.holoviz.org/how_to/wasm/convert.html) take a different route to getting the server out of the
 interaction loop: they run Python itself in the browser through Pyodide. That works, at the cost of a
 multi-megabyte download and several seconds of startup before the first render.
 
@@ -177,7 +177,7 @@ routes spaday needs are ordinary routes on the host framework, so a FastAPI depe
 middleware guards them the same way it guards any other endpoint. A login page can be served with its
 tree inline, so the only route an anonymous user can reach is one HTML page.
 
-**Big data.** The post gives this to Panel for its Dask and Datashader integration, and that is a
+**Big data.** The post gives this to Panel for its [Dask](https://www.dask.org) and [Datashader](https://datashader.org) integration, and that is a
 real advantage when the work is a server-side computation whose result is a picture or an aggregate.
 spaday takes a different route to the same problem and holds its own on it. The UI state never
 carries the data. Data moves as incremental, revisioned patches over transports, so a table of
@@ -197,33 +197,33 @@ components and theming. Colors and tokens are set from Python through `css()`, d
 modes follow one root class, and a package's bundle or a single element can be swapped for your own.
 See [Ship your own variant](customizing.md).
 
-| Criterion      | Dash                  | Voilà                | Panel                  | Streamlit        | spaday                                      |
-| -------------- | --------------------- | -------------------- | ---------------------- | ---------------- | ------------------------------------------- |
-| Built for      | standalone dashboards | publishing notebooks | full data applications | scripts to tools | multi-tenant applications                   |
-| Jupyter        | no                    | native               | native                 | no               | anywidget; same tree as the web app         |
-| Scales         | yes, client state     | kernel per user      | session per user       | session per tab  | yes, client state; small server model       |
-| Multi-page     | with web knowledge    | no                   | pipelines              | awkward          | client routing and `mount_site`             |
-| Ease of use    | moderate              | easiest              | moderate               | easiest          | easy start; curve scales with reach         |
-| Authentication | enterprise            | host                 | host                   | host             | host framework                              |
-| Big data       | enterprise            | kernel               | Dask, Datashader       | memory-bound     | patches over transports; virtualized tables |
-| Styling        | CSS                   | notebook themes      | templates              | limited          | design-system packages, Python tokens       |
+| Criterion      | [Dash](https://dash.plotly.com) | [Voilà](https://voila.readthedocs.io) | [Panel](https://panel.holoviz.org) | [Streamlit](https://streamlit.io) | spaday                                      |
+| -------------- | ------------------------------- | ------------------------------------- | ---------------------------------- | --------------------------------- | ------------------------------------------- |
+| Built for      | standalone dashboards           | publishing notebooks                  | full data applications             | scripts to tools                  | multi-tenant applications                   |
+| Jupyter        | no                              | native                                | native                             | no                                | anywidget; same tree as the web app         |
+| Scales         | yes, client state               | kernel per user                       | session per user                   | session per tab                   | yes, client state; small server model       |
+| Multi-page     | with web knowledge              | no                                    | pipelines                          | awkward                           | client routing and `mount_site`             |
+| Ease of use    | moderate                        | easiest                               | moderate                           | easiest                           | easy start; curve scales with reach         |
+| Authentication | enterprise                      | host                                  | host                               | host                              | host framework                              |
+| Big data       | enterprise                      | kernel                                | Dask, Datashader                   | memory-bound                      | patches over transports; virtualized tables |
+| Styling        | CSS                             | notebook themes                       | templates                          | limited                           | design-system packages, Python tokens       |
 
 ## Side by side
 
-| Tool                     | Interaction logic runs                                            | Server state per user       | Components                                | Hosts                            |
-| ------------------------ | ----------------------------------------------------------------- | --------------------------- | ----------------------------------------- | -------------------------------- |
-| Streamlit                | Python, script re-run                                             | session per tab             | Streamlit widgets, iframe customs         | web                              |
-| Gradio                   | Python function per submit                                        | little                      | Gradio components                         | web                              |
-| Dash                     | Python callbacks over HTTP; optional JS strings                   | none                        | React wrappers                            | web                              |
-| NiceGUI                  | Python handlers over a socket                                     | per client                  | Vue and Quasar                            | web                              |
-| Reflex                   | Python handlers over a WebSocket                                  | per client                  | React, Next.js build                      | web                              |
-| Panel                    | Python reactive graph; optional JS links                          | session                     | Bokeh models, ipywidgets                  | web, notebook, Pyodide           |
-| Shiny                    | Python reactive graph                                             | session                     | Shiny components                          | web, Shinylive                   |
-| Solara                   | Python components on ipywidgets                                   | session                     | ipywidgets                                | web, notebook                    |
-| Voilà                    | Python kernel                                                     | kernel per viewer           | ipywidgets                                | web                              |
-| JS frontend + Python API | your JavaScript                                                   | as designed                 | npm                                       | web                              |
-| Templates + htmx         | Python per request                                                | as designed                 | your HTML                                 | web                              |
-| spaday                   | browser-interpreted actions and bindings; Python by explicit call | a transports model, or none | any web-component library with a manifest | web, embedded, notebook, Pyodide |
+| Tool                                  | Interaction logic runs                                            | Server state per user       | Components                                      | Hosts                            |
+| ------------------------------------- | ----------------------------------------------------------------- | --------------------------- | ----------------------------------------------- | -------------------------------- |
+| [Streamlit](https://streamlit.io)     | Python, script re-run                                             | session per tab             | Streamlit widgets, iframe customs               | web                              |
+| [Gradio](https://www.gradio.app)      | Python function per submit                                        | little                      | Gradio components                               | web                              |
+| [Dash](https://dash.plotly.com)       | Python callbacks over HTTP; optional JS strings                   | none                        | React wrappers                                  | web                              |
+| [NiceGUI](https://nicegui.io)         | Python handlers over a socket                                     | per client                  | Vue and Quasar                                  | web                              |
+| [Reflex](https://reflex.dev)          | Python handlers over a WebSocket                                  | per client                  | React, Next.js build                            | web                              |
+| [Panel](https://panel.holoviz.org)    | Python reactive graph; optional JS links                          | session                     | Bokeh models, ipywidgets                        | web, notebook, Pyodide           |
+| [Shiny](https://shiny.posit.co/py/)   | Python reactive graph                                             | session                     | Shiny components                                | web, Shinylive                   |
+| [Solara](https://solara.dev)          | Python components on ipywidgets                                   | session                     | [ipywidgets](https://ipywidgets.readthedocs.io) | web, notebook                    |
+| [Voilà](https://voila.readthedocs.io) | Python kernel                                                     | kernel per viewer           | [ipywidgets](https://ipywidgets.readthedocs.io) | web                              |
+| JS frontend + Python API              | your JavaScript                                                   | as designed                 | npm                                             | web                              |
+| Templates + htmx                      | Python per request                                                | as designed                 | your HTML                                       | web                              |
+| spaday                                | browser-interpreted actions and bindings; Python by explicit call | a transports model, or none | any web-component library with a manifest       | web, embedded, notebook, Pyodide |
 
 ## Trade-offs
 
