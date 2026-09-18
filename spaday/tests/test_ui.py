@@ -528,6 +528,10 @@ def test_a_design_round_trips_as_data():
     with pytest.raises(ValueError, match="invalid targets also receive"):
         ControlSpec(tag="x", error=Part(kind="attr", name="invalid"), invalid={"invalid": True})
     with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", label=Part(kind="attr", name="invalid"), invalid={"invalid": True})
+    with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", wrap=Wrap(tag="x-field", control={"invalid": False}), invalid={"invalid": True})
+    with pytest.raises(ValueError, match="invalid targets also receive"):
         ControlSpec(tag="x", value=Value(prop="current-value"), invalid={"current-value": True})
 
 
@@ -661,8 +665,12 @@ def test_bound_errors_drive_each_destination_and_invalid_state():
     )
     assert _plain(resolve(TextInput(error="Bad").to_node(), mixed))["props"] == {"custom-error": "Bad", "invalid": True}
 
-    with pytest.raises(ValueError, match="also drives"):
+    with pytest.raises(ValueError, match="directly and"):
         resolve(TextInput().bind("error", "message").bind("invalid", "manual").to_node(), design)
+    with pytest.raises(ValueError, match="directly and"):
+        resolve(TextInput(error="Bad").bind("aria-invalid", "flag").to_node(), design)
+    with pytest.raises(ValueError, match="directly and"):
+        resolve(TextInput().prop("aria-invalid", "false").bind("error", "message").to_node(), design)
 
     malformed = TextInput().to_node()
     malformed["bindings"] = {"error": {"mode": "one-way"}}

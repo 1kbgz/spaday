@@ -279,10 +279,7 @@ function trackConnection(ref: WeakRef<ConnectionCheck>): void {
   if (!pendingConnections.has(ref)) resetConnectionPoll();
   pendingConnections.add(ref);
   if (!pendingConnectionObserver) {
-    pendingConnectionObserver = new MutationObserver(() => {
-      resetConnectionPoll();
-      flushPendingConnections();
-    });
+    pendingConnectionObserver = new MutationObserver(flushPendingConnections);
     pendingConnectionObserver.observe(document, {
       childList: true,
       subtree: true,

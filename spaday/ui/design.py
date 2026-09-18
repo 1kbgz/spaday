@@ -141,10 +141,13 @@ class ControlSpec(_Data):
 
     @model_validator(mode="after")
     def _invalid_targets_are_independent(self) -> ControlSpec:
-        error_parts = self.error if isinstance(self.error, tuple) else (self.error,)
         driven = {self.value.prop}
-        driven.update(where.name if where.kind == "attr" else "textContent" for where in error_parts if where.kind in {"attr", "text"})
+        for placement in (self.label, self.help, self.error):
+            parts = placement if isinstance(placement, tuple) else (placement,)
+            driven.update(where.name if where.kind == "attr" else "textContent" for where in parts if where.kind in {"attr", "text"})
         driven.update(target for target in self.props.values() if target is not None)
+        if self.wrap is not None:
+            driven.update(self.wrap.control)
         if self.options is not None and self.options.kind == "prop":
             driven.add(self.options.name)
         if self.open is not None:
@@ -287,6 +290,8 @@ class _Resolver:
         props = {name: _plain(v) for name, v in node.get("props", {}).items()}
         bindings = dict(node.get("bindings", {}))
         invalid_bindings: dict[str, dict] = {}
+        invalid_requested = False
+        authored_targets: set[str] = set()
         overrides = (props.pop(OVERRIDES_PROP, None) or {}).get(self.design.name, {})
         out: dict[str, Any] = dict(spec.fixed)
         before: list[dict] = []  # parts placed inside the control ahead of its content
@@ -326,6 +331,7 @@ class _Resolver:
                             raise ValueError(f"design {self.design.name!r} places the {part} of {kind!r} beside the control but declares no wrap")
                         (siblings_after if where.after else siblings_before).append(element)
             if part == "error" and any(where.kind != "none" for where in destinations):
+                invalid_requested = bool(literal) or binding is not None
                 if literal:
                     out.update(spec.invalid)
                 if binding and spec.invalid:
@@ -494,8 +500,10 @@ class _Resolver:
                 if target is None:
                     continue
                 out[target] = spec.values.get(name, {}).get(v, v) if isinstance(v, str) else v
+                authored_targets.add(target)
             elif name not in generic_props and name != "multiple":
                 out[name] = v  # id, class, style, data-*, aria-* and other generic element props
+                authored_targets.add(name)
         for name in list(bindings):
             if name in spec.props:
                 target = spec.props[name]
@@ -504,9 +512,13 @@ class _Resolver:
                     bindings[target] = binding
             elif name in generic_props or name == "multiple":
                 bindings.pop(name)
+        authored_targets.update(overrides)
+        if invalid_requested:
+            conflicts = spec.invalid.keys() & (bindings.keys() | authored_targets)
+            if conflicts:
+                names = ", ".join(repr(name) for name in sorted(conflicts))
+                raise ValueError(f"{_describe(node)} drives {names} directly and from design {self.design.name!r}'s error state")
         for target, binding in invalid_bindings.items():
-            if target in bindings:
-                raise ValueError(f"{_describe(node)} binds {target!r}, which design {self.design.name!r} also drives from its error state")
             bindings[target] = binding
         out.update(overrides)
 

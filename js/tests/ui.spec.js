@@ -467,10 +467,16 @@ test.describe("binding features for designs", () => {
   }) => {
     const r = await page.evaluate(async () => {
       const disconnect = MutationObserver.prototype.disconnect;
+      const clearTimer = window.clearTimeout;
       let disconnects = 0;
+      let clearedTimers = 0;
       MutationObserver.prototype.disconnect = function () {
         disconnects += 1;
         return disconnect.call(this);
+      };
+      window.clearTimeout = function (id) {
+        clearedTimers += 1;
+        return clearTimer.call(window, id);
       };
       class RemovedOverlay extends HTMLElement {
         open = false;
@@ -510,14 +516,103 @@ test.describe("binding features for designs", () => {
           { ops: [{ RemoveBinding: { path: [], name: "open" } }] },
           store,
         );
+        const teardown = { disconnects, clearedTimers };
         document.body.append(container);
         await new Promise(requestAnimationFrame);
-        return { open: el.open, opened: el.opened, disconnects };
+        return { open: el.open, opened: el.opened, teardown };
       } finally {
         MutationObserver.prototype.disconnect = disconnect;
+        window.clearTimeout = clearTimer;
       }
     });
-    expect(r).toEqual({ open: false, opened: 0, disconnects: 1 });
+    expect(r).toEqual({
+      open: false,
+      opened: 0,
+      teardown: { disconnects: 1, clearedTimers: 1 },
+    });
+  });
+
+  test("connection polling backs off and resets for new pending work", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(async () => {
+      const setTimer = window.setTimeout;
+      const clearTimer = window.clearTimeout;
+      const callbacks = new Map();
+      const delays = [];
+      const cleared = [];
+      let nextTimer = 1;
+      window.setTimeout = (callback, delay = 0) => {
+        const id = nextTimer++;
+        callbacks.set(id, callback);
+        delays.push(delay);
+        return id;
+      };
+      window.clearTimeout = (id) => {
+        cleared.push(id);
+        callbacks.delete(id);
+      };
+      class BackoffOverlay extends HTMLElement {
+        open = false;
+
+        show() {
+          this.open = true;
+        }
+
+        hide() {
+          this.open = false;
+        }
+      }
+      if (!customElements.get("backoff-overlay"))
+        customElements.define("backoff-overlay", BackoffOverlay);
+      const mountPending = () => {
+        const container = document.createElement("div");
+        const store = new window.__spaday.Store({ open: true });
+        const el = window.__spaday.mount(
+          container,
+          {
+            tag: "backoff-overlay",
+            bindings: {
+              open: {
+                field: "open",
+                mode: "one-way",
+                methods: ["show", "hide"],
+              },
+            },
+          },
+          store,
+        );
+        return { el, store };
+      };
+      const runTimer = () => {
+        const entry = callbacks.entries().next().value;
+        callbacks.delete(entry[0]);
+        entry[1]();
+      };
+      const first = mountPending();
+      try {
+        await new Promise(requestAnimationFrame);
+        runTimer();
+        runTimer();
+        const second = mountPending();
+        await new Promise(requestAnimationFrame);
+        window.__spaday.applyPatch(
+          first.el,
+          { ops: [{ RemoveBinding: { path: [], name: "open" } }] },
+          first.store,
+        );
+        window.__spaday.applyPatch(
+          second.el,
+          { ops: [{ RemoveBinding: { path: [], name: "open" } }] },
+          second.store,
+        );
+        return { delays, cleared: cleared.length };
+      } finally {
+        window.setTimeout = setTimer;
+        window.clearTimeout = clearTimer;
+      }
+    });
+    expect(r).toEqual({ delays: [50, 100, 200, 50], cleared: 2 });
   });
 
   test("a binding can wait for connection and assigned children", async ({
