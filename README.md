@@ -95,6 +95,7 @@ Select an installed integration by its entry-point name, for example `serve(page
   [generate typed classes from a manifest](docs/src/cem.md).
 - **[API reference](docs/src/api.md)** — the Python surface.
 - **[How spaday works](docs/src/concepts.md)** — the architecture and the reasoning behind it.
+- **[How spaday compares to alternatives](docs/src/comparison.md)** — Streamlit, Dash, Panel, a JS frontend, and when to pick which.
 
 > [!NOTE]
 > This library was generated using [copier](https://copier.readthedocs.io/en/stable/) from the [Base Python Project Template repository](https://github.com/python-project-templates/base)
