@@ -1,17 +1,29 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const __wbg_clientstate_free: (a: number, b: number) => void;
 export const __wbg_store_free: (a: number, b: number) => void;
 export const apply: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const cbor_to_json: (a: number, b: number) => [number, number, number, number];
+export const clientstate_abandon: (a: number, b: number, c: number) => number;
+export const clientstate_commit: (a: number, b: number, c: number) => [number, number];
+export const clientstate_disconnect: (a: number) => [number, number, number, number];
+export const clientstate_new: () => number;
+export const clientstate_pending: (a: number) => [number, number, number, number];
+export const clientstate_prepare: (a: number, b: number, c: number) => [number, number, number, number];
+export const clientstate_proposal: (a: number, b: bigint, c: number, d: number, e: number, f: number) => [number, number, number, number];
+export const clientstate_revisions: (a: number) => [number, number, number, number];
 export const decode: (a: number, b: number) => [number, number, number, number];
 export const decode_as: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const decode_message: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const diff: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const encode: (a: number, b: number) => [number, number, number, number];
 export const encode_as: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const encode_message: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const json_to_cbor: (a: number, b: number) => [number, number, number, number];
 export const json_to_msgpack: (a: number, b: number) => [number, number, number, number];
 export const msgpack_to_json: (a: number, b: number) => [number, number, number, number];
+export const normalize_message: (a: number, b: number) => [number, number, number, number];
 export const store_apply: (a: number, b: bigint, c: number, d: number) => [number, number, number];
 export const store_host: (a: number, b: number, c: number, d: number, e: number) => [bigint, number, number];
 export const store_mutate: (a: number, b: bigint, c: number, d: number) => [number, number, number, number];

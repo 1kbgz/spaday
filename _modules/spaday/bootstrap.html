@@ -250,8 +250,8 @@
 
 <span class="sd">- ``packages=["trees", …]`` — pull a component package's styles and registration bundle into ``&lt;head&gt;``, selected by descriptor,</span>
 <span class="sd">  ``module:attribute`` Python path, or installed entry-point name.</span>
-<span class="sd">- ``wire="transports"`` — generate the transports ``Client`` + ``connectStore`` + websocket bootstrap</span>
-<span class="sd">  (what every transports example's HTML repeats); without it the page just mounts a static tree.</span>
+<span class="sd">- ``wire="transports"`` — generate the default transports ``Client`` + ``connectStore`` + WebSocket</span>
+<span class="sd">  bootstrap; pass a :class:`Wire` (or a list) for connection options.</span>
 <span class="sd">- ``tree="frame"`` — fetch the tree as a transports Snapshot frame at ``…/tree`` (UI tree + model data on</span>
 <span class="sd">  one wire), decoded in the browser, instead of JSON at ``…/tree.json``.</span>
 <span class="sd">- ``tree="inline"`` — embed a static tree in the bootstrap markup, with no tree route or request.</span>
@@ -308,6 +308,15 @@
 <span class="sd">    - ``flatten`` — recurse nested sub-models to dotted ``parent.child`` fields (the default, what a form</span>
 <span class="sd">      binds); set ``False`` for an opaque map/dict field (a chart's time-keyed ``data``, a Perspective</span>
 <span class="sd">      ``layout``) so it's mirrored whole.</span>
+<span class="sd">    - ``codec`` — the transports connection codec (``"json"``, ``"msgpack"``, ``"cbor"``, or a</span>
+<span class="sd">      registered custom codec).</span>
+<span class="sd">    - ``batch`` — ask the server to batch outbound messages for this connection.</span>
+<span class="sd">    - ``reconnect`` — keep reconnecting with transports' managed ``Client.run``. This is opt-in for</span>
+<span class="sd">      each wire; ``retry`` is the delay in milliseconds and ``authority`` selects server- or</span>
+<span class="sd">      client-authoritative recovery.</span>
+<span class="sd">    - ``connected`` — publish a connection-ready boolean to this exact store field. Namespaced wires</span>
+<span class="sd">      default to ``&lt;namespace&gt;.connected``; bare wires publish no status unless this is set. The field</span>
+<span class="sd">      becomes true when the managed WebSocket opens, including a reconnect that replays no model frame.</span>
 
 <span class="sd">    ``Wire("/ws", namespace="global", flatten=False)`` reads better than ``{"url": "/ws", …}`` and gives</span>
 <span class="sd">    editor help; it serializes to exactly that dict.</span>
@@ -316,7 +325,25 @@
     <span class="n">url</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">session</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">flatten</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></div>
+    <span class="n">flatten</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">codec</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"json"</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">reconnect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">retry</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span>
+    <span class="n">authority</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"server"</span><span class="p">,</span> <span class="s2">"client"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"server"</span>
+    <span class="n">connected</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire url must not be empty"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">codec</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire codec must not be empty"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retry</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retry</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">retry</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire retry must be a positive integer number of milliseconds"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">authority</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"server"</span><span class="p">,</span> <span class="s2">"client"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire authority must be 'server' or 'client'"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire connected field must not be empty"</span><span class="p">)</span></div>
 
 
 
@@ -498,15 +525,10 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_wire_block</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The generated JS for ONE wire spec in a multi-model page: a transports ``Client``, a namespaced</span>
-<span class="sd">    ``connectStore`` into the shared ``store``, the ``WebSocket`` feeding it, and a ``&lt;namespace&gt;.connected``</span>
-<span class="sd">    flag set on open/close (so a status element can ``compute`` from it). The shared ``const store`` must</span>
-<span class="sd">    already be declared. A spec is ``{"url": …, "namespace"?: …, "session"?: bool}``: ``namespace`` keeps</span>
-<span class="sd">    several models from colliding in the one store (omit it to mirror bare fields, e.g. a form); ``session``</span>
-<span class="sd">    appends ``?session=&lt;uuid&gt;`` so the model is a fresh per-load tenant (a transports ``Hub``)."""</span>
+<span class="w">    </span><span class="sd">"""Generate one managed transports client and connect it to the shared store."""</span>
     <span class="n">url</span> <span class="o">=</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"url"</span><span class="p">]</span>
     <span class="n">ns</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"namespace"</span><span class="p">)</span>
-    <span class="n">client</span><span class="p">,</span> <span class="n">sock</span><span class="p">,</span> <span class="n">link</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"client</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"ws</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"link</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"client</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">"</span>
     <span class="c1"># connectStore's optional (namespace, flatten) args — positional, so emit only what's needed. flatten</span>
     <span class="c1"># defaults true (recurse sub-models, e.g. a form's nested schedule); a model with an opaque map/dict</span>
     <span class="c1"># field (a chart's `data`, a Perspective layout) sets "flatten": False so it's mirrored whole.</span>
@@ -514,27 +536,36 @@
         <span class="n">extra</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">", </span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">ns</span> <span class="k">else</span> <span class="s2">""</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">extra</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">", </span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">ns</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'undefined'</span><span class="si">}</span><span class="s2">, false"</span>
-    <span class="n">session</span> <span class="o">=</span> <span class="s2">"?session=${"</span> <span class="o">+</span> <span class="n">_SESSION_ID</span> <span class="o">+</span> <span class="s2">"}"</span> <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session"</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span>  <span class="c1"># a fresh tenant per page load</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session"</span><span class="p">):</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"session=${"</span> <span class="o">+</span> <span class="n">_SESSION_ID</span> <span class="o">+</span> <span class="s2">"}"</span><span class="p">)</span>  <span class="c1"># a fresh tenant per page load</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"batch"</span><span class="p">):</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"batch=1"</span><span class="p">)</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"&amp;"</span> <span class="k">if</span> <span class="s2">"?"</span> <span class="ow">in</span> <span class="n">url</span> <span class="k">else</span> <span class="s2">"?"</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"&amp;"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="k">if</span> <span class="n">params</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"`ws://$</span><span class="se">{{</span><span class="s2">location.host</span><span class="se">}}</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">url</span><span class="si">}{</span><span class="n">query</span><span class="si">}</span><span class="s2">`"</span>
+    <span class="n">codec</span> <span class="o">=</span> <span class="n">_script_json</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"codec"</span><span class="p">,</span> <span class="s2">"json"</span><span class="p">))</span>
     <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="sa">f</span><span class="s2">"const </span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2"> = new Client();"</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">"const </span><span class="si">{</span><span class="n">sock</span><span class="si">}</span><span class="s2"> = new WebSocket(`ws://$</span><span class="se">{{</span><span class="s2">location.host</span><span class="se">}}</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">url</span><span class="si">}{</span><span class="n">session</span><span class="si">}</span><span class="s2">`);"</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">sock</span><span class="si">}</span><span class="s1">.binaryType = "arraybuffer";'</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s2">"const </span><span class="si">{</span><span class="n">link</span><span class="si">}</span><span class="s2"> = connectStore(store, </span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">, (frame) =&gt; </span><span class="si">{</span><span class="n">sock</span><span class="si">}</span><span class="s2">.send(frame), </span><span class="se">{{</span><span class="s2"> fromValue, toValue </span><span class="se">}}</span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s2">);"</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">sock</span><span class="si">}</span><span class="s1">.addEventListener("message", (event) =&gt;'</span><span class="p">,</span>
-        <span class="sa">f</span><span class="s1">'  </span><span class="si">{</span><span class="n">link</span><span class="si">}</span><span class="s1">.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),'</span><span class="p">,</span>
-        <span class="s2">");"</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"const </span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2"> = new Client(</span><span class="si">{</span><span class="n">codec</span><span class="si">}</span><span class="s2">);"</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"connectStore(store, </span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">, undefined, </span><span class="se">{{</span><span class="s2"> fromValue, toValue </span><span class="se">}}</span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s2">);"</span><span class="p">,</span>
     <span class="p">]</span>
-    <span class="k">if</span> <span class="n">ns</span><span class="p">:</span>  <span class="c1"># a status element can compute from `&lt;ns&gt;.connected`; a bare (form) wire has no status</span>
+    <span class="n">connected</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"connected"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ns</span><span class="si">}</span><span class="s2">.connected"</span> <span class="k">if</span> <span class="n">ns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">connected</span><span class="p">:</span>
         <span class="n">lines</span> <span class="o">+=</span> <span class="p">[</span>
-            <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">sock</span><span class="si">}</span><span class="s1">.addEventListener("open", () =&gt; store.set(</span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">ns</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">".connected"</span><span class="p">)</span><span class="si">}</span><span class="s1">, true));'</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="n">sock</span><span class="si">}</span><span class="s1">.addEventListener("close", () =&gt; store.set(</span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">ns</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">".connected"</span><span class="p">)</span><span class="si">}</span><span class="s1">, false));'</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"store.set(</span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">connected</span><span class="p">)</span><span class="si">}</span><span class="s2">, false);"</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">.onConnect(() =&gt; store.set(</span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">connected</span><span class="p">)</span><span class="si">}</span><span class="s2">, true));"</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">.onDisconnect(() =&gt; store.set(</span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">connected</span><span class="p">)</span><span class="si">}</span><span class="s2">, false));"</span><span class="p">,</span>
         <span class="p">]</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reconnect"</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">_script_json</span><span class="p">({</span><span class="s2">"authority"</span><span class="p">:</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"authority"</span><span class="p">,</span> <span class="s2">"server"</span><span class="p">),</span> <span class="s2">"retry"</span><span class="p">:</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"retry"</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)})</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">.run(</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">options</span><span class="si">}</span><span class="s2">);"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">.connect(</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">);"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">lines</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_script</span><span class="p">(</span>
     <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">scripts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">tree</span><span class="p">:</span> <span class="n">TreeMode</span><span class="p">,</span>
@@ -548,21 +579,26 @@
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired</span>
-<span class="sd">    to transports. ``wire="transports"`` mirrors ONE model into the store (Store + Client + connectStore);</span>
-<span class="sd">    a ``wire=[{…}, …]`` LIST mirrors SEVERAL models into one store, each under its own namespace (see</span>
-<span class="sd">    :func:`_wire_block`), with one ``spaday:patch`` sink routing :class:`~spaday.actions.SendPatch` intents</span>
-<span class="sd">    into the store. ``store`` seeds local signal state even without a wire; ``persist`` (field -&gt;</span>
+<span class="sd">    to transports. ``wire="transports"`` mirrors one model with default settings; a :class:`Wire` or list</span>
+<span class="sd">    configures one or more managed clients (see :func:`_wire_block`). All configured clients share one</span>
+<span class="sd">    ``spaday:patch`` sink that routes :class:`~spaday.actions.SendPatch` intents into the store. ``store``</span>
+<span class="sd">    seeds local signal state even without a wire; ``persist`` (field -&gt;</span>
 <span class="sd">    localStorage key) overrides a field's seed with its persisted value at boot and stores later writes;</span>
 <span class="sd">    ``url`` (field -&gt; query parameter) does the same against the page URL, with history entries.</span>
 <span class="sd">    Mounts into ``target`` (a CSS selector) when given, else ``document.body``. (``ws``/``reconnect``/</span>
-<span class="sd">    ``tree="frame"`` apply to the single-model string form only; a wire list carries each spec's own url</span>
-<span class="sd">    and uses a snapshot per socket.)"""</span>
+<span class="sd">    ``tree="frame"`` apply to the single-model string form only; a typed wire carries its own URL and</span>
+<span class="sd">    uses a snapshot on that connection.)"""</span>
     <span class="n">js</span> <span class="o">=</span> <span class="n">_js</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
     <span class="n">assets</span> <span class="o">=</span> <span class="n">_ASSETS</span><span class="p">[</span><span class="n">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">)]</span>
     <span class="n">into</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'document.querySelector("</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s1">")'</span> <span class="k">if</span> <span class="n">target</span> <span class="k">else</span> <span class="s2">"document.body"</span>
     <span class="n">transports</span> <span class="o">=</span> <span class="n">wire</span> <span class="o">==</span> <span class="s2">"transports"</span>
-    <span class="c1"># a wire LIST may mix Wire instances and raw dicts — normalize each to the dict the codegen consumes</span>
-    <span class="n">wires</span> <span class="o">=</span> <span class="p">[</span><span class="n">asdict</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">Wire</span><span class="p">)</span> <span class="k">else</span> <span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wire</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="c1"># Raw dicts follow the same validation as Wire rather than silently ignoring bad options.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="p">(</span><span class="n">Wire</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)):</span>
+        <span class="n">wires</span> <span class="o">=</span> <span class="p">[</span><span class="n">asdict</span><span class="p">(</span><span class="n">wire</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="n">Wire</span><span class="p">)</span> <span class="k">else</span> <span class="n">Wire</span><span class="p">(</span><span class="o">**</span><span class="n">wire</span><span class="p">))]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">wires</span> <span class="o">=</span> <span class="p">[</span><span class="n">asdict</span><span class="p">(</span><span class="n">w</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">Wire</span><span class="p">)</span> <span class="k">else</span> <span class="n">Wire</span><span class="p">(</span><span class="o">**</span><span class="n">w</span><span class="p">))</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wire</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">wires</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">wired</span> <span class="o">=</span> <span class="n">transports</span> <span class="ow">or</span> <span class="nb">bool</span><span class="p">(</span><span class="n">wires</span><span class="p">)</span>  <span class="c1"># any transports wiring — a single string model or a list of specs</span>
     <span class="n">frame</span> <span class="o">=</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"frame"</span>
     <span class="n">inline</span> <span class="o">=</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"inline"</span>
@@ -615,17 +651,8 @@
             <span class="p">[</span>
                 <span class="o">*</span><span class="n">store_lines</span><span class="p">,</span>
                 <span class="s2">"const client = new Client();"</span><span class="p">,</span>
-                <span class="s2">"let socket = null;"</span><span class="p">,</span>
-                <span class="s2">"const link = connectStore(store, client, (frame) =&gt; socket &amp;&amp; socket.send(frame), { fromValue, toValue });"</span><span class="p">,</span>
-                <span class="s2">"function connect() {"</span><span class="p">,</span>
-                <span class="sa">f</span><span class="s2">"  socket = new WebSocket(`ws://$</span><span class="se">{{</span><span class="s2">location.host</span><span class="se">}}</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">ws</span><span class="si">}</span><span class="s2">`);"</span><span class="p">,</span>
-                <span class="s1">'  socket.binaryType = "arraybuffer";'</span><span class="p">,</span>
-                <span class="s1">'  socket.addEventListener("message", (event) =&gt;'</span><span class="p">,</span>
-                <span class="s1">'    link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),'</span><span class="p">,</span>
-                <span class="s2">"  );"</span><span class="p">,</span>
-                <span class="s2">"  socket.addEventListener('close', () =&gt; setTimeout(connect, 1000));"</span><span class="p">,</span>
-                <span class="s2">"}"</span><span class="p">,</span>
-                <span class="s2">"connect();"</span><span class="p">,</span>
+                <span class="s2">"connectStore(store, client, undefined, { fromValue, toValue });"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"client.run(`ws://$</span><span class="se">{{</span><span class="s2">location.host</span><span class="se">}}</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">ws</span><span class="si">}</span><span class="s2">`, </span><span class="se">{{</span><span class="s2"> retry: 1000 </span><span class="se">}}</span><span class="s2">);"</span><span class="p">,</span>
                 <span class="sa">f</span><span class="s2">"trackRoot(mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store), node, </span><span class="si">{</span><span class="n">refresh_url</span><span class="si">}</span><span class="s2">, store);"</span><span class="p">,</span>
             <span class="p">]</span>
         <span class="p">)</span>
@@ -634,12 +661,8 @@
             <span class="p">[</span>
                 <span class="o">*</span><span class="n">store_lines</span><span class="p">,</span>
                 <span class="s2">"const client = new Client();"</span><span class="p">,</span>
-                <span class="sa">f</span><span class="s2">"const ws = new WebSocket(`ws://$</span><span class="se">{{</span><span class="s2">location.host</span><span class="se">}}</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">ws</span><span class="si">}</span><span class="s2">`);"</span><span class="p">,</span>
-                <span class="s1">'ws.binaryType = "arraybuffer";'</span><span class="p">,</span>
-                <span class="s2">"const link = connectStore(store, client, (frame) =&gt; ws.send(frame), { fromValue, toValue });"</span><span class="p">,</span>
-                <span class="s1">'ws.addEventListener("message", (event) =&gt;'</span><span class="p">,</span>
-                <span class="s1">'  link.receive(typeof event.data === "string" ? event.data : new Uint8Array(event.data)),'</span><span class="p">,</span>
-                <span class="s2">");"</span><span class="p">,</span>
+                <span class="s2">"connectStore(store, client, undefined, { fromValue, toValue });"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"client.connect(`ws://$</span><span class="se">{{</span><span class="s2">location.host</span><span class="se">}}</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">ws</span><span class="si">}</span><span class="s2">`);"</span><span class="p">,</span>
                 <span class="sa">f</span><span class="s2">"trackRoot(mount(</span><span class="si">{</span><span class="n">into</span><span class="si">}</span><span class="s2">, node, store), node, </span><span class="si">{</span><span class="n">refresh_url</span><span class="si">}</span><span class="s2">, store);"</span><span class="p">,</span>
             <span class="p">]</span>
         <span class="p">)</span>
@@ -668,7 +691,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
     <span class="n">packages</span><span class="p">:</span> <span class="n">PackageRef</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PackageRef</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
-    <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">wire</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="n">Wire</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ws</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/ws"</span><span class="p">,</span>
     <span class="n">tree</span><span class="p">:</span> <span class="n">TreeMode</span> <span class="o">=</span> <span class="s2">"json"</span><span class="p">,</span>
     <span class="n">page</span><span class="p">:</span> <span class="n">Page</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -700,9 +723,9 @@
 <span class="sd">    bound field is a router. Strings ride the URL verbatim; a field seeded with another type JSON-encodes</span>
 <span class="sd">    and reads back as JSON; ``None``/``""`` clears the parameter.</span>
 
-<span class="sd">    ``wire="transports"`` mirrors one model into the store over a websocket; ``wire=[{"url": …,</span>
-<span class="sd">    "namespace": …, "session": …}, …]`` mirrors **several** models into one store, each namespaced so their</span>
-<span class="sd">    fields don't collide (a chart on ``global.*`` next to one on ``session.*``) — the multi-model page.</span>
+<span class="sd">    ``wire="transports"`` mirrors one model with the default connection settings. A :class:`Wire`</span>
+<span class="sd">    configures one connection; a list mirrors **several** models into one store, each namespaced so their</span>
+<span class="sd">    fields don't collide (a chart on ``global.*`` next to one on ``session.*``).</span>
 
 <span class="sd">    By default returns a whole HTML document. With ``fragment=True`` it returns just the package tags + the</span>
 <span class="sd">    module ``&lt;script&gt;`` — a snippet to **drop into a host page's template** (Jinja/Django/…), so spaday is</span>
@@ -731,6 +754,11 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"tree_url cannot be used with tree='inline'"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">tree_url</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"tree_url must not be empty"</span><span class="p">)</span>
+    <span class="n">typed_wires</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wire</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">typed_wires</span> <span class="ow">and</span> <span class="n">reconnect</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"reconnect= applies only to wire='transports'; set reconnect on each Wire instead"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">typed_wires</span> <span class="ow">and</span> <span class="n">ws</span> <span class="o">!=</span> <span class="s2">"/ws"</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"ws= applies only to wire='transports'; set the URL on each Wire instead"</span><span class="p">)</span>
     <span class="n">resolved_tree_url</span> <span class="o">=</span> <span class="n">tree_url</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">/tree</span><span class="si">{</span><span class="s1">''</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">tree</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'frame'</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'.json'</span><span class="si">}</span><span class="s2">"</span>
     <span class="n">inline_tree</span> <span class="o">=</span> <span class="n">tree_node</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">select_design</span><span class="p">(</span><span class="n">design</span><span class="p">,</span> <span class="n">component_packages</span><span class="p">))</span> <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"inline"</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="n">style_tags</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">'&lt;link rel="stylesheet"</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> href="</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">" /&gt;'</span> <span class="k">for</span> <span class="n">url</span> <span class="ow">in</span> <span class="n">stylesheets</span><span class="p">]</span>

@@ -255,9 +255,10 @@ app = serve(page, store={"selected": ""}, url={"selected": "model"})   # /?model
 
 ## Connect a live model
 
-To keep the UI in sync with a server-side model, add a wire: `wire="transports"` for one model, or a list
-of [`Wire`](transports.md) specs for several. The generated page opens the websocket(s) and binds them to
-the store; you supply the websocket route and run `autosync`. See [Sync over transports](transports.md).
+To keep the UI in sync with a server-side model, add a wire: `wire="transports"` for the default single
+connection, a typed [`Wire`](transports.md) for connection options, or a list of `Wire` specs for several
+models. The generated page opens the WebSocket connections and binds them to the store; you supply the
+routes and run `autosync`. See [Sync over transports](transports.md).
 
 ```python
 import transports

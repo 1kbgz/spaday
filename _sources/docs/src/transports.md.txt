@@ -56,8 +56,33 @@ if __name__ == "__main__":
 
 There are **no event handlers** in the tree — the two-way bindings carry every control→model edit.
 Inbound model patches flow `model → store → bound props`; a two-way control's change becomes a
-server-authoritative `client.edit`, which takes effect when the server echoes it back, so **two browser
-tabs stay in sync**. A complete, runnable version is `spaday/examples/reactive.py`.
+server-authoritative proposal. The control keeps its latest local value while proposals are pending, so
+an older server echo cannot replace newer input. An accepted proposal applies the server's canonical
+value, and a rejection restores the last authoritative value. Other server patches continue to update
+the store while an edit is pending. Generated `Wire` connections use the managed transports client for
+sending and disconnect abandonment. The single-model `reconnect=True` form also retries the connection.
+A complete, runnable version is `spaday/examples/reactive.py`.
+
+Generic controls with a two-way value binding also bind their error presentation to
+`$errors.<field>`. A rejected proposal writes the server's validation message there; a new edit or an
+accepted proposal clears it. The runtime also dispatches `spaday:reject` on `document`. Its detail has
+the model namespace, bound store field, model id, revision, proposal id, and error string.
+
+`connectStore` can also send through a callback for a socket owned by application code. Return `false`
+when that socket is not open; `WebSocket.send()` can silently discard data while closing:
+
+```ts
+const link = connectStore(store, client, (frame) => {
+  if (ws.readyState !== WebSocket.OPEN) return false;
+  ws.send(frame);
+  return true;
+}, codec);
+ws.addEventListener("close", () => link.disconnect());
+```
+
+`disconnect()` abandons proposals the server may not have received and restores later local edits from
+the authoritative mirror until another frame arrives. Generated `Wire` connections do this through the
+managed transports client.
 
 ## Go multi-tenant
 
@@ -67,8 +92,8 @@ the bindings don't know whether the model is private or shared.
 
 ## Several models on one page
 
-Pass a **list** of `Wire` specs to mirror several models into one store at once, each under its own
-**namespace** so their fields don't collide (two `Chart` models would both have `data`/`type`):
+Pass one `Wire`, or a list of them, to configure transports connections. Several models share one
+store, so give each one a **namespace** when their fields could collide:
 
 ```python
 from spaday import Wire, field
@@ -94,6 +119,29 @@ The tree then binds against namespaced fields — `bind("value", "global.type")`
 - **`flatten`** — recurse nested sub-models into dotted `parent.child` fields (the default, what a form
   binds); set `False` for an **opaque map/dict** field (a chart's time-keyed `data`, a Perspective
   layout) so it's mirrored whole instead of one store field per key.
+- **`codec`** — select JSON, MessagePack, CBOR, or a registered transports codec.
+- **`batch`** — request batched server messages for this connection.
+- **`reconnect`** — use the managed reconnect loop. It is off by default for each `Wire`.
+- **`retry`** and **`authority`** — set the reconnect delay in milliseconds and choose `"server"` or
+  `"client"` state as authoritative after reconnect.
+- **`connected`** — publish a connection-ready boolean to an exact store field. A namespaced wire
+  already publishes `<namespace>.connected`; set this option for a bare wire or to choose another field.
+  It becomes true when the WebSocket opens, including a reconnect where the client is already current
+  and the server sends no model frame.
+
+For example, this single connection uses MessagePack, requests server batching, retries after 250 ms,
+and exposes its state as `editor_connected`:
+
+```python
+Wire(
+    "/ws/editor",
+    codec="msgpack",
+    batch=True,
+    reconnect=True,
+    retry=250,
+    connected="editor_connected",
+)
+```
 
 A raw `{"url": …, "namespace": …}` dict works anywhere a `Wire` does. The omnibus
 (`python -m spaday.examples`) wires four models this way.

@@ -500,9 +500,10 @@ the parameter.</p></li>
 </section>
 <section id="connect-a-live-model">
 <h2>Connect a live model<a class="headerlink" href="#connect-a-live-model" title="Link to this heading">¶</a></h2>
-<p>To keep the UI in sync with a server-side model, add a wire: <code class="docutils literal notranslate"><span class="pre">wire=&quot;transports&quot;</span></code> for one model, or a list
-of <a class="reference internal" href="transports.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">Wire</span></code></span></a> specs for several. The generated page opens the websocket(s) and binds them to
-the store; you supply the websocket route and run <code class="docutils literal notranslate"><span class="pre">autosync</span></code>. See <a class="reference internal" href="transports.html"><span class="std std-doc">Sync over transports</span></a>.</p>
+<p>To keep the UI in sync with a server-side model, add a wire: <code class="docutils literal notranslate"><span class="pre">wire=&quot;transports&quot;</span></code> for the default single
+connection, a typed <a class="reference internal" href="transports.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">Wire</span></code></span></a> for connection options, or a list of <code class="docutils literal notranslate"><span class="pre">Wire</span></code> specs for several
+models. The generated page opens the WebSocket connections and binds them to the store; you supply the
+routes and run <code class="docutils literal notranslate"><span class="pre">autosync</span></code>. See <a class="reference internal" href="transports.html"><span class="std std-doc">Sync over transports</span></a>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">transports</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocketRoute</span>
 

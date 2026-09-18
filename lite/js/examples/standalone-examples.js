@@ -46,7 +46,7 @@ export const EXAMPLES = {
     title: "Reactive transports binding",
     module: "spaday.examples.reactive",
     treeAttribute: "page",
-    requirements: ["transports==0.8.0", "starlette", "uvicorn"],
+    requirements: ["transports==0.8.6", "starlette", "uvicorn"],
     assets: [],
   },
 };

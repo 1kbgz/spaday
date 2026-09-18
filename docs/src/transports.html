@@ -301,8 +301,29 @@ serve it with <code class="docutils literal notranslate"><span class="pre">wire=
 </div>
 <p>There are <strong>no event handlers</strong> in the tree — the two-way bindings carry every control→model edit.
 Inbound model patches flow <code class="docutils literal notranslate"><span class="pre">model</span> <span class="pre">→</span> <span class="pre">store</span> <span class="pre">→</span> <span class="pre">bound</span> <span class="pre">props</span></code>; a two-way control’s change becomes a
-server-authoritative <code class="docutils literal notranslate"><span class="pre">client.edit</span></code>, which takes effect when the server echoes it back, so <strong>two browser
-tabs stay in sync</strong>. A complete, runnable version is <code class="docutils literal notranslate"><span class="pre">spaday/examples/reactive.py</span></code>.</p>
+server-authoritative proposal. The control keeps its latest local value while proposals are pending, so
+an older server echo cannot replace newer input. An accepted proposal applies the server’s canonical
+value, and a rejection restores the last authoritative value. Other server patches continue to update
+the store while an edit is pending. Generated <code class="docutils literal notranslate"><span class="pre">Wire</span></code> connections use the managed transports client for
+sending and disconnect abandonment. The single-model <code class="docutils literal notranslate"><span class="pre">reconnect=True</span></code> form also retries the connection.
+A complete, runnable version is <code class="docutils literal notranslate"><span class="pre">spaday/examples/reactive.py</span></code>.</p>
+<p>Generic controls with a two-way value binding also bind their error presentation to
+<code class="docutils literal notranslate"><span class="pre">$errors.&lt;field&gt;</span></code>. A rejected proposal writes the server’s validation message there; a new edit or an
+accepted proposal clears it. The runtime also dispatches <code class="docutils literal notranslate"><span class="pre">spaday:reject</span></code> on <code class="docutils literal notranslate"><span class="pre">document</span></code>. Its detail has
+the model namespace, bound store field, model id, revision, proposal id, and error string.</p>
+<p><code class="docutils literal notranslate"><span class="pre">connectStore</span></code> can also send through a callback for a socket owned by application code. Return <code class="docutils literal notranslate"><span class="pre">false</span></code>
+when that socket is not open; <code class="docutils literal notranslate"><span class="pre">WebSocket.send()</span></code> can silently discard data while closing:</p>
+<div class="highlight-ts notranslate"><div class="highlight"><pre><span></span><span class="kd">const</span><span class="w"> </span><span class="nx">link</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">connectStore</span><span class="p">(</span><span class="nx">store</span><span class="p">,</span><span class="w"> </span><span class="nx">client</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">frame</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">ws</span><span class="p">.</span><span class="nx">readyState</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="nx">WebSocket</span><span class="p">.</span><span class="nx">OPEN</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">ws</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="nx">frame</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="p">},</span><span class="w"> </span><span class="nx">codec</span><span class="p">);</span>
+<span class="nx">ws</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s2">"close"</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">link</span><span class="p">.</span><span class="nx">disconnect</span><span class="p">());</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">disconnect()</span></code> abandons proposals the server may not have received and restores later local edits from
+the authoritative mirror until another frame arrives. Generated <code class="docutils literal notranslate"><span class="pre">Wire</span></code> connections do this through the
+managed transports client.</p>
 </section>
 <section id="go-multi-tenant">
 <h2>Go multi-tenant<a class="headerlink" href="#go-multi-tenant" title="Link to this heading">¶</a></h2>
@@ -312,8 +333,8 @@ the bindings don’t know whether the model is private or shared.</p>
 </section>
 <section id="several-models-on-one-page">
 <h2>Several models on one page<a class="headerlink" href="#several-models-on-one-page" title="Link to this heading">¶</a></h2>
-<p>Pass a <strong>list</strong> of <code class="docutils literal notranslate"><span class="pre">Wire</span></code> specs to mirror several models into one store at once, each under its own
-<strong>namespace</strong> so their fields don’t collide (two <code class="docutils literal notranslate"><span class="pre">Chart</span></code> models would both have <code class="docutils literal notranslate"><span class="pre">data</span></code>/<code class="docutils literal notranslate"><span class="pre">type</span></code>):</p>
+<p>Pass one <code class="docutils literal notranslate"><span class="pre">Wire</span></code>, or a list of them, to configure transports connections. Several models share one
+store, so give each one a <strong>namespace</strong> when their fields could collide:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">serve</span>
 
@@ -337,7 +358,28 @@ the bindings don’t know whether the model is private or shared.</p>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">flatten</span></code></strong> — recurse nested sub-models into dotted <code class="docutils literal notranslate"><span class="pre">parent.child</span></code> fields (the default, what a form
 binds); set <code class="docutils literal notranslate"><span class="pre">False</span></code> for an <strong>opaque map/dict</strong> field (a chart’s time-keyed <code class="docutils literal notranslate"><span class="pre">data</span></code>, a Perspective
 layout) so it’s mirrored whole instead of one store field per key.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">codec</span></code></strong> — select JSON, MessagePack, CBOR, or a registered transports codec.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">batch</span></code></strong> — request batched server messages for this connection.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">reconnect</span></code></strong> — use the managed reconnect loop. It is off by default for each <code class="docutils literal notranslate"><span class="pre">Wire</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">retry</span></code></strong> and <strong><code class="docutils literal notranslate"><span class="pre">authority</span></code></strong> — set the reconnect delay in milliseconds and choose <code class="docutils literal notranslate"><span class="pre">&quot;server&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;client&quot;</span></code> state as authoritative after reconnect.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">connected</span></code></strong> — publish a connection-ready boolean to an exact store field. A namespaced wire
+already publishes <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.connected</span></code>; set this option for a bare wire or to choose another field.
+It becomes true when the WebSocket opens, including a reconnect where the client is already current
+and the server sends no model frame.</p></li>
 </ul>
+<p>For example, this single connection uses MessagePack, requests server batching, retries after 250 ms,
+and exposes its state as <code class="docutils literal notranslate"><span class="pre">editor_connected</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Wire</span><span class="p">(</span>
+    <span class="s2">"/ws/editor"</span><span class="p">,</span>
+    <span class="n">codec</span><span class="o">=</span><span class="s2">"msgpack"</span><span class="p">,</span>
+    <span class="n">batch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">reconnect</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">retry</span><span class="o">=</span><span class="mi">250</span><span class="p">,</span>
+    <span class="n">connected</span><span class="o">=</span><span class="s2">"editor_connected"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
 <p>A raw <code class="docutils literal notranslate"><span class="pre">{&quot;url&quot;:</span> <span class="pre">…,</span> <span class="pre">&quot;namespace&quot;:</span> <span class="pre">…}</span></code> dict works anywhere a <code class="docutils literal notranslate"><span class="pre">Wire</span></code> does. The omnibus
 (<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.examples</span></code>) wires four models this way.</p>
 </section>
