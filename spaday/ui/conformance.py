@@ -24,7 +24,8 @@ def page() -> Component:
     """Every generic control, wired to the store :func:`store` seeds."""
     return Column(
         Row(
-            Button(id="save", label="Save", intent="primary").on("click", Sequence(SetField("saved", True), SetField("email_error", "Required"))),
+            Button(id="save", label="Save", intent="primary").on("click", SetField("saved", True)),
+            Button(id="validate", label="Validate").on("click", SetField("email_error", "Required")),
             Button(id="reset", label="Reset", appearance="outline").on(
                 "click", Sequence(SetField("name", ""), SetField("saved", False), SetField("email_error", ""))
             ),

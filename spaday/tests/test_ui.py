@@ -262,7 +262,7 @@ def test_options_as_a_property_and_a_wrapped_child_list():
                 tag="x-radio",
                 fixed={"role": "radio"},
                 selected="checked",
-                label=Part(kind="sibling", tag="span", after=True),
+                label=(Part(kind="attr", name="data-label"), Part(kind="sibling", tag="span", after=True)),
                 label_attr="aria-label",
                 item_wrap=Wrap(tag="label", props={"class": "choice"}, control={"class": "radio"}),
             ),
@@ -275,7 +275,10 @@ def test_options_as_a_property_and_a_wrapped_child_list():
             "props": {"class": "choice"},
             "slots": {
                 "default": [
-                    {"tag": "x-radio", "props": {"role": "radio", "value": "a", "aria-label": "a", "class": "radio"}},
+                    {
+                        "tag": "x-radio",
+                        "props": {"role": "radio", "value": "a", "aria-label": "a", "data-label": "a", "class": "radio"},
+                    },
                     {"tag": "span", "props": {"textContent": "a"}},
                 ]
             },
@@ -287,13 +290,28 @@ def test_options_as_a_property_and_a_wrapped_child_list():
                 "default": [
                     {
                         "tag": "x-radio",
-                        "props": {"role": "radio", "value": "b", "aria-label": "Bee", "checked": True, "class": "radio"},
+                        "props": {
+                            "role": "radio",
+                            "value": "b",
+                            "aria-label": "Bee",
+                            "checked": True,
+                            "data-label": "Bee",
+                            "class": "radio",
+                        },
                     },
                     {"tag": "span", "props": {"textContent": "Bee"}},
                 ]
             },
         },
     ]
+    ordered = _design(
+        select=ControlSpec(
+            tag="x-select",
+            options=Options(label=(Part(kind="child", tag="b", after=True), Part(kind="child", tag="i"))),
+        )
+    )
+    option = _plain(resolve(Select(options=["a"]).to_node(), ordered))["slots"]["default"][0]
+    assert [child["tag"] for child in option["slots"]["default"]] == ["i", "b"]
     with pytest.raises(ValueError, match="child-only rendering settings"):
         resolve(
             Select(options=["a"]).to_node(),
@@ -491,7 +509,7 @@ def test_a_design_round_trips_as_data():
     custom = _design(
         select=ControlSpec(
             tag="x-radio-group",
-            options=Options(label=Part(kind="sibling"), item_wrap=Wrap(tag="label")),
+            options=Options(label=(Part(kind="attr", name="label"), Part(kind="sibling")), item_wrap=Wrap(tag="label")),
         ),
         input=ControlSpec(
             tag="x-input",
@@ -503,6 +521,20 @@ def test_a_design_round_trips_as_data():
     assert Design.model_validate_json(custom.model_dump_json()) == custom
     with pytest.raises(ValueError):
         ControlSpec(tag="x", labl=Part())  # a typo in a spec is an error, not a silently dropped mapping
+    with pytest.raises(ValueError, match="at least 1 item"):
+        ControlSpec(tag="x", label=())
+    with pytest.raises(ValueError, match="at least 1 item"):
+        Options(label=())
+    with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", error=Part(kind="attr", name="invalid"), invalid={"invalid": True})
+    with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", label=Part(kind="attr", name="invalid"), invalid={"invalid": True})
+    with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", help=Part(kind="attr", name="invalid"), invalid={"invalid": True})
+    with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", wrap=Wrap(tag="x-field", control={"invalid": False}), invalid={"invalid": True})
+    with pytest.raises(ValueError, match="invalid targets also receive"):
+        ControlSpec(tag="x", value=Value(prop="current-value"), invalid={"current-value": True})
 
 
 def test_every_serving_path_resolves_generic_controls():
@@ -625,6 +657,57 @@ def test_bound_errors_drive_each_destination_and_invalid_state():
         "invalid": invalid(True),
     }
     assert computed["slots"]["error"][0]["bindings"] == {"textContent": computed_error}
+
+    mixed = _design(
+        input=ControlSpec(
+            tag="x-input",
+            error=(Part(kind="none"), Part(kind="attr", name="custom-error")),
+            invalid={"invalid": True},
+        )
+    )
+    assert _plain(resolve(TextInput(error="Bad").to_node(), mixed))["props"] == {"custom-error": "Bad", "invalid": True}
+
+    with pytest.raises(ValueError, match="directly and"):
+        resolve(TextInput().bind("error", "message").bind("invalid", "manual").to_node(), design)
+    with pytest.raises(ValueError, match="directly and"):
+        resolve(TextInput(error="Bad").bind("aria-invalid", "flag").to_node(), design)
+    with pytest.raises(ValueError, match="directly and"):
+        resolve(TextInput().prop("aria-invalid", "false").bind("error", "message").to_node(), design)
+    with pytest.raises(ValueError, match="directly and"):
+        resolve(TextInput(error="Bad").for_design("test", **{"aria-invalid": False}).to_node(), design)
+
+    malformed = TextInput().to_node()
+    malformed["bindings"] = {"error": {"mode": "one-way"}}
+    with pytest.raises(ValueError, match="without a field or compute expression"):
+        resolve(malformed, design)
+
+
+def test_invalid_destinations_do_not_alias_the_error_expression():
+    design = _design(
+        input=ControlSpec(
+            tag="x-input",
+            error=(
+                Part(kind="attr", name="custom-error"),
+                Part(kind="attr", name="second-error"),
+                Part(kind="slot", name="error"),
+            ),
+            invalid={"aria-invalid": "true", "invalid": True},
+        )
+    )
+    node = resolve(TextInput().compute("error", field("message")).to_node(), design)
+    error_bindings = [
+        node["bindings"]["custom-error"],
+        node["bindings"]["second-error"],
+        node["slots"]["error"][0]["bindings"]["textContent"],
+    ]
+    assert error_bindings[0] == error_bindings[1] == error_bindings[2]
+    assert len({id(binding) for binding in error_bindings}) == 3
+    source = error_bindings[0]["compute"]
+    aria_source = node["bindings"]["aria-invalid"]["compute"]["test"]
+    invalid_source = node["bindings"]["invalid"]["compute"]["test"]
+    assert aria_source == invalid_source == source
+    expressions = [*(binding["compute"] for binding in error_bindings), aria_source, invalid_source]
+    assert len({id(expression) for expression in expressions}) == 5
 
 
 def test_options_bound_only_and_a_dialog_opened_one_way():

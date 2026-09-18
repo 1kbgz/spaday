@@ -19,10 +19,11 @@ from __future__ import annotations
 
 import json
 import math
+from copy import deepcopy
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..component import DEFAULT_SLOT, _check_text_binding_target, _tag
 
@@ -54,6 +55,9 @@ class Part(_Data):
     after: bool = False
 
 
+_Parts = Annotated[tuple[Part, ...], Field(min_length=1)]
+
+
 class Wrap(_Data):
     """An element wrapped around the control, for designs that label controls from outside (a
     ``bp-field``, a ``fluent-field``, a plain ``<label>``). ``control`` props are set on the control
@@ -66,17 +70,17 @@ class Wrap(_Data):
 
 class Options(_Data):
     """How a select's ``options`` land: as child elements (``tag`` each, the value on attribute
-    ``value``, the label as text, on attribute ``label``, or through a :class:`Part`, disabled state
-    on ``disabled``, and the chosen state on ``selected``). ``fixed`` sets props on every child,
-    ``label_attr`` repeats its label in an attribute, and ``item_wrap`` can wrap each child option;
-    ``wrap`` can wrap the complete child list. Property options use the field names on ``value``,
-    ``label``, and ``disabled``."""
+    ``value``, the label as text, on attribute ``label``, or through one or more :class:`Part`
+    destinations, disabled state on ``disabled``, and the chosen state on ``selected``). ``fixed``
+    sets props on every child, ``label_attr`` repeats its label in an attribute, and ``item_wrap`` can
+    wrap each child option; ``wrap`` can wrap the complete child list. Property options use the field
+    names on ``value``, ``label``, and ``disabled``."""
 
     kind: Literal["children", "prop"] = "children"
     tag: str = "option"
     fixed: dict[str, Any] = Field(default_factory=dict)
     value: str = "value"
-    label: str | Part = "text"
+    label: str | Part | _Parts = "text"
     label_attr: str | None = None
     disabled: str | None = "disabled"
     selected: str | None = "selected"
@@ -122,9 +126,9 @@ class ControlSpec(_Data):
     props: dict[str, str | None] = Field(default_factory=dict)
     #: generic prop → {generic value: the design's value}; an unlisted value passes through
     values: dict[str, dict[str, str]] = Field(default_factory=dict)
-    label: Part | tuple[Part, ...] = Field(default_factory=lambda: Part(kind="attr", name="label"))
-    help: Part | tuple[Part, ...] = Field(default_factory=lambda: Part(kind="none"))
-    error: Part | tuple[Part, ...] = Field(default_factory=lambda: Part(kind="none"))
+    label: Part | _Parts = Field(default_factory=lambda: Part(kind="attr", name="label"))
+    help: Part | _Parts = Field(default_factory=lambda: Part(kind="none"))
+    error: Part | _Parts = Field(default_factory=lambda: Part(kind="none"))
     #: props set while ``error`` is non-empty (``invalid``, ``value-state="Negative"``); bound
     #: errors update these props reactively
     invalid: dict[str, Any] = Field(default_factory=dict)
@@ -134,6 +138,25 @@ class ControlSpec(_Data):
     open: Open | None = None
     #: generic event → the design's event name (``change`` → ``model-value-changed``)
     events: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _invalid_targets_are_independent(self) -> ControlSpec:
+        driven = {self.value.prop}
+        for placement in (self.label, self.help, self.error):
+            parts = placement if isinstance(placement, tuple) else (placement,)
+            driven.update(where.name if where.kind == "attr" else "textContent" for where in parts if where.kind in {"attr", "text"})
+        driven.update(target for target in self.props.values() if target is not None)
+        if self.wrap is not None:
+            driven.update(self.wrap.control)
+        if self.options is not None and self.options.kind == "prop":
+            driven.add(self.options.name)
+        if self.open is not None:
+            driven.add(self.open.prop)
+        overlap = self.invalid.keys() & driven
+        if overlap:
+            names = ", ".join(repr(name) for name in sorted(overlap))
+            raise ValueError(f"invalid targets also receive control content or state: {names}")
+        return self
 
 
 class Design(_Data):
@@ -163,7 +186,7 @@ def _element(tag: str, props: dict[str, Any], text: Any = None, binding: dict | 
     if text is not None:
         node["props"]["textContent"] = _tag(str(text))
     if binding is not None:
-        node["bindings"] = {"textContent": binding}
+        node["bindings"] = {"textContent": deepcopy(binding)}
     return node
 
 
@@ -266,6 +289,9 @@ class _Resolver:
                 raise ValueError(f"{_describe(node)} is not a generic control that design {self.design.name!r} or the fallback describes")
         props = {name: _plain(v) for name, v in node.get("props", {}).items()}
         bindings = dict(node.get("bindings", {}))
+        invalid_bindings: dict[str, dict] = {}
+        invalid_requested = False
+        authored_targets: set[str] = set()
         overrides = (props.pop(OVERRIDES_PROP, None) or {}).get(self.design.name, {})
         out: dict[str, Any] = dict(spec.fixed)
         before: list[dict] = []  # parts placed inside the control ahead of its content
@@ -287,11 +313,11 @@ class _Resolver:
                 if where.kind == "attr":
                     out[where.name] = literal
                     if binding:
-                        bindings[where.name] = binding
+                        bindings[where.name] = deepcopy(binding)
                 elif where.kind == "text":
                     out["textContent"] = literal
                     if binding:
-                        bindings["textContent"] = binding
+                        bindings["textContent"] = deepcopy(binding)
                 elif where.kind == "none":
                     continue
                 else:
@@ -305,23 +331,25 @@ class _Resolver:
                             raise ValueError(f"design {self.design.name!r} places the {part} of {kind!r} beside the control but declares no wrap")
                         (siblings_after if where.after else siblings_before).append(element)
             if part == "error" and any(where.kind != "none" for where in destinations):
+                invalid_requested = bool(literal) or binding is not None
                 if literal:
                     out.update(spec.invalid)
                 if binding and spec.invalid:
                     source = binding.get("compute")
                     if source is None and binding.get("field") is not None:
                         source = {"expr": "field", "name": binding["field"]}
-                    if source is not None:
-                        for target, invalid in spec.invalid.items():
-                            bindings[target] = {
-                                "compute": {
-                                    "expr": "cond",
-                                    "test": source,
-                                    "then": {"expr": "lit", "value": invalid},
-                                    "else": {"expr": "lit", "value": spec.fixed.get(target)},
-                                },
-                                "mode": "one-way",
-                            }
+                    if source is None:
+                        raise ValueError(f"{_describe(node)} has an error binding without a field or compute expression")
+                    for target, invalid in spec.invalid.items():
+                        invalid_bindings[target] = {
+                            "compute": {
+                                "expr": "cond",
+                                "test": deepcopy(source),
+                                "then": {"expr": "lit", "value": invalid},
+                                "else": {"expr": "lit", "value": spec.fixed.get(target)},
+                            },
+                            "mode": "one-way",
+                        }
 
         options = props.pop("options", None)
         options_binding = bindings.pop("options", None)
@@ -380,25 +408,34 @@ class _Resolver:
                         item_siblings_after: list[dict] = []
                     else:
                         option = _element(spec.options.tag, option_props)
-                        label_node = _element(
-                            label.tag,
-                            {**label.props, **({"slot": label.name} if label.kind == "slot" else {})},
-                            item["label"],
-                        )
                         item_siblings_before = []
                         item_siblings_after = []
-                        if label.kind == "attr":
-                            option["props"][label.name] = _tag(item["label"])
-                        elif label.kind == "text":
-                            option["props"]["textContent"] = _tag(item["label"])
-                        elif label.kind == "slot":
-                            option["slots"] = {label.name: [label_node]}
-                        elif label.kind == "child":
-                            option["slots"] = {DEFAULT_SLOT: [label_node]}
-                        elif label.kind == "sibling":
-                            if item_wrap is None:
-                                raise ValueError(f"design {self.design.name!r} places an option label beside its control but declares no item_wrap")
-                            (item_siblings_after if label.after else item_siblings_before).append(label_node)
+                        item_children_before: list[dict] = []
+                        item_children_after: list[dict] = []
+                        for where in label if isinstance(label, tuple) else (label,):
+                            if where.kind == "attr":
+                                option["props"][where.name] = _tag(item["label"])
+                            elif where.kind == "text":
+                                option["props"]["textContent"] = _tag(item["label"])
+                            elif where.kind != "none":
+                                label_node = _element(
+                                    where.tag,
+                                    {**where.props, **({"slot": where.name} if where.kind == "slot" else {})},
+                                    item["label"],
+                                )
+                                if where.kind == "slot":
+                                    option.setdefault("slots", {}).setdefault(where.name, []).append(label_node)
+                                elif where.kind == "child":
+                                    (item_children_after if where.after else item_children_before).append(label_node)
+                                else:
+                                    if item_wrap is None:
+                                        raise ValueError(
+                                            f"design {self.design.name!r} places an option label beside its control but declares no item_wrap"
+                                        )
+                                    (item_siblings_after if where.after else item_siblings_before).append(label_node)
+                        if item_children_before or item_children_after:
+                            default_children = option.setdefault("slots", {}).setdefault(DEFAULT_SLOT, [])
+                            option["slots"][DEFAULT_SLOT] = [*item_children_before, *default_children, *item_children_after]
                     if item_wrap is not None and item_wrap.control:
                         option.setdefault("props", {}).update({k: _tag(v) for k, v in item_wrap.control.items()})
                     if item_wrap is None:
@@ -463,8 +500,10 @@ class _Resolver:
                 if target is None:
                     continue
                 out[target] = spec.values.get(name, {}).get(v, v) if isinstance(v, str) else v
+                authored_targets.add(target)
             elif name not in generic_props and name != "multiple":
                 out[name] = v  # id, class, style, data-*, aria-* and other generic element props
+                authored_targets.add(name)
         for name in list(bindings):
             if name in spec.props:
                 target = spec.props[name]
@@ -473,6 +512,14 @@ class _Resolver:
                     bindings[target] = binding
             elif name in generic_props or name == "multiple":
                 bindings.pop(name)
+        authored_targets.update(overrides)
+        if invalid_requested:
+            conflicts = spec.invalid.keys() & (bindings.keys() | authored_targets)
+            if conflicts:
+                names = ", ".join(repr(name) for name in sorted(conflicts))
+                raise ValueError(f"{_describe(node)} drives {names} directly and from the error state of design {self.design.name!r}")
+        for target, binding in invalid_bindings.items():
+            bindings[target] = binding
         out.update(overrides)
 
         if "text" in bindings:
