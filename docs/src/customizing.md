@@ -124,7 +124,7 @@ text, a child inside it, or a sibling in a `Wrap` around it (a `bp-field`, a `fl
 `<label>`). A non-empty tuple of parts sends the same text to several destinations, such as a visible
 error slot and the control's validation property. `invalid` props follow both literal and bound errors,
 returning to the value in `fixed` (or being removed) when a bound error clears. An `invalid` target
-cannot also receive error content, mapped control state, or another binding.
+cannot also receive error content, mapped control state, another binding, or a per-design override.
 `Options` renders `Select` and `RadioGroup` choices as child elements, optionally inside one list
 wrapper, or as a list property. It maps `value`, `label`, and `disabled` for literal and bound option
 lists. A child option's `label` can also be one `Part` or a non-empty tuple of parts; combine a sibling

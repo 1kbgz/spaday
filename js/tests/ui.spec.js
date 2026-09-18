@@ -594,6 +594,13 @@ test.describe("binding features for designs", () => {
         await new Promise(requestAnimationFrame);
         runTimer();
         runTimer();
+        document.body.append(document.createElement("span"));
+        await new Promise(requestAnimationFrame);
+        runTimer();
+        runTimer();
+        runTimer();
+        runTimer();
+        runTimer();
         const second = mountPending();
         await new Promise(requestAnimationFrame);
         window.__spaday.applyPatch(
@@ -612,7 +619,10 @@ test.describe("binding features for designs", () => {
         window.clearTimeout = clearTimer;
       }
     });
-    expect(r).toEqual({ delays: [50, 100, 200, 50], cleared: 2 });
+    expect(r).toEqual({
+      delays: [50, 100, 200, 400, 800, 1000, 1000, 1000, 50],
+      cleared: 2,
+    });
   });
 
   test("a binding can wait for connection and assigned children", async ({

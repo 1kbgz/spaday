@@ -517,7 +517,7 @@ class _Resolver:
             conflicts = spec.invalid.keys() & (bindings.keys() | authored_targets)
             if conflicts:
                 names = ", ".join(repr(name) for name in sorted(conflicts))
-                raise ValueError(f"{_describe(node)} drives {names} directly and from design {self.design.name!r}'s error state")
+                raise ValueError(f"{_describe(node)} drives {names} directly and from the error state of design {self.design.name!r}")
         for target, binding in invalid_bindings.items():
             bindings[target] = binding
         out.update(overrides)
