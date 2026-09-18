@@ -57,6 +57,7 @@ registers its browser assets with spaday:
 ### Design Systems
 
 - [spaday-blueprint](https://github.com/1kbgz/spaday-blueprint) — [BlueprintUI](https://blueprintui.dev/docs/components).
+- [spaday-calcite](https://github.com/1kbgz/spaday-calcite) — [Calcite Design System](https://developers.arcgis.com/calcite-design-system/components/).
 - [spaday-fluent](https://github.com/1kbgz/spaday-fluent) — [Fluent UI](https://storybooks.fluentui.dev/react/).
 - [spaday-lion](https://github.com/1kbgz/spaday-lion) — [Lion](https://lion.js.org/components/).
 - [spaday-spectrum](https://github.com/1kbgz/spaday-spectrum) — [Adobe Spectrum Web Components](https://opensource.adobe.com/spectrum-web-components/).
@@ -66,6 +67,7 @@ registers its browser assets with spaday:
 
 ### Individual Components
 
+- [spaday-codemirror](https://github.com/1kbgz/spaday-codemirror) — [CodeMirror 6](https://codemirror.net/) code editor.
 - [spaday-dagre](https://github.com/1kbgz/spaday-dagre) — interactive directed-graph rendering with [dagre](https://github.com/dagrejs/dagre) layout.
 - [spaday-lightweight-charts](https://github.com/1kbgz/spaday-lightweight-charts) — reactive [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts).
 - [spaday-perspective](https://github.com/1kbgz/spaday-perspective) — live [Perspective](https://perspective-dev.github.io) workspaces and datagrids.
@@ -74,6 +76,8 @@ registers its browser assets with spaday:
 - [spaday-studio](https://github.com/1kbgz/spaday-studio) — AI-native visual development environment.
 - [spaday-trees](https://github.com/1kbgz/spaday-trees) — virtualized project and repository trees from [Pierre](https://trees.software/docs).
 - [spaday-vega](https://github.com/1kbgz/spaday-vega) — [Vega](https://vega.github.io/vega/) and [Vega-Lite](https://vega.github.io/vega-lite/) visualizations.
+
+The [spaday-shoelace](https://github.com/1kbgz/spaday-shoelace) compatibility package installs `spaday-webawesome`.
 
 Select an installed integration by its entry-point name, for example `serve(page, packages=["trees"])`.
 
