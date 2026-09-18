@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Serve and embed a spaday app" href="serving.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Ship your own variant - spaday v0.9.0</title>
+        <title>Ship your own variant - spaday v0.9.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.9.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.9.1</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -189,7 +189,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.9.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.9.1</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -357,23 +357,26 @@ way, and needs no Python beyond it:</p>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">Part</span></code> places a label, help text or error message as an attribute, a slotted element, the control’s
 text, a child inside it, or a sibling in a <code class="docutils literal notranslate"><span class="pre">Wrap</span></code> around it (a <code class="docutils literal notranslate"><span class="pre">bp-field</span></code>, a <code class="docutils literal notranslate"><span class="pre">fluent-field</span></code>, a plain
-<code class="docutils literal notranslate"><span class="pre">&lt;label&gt;</span></code>). A tuple of parts sends the same text to several destinations, such as a visible error slot
-and the control’s validation property. <code class="docutils literal notranslate"><span class="pre">invalid</span></code> props follow both literal and bound errors, returning
-to the value in <code class="docutils literal notranslate"><span class="pre">fixed</span></code> (or being removed) when a bound error clears.
+<code class="docutils literal notranslate"><span class="pre">&lt;label&gt;</span></code>). A non-empty tuple of parts sends the same text to several destinations, such as a visible
+error slot and the control’s validation property. <code class="docutils literal notranslate"><span class="pre">invalid</span></code> props follow both literal and bound errors,
+returning to the value in <code class="docutils literal notranslate"><span class="pre">fixed</span></code> (or being removed) when a bound error clears. An <code class="docutils literal notranslate"><span class="pre">invalid</span></code> target
+cannot also receive error content, mapped control state, another binding, or a per-design override.
 <code class="docutils literal notranslate"><span class="pre">Options</span></code> renders <code class="docutils literal notranslate"><span class="pre">Select</span></code> and <code class="docutils literal notranslate"><span class="pre">RadioGroup</span></code> choices as child elements, optionally inside one list
 wrapper, or as a list property. It maps <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">label</span></code>, and <code class="docutils literal notranslate"><span class="pre">disabled</span></code> for literal and bound option
-lists. A child option’s <code class="docutils literal notranslate"><span class="pre">label</span></code> can also be a <code class="docutils literal notranslate"><span class="pre">Part</span></code>; combine a sibling part with <code class="docutils literal notranslate"><span class="pre">item_wrap</span></code> when each
-radio needs its own visible <code class="docutils literal notranslate"><span class="pre">&lt;label&gt;</span></code>. <code class="docutils literal notranslate"><span class="pre">label_attr</span></code> can repeat that text in an attribute such as
-<code class="docutils literal notranslate"><span class="pre">aria-label</span></code> when the custom element does not derive its accessible name from the wrapper. <code class="docutils literal notranslate"><span class="pre">fixed</span></code>
+lists. A child option’s <code class="docutils literal notranslate"><span class="pre">label</span></code> can also be one <code class="docutils literal notranslate"><span class="pre">Part</span></code> or a non-empty tuple of parts; combine a sibling
+part with <code class="docutils literal notranslate"><span class="pre">item_wrap</span></code> when each radio needs its own visible <code class="docutils literal notranslate"><span class="pre">&lt;label&gt;</span></code>. <code class="docutils literal notranslate"><span class="pre">label_attr</span></code> can repeat that text
+in an attribute such as <code class="docutils literal notranslate"><span class="pre">aria-label</span></code> when the custom element does not derive its accessible name from
+the wrapper. <code class="docutils literal notranslate"><span class="pre">fixed</span></code>
 sets props required on every child option. For child options, <code class="docutils literal notranslate"><span class="pre">selected</span></code> names the boolean property
 that marks the current choice; use <code class="docutils literal notranslate"><span class="pre">selected=&quot;checked&quot;</span></code> for radio elements. <code class="docutils literal notranslate"><span class="pre">Value</span></code> names the state
 property and its change event; its <code class="docutils literal notranslate"><span class="pre">number</span></code> and <code class="docutils literal notranslate"><span class="pre">json</span></code> codecs handle DOM controls that expose only
 strings. <code class="docutils literal notranslate"><span class="pre">Value.defer</span></code> delays writes until the next animation frame for a setter that requires
 connected children. <code class="docutils literal notranslate"><span class="pre">Open</span></code> names overlay state and can supply the method pair used to open and close
 it instead of assigning the open prop. Method calls are applied once the element is connected; while
-it remains connected, later updates stay synchronous. <code class="docutils literal notranslate"><span class="pre">state</span></code> can name a different readable
-property, including a dotted path such as <code class="docutils literal notranslate"><span class="pre">dialog.open</span></code>, when the custom element wraps the stateful
-overlay. A control the design leaves out renders with the native baseline.
+it remains connected, later updates stay synchronous. Attachment inside an existing shadow root is
+checked on a shared backoff timer and can take up to one second after a long detached period. <code class="docutils literal notranslate"><span class="pre">state</span></code>
+can name a different readable property, including a dotted path such as <code class="docutils literal notranslate"><span class="pre">dialog.open</span></code>, when the custom
+element wraps the stateful overlay. A control the design leaves out renders with the native baseline.
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.ui.conformance</span> <span class="pre">PORT</span> <span class="pre">--package</span> <span class="pre">acme</span></code> serves the conformance page with your design, so
 the same browser checks spaday runs against the baseline (<code class="docutils literal notranslate"><span class="pre">js/tests/ui.spec.js</span></code>) run against yours.</p>
 </section>
@@ -587,7 +590,7 @@ registering costs you that script, not every component on the page.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=39bb1c6d"></script>
+</div><script src="../../_static/documentation_options.js?v=9dc39874"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
