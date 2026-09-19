@@ -96,6 +96,220 @@ test.describe("binding features for designs", () => {
     });
   });
 
+  test("outbound encoding and scaling are independent from inbound decoding", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(() => {
+      customElements.define(
+        "x-string-number",
+        class extends HTMLElement {
+          current = "";
+          input = { value: "" };
+          set value(value) {
+            if (typeof value !== "string") throw new Error("expected string");
+            this.current = value;
+          }
+        },
+      );
+      customElements.define(
+        "x-scaled-number",
+        class extends HTMLElement {
+          value = 0;
+        },
+      );
+      const store = new window.__spaday.Store({ count: 2, progress: 25 });
+      const number = window.__spaday.mount(
+        document.body,
+        {
+          tag: "x-string-number",
+          bindings: {
+            value: {
+              field: "count",
+              mode: "two-way",
+              event: "x-change",
+              state: "input.value",
+              codec: "number",
+              encode: "string",
+            },
+          },
+        },
+        store,
+      );
+      const progress = window.__spaday.mount(
+        document.body,
+        {
+          tag: "x-scaled-number",
+          bindings: {
+            value: {
+              field: "progress",
+              mode: "two-way",
+              codec: "number",
+              scale: 2,
+            },
+          },
+        },
+        store,
+      );
+      const initialProgress = progress.value;
+      number.input.value = "4";
+      number.dispatchEvent(new Event("x-change"));
+      progress.value = 80;
+      progress.dispatchEvent(new Event("input"));
+      return {
+        numberValue: number.current,
+        count: store.get("count"),
+        initialProgress,
+        progress: store.get("progress"),
+      };
+    });
+    expect(r).toEqual({
+      numberValue: "4",
+      count: 4,
+      initialProgress: 50,
+      progress: 40,
+    });
+  });
+
+  test("a parent binding can drive and read child-owned selection", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(() => {
+      customElements.define(
+        "x-radio",
+        class extends HTMLElement {
+          value = "";
+          checked = false;
+        },
+      );
+      const store = new window.__spaday.Store({ choice: 2 });
+      const group = window.__spaday.mount(
+        document.body,
+        {
+          tag: "div",
+          bindings: {
+            value: {
+              field: "choice",
+              mode: "two-way",
+              event: "x-change",
+              state: "selectedItem.value",
+              codec: "json",
+              selection: {
+                tag: "x-radio",
+                value: "value",
+                selected: "checked",
+              },
+            },
+          },
+          slots: {
+            default: [
+              { tag: "x-radio", props: { value: { Str: "1" } } },
+              { tag: "x-radio", props: { value: { Str: "2" } } },
+            ],
+          },
+        },
+        store,
+      );
+      const radios = Array.from(group.children);
+      const initialChecked = radios.map((radio) => radio.checked);
+      group.selectedItem = radios[0];
+      group.dispatchEvent(new Event("x-change"));
+      return {
+        initialChecked,
+        checked: radios.map((radio) => radio.checked),
+        choice: store.get("choice"),
+      };
+    });
+    expect(r).toEqual({
+      initialChecked: [false, true],
+      checked: [true, false],
+      choice: 1,
+    });
+  });
+
+  test("property options can wait until connection", async ({ page }) => {
+    const r = await page.evaluate(async () => {
+      customElements.define(
+        "x-connected-options",
+        class extends HTMLElement {
+          current = [];
+          set items(value) {
+            if (!this.isConnected) throw new Error("not connected");
+            this.current = value;
+          }
+        },
+      );
+      const el = window.__spaday.mount(document.body, {
+        tag: "x-connected-options",
+        bindings: {
+          items: {
+            compute: { expr: "lit", value: [{ value: "a" }] },
+            mode: "one-way",
+            defer: true,
+          },
+        },
+      });
+      await new Promise(requestAnimationFrame);
+      return el.current;
+    });
+    expect(r).toEqual([{ value: "a" }]);
+  });
+
+  test("a storeless field computation remains inert", async ({ page }) => {
+    const title = await page.evaluate(() => {
+      const el = window.__spaday.mount(document.body, {
+        tag: "div",
+        props: { title: { Str: "initial" } },
+        bindings: {
+          title: {
+            compute: { expr: "field", name: "missing" },
+            mode: "one-way",
+          },
+        },
+      });
+      return el.title;
+    });
+    expect(title).toBe("initial");
+  });
+
+  test("storeless literal bindings wire during hydration and incremental patches", async ({
+    page,
+  }) => {
+    const result = await page.evaluate(() => {
+      const { applyPatch, hydrate, mount } = window.__spaday;
+      const container = document.createElement("div");
+      container.innerHTML = '<div title="initial"></div>';
+      const adopted = hydrate(container, {
+        tag: "div",
+        bindings: {
+          title: {
+            compute: { expr: "lit", value: "hydrated" },
+            mode: "one-way",
+          },
+        },
+      });
+      const patched = mount(document.createElement("div"), {
+        tag: "div",
+        props: { title: { Str: "initial" } },
+      });
+      applyPatch(patched, {
+        ops: [
+          {
+            SetBinding: {
+              path: [],
+              name: "title",
+              binding: {
+                compute: { expr: "lit", value: "patched" },
+                mode: "one-way",
+              },
+            },
+          },
+        ],
+      });
+      return { hydrated: adopted.title, patched: patched.title };
+    });
+    expect(result).toEqual({ hydrated: "hydrated", patched: "patched" });
+  });
+
   test("a bound options list is reshaped for its concrete control", async ({
     page,
   }) => {

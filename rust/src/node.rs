@@ -42,6 +42,21 @@ pub enum BindingCodec {
     Json,
 }
 
+/// Outbound-only conversion applied before a value reaches a DOM property.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum BindingEncode {
+    #[serde(rename = "string")]
+    String,
+}
+
+/// Child option properties driven by a parent control's value binding.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BindingSelection {
+    pub tag: String,
+    pub value: String,
+    pub selected: String,
+}
+
 /// How a bound generic options list is shaped for a concrete control.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BindingOptions {
@@ -51,6 +66,8 @@ pub struct BindingOptions {
     pub disabled: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codec: Option<BindingCodec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub encode: Option<BindingEncode>,
 }
 
 /// A reactive binding of a prop to state. Either a `field` — the prop tracks that state field (and a
@@ -85,6 +102,15 @@ pub struct Binding {
     /// Encode values written to the DOM property and decode values read back from it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codec: Option<BindingCodec>,
+    /// Convert only values sent to the DOM property.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub encode: Option<BindingEncode>,
+    /// Multiply outbound numeric values by this factor and divide inbound values by it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale: Option<f64>,
+    /// Drive child option selection rather than assigning the parent value property.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<BindingSelection>,
     /// Transform a bound generic options list to the concrete control's item field names.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub options: Option<BindingOptions>,
@@ -216,5 +242,27 @@ mod node_tests {
         assert_eq!(json, r#"{"tag":"wa-button"}"#);
         let back: Node = serde_json::from_str(&json).unwrap();
         assert_eq!(n, back);
+    }
+
+    #[test]
+    fn test_binding_adapters_round_trip() {
+        let json = serde_json::json!({
+            "tag": "x-control",
+            "bindings": {
+                "value": {
+                    "field": "choice",
+                    "mode": "two-way",
+                    "state": "selectedItem.value",
+                    "defer": true,
+                    "codec": "number",
+                    "encode": "string",
+                    "scale": 2.0,
+                    "selection": {"tag": "x-option", "value": "value", "selected": "checked"},
+                    "options": {"value": "key", "label": "text", "disabled": "off", "codec": "json", "encode": "string"}
+                }
+            }
+        });
+        let node: Node = serde_json::from_value(json.clone()).unwrap();
+        assert_eq!(serde_json::to_value(node).unwrap(), json);
     }
 }

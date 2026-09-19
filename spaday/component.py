@@ -354,6 +354,7 @@ class Component:
         state: str | None = None,
         defer: bool = False,
         codec: str | None = None,
+        encode: str | None = None,
     ) -> "Component":
         """Reactively bind a ``prop`` to a state ``field`` in the runtime's signal store.
 
@@ -373,6 +374,8 @@ class Component:
         connected and its children have been assigned.
         ``codec="number"`` converts an empty value to ``None`` and other values to numbers on
         write-back; ``"json"`` JSON-encodes values sent to the element and decodes them on return.
+        ``encode="string"`` stringifies values sent to the element without changing how its readable
+        state is decoded.
         """
         if mode not in ("one-way", "two-way"):
             raise ValueError(f"bind mode must be 'one-way' or 'two-way', not {mode!r}")
@@ -394,6 +397,12 @@ class Component:
             raise ValueError(f"binding codec must be 'number' or 'json', not {codec!r}")
         if codec is not None:
             binding["codec"] = codec
+        if encode not in (None, "string"):
+            raise ValueError(f"binding encode must be 'string', not {encode!r}")
+        if codec == "json" and encode is not None:
+            raise ValueError("binding encode cannot be combined with the json codec")
+        if encode is not None:
+            binding["encode"] = encode
         self._bindings[prop] = binding
         return self
 

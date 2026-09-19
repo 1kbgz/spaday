@@ -496,6 +496,9 @@ mod diff_tests {
                 state: None,
                 defer: None,
                 codec: None,
+                encode: None,
+                scale: None,
+                selection: None,
                 options: None,
             },
         );
@@ -511,6 +514,9 @@ mod diff_tests {
                     state: None,
                     defer: None,
                     codec: None,
+                    encode: None,
+                    scale: None,
+                    selection: None,
                     options: None,
                 },
             )
@@ -525,6 +531,9 @@ mod diff_tests {
                     state: None,
                     defer: None,
                     codec: None,
+                    encode: None,
+                    scale: None,
+                    selection: None,
                     options: None,
                 },
             );
@@ -548,6 +557,9 @@ mod diff_tests {
                 state: None,
                 defer: None,
                 codec: None,
+                encode: None,
+                scale: None,
+                selection: None,
                 options: None,
             },
         );
@@ -593,6 +605,9 @@ mod diff_tests {
             state: None,
             defer: None,
             codec: None,
+            encode: None,
+            scale: None,
+            selection: None,
             options: None,
         };
         let old = Node::new("spa-each")

@@ -32,12 +32,23 @@ export interface Binding {
   defer?: boolean;
   /** conversion where a value crosses the DOM property boundary */
   codec?: "number" | "json";
+  /** outbound-only conversion for controls whose DOM property type differs from their readable state */
+  encode?: "string";
+  /** multiply outbound values by this factor and divide inbound values by it */
+  scale?: number;
+  /** drive selection state on child options instead of assigning the parent value */
+  selection?: {
+    tag: string;
+    value: string;
+    selected: string;
+  };
   /** reshape a bound generic options list for the concrete control */
   options?: {
     value: string;
     label: string;
     disabled?: string;
     codec?: "number" | "json";
+    encode?: "string";
   };
 }
 
@@ -48,6 +59,12 @@ export interface Node {
   slots?: Record<string, Node[]>;
   events?: Record<string, unknown>;
   bindings?: Record<string, Binding>;
+}
+
+function canWireBinding(spec: Binding, store?: Store, scope?: Scope): boolean {
+  if (store || scope) return true;
+  if (!spec.compute || typeof spec.compute !== "object") return false;
+  return (spec.compute as Record<string, unknown>).expr === "lit";
 }
 
 interface PathSeg {
@@ -185,11 +202,10 @@ function hydrateNode(
   for (const [name, action] of Object.entries(node.events ?? {})) {
     bindEvent(el, name, action, store, scope); // actions ride the wire as the core's DSL form (plain JSON)
   }
-  if (store || scope) {
-    for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
-      if (isStructuralBinding(node, prop)) continue;
+  for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
+    if (isStructuralBinding(node, prop)) continue;
+    if (canWireBinding(spec, store, scope))
       wireBinding(el, prop, spec, store, scope);
-    }
   }
 }
 
@@ -316,7 +332,14 @@ function readBindingState(el: Element, prop: string, state?: string): unknown {
   return value;
 }
 
-function encodeBoundValue(value: unknown, codec?: Binding["codec"]): unknown {
+function encodeBoundValue(
+  value: unknown,
+  codec?: Binding["codec"],
+  encode?: Binding["encode"],
+  scale?: number,
+): unknown {
+  if (scale !== undefined && typeof value === "number") value *= scale;
+  if (encode === "string") return value == null ? "" : String(value);
   if (codec === "number") return value == null ? "" : value;
   if (codec === "json") return value == null ? "" : JSON.stringify(value);
   return value;
@@ -333,7 +356,11 @@ function encodeBoundOptions(
         ? (choice as { value: unknown; label?: unknown; disabled?: unknown })
         : { value: choice, label: choice, disabled: false };
     const result: Record<string, unknown> = {
-      [options.value]: encodeBoundValue(item.value, options.codec),
+      [options.value]: encodeBoundValue(
+        item.value,
+        options.codec,
+        options.encode,
+      ),
       [options.label]: String(item.label ?? item.value),
     };
     if (item.disabled && options.disabled) result[options.disabled] = true;
@@ -341,17 +368,23 @@ function encodeBoundOptions(
   });
 }
 
-function decodeBoundValue(value: unknown, codec?: Binding["codec"]): unknown {
+function decodeBoundValue(
+  value: unknown,
+  codec?: Binding["codec"],
+  scale?: number,
+): unknown {
+  let decoded = value;
   if (codec === "number") {
     if (value === "" || value == null) return null;
     const number = Number(value);
-    return Number.isNaN(number) ? null : number;
+    decoded = Number.isNaN(number) ? null : number;
   }
   if (codec === "json") {
     if (value === "" || value == null) return null;
-    if (typeof value === "string") return JSON.parse(value);
+    if (typeof value === "string") decoded = JSON.parse(value);
   }
-  return value;
+  if (scale !== undefined && typeof decoded === "number") decoded /= scale;
+  return decoded;
 }
 
 // The setter a binding drives. Normally a prop on the bound element; a `root-class:NAME` or
@@ -368,6 +401,19 @@ function bindingApply(
   const ROOT_CLASS = "root-class:";
   const ROOT_ATTR = "root-attr:";
   if (spec.methods) return methodApply(el, prop, spec.methods, spec.state);
+  if (spec.selection) {
+    const selection = spec.selection;
+    return (value) => {
+      for (const child of el.querySelectorAll("*")) {
+        if (child.localName !== selection.tag) continue;
+        setProp(
+          child,
+          selection.selected,
+          Object.is(readProp(child, selection.value), value),
+        );
+      }
+    };
+  }
   if (prop.startsWith(ROOT_CLASS)) {
     const name = prop.slice(ROOT_CLASS.length);
     return (v) => document.documentElement.classList.toggle(name, !!v);
@@ -420,7 +466,7 @@ function wireBinding(
     applyValue(
       spec.options
         ? encodeBoundOptions(value, spec.options)
-        : encodeBoundValue(value, spec.codec),
+        : encodeBoundValue(value, spec.codec, spec.encode, spec.scale),
     );
   // build() wires before mount() attaches. Keep the latest initial method value pending until the
   // element connects; updates after connection stay synchronous and retain user activation.
@@ -501,7 +547,11 @@ function wireBinding(
         if (typeof v.checkValidity === "function" && !v.checkValidity()) return;
         store.set(
           spec.field!,
-          decodeBoundValue(readBindingState(el, prop, spec.state), spec.codec),
+          decodeBoundValue(
+            readBindingState(el, prop, spec.state),
+            spec.codec,
+            spec.scale,
+          ),
         );
       };
       const events = spec.event ? [spec.event] : VALUE_EVENTS;
@@ -1187,11 +1237,10 @@ function build(node: Node, store?: Store, scope?: Scope): Element {
   for (const [name, action] of Object.entries(node.events ?? {})) {
     bindEvent(el, name, action, store, scope); // actions ride the wire as the core's DSL form (plain JSON)
   }
-  if (store || scope) {
-    for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
-      if (isStructuralBinding(node, prop)) continue;
+  for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
+    if (isStructuralBinding(node, prop)) continue;
+    if (canWireBinding(spec, store, scope))
       wireBinding(el, prop, spec, store, scope);
-    }
   }
   return el;
 }
@@ -1431,7 +1480,8 @@ function applyOp(
     const { path, name, binding } = op.SetBinding;
     const el = resolve(root, path);
     if (!rewireStructuralBinding(el, name, binding, store, scope))
-      if (store || scope) wireBinding(el, name, binding, store, scope);
+      if (canWireBinding(binding, store, scope))
+        wireBinding(el, name, binding, store, scope);
   } else if ("RemoveBinding" in op) {
     const { path, name } = op.RemoveBinding;
     const el = resolve(root, path);
