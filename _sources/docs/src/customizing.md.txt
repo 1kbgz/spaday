@@ -132,15 +132,27 @@ part with `item_wrap` when each radio needs its own visible `<label>`. `label_at
 in an attribute such as `aria-label` when the custom element does not derive its accessible name from
 the wrapper. `fixed`
 sets props required on every child option. For child options, `selected` names the boolean property
-that marks the current choice; use `selected="checked"` for radio elements. `Value` names the state
-property and its change event; its `number` and `json` codecs handle DOM controls that expose only
-strings. `Value.defer` delays writes until the next animation frame for a setter that requires
-connected children. `Open` names overlay state and can supply the method pair used to open and close
-it instead of assigning the open prop. Method calls are applied once the element is connected; while
-it remains connected, later updates stay synchronous. Attachment inside an existing shadow root is
-checked on a shared backoff timer and can take up to one second after a long detached period. `state`
-can name a different readable property, including a dotted path such as `dialog.open`, when the custom
-element wraps the stateful overlay. A control the design leaves out renders with the native baseline.
+that marks the current choice; use `selection=True` when a group value must drive that property on
+its children. Property option lists can use `defer=True` when the element must be connected before
+receiving them.
+
+`Value` names the value property and its change event. Its `number` and `json` codecs convert in both
+directions; `encode="string"` only converts values sent to the element, and `state` can name a
+different readable property such as `selectedItem.value`. `scale_by="max"` and `scale_to=100`
+translate a generic value range to a fixed component range; `scale_default` supplies the source
+range when the generic prop is omitted. `Value.defer` delays writes until the next animation frame
+for a setter that requires connected children.
+
+`children_slot` routes authored content to one named slot. `accepts` declares literal generic prop
+values a realization can preserve; another value or a binding on that prop uses the marked native
+fallback. A control the design leaves out also uses that fallback.
+
+`Open` names overlay state and can supply the method pair used to open and close it instead of
+assigning the open prop. Method calls are applied once the element is connected; while it remains
+connected, later updates stay synchronous. Attachment inside an existing shadow root is checked on a
+shared backoff timer and can take up to one second after a long detached period. `Open.state` can name
+a different readable property, including a dotted path such as `dialog.open`, when the custom element
+wraps the stateful overlay.
 `python -m spaday.ui.conformance PORT --package acme` serves the conformance page with your design, so
 the same browser checks spaday runs against the baseline (`js/tests/ui.spec.js`) run against yours.
 

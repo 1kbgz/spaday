@@ -636,6 +636,7 @@
         <span class="n">state</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">defer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">codec</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Component"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Reactively bind a ``prop`` to a state ``field`` in the runtime's signal store.</span>
 
@@ -655,6 +656,8 @@
 <span class="sd">        connected and its children have been assigned.</span>
 <span class="sd">        ``codec="number"`` converts an empty value to ``None`` and other values to numbers on</span>
 <span class="sd">        write-back; ``"json"`` JSON-encodes values sent to the element and decodes them on return.</span>
+<span class="sd">        ``encode="string"`` stringifies values sent to the element without changing how its readable</span>
+<span class="sd">        state is decoded.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"one-way"</span><span class="p">,</span> <span class="s2">"two-way"</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bind mode must be 'one-way' or 'two-way', not </span><span class="si">{</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
@@ -676,6 +679,12 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"binding codec must be 'number' or 'json', not </span><span class="si">{</span><span class="n">codec</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">codec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">binding</span><span class="p">[</span><span class="s2">"codec"</span><span class="p">]</span> <span class="o">=</span> <span class="n">codec</span>
+        <span class="k">if</span> <span class="n">encode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"binding encode must be 'string', not </span><span class="si">{</span><span class="n">encode</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">codec</span> <span class="o">==</span> <span class="s2">"json"</span> <span class="ow">and</span> <span class="n">encode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"binding encode cannot be combined with the json codec"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">encode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">binding</span><span class="p">[</span><span class="s2">"encode"</span><span class="p">]</span> <span class="o">=</span> <span class="n">encode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">binding</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
