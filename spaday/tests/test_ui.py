@@ -322,6 +322,102 @@ def test_options_as_a_property_and_a_wrapped_child_list():
         )
 
 
+def test_property_options_can_wait_until_the_control_is_connected():
+    design = _design(select=ControlSpec(tag="x-select", options=Options(kind="prop", defer=True)))
+    literal = _plain(resolve(Select(options=["a", {"value": "b", "label": "Bee"}]).to_node(), design))
+    assert "items" not in literal.get("props", {})
+    assert literal["bindings"]["items"] == {
+        "compute": {
+            "expr": "lit",
+            "value": [{"value": "a", "text": "a"}, {"value": "b", "text": "Bee"}],
+        },
+        "mode": "one-way",
+        "defer": True,
+    }
+    bound = _plain(resolve(Select().bind("options", "plans").to_node(), design))
+    assert bound["bindings"]["items"]["defer"] is True
+    with pytest.raises(ValueError, match="defer requires property options"):
+        Options(defer=True)
+
+
+def test_value_contract_can_encode_outbound_and_read_different_state():
+    design = _design(
+        **{
+            "number-input": ControlSpec(
+                tag="x-number",
+                value=Value(event="x-change", codec="number", encode="string", state="input.value"),
+            )
+        }
+    )
+    static = _plain(resolve(NumberInput(value=4).to_node(), design))
+    assert static["props"]["value"] == "4"
+    bound = _plain(resolve(NumberInput().bind("value", "count", mode="two-way").to_node(), design))
+    assert bound["bindings"]["value"] == {
+        "field": "count",
+        "mode": "two-way",
+        "event": "x-change",
+        "codec": "number",
+        "encode": "string",
+        "state": "input.value",
+    }
+
+
+def test_child_options_can_own_selection_state():
+    design = _design(
+        **{
+            "radio-group": ControlSpec(
+                tag="x-radio-group",
+                options=Options(tag="x-radio", selected="checked", selection=True),
+                value=Value(event="x-change", codec="json", state="selected.value"),
+            )
+        }
+    )
+    node = _plain(resolve(RadioGroup(options=["low", "high"]).bind("value", "priority", mode="two-way").to_node(), design))
+    assert node["bindings"]["value"] == {
+        "field": "priority",
+        "mode": "two-way",
+        "event": "x-change",
+        "codec": "json",
+        "state": "selected.value",
+        "selection": {"tag": "x-radio", "value": "value", "selected": "checked"},
+    }
+    with pytest.raises(ValueError, match="selection requires child options"):
+        Options(kind="prop", selection=True)
+
+
+def test_control_children_can_be_routed_to_a_named_slot():
+    design = _design(alert=ControlSpec(tag="x-alert", label=Part(kind="slot", name="title"), children_slot="message"))
+    node = _plain(resolve(Alert(element("span").text("Details"), label="Notice").to_node(), design))
+    assert node["slots"] == {
+        "title": [{"tag": "span", "props": {"slot": "title", "textContent": "Notice"}}],
+        "message": [{"tag": "span", "props": {"textContent": "Details"}}],
+    }
+
+
+def test_value_can_scale_against_another_generic_property():
+    design = _design(progress=ControlSpec(tag="x-progress", props={"max": None}, value=Value(scale_by="max", scale_to=100, scale_default=1)))
+    static = _plain(resolve(Progress(value=25, max=50).to_node(), design))
+    assert static["props"]["value"] == 50
+    bound = _plain(resolve(Progress(max=50).bind("value", "progress").to_node(), design))
+    assert bound["bindings"]["value"] == {"field": "progress", "mode": "one-way", "scale": 2.0}
+    default_max = _plain(resolve(Progress(value=0.5).to_node(), design))
+    assert default_max["props"]["value"] == 50
+    with pytest.raises(ValueError, match="invalid 'max' scaling value"):
+        resolve(Progress(value=1, max=0).to_node(), design)
+    with pytest.raises(ValueError, match="binds 'max'"):
+        resolve(Progress().bind("value", "progress").bind("max", "maximum").to_node(), design)
+    with pytest.raises(ValueError, match="scale_to requires scale_by"):
+        Value(scale_to=100)
+    with pytest.raises(ValueError, match="greater than zero"):
+        Value(scale_by="max", scale_to=0)
+    with pytest.raises(ValueError, match="greater than zero"):
+        Value(scale_by="max", scale_default=-1)
+    with pytest.raises(ValueError, match="invalid 'max' scaling value"):
+        resolve(Progress(value=1, max=-1).to_node(), design)
+    with pytest.raises(ValueError, match="cannot be combined"):
+        Value(codec="json", encode="string")
+
+
 def test_typed_disabled_options_can_cross_a_string_dom_value():
     design = _design(
         select=ControlSpec(
@@ -418,6 +514,16 @@ def test_a_missing_control_falls_back_to_native_and_says_so():
         resolve({"tag": "ui-unknown"}, _design())
 
 
+def test_a_design_can_fall_back_for_unsupported_or_bound_prop_variants():
+    design = _design(input=ControlSpec(tag="x-text", accepts={"type": ("text",)}))
+    assert resolve(TextInput(type="text").to_node(), design)["tag"] == "x-text"
+    password = _plain(resolve(TextInput(type="password").to_node(), design))
+    assert password["slots"]["default"][0]["tag"] == "input"
+    assert password["slots"]["default"][0]["props"]["data-ui-fallback"] == "native"
+    bound = _plain(resolve(TextInput().bind("type", "input_type").to_node(), design))
+    assert bound["slots"]["default"][0]["props"]["data-ui-fallback"] == "native"
+
+
 def test_for_design_sets_a_designs_own_props():
     design = _design(button=ControlSpec(tag="x-button", label=Part(kind="text"), props={"intent": "variant"}))
     button = Button(label="Go", intent="primary").for_design("test", pill=True, variant="loud").for_design("other", tone="x")
@@ -482,10 +588,16 @@ def test_bind_carries_event_and_methods_through_the_core():
         element("dialog").bind("open", "o", state="dialog..open")
     numeric = element("input").bind("value", "count", mode="two-way", codec="number")
     assert numeric.to_node()["bindings"]["value"]["codec"] == "number"
+    string_number = element("x-number").bind("value", "count", mode="two-way", codec="number", encode="string")
+    assert string_number.to_node()["bindings"]["value"]["encode"] == "string"
     patch = spaday.diff(element("input").to_json(), numeric.to_json())
     assert json.loads(spaday.apply(element("input").to_json(), patch)) == numeric.to_node()
     with pytest.raises(ValueError, match="binding codec"):
         element("input").bind("value", "x", codec="integer")
+    with pytest.raises(ValueError, match="binding encode"):
+        element("input").bind("value", "x", encode="json")
+    with pytest.raises(ValueError, match="cannot be combined"):
+        element("input").bind("value", "x", codec="json", encode="string")
 
 
 def test_select_design_follows_the_selected_packages():

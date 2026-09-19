@@ -74,7 +74,8 @@ class Options(_Data):
     destinations, disabled state on ``disabled``, and the chosen state on ``selected``). ``fixed``
     sets props on every child, ``label_attr`` repeats its label in an attribute, and ``item_wrap`` can
     wrap each child option; ``wrap`` can wrap the complete child list. Property options use the field
-    names on ``value``, ``label``, and ``disabled``."""
+    names on ``value``, ``label``, and ``disabled``. ``defer`` assigns a property option list after
+    connection. ``selection`` makes a value binding drive the ``selected`` state of child options."""
 
     kind: Literal["children", "prop"] = "children"
     tag: str = "option"
@@ -87,19 +88,56 @@ class Options(_Data):
     name: str = "items"
     wrap: str = ""
     item_wrap: Wrap | None = None
+    defer: bool = False
+    selection: bool = False
+
+    @model_validator(mode="after")
+    def _selection_uses_child_options(self) -> Options:
+        if self.defer and self.kind != "prop":
+            raise ValueError("defer requires property options")
+        if self.selection and self.kind != "children":
+            raise ValueError("selection requires child options")
+        if self.selection and self.selected is None:
+            raise ValueError("selection requires a selected property")
+        return self
 
 
 class Value(_Data):
     """The property carrying a control's value (``checked`` for a toggle) and, for a two-way binding,
     the event it changes on when that is not the runtime's default ``change``/``input``. ``codec``
-    handles controls whose DOM property exposes a number or typed choice as a string. ``defer`` waits
-    until the next animation frame before writing, for controls whose setter requires connected
-    children."""
+    handles controls whose DOM property exposes a number or typed choice as a string; ``encode`` can
+    change only the outbound representation, and ``state`` names a different readable property.
+    ``defer`` waits until the next animation frame before writing, for controls whose setter requires
+    connected children. ``scale_by`` normalizes against another generic prop to ``scale_to``, using
+    ``scale_default`` when that prop is omitted."""
 
     prop: str = "value"
     event: str | None = None
     codec: Literal["number", "json"] | None = None
+    encode: Literal["string"] | None = None
+    state: str | None = None
     defer: bool = False
+    scale_by: str | None = None
+    scale_to: float = 1
+    scale_default: float | None = None
+
+    @model_validator(mode="after")
+    def _value_contract_is_valid(self) -> Value:
+        if self.state is not None and (not self.state or any(not part for part in self.state.split("."))):
+            raise ValueError("state must be a non-empty dotted property path")
+        if self.scale_by is not None and not self.scale_by:
+            raise ValueError("scale_by must be a non-empty property name")
+        if self.scale_by is None and self.scale_to != 1:
+            raise ValueError("scale_to requires scale_by")
+        if self.scale_by is None and self.scale_default is not None:
+            raise ValueError("scale_default requires scale_by")
+        if not math.isfinite(self.scale_to) or self.scale_to <= 0:
+            raise ValueError("scale_to must be finite and greater than zero")
+        if self.scale_default is not None and (not math.isfinite(self.scale_default) or self.scale_default <= 0):
+            raise ValueError("scale_default must be finite and greater than zero")
+        if self.codec == "json" and self.encode is not None:
+            raise ValueError("encode cannot be combined with the json codec")
+        return self
 
 
 class Open(_Data):
@@ -116,7 +154,9 @@ class Open(_Data):
 
 class ControlSpec(_Data):
     """One generic control as one design renders it. A tuple of :class:`Part` objects sends the
-    same label, help text, or error to each destination."""
+    same label, help text, or error to each destination. ``children_slot`` routes authored content
+    to a named slot instead of the default slot. ``accepts`` restricts generic prop values this
+    realization can preserve; other values and bound variants use the fallback design."""
 
     #: the element rendered
     tag: str
@@ -126,6 +166,8 @@ class ControlSpec(_Data):
     props: dict[str, str | None] = Field(default_factory=dict)
     #: generic prop → {generic value: the design's value}; an unlisted value passes through
     values: dict[str, dict[str, str]] = Field(default_factory=dict)
+    #: generic prop → values this realization can preserve; other or bound values use the fallback
+    accepts: dict[str, tuple[Any, ...]] = Field(default_factory=dict)
     label: Part | _Parts = Field(default_factory=lambda: Part(kind="attr", name="label"))
     help: Part | _Parts = Field(default_factory=lambda: Part(kind="none"))
     error: Part | _Parts = Field(default_factory=lambda: Part(kind="none"))
@@ -136,6 +178,8 @@ class ControlSpec(_Data):
     value: Value = Field(default_factory=Value)
     options: Options | None = None
     open: Open | None = None
+    #: route the generic control's children to this named slot instead of the default slot
+    children_slot: str = ""
     #: generic event → the design's event name (``change`` → ``model-value-changed``)
     events: dict[str, str] = Field(default_factory=dict)
 
@@ -248,7 +292,17 @@ def _generic_props() -> frozenset[str]:
     return frozenset(prop.name for control in CONTROLS.values() for prop in control.schema.props if prop.name not in handled)
 
 
-def _encode_value(value: Any, codec: str | None) -> Any:
+def _encode_value(value: Any, codec: str | None, encode: str | None = None, scale: float | None = None) -> Any:
+    if scale is not None and isinstance(value, (int, float)) and not isinstance(value, bool):
+        value *= scale
+    if encode == "string":
+        if value is None:
+            return ""
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, float):
+            return _javascript_number(value)
+        return str(value)
     if codec != "json":
         return value
     if isinstance(value, float):
@@ -281,14 +335,17 @@ class _Resolver:
     def control(self, node: dict) -> dict:
         kind = node["tag"][len(GENERIC_PREFIX) :]
         generic_props = _generic_props()
+        props = {name: _plain(v) for name, v in node.get("props", {}).items()}
+        bindings = dict(node.get("bindings", {}))
         spec = self.design.controls.get(kind)
-        fallback = spec is None
+        fallback = spec is None or any(
+            name in bindings or (name in props and not any(_same_value(props[name], accepted) for accepted in accepted_values))
+            for name, accepted_values in (() if spec is None else spec.accepts.items())
+        )
         if fallback:
             spec = self.fallback.controls.get(kind)
             if spec is None:
                 raise ValueError(f"{_describe(node)} is not a generic control that design {self.design.name!r} or the fallback describes")
-        props = {name: _plain(v) for name, v in node.get("props", {}).items()}
-        bindings = dict(node.get("bindings", {}))
         value_binding = bindings.get("value")
         overrides = (props.pop(OVERRIDES_PROP, None) or {}).get(self.design.name, {})
         if "error" not in props and "error" not in bindings and value_binding and value_binding.get("mode") == "two-way":
@@ -370,6 +427,19 @@ class _Resolver:
         options = props.pop("options", None)
         options_binding = bindings.pop("options", None)
         value = props.pop("value", None)
+        scale = None
+        if spec.value.scale_by is not None:
+            if spec.value.scale_by in bindings:
+                raise ValueError(f"{_describe(node)} binds {spec.value.scale_by!r}, which design {self.design.name!r} uses to scale its value")
+            divisor = props.get(spec.value.scale_by, spec.value.scale_default)
+            if divisor is None and (value is not None or "value" in bindings):
+                raise ValueError(f"{_describe(node)} needs {spec.value.scale_by!r} to scale its value for design {self.design.name!r}")
+            if divisor is not None:
+                if isinstance(divisor, bool) or not isinstance(divisor, (int, float)) or not math.isfinite(divisor) or divisor <= 0:
+                    raise ValueError(f"{_describe(node)} has an invalid {spec.value.scale_by!r} scaling value {divisor!r}")
+                scale = spec.value.scale_to / divisor
+                if not math.isfinite(scale):
+                    raise ValueError(f"{_describe(node)} produces a non-finite value scale for design {self.design.name!r}")
         if spec.options is not None and (options is not None or options_binding is not None):
             if spec.options.kind == "prop":
                 if not isinstance(spec.options.label, str):
@@ -377,15 +447,23 @@ class _Resolver:
                 if spec.options.fixed or spec.options.label_attr is not None or spec.options.item_wrap is not None:
                     raise ValueError(f"design {self.design.name!r} gives property options child-only rendering settings")
                 if options is not None:
-                    out[spec.options.name] = []
+                    rendered_options = []
                     for item in _option_items(options):
                         rendered = {
-                            spec.options.value: _encode_value(item["value"], spec.value.codec),
+                            spec.options.value: _encode_value(item["value"], spec.value.codec, spec.value.encode),
                             spec.options.label: item["label"],
                         }
                         if item["disabled"] and spec.options.disabled is not None:
                             rendered[spec.options.disabled] = True
-                        out[spec.options.name].append(rendered)
+                        rendered_options.append(rendered)
+                    if spec.options.defer:
+                        bindings[spec.options.name] = {
+                            "compute": {"expr": "lit", "value": rendered_options},
+                            "mode": "one-way",
+                            "defer": True,
+                        }
+                    else:
+                        out[spec.options.name] = rendered_options
                 if options_binding is not None:
                     bindings[spec.options.name] = {
                         **options_binding,
@@ -394,7 +472,9 @@ class _Resolver:
                             "label": spec.options.label,
                             **({"disabled": spec.options.disabled} if spec.options.disabled is not None else {}),
                             **({"codec": spec.value.codec} if spec.value.codec is not None else {}),
+                            **({"encode": spec.value.encode} if spec.value.encode is not None else {}),
                         },
+                        **({"defer": True} if spec.options.defer else {}),
                     }
             else:
                 if options_binding is not None:
@@ -404,7 +484,7 @@ class _Resolver:
                     )
                 children = []
                 for item in _option_items(options):
-                    encoded = _encode_value(item["value"], spec.value.codec)
+                    encoded = _encode_value(item["value"], spec.value.codec, spec.value.encode)
                     option_props = {**spec.options.fixed, spec.options.value: encoded}
                     if spec.options.label_attr is not None:
                         option_props[spec.options.label_attr] = item["label"]
@@ -474,17 +554,34 @@ class _Resolver:
                     "mode": "one-way",
                     "defer": True,
                     **({"codec": spec.value.codec} if spec.value.codec else {}),
+                    **({"encode": spec.value.encode} if spec.value.encode else {}),
+                    **({"scale": scale} if scale is not None else {}),
                 }
             elif not spec.value.defer:
-                out[spec.value.prop] = _encode_value(value, spec.value.codec)
+                out[spec.value.prop] = _encode_value(value, spec.value.codec, spec.value.encode, scale)
         if "value" in bindings:
             binding = bindings.pop("value")
             if binding.get("mode") == "two-way" and spec.value.event:
                 binding = {**binding, "event": spec.value.event}
             if spec.value.codec:
                 binding = {**binding, "codec": spec.value.codec}
+            if spec.value.encode:
+                binding = {**binding, "encode": spec.value.encode}
+            if spec.value.state:
+                binding = {**binding, "state": spec.value.state}
             if spec.value.defer:
                 binding = {**binding, "defer": True}
+            if scale is not None:
+                binding = {**binding, "scale": scale}
+            if spec.options is not None and spec.options.selection:
+                binding = {
+                    **binding,
+                    "selection": {
+                        "tag": spec.options.tag,
+                        "value": spec.options.value,
+                        "selected": spec.options.selected,
+                    },
+                }
             bindings[spec.value.prop] = binding
 
         opened = props.pop("open", None)
@@ -548,7 +645,12 @@ class _Resolver:
         if control_props:
             control["props"] = {k: _tag(v) for k, v in control_props.items()}
         content = [self.node(c) if isinstance(c, dict) else c for c in node.get("slots", {}).get(DEFAULT_SLOT, [])]
-        default = [*before, *content, *after]
+        if spec.children_slot:
+            if content:
+                slots.setdefault(spec.children_slot, []).extend(content)
+            default = [*before, *after]
+        else:
+            default = [*before, *content, *after]
         if default:
             slots[DEFAULT_SLOT] = default
         for slot, children in node.get("slots", {}).items():
