@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 from ..bootstrap import AssetLayout, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
-from ..ui.design import Design, select_design
+from ..ui.design import Design, _select_page_design
 
 if TYPE_CHECKING:  # annotations only — tornado is imported inside the functions (not a spaday dependency)
     from tornado.web import Application
@@ -53,7 +53,7 @@ def mount(
 
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
-    page_design = select_design(design, component_packages)
+    page_design = _select_page_design(design, component_packages, page)
     body = bootstrap(
         base=prefix,
         packages=component_packages,

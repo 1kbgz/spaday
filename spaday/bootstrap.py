@@ -43,7 +43,7 @@ from typing import Literal, Union
 from .component import Component
 from .packages import ComponentPackage, PackageRef, npm_package, package_url_prefix, resolve_component_packages
 from .spaday import encode_frame  # compiled core (always available); used by tree_frame
-from .ui.design import Design, resolve, select_design
+from .ui.design import Design, _select_page_design, resolve, select_design
 
 #: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called
 #: per request, so the tree can reflect current state).
@@ -502,7 +502,7 @@ def bootstrap(
     if typed_wires and ws != "/ws":
         raise ValueError("ws= applies only to wire='transports'; set the URL on each Wire instead")
     resolved_tree_url = tree_url or f"{base}/tree{'' if tree == 'frame' else '.json'}"
-    inline_tree = tree_node(page, select_design(design, component_packages)) if tree == "inline" else None
+    inline_tree = tree_node(page, _select_page_design(design, component_packages, page)) if tree == "inline" else None
     style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
     style_tags += [f"<style{n}>{css}</style>" for css in styles]
     # the import map must come before any module script, including the packages' own

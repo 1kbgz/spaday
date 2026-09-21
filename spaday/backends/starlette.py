@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING
 
 from ..bootstrap import AssetLayout, Page, TreeMode, Wire, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import ComponentPackage, PackageRef, package_url_prefix, resolve_component_packages
-from ..ui.design import Design, select_design
+from ..ui.design import Design, _select_page_design
 
 if TYPE_CHECKING:  # annotations only — starlette is imported inside the functions (optional extra)
     from starlette.applications import Starlette
@@ -129,7 +129,7 @@ def _page_routes(
     if spec.tree != "inline" and tree_path is None:
         raise ValueError("tree_path is required for JSON and frame trees")
 
-    page_design = select_design(spec.design, packages)
+    page_design = _select_page_design(spec.design, packages, spec.page)
     body = bootstrap(
         base=base,
         packages=packages,

@@ -210,6 +210,10 @@ class Design(_Data):
     controls: dict[str, ControlSpec] = Field(default_factory=dict)
 
 
+class _AmbiguousDesign(Design):
+    packages: tuple[str, ...]
+
+
 def _plain(value: Any) -> Any:
     """A core-tagged value back to Python (the inverse of ``component._tag``)."""
     if value == "Null":
@@ -324,6 +328,9 @@ class _Resolver:
 
     def node(self, node: dict) -> dict:
         if node.get("tag", "").startswith(GENERIC_PREFIX):
+            if isinstance(self.design, _AmbiguousDesign):
+                names = ", ".join(repr(name) for name in self.design.packages)
+                raise ValueError(f"several selected packages publish a design ({names}); pass design= to render {_describe(node)}")
             return self.control(node)
         if node.get("slots"):
             node = {
@@ -718,3 +725,14 @@ def select_design(design: Design | str | None, packages: Any = ()) -> Design:
     raise ValueError(
         f"no selected package publishes the design {design!r} (packages with a design: {available}); select its package, or pass a Design"
     )
+
+
+def _select_page_design(design: Design | str | None, packages: Any, page: Any) -> Design:
+    if design is None:
+        names = tuple(package.name for package in packages if getattr(package, "design", None) is not None)
+        if len(names) > 1:
+            selected = _AmbiguousDesign(name="ambiguous", packages=names)
+            if page is not None and not callable(page):
+                resolve(page.to_node(), selected)
+            return selected
+    return select_design(design, packages)

@@ -66,6 +66,29 @@ def test_serve_inline_tree_needs_no_tree_route(tmp_path):
     assert client.get("/tree").status_code == 404
 
 
+def test_multiple_design_packages_only_need_a_choice_for_generic_controls(tmp_path):
+    first = ComponentPackage("first", tmp_path, (), design=Design(name="first", controls={"button": ControlSpec(tag="x-first-button")}))
+    second = ComponentPackage("second", tmp_path, (), design=Design(name="second", controls={"button": ControlSpec(tag="x-second-button")}))
+    concrete = Main("hi")
+    client = TestClient(serve(concrete, js=tmp_path, packages=[first, second]))
+    assert client.get("/tree.json").json() == concrete.to_node()
+    inline = TestClient(serve(concrete, js=tmp_path, packages=[first, second], tree="inline"))
+    assert 'const node = {"tag": "spa-main"' in inline.get("/").text
+
+    with pytest.raises(ValueError, match="several selected packages publish a design"):
+        serve(Button(label="hi"), js=tmp_path, packages=[first, second])
+    with pytest.raises(ValueError, match="several selected packages publish a design"):
+        serve(Main(Button(label="hi")), js=tmp_path, packages=[first, second], tree="frame")
+    client = TestClient(serve(lambda: Button(label="hi"), js=tmp_path, packages=[first, second]))
+    assert client.get("/").status_code == 200
+    with pytest.raises(ValueError, match="several selected packages publish a design"):
+        client.get("/tree.json")
+    client = TestClient(serve(Button(label="hi"), js=tmp_path, packages=[first, second], design="second"))
+    assert client.get("/tree.json").json()["tag"] == "x-second-button"
+    client = TestClient(serve(Button(label="hi"), js=tmp_path, packages=[first, second], design="native"))
+    assert client.get("/tree.json").json()["tag"] == "button"
+
+
 def test_build_routes_does_not_mutate_an_app(tmp_path):
     from starlette.applications import Starlette
 
