@@ -287,6 +287,30 @@ def _javascript_number(value: float) -> str:
     return f"{mantissa}e{'+' if exponent >= 0 else ''}{exponent}"
 
 
+def _javascript_string(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        if abs(value) > 2**53 - 1:
+            raise ValueError("string encoding requires a JavaScript-safe integer")
+        return str(value)
+    if isinstance(value, float):
+        if math.isnan(value):
+            return "NaN"
+        if math.isinf(value):
+            return "-Infinity" if value < 0 else "Infinity"
+        return _javascript_number(value)
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, tuple)):
+        return ",".join(_javascript_string(item) for item in value)
+    if isinstance(value, dict):
+        return "[object Object]"
+    raise TypeError(f"unsupported string-encoded value type: {type(value)!r}")
+
+
 def _generic_props() -> frozenset[str]:
     """The control vocabulary derived from every generic schema. A realization must map one of
     these props explicitly or it is dropped; element escape hatches outside the vocabulary pass."""
@@ -297,16 +321,12 @@ def _generic_props() -> frozenset[str]:
 
 
 def _encode_value(value: Any, codec: str | None, encode: str | None = None, scale: float | None = None) -> Any:
+    if encode == "string" and isinstance(value, int) and not isinstance(value, bool) and abs(value) > 2**53 - 1:
+        raise ValueError("string encoding requires a JavaScript-safe integer")
     if scale is not None and isinstance(value, (int, float)) and not isinstance(value, bool):
         value *= scale
     if encode == "string":
-        if value is None:
-            return ""
-        if isinstance(value, bool):
-            return "true" if value else "false"
-        if isinstance(value, float):
-            return _javascript_number(value)
-        return str(value)
+        return _javascript_string(value)
     if codec != "json":
         return value
     if isinstance(value, float):
@@ -457,7 +477,7 @@ class _Resolver:
                     rendered_options = []
                     for item in _option_items(options):
                         rendered = {
-                            spec.options.value: _encode_value(item["value"], spec.value.codec, spec.value.encode),
+                            spec.options.value: _encode_value(item["value"], spec.value.codec, spec.value.encode, scale),
                             spec.options.label: item["label"],
                         }
                         if item["disabled"] and spec.options.disabled is not None:
@@ -481,6 +501,7 @@ class _Resolver:
                             **({"codec": spec.value.codec} if spec.value.codec is not None else {}),
                             **({"encode": spec.value.encode} if spec.value.encode is not None else {}),
                         },
+                        **({"scale": scale} if scale is not None else {}),
                         **({"defer": True} if spec.options.defer else {}),
                     }
             else:
@@ -491,7 +512,7 @@ class _Resolver:
                     )
                 children = []
                 for item in _option_items(options):
-                    encoded = _encode_value(item["value"], spec.value.codec, spec.value.encode)
+                    encoded = _encode_value(item["value"], spec.value.codec, spec.value.encode, scale)
                     option_props = {**spec.options.fixed, spec.options.value: encoded}
                     if spec.options.label_attr is not None:
                         option_props[spec.options.label_attr] = item["label"]
@@ -556,6 +577,8 @@ class _Resolver:
                 after.extend(children)
         if value is not None:
             if spec.value.defer and "value" not in bindings:
+                if spec.value.encode == "string":
+                    _javascript_string(value)
                 bindings[spec.value.prop] = {
                     "compute": {"expr": "lit", "value": value},
                     "mode": "one-way",

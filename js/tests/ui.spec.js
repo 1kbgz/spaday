@@ -170,6 +170,32 @@ test.describe("binding features for designs", () => {
     });
   });
 
+  test("string encoding preserves JavaScript conversion on live updates", async ({
+    page,
+  }) => {
+    const values = await page.evaluate(() => {
+      const store = new window.__spaday.Store({ value: ["a", null, true] });
+      const input = window.__spaday.mount(
+        document.body,
+        {
+          tag: "input",
+          bindings: { value: { field: "value", encode: "string" } },
+        },
+        store,
+      );
+      const list = input.value;
+      store.set("value", { a: 1 });
+      const object = input.value;
+      store.set("value", 1e21);
+      return { list, object, number: input.value };
+    });
+    expect(values).toEqual({
+      list: "a,,true",
+      object: "[object Object]",
+      number: "1e+21",
+    });
+  });
+
   test("a parent binding can drive and read child-owned selection", async ({
     page,
   }) => {
@@ -223,6 +249,93 @@ test.describe("binding features for designs", () => {
       initialChecked: [false, true],
       checked: [true, false],
       choice: 1,
+    });
+  });
+
+  test("scaled child selection matches and decodes the selected value", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(() => {
+      customElements.define(
+        "x-scaled-radio",
+        class extends HTMLElement {
+          value = "";
+          checked = false;
+        },
+      );
+      const store = new window.__spaday.Store({ choice: 2 });
+      const group = window.__spaday.mount(
+        document.body,
+        {
+          tag: "div",
+          bindings: {
+            value: {
+              field: "choice",
+              mode: "two-way",
+              event: "x-change",
+              state: "selectedItem.value",
+              codec: "number",
+              encode: "string",
+              scale: 50,
+              selection: {
+                tag: "x-scaled-radio",
+                value: "value",
+                selected: "checked",
+              },
+            },
+          },
+          slots: {
+            default: [
+              { tag: "x-scaled-radio", props: { value: { Str: "50" } } },
+              { tag: "x-scaled-radio", props: { value: { Str: "100" } } },
+            ],
+          },
+        },
+        store,
+      );
+      const radios = Array.from(group.children);
+      const initiallyChecked = radios.map((radio) => radio.checked);
+      group.selectedItem = radios[0];
+      group.dispatchEvent(new Event("x-change"));
+      return { initiallyChecked, choice: store.get("choice") };
+    });
+    expect(r).toEqual({ initiallyChecked: [false, true], choice: 1 });
+  });
+
+  test("bound property options use the same scale as the value binding", async ({
+    page,
+  }) => {
+    const r = await page.evaluate(() => {
+      customElements.define(
+        "x-scaled-options",
+        class extends HTMLElement {
+          items = [];
+        },
+      );
+      const store = new window.__spaday.Store({
+        choices: [{ value: 1, label: "One" }],
+      });
+      const select = window.__spaday.mount(
+        document.body,
+        {
+          tag: "x-scaled-options",
+          bindings: {
+            items: {
+              field: "choices",
+              options: { value: "key", label: "text", encode: "string" },
+              scale: 50,
+            },
+          },
+        },
+        store,
+      );
+      const initial = select.items;
+      store.set("choices", [{ value: 2, label: "Two" }]);
+      return { initial, updated: select.items };
+    });
+    expect(r).toEqual({
+      initial: [{ key: "50", text: "One" }],
+      updated: [{ key: "100", text: "Two" }],
     });
   });
 
