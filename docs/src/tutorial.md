@@ -1,139 +1,141 @@
 # Tutorial: build your first interactive UI
 
-In this tutorial you will build a small settings panel — a checkbox and a reveal button —
-and make it interactive, all from Python. By the end you will have rendered web components, run
-behavior in the browser with no server, and wired a control two-way to state your Python code can read.
-
-We will work in a **Jupyter notebook**, because it renders a spaday UI with no setup. Everything you
-learn here applies unchanged to a web app (see [the transports guide](transports.md) afterwards).
+In this tutorial, you will build a settings panel with a switch and a button. You will try it in a
+notebook, then serve the same page as a standalone web app. The component tree, actions, and bindings
+will not change between hosts.
 
 ## Setup
 
-Install spaday with the notebook host, and start a notebook:
+Install spaday, JupyterLab, and the web host used in the last step:
 
 ```bash
-pip install "spaday[widget]"
+pip install "spaday[widget]" jupyterlab starlette uvicorn
 jupyter lab
 ```
 
-## Step 1 — render a component
+Open a new Python notebook. Run each cell below in order.
 
-In a cell, build a card containing a switch and display it:
+## Step 1 — render real controls
+
+Start with a switch and a button:
 
 ```python
-from spaday import Widget, element
+from spaday import Widget
+from spaday.components.shell import Column
+from spaday.ui import Button, Switch
 
-panel = element("label").child(element("input", type="checkbox")).child("Lamp")
-Widget(panel)
+Widget(Column(Switch(label="Lamp"), Button(label="Details"), gap="0.75rem"))
 ```
 
-Run the cell. You should see a labelled checkbox. `.child(...)` nests one element inside another, and
-`Widget(...)` renders the tree in the output area.
+You should see both controls in the cell output. `Switch` and `Button` are typed spaday controls;
+`Column` is a layout web component. Spaday renders the controls with its native design when no
+external design system is selected.
 
-## Step 2 — add a layout
+## Step 2 — add browser behavior
 
-Components nest, so add a second row and a heading using the same pattern. Use a `Stack` to lay the
-children out vertically:
+Make the button show and hide a message:
 
 ```python
-from spaday import element, Widget
-from spaday.components.shell import Stack
+from spaday import Toggle, by_id
+from spaday.ui import Alert
 
-panel = element("section", style="border:1px solid #bbb;padding:1rem").child(
-    Stack()
-    .child(element("strong").text("Settings"))
-    .child(element("label").child(element("input", type="checkbox")).child("Lamp"))
-    .child(element("label").child(element("input", type="checkbox")).child("Notifications"))
+panel = Column(
+    Switch(label="Lamp"),
+    Button(label="Details").on("click", Toggle(by_id("details"), "hidden")),
+    Alert("This action runs in the browser.", label="Details", id="details", hidden=True),
+    gap="0.75rem",
 )
 Widget(panel)
 ```
 
-Run it. You should see a panel titled **Settings** with two checkboxes stacked under it. `Stack` is one of
-spaday's `spa-*` layout components; `element("strong")` is an escape hatch for a plain HTML tag.
+Click **Details**. The message appears and disappears. `Toggle` is a serializable action interpreted
+in the browser; clicking the button does not call Python.
 
-## Step 3 — make it do something, in the browser
+## Step 3 — put the page in one reusable module
 
-Now add a button that reveals a panel — and have it run **in the browser**, with no call back to
-Python. Attach a declarative action with `.on(...)`:
-
-```python
-from spaday import by_id, element, Toggle, Widget
-from spaday.components.shell import Stack
-
-panel = element("section", style="border:1px solid #bbb;padding:1rem").child(
-    Stack()
-    .child(element("strong").text("Settings"))
-    .child(element("label").child(element("input", type="checkbox")).child("Lamp"))
-    .child(element("button").text("Details").on("click", Toggle(by_id("info"), "hidden")))
-    .child(element("div", id="info", hidden=True).text("Runs entirely client-side."))
-)
-Widget(panel)
-```
-
-Run it and click **Details**. The callout appears and disappears each click. `Toggle(by_id("info"), "hidden")` is an *action* — serializable data, not Python code — that spaday's runtime interprets in the
-browser. Your Python kernel is never contacted when you click.
-
-## Step 4 — bind a control to state
-
-Client-side behavior is good; reactive *state* is better. Give the widget a state model and bind the
-switch's `checked` to a field of it, **two-way**:
+Bind the switch to a state field, and save the finished page as `settings.py`. The notebook and web
+app will import this same function. Run this cell:
 
 ```python
-from spaday import element, Widget
-from spaday.components.shell import Stack
+%%writefile settings.py
+from spaday import Toggle, by_id
+from spaday.components.shell import Column
+from spaday.ui import Alert, Button, Switch
 
-panel = element("section", style="border:1px solid #bbb;padding:1rem").child(
-    Stack()
-    .child(element("strong").text("Settings"))
-    .child(
-        element("label")
-        .child(element("input", type="checkbox").bind("checked", "lamp", mode="two-way"))
-        .child("Lamp")
+INITIAL = {"lamp": True}
+
+
+def page():
+    return Column(
+        Switch(label="Lamp").bind("value", "lamp", mode="two-way"),
+        Button(label="Details").on("click", Toggle(by_id("details"), "hidden")),
+        Alert("This action runs in the browser.", label="Details", id="details", hidden=True),
+        gap="0.75rem",
     )
-)
-w = Widget(panel, state={"lamp": True})
+```
+
+The cell writes `settings.py` beside your notebook. Now render that page with its initial state:
+
+```python
+from settings import INITIAL, page
+
+w = Widget(page(), state=INITIAL)
 w
 ```
 
-Run it. The switch starts **on**, because the `lamp` field is `True`. Now read the state back in Python —
-in a new cell:
+The switch starts on. Flip it, then run this in another cell:
 
 ```python
 w.state
 ```
 
-Flip the switch in the rendered widget, then re-run `w.state`. You should see `{'lamp': False}`. The
-control wrote the field. It works the other way too — set the field from Python:
+You should see `{'lamp': False}`. The binding wrote the field from the browser into the notebook's
+Python state. Set it from Python to turn the switch on again:
 
 ```python
 w.state = {"lamp": True}
 ```
 
-The switch turns back on. The binding keeps the control and the state field in sync in both directions.
-
-## Step 5 — react to changes in Python
-
-Register a callback to run whenever the state changes (including from a click in the browser):
+You can also react to later changes:
 
 ```python
 w.on_state(lambda state: print("settings:", state))
 ```
 
-Now flip the switch in the widget. Your cell prints `settings: {'lamp': False}`. You have a UI whose
-interactions run in the browser *and* report back to Python.
+Flip the switch once more. The notebook prints `settings: {'lamp': False}`.
+
+## Step 4 — serve the same page as a web app
+
+Write a small web host beside `settings.py`:
+
+```python
+%%writefile app.py
+from settings import INITIAL, page
+from spaday.backends.starlette import serve
+
+app = serve(page, store=INITIAL, title="Settings")
+```
+
+In a terminal, from the directory containing `app.py`, run:
+
+```bash
+uvicorn app:app --reload
+```
+
+Open <http://127.0.0.1:8000>. You should see the same switch, button, and message. The button still
+runs in the browser, and the switch still binds two-way to `lamp`. `page()` and `INITIAL` are shared;
+only the host call differs. The notebook's `Widget` syncs state with its Python kernel, while this
+standalone page keeps state in the browser. The two windows do not share state.
 
 ## What you built
 
-- A component UI authored entirely in Python.
-- Behavior (`Toggle`) that runs client-side with no round-trip.
-- A control two-way-bound to state, readable and writable from Python.
+You authored one page with typed controls, a browser action, and a two-way binding, then ran it in a
+notebook and as a standalone app.
 
 ## Next steps
 
-- [How spaday works](concepts.md) — why behavior is data and how one Rust core drives both Python and the browser.
-- [Add behavior and reactivity](behavior.md) — the full action DSL and binding kinds (including
-  *computed* props derived from state).
-- [Author a component tree](components.md) — props, slots, keys, generated forms, and the shell components.
-- [Serve and embed a spaday app](serving.md) — put this panel on a webserver, from a whole app down to a
-  fragment in a page you already own.
-- [Sync a UI to a server over transports](transports.md) — the same panel, multi-tenant, on a webserver.
+- [Sync a UI to a server over transports](transports.md) to make the standalone app's state available
+  to Python and share it across browser tabs.
+- [Serve and embed a spaday app](serving.md) for other hosting options.
+- [Use component packages](components.md) to render generic controls with a design system such as
+  WebAwesome, or use its typed components directly.
