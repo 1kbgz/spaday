@@ -476,6 +476,10 @@
 
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_AmbiguousDesign</span><span class="p">(</span><span class="n">Design</span><span class="p">):</span>
+    <span class="n">packages</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_plain</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""A core-tagged value back to Python (the inverse of ``component._tag``)."""</span>
     <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="s2">"Null"</span><span class="p">:</span>
@@ -590,6 +594,9 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tag"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">GENERIC_PREFIX</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">design</span><span class="p">,</span> <span class="n">_AmbiguousDesign</span><span class="p">):</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">design</span><span class="o">.</span><span class="n">packages</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"several selected packages publish a design (</span><span class="si">{</span><span class="n">names</span><span class="si">}</span><span class="s2">); pass design= to render </span><span class="si">{</span><span class="n">_describe</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"slots"</span><span class="p">):</span>
             <span class="n">node</span> <span class="o">=</span> <span class="p">{</span>
@@ -990,6 +997,17 @@
         <span class="sa">f</span><span class="s2">"no selected package publishes the design </span><span class="si">{</span><span class="n">design</span><span class="si">!r}</span><span class="s2"> (packages with a design: </span><span class="si">{</span><span class="n">available</span><span class="si">}</span><span class="s2">); select its package, or pass a Design"</span>
     <span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_select_page_design</span><span class="p">(</span><span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">packages</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">page</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Design</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">design</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="s2">"design"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">selected</span> <span class="o">=</span> <span class="n">_AmbiguousDesign</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"ambiguous"</span><span class="p">,</span> <span class="n">packages</span><span class="o">=</span><span class="n">names</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">page</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">page</span><span class="p">):</span>
+                <span class="n">resolve</span><span class="p">(</span><span class="n">page</span><span class="o">.</span><span class="n">to_node</span><span class="p">(),</span> <span class="n">selected</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">selected</span>
+    <span class="k">return</span> <span class="n">select_design</span><span class="p">(</span><span class="n">design</span><span class="p">,</span> <span class="n">packages</span><span class="p">)</span>
 </pre></div>
         </article>
       </div>
