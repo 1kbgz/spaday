@@ -348,6 +348,7 @@ function encodeBoundValue(
 function encodeBoundOptions(
   value: unknown,
   options: NonNullable<Binding["options"]>,
+  scale?: number,
 ): unknown {
   if (!Array.isArray(value)) return [];
   return value.map((choice) => {
@@ -360,6 +361,7 @@ function encodeBoundOptions(
         item.value,
         options.codec,
         options.encode,
+        scale,
       ),
       [options.label]: String(item.label ?? item.value),
     };
@@ -465,7 +467,7 @@ function wireBinding(
   const applyNow = (value: unknown) =>
     applyValue(
       spec.options
-        ? encodeBoundOptions(value, spec.options)
+        ? encodeBoundOptions(value, spec.options, spec.scale)
         : encodeBoundValue(value, spec.codec, spec.encode, spec.scale),
     );
   // build() wires before mount() attaches. Keep the latest initial method value pending until the

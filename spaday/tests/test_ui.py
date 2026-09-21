@@ -385,6 +385,37 @@ def test_child_options_can_own_selection_state():
         Options(kind="prop", selection=True)
 
 
+def test_scaled_child_options_match_the_scaled_value_binding():
+    design = _design(
+        select=ControlSpec(
+            tag="x-select",
+            props={"max": None},
+            options=Options(tag="x-option", selected="checked", selection=True),
+            value=Value(codec="number", encode="string", scale_by="max", scale_to=100),
+        )
+    )
+    node = _plain(resolve(Select(options=[1, 2], max=2).bind("value", "choice", mode="two-way").to_node(), design))
+    assert node["bindings"]["value"]["scale"] == 50
+    assert [option["props"]["value"] for option in node["slots"]["default"]] == ["50", "100"]
+
+
+def test_scaled_property_options_match_literal_and_bound_values():
+    design = _design(
+        select=ControlSpec(
+            tag="x-select",
+            props={"max": None},
+            options=Options(kind="prop", name="items", value="key", label="text"),
+            value=Value(encode="string", scale_by="max", scale_to=100),
+        )
+    )
+    literal = _plain(resolve(Select(options=[1, 2], value=2, max=2).to_node(), design))
+    assert [option["key"] for option in literal["props"]["items"]] == ["50", "100"]
+    assert literal["props"]["value"] == "100"
+    bound = _plain(resolve(Select(max=2).bind("options", "choices").bind("value", "choice").to_node(), design))
+    assert bound["bindings"]["items"]["scale"] == 50
+    assert bound["bindings"]["value"]["scale"] == 50
+
+
 def test_control_children_can_be_routed_to_a_named_slot():
     design = _design(alert=ControlSpec(tag="x-alert", label=Part(kind="slot", name="title"), children_slot="message"))
     node = _plain(resolve(Alert(element("span").text("Details"), label="Notice").to_node(), design))
@@ -416,6 +447,17 @@ def test_value_can_scale_against_another_generic_property():
         resolve(Progress(value=1, max=-1).to_node(), design)
     with pytest.raises(ValueError, match="cannot be combined"):
         Value(codec="json", encode="string")
+
+
+def test_string_encoding_matches_javascript_for_json_values():
+    design = _design(select=ControlSpec(tag="x-select", value=Value(encode="string")))
+    for value, expected in [(["a", None, True], "a,,true"), ({"a": 1}, "[object Object]"), (1e21, "1e+21")]:
+        assert _plain(resolve(Select(value=value).to_node(), design))["props"]["value"] == expected
+    with pytest.raises(ValueError, match="string encoding requires a JavaScript-safe integer"):
+        resolve(Select(value=2**53).to_node(), design)
+    deferred = _design(select=ControlSpec(tag="x-select", value=Value(encode="string", defer=True)))
+    with pytest.raises(ValueError, match="string encoding requires a JavaScript-safe integer"):
+        resolve(Select(value=2**53).to_node(), deferred)
 
 
 def test_typed_disabled_options_can_cross_a_string_dom_value():
