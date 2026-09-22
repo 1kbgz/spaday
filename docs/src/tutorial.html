@@ -251,129 +251,125 @@
         <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="tutorial-build-your-first-interactive-ui">
 <h1>Tutorial: build your first interactive UI<a class="headerlink" href="#tutorial-build-your-first-interactive-ui" title="Link to this heading">¶</a></h1>
-<p>In this tutorial you will build a small settings panel — a checkbox and a reveal button —
-and make it interactive, all from Python. By the end you will have rendered web components, run
-behavior in the browser with no server, and wired a control two-way to state your Python code can read.</p>
-<p>We will work in a <strong>Jupyter notebook</strong>, because it renders a spaday UI with no setup. Everything you
-learn here applies unchanged to a web app (see <a class="reference internal" href="transports.html"><span class="std std-doc">the transports guide</span></a> afterwards).</p>
+<p>In this tutorial, you will build a settings panel with a switch and a button. You will try it in a
+notebook, then serve the same page as a standalone web app. The component tree, actions, and bindings
+will not change between hosts.</p>
 <section id="setup">
 <h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
-<p>Install spaday with the notebook host, and start a notebook:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"spaday[widget]"</span>
+<p>Install spaday, JupyterLab, and the web host used in the last step:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"spaday[widget]"</span><span class="w"> </span>jupyterlab<span class="w"> </span>starlette<span class="w"> </span>uvicorn
 jupyter<span class="w"> </span>lab
 </pre></div>
 </div>
+<p>Open a new Python notebook. Run each cell below in order.</p>
 </section>
-<section id="step-1-render-a-component">
-<h2>Step 1 — render a component<a class="headerlink" href="#step-1-render-a-component" title="Link to this heading">¶</a></h2>
-<p>In a cell, build a card containing a switch and display it:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span>
+<section id="step-1-render-real-controls">
+<h2>Step 1 — render real controls<a class="headerlink" href="#step-1-render-real-controls" title="Link to this heading">¶</a></h2>
+<p>Start with a switch and a button:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Column</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.ui</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span><span class="p">,</span> <span class="n">Switch</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">)</span>
-<span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
+<span class="n">Widget</span><span class="p">(</span><span class="n">Column</span><span class="p">(</span><span class="n">Switch</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Lamp"</span><span class="p">),</span> <span class="n">Button</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Details"</span><span class="p">),</span> <span class="n">gap</span><span class="o">=</span><span class="s2">"0.75rem"</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>Run the cell. You should see a labelled checkbox. <code class="docutils literal notranslate"><span class="pre">.child(...)</span></code> nests one element inside another, and
-<code class="docutils literal notranslate"><span class="pre">Widget(...)</span></code> renders the tree in the output area.</p>
+<p>You should see both controls in the cell output. <code class="docutils literal notranslate"><span class="pre">Switch</span></code> and <code class="docutils literal notranslate"><span class="pre">Button</span></code> are typed spaday controls;
+<code class="docutils literal notranslate"><span class="pre">Column</span></code> is a layout web component. Spaday renders the controls with its native design when no
+external design system is selected.</p>
 </section>
-<section id="step-2-add-a-layout">
-<h2>Step 2 — add a layout<a class="headerlink" href="#step-2-add-a-layout" title="Link to this heading">¶</a></h2>
-<p>Components nest, so add a second row and a heading using the same pattern. Use a <code class="docutils literal notranslate"><span class="pre">Stack</span></code> to lay the
-children out vertically:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span><span class="p">,</span> <span class="n">Widget</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
+<section id="step-2-add-browser-behavior">
+<h2>Step 2 — add browser behavior<a class="headerlink" href="#step-2-add-browser-behavior" title="Link to this heading">¶</a></h2>
+<p>Make the button show and hide a message:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Toggle</span><span class="p">,</span> <span class="n">by_id</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.ui</span><span class="w"> </span><span class="kn">import</span> <span class="n">Alert</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">"border:1px solid #bbb;padding:1rem"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
-    <span class="n">Stack</span><span class="p">()</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"strong"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Settings"</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Notifications"</span><span class="p">))</span>
+<span class="n">panel</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span>
+    <span class="n">Switch</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Lamp"</span><span class="p">),</span>
+    <span class="n">Button</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Details"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"details"</span><span class="p">),</span> <span class="s2">"hidden"</span><span class="p">)),</span>
+    <span class="n">Alert</span><span class="p">(</span><span class="s2">"This action runs in the browser."</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Details"</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"details"</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">gap</span><span class="o">=</span><span class="s2">"0.75rem"</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Run it. You should see a panel titled <strong>Settings</strong> with two checkboxes stacked under it. <code class="docutils literal notranslate"><span class="pre">Stack</span></code> is one of
-spaday’s <code class="docutils literal notranslate"><span class="pre">spa-*</span></code> layout components; <code class="docutils literal notranslate"><span class="pre">element(&quot;strong&quot;)</span></code> is an escape hatch for a plain HTML tag.</p>
+<p>Click <strong>Details</strong>. The message appears and disappears. <code class="docutils literal notranslate"><span class="pre">Toggle</span></code> is a serializable action interpreted
+in the browser; clicking the button does not call Python.</p>
 </section>
-<section id="step-3-make-it-do-something-in-the-browser">
-<h2>Step 3 — make it do something, in the browser<a class="headerlink" href="#step-3-make-it-do-something-in-the-browser" title="Link to this heading">¶</a></h2>
-<p>Now add a button that reveals a panel — and have it run <strong>in the browser</strong>, with no call back to
-Python. Attach a declarative action with <code class="docutils literal notranslate"><span class="pre">.on(...)</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">by_id</span><span class="p">,</span> <span class="n">element</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">,</span> <span class="n">Widget</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
+<section id="step-3-put-the-page-in-one-reusable-module">
+<h2>Step 3 — put the page in one reusable module<a class="headerlink" href="#step-3-put-the-page-in-one-reusable-module" title="Link to this heading">¶</a></h2>
+<p>Bind the switch to a state field, and save the finished page as <code class="docutils literal notranslate"><span class="pre">settings.py</span></code>. The notebook and web
+app will import this same function. Run this cell:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">writefile</span> <span class="n">settings</span><span class="o">.</span><span class="n">py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Toggle</span><span class="p">,</span> <span class="n">by_id</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Column</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.ui</span><span class="w"> </span><span class="kn">import</span> <span class="n">Alert</span><span class="p">,</span> <span class="n">Button</span><span class="p">,</span> <span class="n">Switch</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">"border:1px solid #bbb;padding:1rem"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
-    <span class="n">Stack</span><span class="p">()</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"strong"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Settings"</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">))</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"button"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Details"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"info"</span><span class="p">),</span> <span class="s2">"hidden"</span><span class="p">)))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"div"</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"info"</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Runs entirely client-side."</span><span class="p">))</span>
-<span class="p">)</span>
-<span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Run it and click <strong>Details</strong>. The callout appears and disappears each click. <code class="docutils literal notranslate"><span class="pre">Toggle(by_id(&quot;info&quot;),</span> <span class="pre">&quot;hidden&quot;)</span></code> is an <em>action</em> — serializable data, not Python code — that spaday’s runtime interprets in the
-browser. Your Python kernel is never contacted when you click.</p>
-</section>
-<section id="step-4-bind-a-control-to-state">
-<h2>Step 4 — bind a control to state<a class="headerlink" href="#step-4-bind-a-control-to-state" title="Link to this heading">¶</a></h2>
-<p>Client-side behavior is good; reactive <em>state</em> is better. Give the widget a state model and bind the
-switch’s <code class="docutils literal notranslate"><span class="pre">checked</span></code> to a field of it, <strong>two-way</strong>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span><span class="p">,</span> <span class="n">Widget</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stack</span>
+<span class="n">INITIAL</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"lamp"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
 
-<span class="n">panel</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">"border:1px solid #bbb;padding:1rem"</span><span class="p">)</span><span class="o">.</span><span class="n">child</span><span class="p">(</span>
-    <span class="n">Stack</span><span class="p">()</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"strong"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Settings"</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">child</span><span class="p">(</span>
-        <span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"checkbox"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"checked"</span><span class="p">,</span> <span class="s2">"lamp"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="s2">"Lamp"</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">page</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">Column</span><span class="p">(</span>
+        <span class="n">Switch</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Lamp"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"lamp"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">),</span>
+        <span class="n">Button</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Details"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">Toggle</span><span class="p">(</span><span class="n">by_id</span><span class="p">(</span><span class="s2">"details"</span><span class="p">),</span> <span class="s2">"hidden"</span><span class="p">)),</span>
+        <span class="n">Alert</span><span class="p">(</span><span class="s2">"This action runs in the browser."</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Details"</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"details"</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="n">gap</span><span class="o">=</span><span class="s2">"0.75rem"</span><span class="p">,</span>
     <span class="p">)</span>
-<span class="p">)</span>
-<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">"lamp"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>The cell writes <code class="docutils literal notranslate"><span class="pre">settings.py</span></code> beside your notebook. Now render that page with its initial state:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">INITIAL</span><span class="p">,</span> <span class="n">page</span>
+
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">page</span><span class="p">(),</span> <span class="n">state</span><span class="o">=</span><span class="n">INITIAL</span><span class="p">)</span>
 <span class="n">w</span>
 </pre></div>
 </div>
-<p>Run it. The switch starts <strong>on</strong>, because the <code class="docutils literal notranslate"><span class="pre">lamp</span></code> field is <code class="docutils literal notranslate"><span class="pre">True</span></code>. Now read the state back in Python —
-in a new cell:</p>
+<p>The switch starts on. Flip it, then run this in another cell:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">state</span>
 </pre></div>
 </div>
-<p>Flip the switch in the rendered widget, then re-run <code class="docutils literal notranslate"><span class="pre">w.state</span></code>. You should see <code class="docutils literal notranslate"><span class="pre">{'lamp':</span> <span class="pre">False}</span></code>. The
-control wrote the field. It works the other way too — set the field from Python:</p>
+<p>You should see <code class="docutils literal notranslate"><span class="pre">{'lamp':</span> <span class="pre">False}</span></code>. The binding wrote the field from the browser into the notebook’s
+Python state. Set it from Python to turn the switch on again:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"lamp"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
 </pre></div>
 </div>
-<p>The switch turns back on. The binding keeps the control and the state field in sync in both directions.</p>
-</section>
-<section id="step-5-react-to-changes-in-python">
-<h2>Step 5 — react to changes in Python<a class="headerlink" href="#step-5-react-to-changes-in-python" title="Link to this heading">¶</a></h2>
-<p>Register a callback to run whenever the state changes (including from a click in the browser):</p>
+<p>You can also react to later changes:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_state</span><span class="p">(</span><span class="k">lambda</span> <span class="n">state</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"settings:"</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>Now flip the switch in the widget. Your cell prints <code class="docutils literal notranslate"><span class="pre">settings:</span> <span class="pre">{'lamp':</span> <span class="pre">False}</span></code>. You have a UI whose
-interactions run in the browser <em>and</em> report back to Python.</p>
+<p>Flip the switch once more. The notebook prints <code class="docutils literal notranslate"><span class="pre">settings:</span> <span class="pre">{'lamp':</span> <span class="pre">False}</span></code>.</p>
+</section>
+<section id="step-4-serve-the-same-page-as-a-web-app">
+<h2>Step 4 — serve the same page as a web app<a class="headerlink" href="#step-4-serve-the-same-page-as-a-web-app" title="Link to this heading">¶</a></h2>
+<p>Write a small web host beside <code class="docutils literal notranslate"><span class="pre">settings.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">writefile</span> <span class="n">app</span><span class="o">.</span><span class="n">py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">INITIAL</span><span class="p">,</span> <span class="n">page</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">serve</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="n">INITIAL</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Settings"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In a terminal, from the directory containing <code class="docutils literal notranslate"><span class="pre">app.py</span></code>, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uvicorn<span class="w"> </span>app:app<span class="w"> </span>--reload
+</pre></div>
+</div>
+<p>Open <a class="reference external" href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>. You should see the same switch, button, and message. The button still
+runs in the browser, and the switch still binds two-way to <code class="docutils literal notranslate"><span class="pre">lamp</span></code>. <code class="docutils literal notranslate"><span class="pre">page()</span></code> and <code class="docutils literal notranslate"><span class="pre">INITIAL</span></code> are shared;
+only the host call differs. The notebook’s <code class="docutils literal notranslate"><span class="pre">Widget</span></code> syncs state with its Python kernel, while this
+standalone page keeps state in the browser. The two windows do not share state.</p>
 </section>
 <section id="what-you-built">
 <h2>What you built<a class="headerlink" href="#what-you-built" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p>A component UI authored entirely in Python.</p></li>
-<li><p>Behavior (<code class="docutils literal notranslate"><span class="pre">Toggle</span></code>) that runs client-side with no round-trip.</p></li>
-<li><p>A control two-way-bound to state, readable and writable from Python.</p></li>
-</ul>
+<p>You authored one page with typed controls, a browser action, and a two-way binding, then ran it in a
+notebook and as a standalone app.</p>
 </section>
 <section id="next-steps">
 <h2>Next steps<a class="headerlink" href="#next-steps" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><a class="reference internal" href="concepts.html"><span class="std std-doc">How spaday works</span></a> — why behavior is data and how one Rust core drives both Python and the browser.</p></li>
-<li><p><a class="reference internal" href="behavior.html"><span class="std std-doc">Add behavior and reactivity</span></a> — the full action DSL and binding kinds (including
-<em>computed</em> props derived from state).</p></li>
-<li><p><a class="reference internal" href="components.html"><span class="std std-doc">Author a component tree</span></a> — props, slots, keys, generated forms, and the shell components.</p></li>
-<li><p><a class="reference internal" href="serving.html"><span class="std std-doc">Serve and embed a spaday app</span></a> — put this panel on a webserver, from a whole app down to a
-fragment in a page you already own.</p></li>
-<li><p><a class="reference internal" href="transports.html"><span class="std std-doc">Sync a UI to a server over transports</span></a> — the same panel, multi-tenant, on a webserver.</p></li>
+<li><p><a class="reference internal" href="transports.html"><span class="std std-doc">Sync a UI to a server over transports</span></a> to make the standalone app’s state available
+to Python and share it across browser tabs.</p></li>
+<li><p><a class="reference internal" href="serving.html"><span class="std std-doc">Serve and embed a spaday app</span></a> for other hosting options.</p></li>
+<li><p><a class="reference internal" href="components.html"><span class="std std-doc">Use component packages</span></a> to render generic controls with a design system such as
+WebAwesome, or use its typed components directly.</p></li>
 </ul>
 </section>
 </section>
@@ -435,11 +431,10 @@ fragment in a page you already own.</p></li>
             <ul>
 <li><a class="reference internal" href="#">Tutorial: build your first interactive UI</a><ul>
 <li><a class="reference internal" href="#setup">Setup</a></li>
-<li><a class="reference internal" href="#step-1-render-a-component">Step 1 — render a component</a></li>
-<li><a class="reference internal" href="#step-2-add-a-layout">Step 2 — add a layout</a></li>
-<li><a class="reference internal" href="#step-3-make-it-do-something-in-the-browser">Step 3 — make it do something, in the browser</a></li>
-<li><a class="reference internal" href="#step-4-bind-a-control-to-state">Step 4 — bind a control to state</a></li>
-<li><a class="reference internal" href="#step-5-react-to-changes-in-python">Step 5 — react to changes in Python</a></li>
+<li><a class="reference internal" href="#step-1-render-real-controls">Step 1 — render real controls</a></li>
+<li><a class="reference internal" href="#step-2-add-browser-behavior">Step 2 — add browser behavior</a></li>
+<li><a class="reference internal" href="#step-3-put-the-page-in-one-reusable-module">Step 3 — put the page in one reusable module</a></li>
+<li><a class="reference internal" href="#step-4-serve-the-same-page-as-a-web-app">Step 4 — serve the same page as a web app</a></li>
 <li><a class="reference internal" href="#what-you-built">What you built</a></li>
 <li><a class="reference internal" href="#next-steps">Next steps</a></li>
 </ul>
