@@ -15,6 +15,7 @@ import {
   exprScopes,
   Scope,
   Store,
+  type StoreChange,
 } from "./signals";
 import { untag, Value } from "./value";
 
@@ -389,6 +390,34 @@ function decodeBoundValue(
   return decoded;
 }
 
+function boundRangeChange(
+  event: Event,
+  value: unknown,
+): StoreChange | undefined {
+  const detail = event instanceof CustomEvent ? event.detail : undefined;
+  if (!detail || typeof detail !== "object") return undefined;
+  const ranges = (detail as { changes?: unknown }).changes;
+  if (
+    !Array.isArray(ranges) ||
+    ranges.some(
+      (range) =>
+        !range ||
+        typeof range !== "object" ||
+        !Number.isSafeInteger((range as { from?: unknown }).from) ||
+        !Number.isSafeInteger((range as { to?: unknown }).to) ||
+        !(
+          typeof (range as { insert?: unknown }).insert === "string" ||
+          Array.isArray((range as { insert?: unknown }).insert)
+        ),
+    )
+  )
+    return undefined;
+  return {
+    ranges: ranges as StoreChange["ranges"],
+    unit: typeof value === "string" ? "utf16" : undefined,
+  };
+}
+
 // The setter a binding drives. Normally a prop on the bound element; a `root-class:NAME` or
 // `root-attr:NAME` binding instead writes the document root (`<html>`) — page-level theming (e.g.
 // WebAwesome's `wa-dark`, or a `:root[data-density='comfortable']` token set) that lives outside the
@@ -540,21 +569,19 @@ function wireBinding(
     if (store.has(spec.field)) apply(store.get(spec.field)); // initial field → prop
     teardowns.push(store.subscribe(spec.field, (v) => apply(v)));
     if (spec.mode === "two-way") {
-      const onChange = () => {
+      const onChange = (event: Event) => {
         // Don't propagate an invalid value (e.g. a non-numeric or out-of-range entry in a constrained
         // control): the store/server keep the last good value and the control shows its own invalid
         // state. Server-side validation (transports) is still the authority; this just avoids the
         // doomed round-trip. Controls without constraint validation always pass.
         const v = el as unknown as { checkValidity?: () => boolean };
         if (typeof v.checkValidity === "function" && !v.checkValidity()) return;
-        store.set(
-          spec.field!,
-          decodeBoundValue(
-            readBindingState(el, prop, spec.state),
-            spec.codec,
-            spec.scale,
-          ),
+        const value = decodeBoundValue(
+          readBindingState(el, prop, spec.state),
+          spec.codec,
+          spec.scale,
         );
+        store.set(spec.field!, value, boundRangeChange(event, value));
       };
       const events = spec.event ? [spec.event] : VALUE_EVENTS;
       for (const ev of events) el.addEventListener(ev, onChange);

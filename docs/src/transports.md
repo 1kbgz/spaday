@@ -84,6 +84,35 @@ ws.addEventListener("close", () => link.disconnect());
 the authoritative mirror until another frame arrives. Generated `Wire` connections do this through the
 managed transports client.
 
+## Bind collaborative CRDT fields
+
+`connectStore` also accepts transports CRDT snapshots. It reads the model's `CrdtSpec` and maps a
+two-way field update to its declared policy:
+
+- register fields use `register_set`;
+- string and list sequence fields use positional `sequence_splice` mutations, which transports turns
+  into stable-ID operations before sending them.
+
+The update is optimistic because the transports client applies and queues CRDT operations locally.
+Its managed connection resends queued operations after a reconnect and clears them when the server
+echoes their causal IDs.
+
+Editors can include granular ranges in their change event:
+
+```js
+new CustomEvent("editor-change", {
+  detail: { changes: [{ from: 4, to: 7, insert: "new" }] },
+});
+```
+
+Bind that event with `bind("doc", "doc", mode="two-way", event="editor-change")`. Spaday preserves
+the ranges instead of diffing the whole string. String offsets follow browser UTF-16 indexing;
+transports converts them to Unicode-scalar sequence positions. Controls that report only their final
+value still work through a minimal prefix/suffix splice.
+
+Whole map and set replacement is not inferred from a control event. Bind their register leaves or
+send explicit CRDT mutations when an application needs map membership or keyed-set operations.
+
 ## Go multi-tenant
 
 Swap the `Session` for a [`Hub`](https://github.com/1kbgz/transports), which routes each connection to its

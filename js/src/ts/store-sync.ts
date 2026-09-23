@@ -16,6 +16,7 @@ import {
   type CollectionKey,
   type CollectionPathSegment,
   Store,
+  type StoreChange,
 } from "./signals";
 
 /** Spaday's whole view of a transports `Client`: receive a frame, find the model, read it, edit it. */
@@ -27,14 +28,48 @@ type PatchOp =
   | { RemoveAt: { path: PathSeg[]; index: number } }
   | { Move: { path: PathSeg[]; from: number; to: number } }
   | { Reorder: { path: PathSeg[]; order: number[] } };
+type CrdtPathSeg =
+  | { kind: "key"; key: string }
+  | { kind: "member"; key: string }
+  | { kind: "element"; id: unknown };
+type CrdtMutation =
+  | { kind: "register_set"; path: CrdtPathSeg[]; value: unknown }
+  | {
+      kind: "sequence_splice";
+      path: CrdtPathSeg[];
+      index: number;
+      delete_count: number;
+      values: unknown[];
+    };
+type CrdtPolicy =
+  | { kind: "register" }
+  | {
+      kind: "map";
+      fields?: Record<string, CrdtPolicy>;
+      values?: CrdtPolicy;
+    }
+  | { kind: "set"; keys?: string[][]; element?: CrdtPolicy }
+  | {
+      kind: "sequence";
+      materialization?: "list" | "string";
+      element?: CrdtPolicy;
+    };
+type CrdtSpecView = { root: CrdtPolicy } | { toObject(): { root: CrdtPolicy } };
+type CrdtOp = {
+  kind: string;
+  path: CrdtPathSeg[];
+  key?: string;
+};
 type ReceiveChange =
   | { t: "snapshot"; id: number }
+  | { t: "crdt_snapshot"; id: number }
   | {
       t: "patch";
       id: number;
       patch: { rev: number; ops: PatchOp[] };
       proposal?: string;
-    };
+    }
+  | { t: "crdt"; id: number; rev: number; ops: CrdtOp[] };
 type AckChange =
   | (Extract<ReceiveChange, { t: "patch" }> & { proposal: string })
   | { t: "ack"; id: number; rev: number; proposal: string };
@@ -60,6 +95,9 @@ export interface ModelClient {
   edit(id: number, value: unknown, proposal?: string): string | Uint8Array; // an encoded edit frame to send back
   editOps?(id: number, ops: PatchOp[], proposal?: string): string | Uint8Array;
   proposeOps?(id: number, ops: PatchOp[], proposal?: string): boolean;
+  editCrdt?(id: number, mutations: CrdtMutation[]): string | Uint8Array;
+  proposeCrdt?(id: number, mutations: CrdtMutation[]): boolean;
+  crdtSpec?(id: number): CrdtSpecView | undefined;
   abandonProposal?(proposal: string): boolean;
 }
 
@@ -400,11 +438,179 @@ function collectionDelta(
   };
 }
 
+const keyPath = (field: string): CrdtPathSeg[] =>
+  field.split(".").map((key) => ({ kind: "key", key }));
+
+function stringBoundary(value: string, offset: number): boolean {
+  if (offset <= 0 || offset >= value.length) return true;
+  const previous = value.charCodeAt(offset - 1);
+  const next = value.charCodeAt(offset);
+  return !(
+    previous >= 0xd800 &&
+    previous <= 0xdbff &&
+    next >= 0xdc00 &&
+    next <= 0xdfff
+  );
+}
+
+function stringSplices(
+  current: string,
+  next: string,
+  path: CrdtPathSeg[],
+  change?: StoreChange,
+): CrdtMutation[] {
+  if (change?.ranges.length) {
+    let cursor = 0;
+    let rebuilt = "";
+    let shift = 0;
+    const mutations: CrdtMutation[] = [];
+    for (const range of change.ranges) {
+      if (
+        !Number.isSafeInteger(range.from) ||
+        !Number.isSafeInteger(range.to) ||
+        range.from < cursor ||
+        range.from > range.to ||
+        range.to > current.length ||
+        typeof range.insert !== "string" ||
+        !stringBoundary(current, range.from) ||
+        !stringBoundary(current, range.to)
+      ) {
+        mutations.length = 0;
+        break;
+      }
+      const inserted = [...range.insert];
+      const removed = [...current.slice(range.from, range.to)].length;
+      mutations.push({
+        kind: "sequence_splice",
+        path,
+        index: [...current.slice(0, range.from)].length + shift,
+        delete_count: removed,
+        values: inserted,
+      });
+      rebuilt += current.slice(cursor, range.from) + range.insert;
+      cursor = range.to;
+      shift += inserted.length - removed;
+    }
+    rebuilt += current.slice(cursor);
+    if (mutations.length && rebuilt === next) return mutations;
+  }
+
+  const before = [...current];
+  const after = [...next];
+  let start = 0;
+  const max = Math.min(before.length, after.length);
+  while (start < max && before[start] === after[start]) start++;
+  let end = 0;
+  while (
+    end < max - start &&
+    before[before.length - 1 - end] === after[after.length - 1 - end]
+  )
+    end++;
+  return [
+    {
+      kind: "sequence_splice",
+      path,
+      index: start,
+      delete_count: before.length - start - end,
+      values: after.slice(start, after.length - end),
+    },
+  ];
+}
+
+function arraySplice(
+  current: readonly unknown[],
+  next: readonly unknown[],
+  path: CrdtPathSeg[],
+): CrdtMutation {
+  let start = 0;
+  const max = Math.min(current.length, next.length);
+  while (start < max && Object.is(current[start], next[start])) start++;
+  let end = 0;
+  while (
+    end < max - start &&
+    Object.is(current[current.length - 1 - end], next[next.length - 1 - end])
+  )
+    end++;
+  return {
+    kind: "sequence_splice",
+    path,
+    index: start,
+    delete_count: current.length - start - end,
+    values: next.slice(start, next.length - end),
+  };
+}
+
+function crdtMutations(
+  field: string,
+  current: unknown,
+  next: unknown,
+  policy: CrdtPolicy,
+  change?: StoreChange,
+): CrdtMutation[] {
+  const path = keyPath(field);
+  if (
+    policy.kind === "sequence" &&
+    policy.materialization === "string" &&
+    typeof current === "string" &&
+    typeof next === "string"
+  )
+    return stringSplices(current, next, path, change);
+  if (
+    policy.kind === "sequence" &&
+    policy.materialization !== "string" &&
+    Array.isArray(current) &&
+    Array.isArray(next)
+  )
+    return [arraySplice(current, next, path)];
+  if (policy.kind === "register")
+    return [{ kind: "register_set", path, value: next }];
+  throw new TypeError(
+    `two-way binding for CRDT ${policy.kind} field ${JSON.stringify(field)} is not supported`,
+  );
+}
+
+function crdtPolicy(spec: CrdtSpecView, field: string): CrdtPolicy {
+  const value = "toObject" in spec ? spec.toObject() : spec;
+  let policy = value.root;
+  for (const key of field.split(".")) {
+    if (policy.kind !== "map")
+      throw new TypeError(
+        `CRDT field ${JSON.stringify(field)} does not follow map policies`,
+      );
+    const next = policy.fields?.[key] ?? policy.values;
+    if (!next)
+      throw new TypeError(
+        `CRDT field ${JSON.stringify(field)} is absent from the model specification`,
+      );
+    policy = next;
+  }
+  return policy;
+}
+
+function crdtFields(
+  change: Extract<ReceiveChange, { t: "crdt" }>,
+): string[] | undefined {
+  const fields = new Set<string>();
+  for (const op of change.ops) {
+    const head = op.path[0];
+    if (head?.kind === "key") fields.add(head.key);
+    else if (
+      !head &&
+      (op.kind === "map_set" || op.kind === "map_remove") &&
+      op.key
+    )
+      fields.add(op.key);
+    else return undefined;
+  }
+  return [...fields];
+}
+
 /**
  * Bidirectionally sync a `Store` with a transports-mirrored model. Model fields map by name to store
  * fields — and a nested sub-model flattens to dotted `parent.child` fields: inbound frames pull them
- * into the store; a store field change (e.g. from a two-way control) is pushed back as a `client.edit`,
- * sent via `send`. Edits are server-authoritative — it takes effect when the server echoes it back.
+ * into the store; a store field change (e.g. from a two-way control) is pushed back through the client.
+ * Plain models use server-authoritative proposals. CRDT models use their declared register or sequence
+ * policy and update optimistically while transports retains the operations for reconnect.
  *
  * Pass a `namespace` to mirror under `${namespace}.<field>` so several models can share one `Store`
  * without their field names colliding (e.g. two `Chart` models on one page); the outbound edit still
@@ -431,6 +637,7 @@ export function connectStore(
   let inbound = false; // true while applying a received frame, so we don't echo it straight back out
   let disposed = false;
   let disconnected = false;
+  let crdtBacked = false;
   const wired = new Set<string>();
   const fieldUnsubs = new Map<string, () => void>();
   const unsubs: Array<() => void> = [];
@@ -442,7 +649,13 @@ export function connectStore(
     client.onReject !== undefined &&
     client.onAbandon !== undefined &&
     client.abandonProposal !== undefined;
-  if (send === undefined && (!proposalAware || client.proposeOps === undefined))
+  const managedCrdt =
+    client.editCrdt !== undefined && client.proposeCrdt !== undefined;
+  if (
+    send === undefined &&
+    (!proposalAware || client.proposeOps === undefined) &&
+    !managedCrdt
+  )
     throw new TypeError(
       "connectStore requires send or a proposal-aware client with proposeOps",
     );
@@ -523,7 +736,7 @@ export function connectStore(
     wired.add(key);
     fieldUnsubs.set(
       key,
-      store.subscribe(key, (_value, changedKey) => {
+      store.subscribe(key, (_value, changedKey, change) => {
         if (inbound || id === undefined) return;
         const effectiveKey =
           changedKey === key || changedKey.startsWith(`${key}.`)
@@ -540,6 +753,24 @@ export function connectStore(
         }
         const decoded = codec.fromValue(client.value(id));
         const current = isObj(decoded) ? decoded : {};
+        if (crdtBacked && client.editCrdt) {
+          const spec = client.crdtSpec?.(id);
+          if (!spec)
+            throw new TypeError(
+              "CRDT-backed clients must expose their model specification",
+            );
+          const mutations = crdtMutations(
+            changedField,
+            readPlainPath(current, changedField.split(".")),
+            value,
+            crdtPolicy(spec, changedField),
+            change,
+          );
+          if (send === undefined && client.proposeCrdt)
+            client.proposeCrdt(id, mutations);
+          else send?.(client.editCrdt(id, mutations));
+          return;
+        }
         if (!proposalAware) {
           send!(
             client.edit(
@@ -740,8 +971,12 @@ export function connectStore(
   const accept = (change: ReceiveChange) => {
     if (id === undefined) id = change.id;
     if (change.id !== id) return;
-    if (change.t === "snapshot")
+    if (change.t === "snapshot") {
+      crdtBacked = false;
       for (const proposal of [...pending.keys()]) discardProposal(proposal);
+    } else if (change.t === "crdt_snapshot") {
+      crdtBacked = true;
+    }
     const settledField =
       change.t === "patch" && change.proposal
         ? dropProposal(change.proposal)
@@ -749,6 +984,7 @@ export function connectStore(
     inbound = true;
     try {
       if (change.t === "patch") receivePatch(change, settledField);
+      else if (change.t === "crdt") receiveSnapshot(crdtFields(change));
       else receiveSnapshot();
       if (settledField) clearError(settledField);
     } finally {

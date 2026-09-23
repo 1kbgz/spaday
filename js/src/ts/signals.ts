@@ -22,7 +22,22 @@ export type CollectionDelta<Item = unknown> =
   | { kind: "reorder"; keys: readonly CollectionKey[] }
   | { kind: "remove"; key: CollectionKey };
 
-type Subscriber = (value: unknown, changed: Field) => void;
+export interface RangeChange {
+  from: number;
+  to: number;
+  insert: string | readonly unknown[];
+}
+
+export interface StoreChange {
+  ranges: readonly RangeChange[];
+  unit?: "utf16";
+}
+
+type Subscriber = (
+  value: unknown,
+  changed: Field,
+  change?: StoreChange,
+) => void;
 type CollectionSubscriber = (delta: CollectionDelta) => void;
 interface CollectionSubscription {
   key: string;
@@ -190,6 +205,7 @@ export class Store {
     field: Field,
     value: unknown,
     deltas?: readonly CollectionDelta[],
+    change?: StoreChange,
   ): void {
     if (Object.is(this.get(field), value)) return;
     const related = this.related(field);
@@ -209,7 +225,8 @@ export class Store {
       const now = this.get(key);
       if (Object.is(before.get(key), now)) continue;
       const subscribers = this.subscribers.get(key);
-      if (subscribers) for (const cb of [...subscribers]) cb(now, field);
+      if (subscribers)
+        for (const cb of [...subscribers]) cb(now, field, change);
       const collectionSubscribers = this.collectionSubscribers.get(key);
       if (!collectionSubscribers) continue;
       const changes =
@@ -228,8 +245,8 @@ export class Store {
    * rebuilding its parents immutably, and notifies the leaf plus its ancestors (whose identity changed)
    * and any subscribed descendant whose value changed.
    */
-  set(field: Field, value: unknown): void {
-    this.write(field, value);
+  set(field: Field, value: unknown, change?: StoreChange): void {
+    this.write(field, value, undefined, change);
   }
 
   /**
