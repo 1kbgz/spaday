@@ -236,9 +236,250 @@ const PROPOSAL_FAKE = () => {
   return { client, codec: { fromValue: (v) => v, toValue: (v) => v } };
 };
 
+const CRDT_FAKE = () => {
+  const changes = [];
+  const client = {
+    model: {},
+    sent: [],
+    connected: true,
+    recv(data) {
+      const message = JSON.parse(data);
+      if (message.t === "crdt_snapshot") this.model = message.value;
+      const change = { t: message.t, id: message.id, rev: message.rev ?? 0 };
+      for (const listener of changes) listener(change);
+      return change;
+    },
+    onChange(listener) {
+      changes.push(listener);
+      return () => changes.splice(changes.indexOf(listener), 1);
+    },
+    ids() {
+      return [1];
+    },
+    crdtSpec() {
+      return {
+        root: {
+          kind: "map",
+          fields: {
+            doc: { kind: "sequence", materialization: "string" },
+            title: { kind: "register" },
+          },
+        },
+      };
+    },
+    value() {
+      return this.model;
+    },
+    edit() {
+      throw new Error("CRDT-backed clients use editCrdt");
+    },
+    editCrdt(id, mutations) {
+      for (const mutation of mutations) {
+        if (mutation.kind === "sequence_splice") {
+          const field = mutation.path[0].key;
+          const value = [...this.model[field]];
+          value.splice(
+            mutation.index,
+            mutation.delete_count,
+            ...mutation.values,
+          );
+          this.model = { ...this.model, [field]: value.join("") };
+        } else {
+          const field = mutation.path[0].key;
+          this.model = { ...this.model, [field]: mutation.value };
+        }
+      }
+      const frame = { t: "crdt", id, rev: 0, ops: mutations };
+      this.sent.push(frame);
+      return JSON.stringify(frame);
+    },
+    proposeCrdt(id, mutations) {
+      this.editCrdt(id, mutations);
+      return this.connected;
+    },
+    remote(doc) {
+      this.model = { ...this.model, doc };
+      const change = {
+        t: "crdt",
+        id: 1,
+        rev: 1,
+        ops: [
+          {
+            kind: "sequence_insert",
+            path: [{ kind: "key", key: "doc" }],
+          },
+        ],
+      };
+      for (const listener of changes) listener(change);
+    },
+  };
+  return { client, codec: { fromValue: (v) => v, toValue: (v) => v } };
+};
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/tests/runtime.html");
   await page.waitForFunction(() => window.__spaday);
+});
+
+test("a CRDT-backed string preserves editor ranges as positional splices", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, undefined, codec);
+    link.receive(
+      JSON.stringify({
+        t: "crdt_snapshot",
+        id: 1,
+        value: { doc: "a🙂bc" },
+      }),
+    );
+
+    store.set("doc", "aλbc!", {
+      unit: "utf16",
+      ranges: [
+        { from: 1, to: 3, insert: "λ" },
+        { from: 5, to: 5, insert: "!" },
+      ],
+    });
+    client.remote("Xaλbc!");
+    return {
+      mutations: client.sent[0].ops,
+      model: client.value(1),
+      store: store.get("doc"),
+    };
+  }, CRDT_FAKE.toString());
+
+  expect(result).toEqual({
+    mutations: [
+      {
+        kind: "sequence_splice",
+        path: [{ kind: "key", key: "doc" }],
+        index: 1,
+        delete_count: 1,
+        values: ["λ"],
+      },
+      {
+        kind: "sequence_splice",
+        path: [{ kind: "key", key: "doc" }],
+        index: 4,
+        delete_count: 0,
+        values: ["!"],
+      },
+    ],
+    model: { doc: "Xaλbc!" },
+    store: "Xaλbc!",
+  });
+});
+
+test("a two-way editor binding forwards UTF-16 changes to CRDT sync", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { mount, Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const editor = mount(
+      document.createElement("div"),
+      {
+        tag: "input",
+        bindings: {
+          value: {
+            field: "doc",
+            mode: "two-way",
+            event: "editor-change",
+          },
+        },
+      },
+      store,
+    );
+    const link = connectStore(store, client, undefined, codec);
+    link.receive(
+      JSON.stringify({
+        t: "crdt_snapshot",
+        id: 1,
+        value: { doc: "A🙂B" },
+      }),
+    );
+
+    editor.value = "AλB";
+    editor.dispatchEvent(
+      new CustomEvent("editor-change", {
+        detail: { changes: [{ from: 1, to: 3, insert: "λ" }] },
+      }),
+    );
+    return { mutation: client.sent[0].ops[0], store: store.get("doc") };
+  }, CRDT_FAKE.toString());
+
+  expect(result).toEqual({
+    mutation: {
+      kind: "sequence_splice",
+      path: [{ kind: "key", key: "doc" }],
+      index: 1,
+      delete_count: 1,
+      values: ["λ"],
+    },
+    store: "AλB",
+  });
+});
+
+test("a managed CRDT client keeps an offline edit queued and optimistic", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, undefined, codec);
+    link.receive(
+      JSON.stringify({
+        t: "crdt_snapshot",
+        id: 1,
+        value: { doc: "A" },
+      }),
+    );
+    client.connected = false;
+    store.set("doc", "AB");
+    return {
+      queued: client.sent.length,
+      model: client.value(1),
+      store: store.get("doc"),
+    };
+  }, CRDT_FAKE.toString());
+
+  expect(result).toEqual({
+    queued: 1,
+    model: { doc: "AB" },
+    store: "AB",
+  });
+});
+
+test("a CRDT register string uses register_set instead of a sequence splice", async ({
+  page,
+}) => {
+  const mutation = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, undefined, codec);
+    link.receive(
+      JSON.stringify({
+        t: "crdt_snapshot",
+        id: 1,
+        value: { doc: "body", title: "Draft" },
+      }),
+    );
+    store.set("title", "Ready");
+    return client.sent[0].ops[0];
+  }, CRDT_FAKE.toString());
+
+  expect(mutation).toEqual({
+    kind: "register_set",
+    path: [{ kind: "key", key: "title" }],
+    value: "Ready",
+  });
 });
 
 test("inbound: a received model field flows to a bound prop", async ({

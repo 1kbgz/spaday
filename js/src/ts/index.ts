@@ -52,7 +52,7 @@ export type { Binding, Node } from "./runtime";
 
 // Reactive engine: a signal store whose fields back the tree's reactive `bindings` (prop ↔ field).
 export { Scope, Store } from "./signals";
-export type { Field } from "./signals";
+export type { Field, RangeChange, StoreChange } from "./signals";
 
 // URL channel: store fields bound to query parameters (deep links, back/forward).
 export { bindUrl } from "./url";
