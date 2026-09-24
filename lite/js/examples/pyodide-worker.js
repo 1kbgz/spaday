@@ -30,7 +30,7 @@ const ready = (async () => {
   pyodide.globals.set("wheel", wheel);
   await pyodide.runPythonAsync(`
 import micropip
-await micropip.install([wheel, "transports==0.8.6"])
+await micropip.install([wheel, "transports==0.9.0"])
 
 from spaday.examples.pyodide import app
 `);

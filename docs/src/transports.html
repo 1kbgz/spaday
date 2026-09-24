@@ -326,6 +326,31 @@ when that socket is not open; <code class="docutils literal notranslate"><span c
 the authoritative mirror until another frame arrives. Generated <code class="docutils literal notranslate"><span class="pre">Wire</span></code> connections do this through the
 managed transports client.</p>
 </section>
+<section id="bind-collaborative-crdt-fields">
+<h2>Bind collaborative CRDT fields<a class="headerlink" href="#bind-collaborative-crdt-fields" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">connectStore</span></code> also accepts transports CRDT snapshots. It reads the model’s <code class="docutils literal notranslate"><span class="pre">CrdtSpec</span></code> and maps a
+two-way field update to its declared policy:</p>
+<ul class="simple">
+<li><p>register fields use <code class="docutils literal notranslate"><span class="pre">register_set</span></code>;</p></li>
+<li><p>string and list sequence fields use positional <code class="docutils literal notranslate"><span class="pre">sequence_splice</span></code> mutations, which transports turns
+into stable-ID operations before sending them.</p></li>
+</ul>
+<p>The update is optimistic because the transports client applies and queues CRDT operations locally.
+Its managed connection resends queued operations after a reconnect and clears them when the server
+echoes their causal IDs.</p>
+<p>Editors can include granular ranges in their change event:</p>
+<div class="highlight-js notranslate"><div class="highlight"><pre><span></span><span class="ow">new</span><span class="w"> </span><span class="nx">CustomEvent</span><span class="p">(</span><span class="s2">"editor-change"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">detail</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">changes</span><span class="o">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="kr">from</span><span class="o">:</span><span class="w"> </span><span class="mf">4</span><span class="p">,</span><span class="w"> </span><span class="nx">to</span><span class="o">:</span><span class="w"> </span><span class="mf">7</span><span class="p">,</span><span class="w"> </span><span class="nx">insert</span><span class="o">:</span><span class="w"> </span><span class="s2">"new"</span><span class="w"> </span><span class="p">}]</span><span class="w"> </span><span class="p">},</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+<p>Bind that event with <code class="docutils literal notranslate"><span class="pre">bind(&quot;doc&quot;,</span> <span class="pre">&quot;doc&quot;,</span> <span class="pre">mode=&quot;two-way&quot;,</span> <span class="pre">event=&quot;editor-change&quot;)</span></code>. Spaday preserves
+the ranges instead of diffing the whole string. String offsets follow browser UTF-16 indexing;
+transports converts them to Unicode-scalar sequence positions. Controls that report only their final
+value still work through a minimal prefix/suffix splice.</p>
+<p>Whole map and set replacement is not inferred from a control event. Bind their register leaves or
+send explicit CRDT mutations when an application needs map membership or keyed-set operations.</p>
+</section>
 <section id="go-multi-tenant">
 <h2>Go multi-tenant<a class="headerlink" href="#go-multi-tenant" title="Link to this heading">¶</a></h2>
 <p>Swap the <code class="docutils literal notranslate"><span class="pre">Session</span></code> for a <a class="reference external" href="https://github.com/1kbgz/transports"><code class="docutils literal notranslate"><span class="pre">Hub</span></code></a>, which routes each connection to its
@@ -460,6 +485,7 @@ full pattern.</p>
             <ul>
 <li><a class="reference internal" href="#">Sync a UI to a server over transports</a><ul>
 <li><a class="reference internal" href="#host-a-model-and-wire-the-page">Host a model and wire the page</a></li>
+<li><a class="reference internal" href="#bind-collaborative-crdt-fields">Bind collaborative CRDT fields</a></li>
 <li><a class="reference internal" href="#go-multi-tenant">Go multi-tenant</a></li>
 <li><a class="reference internal" href="#several-models-on-one-page">Several models on one page</a></li>
 <li><a class="reference internal" href="#perspective-mode-b">Perspective (Mode B)</a></li>

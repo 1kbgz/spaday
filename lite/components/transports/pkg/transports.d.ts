@@ -18,6 +18,22 @@ export class ClientState {
 }
 
 /**
+ * Schema-directed CRDT reducer backed by the shared core.
+ */
+export class CrdtDocument {
+    free(): void;
+    [Symbol.dispose](): void;
+    apply(ops_json: string): string;
+    compact(frontier_json: string): number;
+    static from_state(spec_json: string, state_json: string, replica: string): CrdtDocument;
+    member_key(path_json: string, value_json: string): string;
+    mutate(mutations_json: string): string;
+    constructor(spec_json: string, value_json: string, replica: string);
+    state(): string;
+    value(): string;
+}
+
+/**
  * In-process model store: host / mutate → patch / apply / snapshot.
  */
 export class Store {
@@ -51,6 +67,11 @@ export function apply(value: string, patch: string): string;
  * Convert CBOR bytes back to a JSON document.
  */
 export function cbor_to_json(data: Uint8Array): string;
+
+/**
+ * Return the deterministic SHA-256 hash of a CRDT specification.
+ */
+export function crdt_spec_hash(json: string): string;
 
 /**
  * Decode codec bytes back to a JSON-encoded model string.
@@ -103,15 +124,26 @@ export function json_to_msgpack(json: string): Uint8Array;
 export function msgpack_to_json(data: Uint8Array): string;
 
 /**
+ * Parse, validate, and deterministically serialize a CRDT specification.
+ */
+export function normalize_crdt_spec(json: string): string;
+
+/**
  * Parse and serialize one typed live protocol message as compact JSON.
  */
 export function normalize_message(json: string): string;
+
+/**
+ * Reject a peer hash that does not match the local CRDT specification.
+ */
+export function require_crdt_spec_hash(json: string, peer_hash: string): void;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_clientstate_free: (a: number, b: number) => void;
+    readonly __wbg_crdtdocument_free: (a: number, b: number) => void;
     readonly __wbg_store_free: (a: number, b: number) => void;
     readonly apply: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly cbor_to_json: (a: number, b: number) => [number, number, number, number];
@@ -123,6 +155,15 @@ export interface InitOutput {
     readonly clientstate_prepare: (a: number, b: number, c: number) => [number, number, number, number];
     readonly clientstate_proposal: (a: number, b: bigint, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly clientstate_revisions: (a: number) => [number, number, number, number];
+    readonly crdt_spec_hash: (a: number, b: number) => [number, number, number, number];
+    readonly crdtdocument_apply: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly crdtdocument_compact: (a: number, b: number, c: number) => [number, number, number];
+    readonly crdtdocument_from_state: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
+    readonly crdtdocument_member_key: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+    readonly crdtdocument_mutate: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly crdtdocument_new: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
+    readonly crdtdocument_state: (a: number) => [number, number, number, number];
+    readonly crdtdocument_value: (a: number) => [number, number, number, number];
     readonly decode: (a: number, b: number) => [number, number, number, number];
     readonly decode_as: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly decode_message: (a: number, b: number, c: number, d: number) => [number, number, number, number];
@@ -133,7 +174,9 @@ export interface InitOutput {
     readonly json_to_cbor: (a: number, b: number) => [number, number, number, number];
     readonly json_to_msgpack: (a: number, b: number) => [number, number, number, number];
     readonly msgpack_to_json: (a: number, b: number) => [number, number, number, number];
+    readonly normalize_crdt_spec: (a: number, b: number) => [number, number, number, number];
     readonly normalize_message: (a: number, b: number) => [number, number, number, number];
+    readonly require_crdt_spec_hash: (a: number, b: number, c: number, d: number) => [number, number];
     readonly store_apply: (a: number, b: bigint, c: number, d: number) => [number, number, number];
     readonly store_host: (a: number, b: number, c: number, d: number, e: number) => [bigint, number, number];
     readonly store_mutate: (a: number, b: bigint, c: number, d: number) => [number, number, number, number];

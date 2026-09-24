@@ -2,6 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const __wbg_clientstate_free: (a: number, b: number) => void;
+export const __wbg_crdtdocument_free: (a: number, b: number) => void;
 export const __wbg_store_free: (a: number, b: number) => void;
 export const apply: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const cbor_to_json: (a: number, b: number) => [number, number, number, number];
@@ -13,6 +14,15 @@ export const clientstate_pending: (a: number) => [number, number, number, number
 export const clientstate_prepare: (a: number, b: number, c: number) => [number, number, number, number];
 export const clientstate_proposal: (a: number, b: bigint, c: number, d: number, e: number, f: number) => [number, number, number, number];
 export const clientstate_revisions: (a: number) => [number, number, number, number];
+export const crdt_spec_hash: (a: number, b: number) => [number, number, number, number];
+export const crdtdocument_apply: (a: number, b: number, c: number) => [number, number, number, number];
+export const crdtdocument_compact: (a: number, b: number, c: number) => [number, number, number];
+export const crdtdocument_from_state: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
+export const crdtdocument_member_key: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+export const crdtdocument_mutate: (a: number, b: number, c: number) => [number, number, number, number];
+export const crdtdocument_new: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
+export const crdtdocument_state: (a: number) => [number, number, number, number];
+export const crdtdocument_value: (a: number) => [number, number, number, number];
 export const decode: (a: number, b: number) => [number, number, number, number];
 export const decode_as: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const decode_message: (a: number, b: number, c: number, d: number) => [number, number, number, number];
@@ -23,7 +33,9 @@ export const encode_message: (a: number, b: number, c: number, d: number) => [nu
 export const json_to_cbor: (a: number, b: number) => [number, number, number, number];
 export const json_to_msgpack: (a: number, b: number) => [number, number, number, number];
 export const msgpack_to_json: (a: number, b: number) => [number, number, number, number];
+export const normalize_crdt_spec: (a: number, b: number) => [number, number, number, number];
 export const normalize_message: (a: number, b: number) => [number, number, number, number];
+export const require_crdt_spec_hash: (a: number, b: number, c: number, d: number) => [number, number];
 export const store_apply: (a: number, b: bigint, c: number, d: number) => [number, number, number];
 export const store_host: (a: number, b: number, c: number, d: number, e: number) => [bigint, number, number];
 export const store_mutate: (a: number, b: bigint, c: number, d: number) => [number, number, number, number];
