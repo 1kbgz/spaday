@@ -62,8 +62,8 @@ def test_installed_component_packages_follow_the_token_convention():
     """Every component package publishes a TOKENS mapping shaped like SHELL_TOKENS, naming
     properties `--spa-<package>-*`, with a css() kwarg that actually produces that property.
 
-    `spaday-webawesome` is the documented exception: it maps a design system's own tokens onto the
-    shell palette instead of exposing tokens of its own, so its kwargs are `--wa-*`.
+    Design-system packages may map their native tokens onto the shell palette instead of exposing
+    package tokens of their own. Those entries describe which `--spa-*` token they drive.
     """
     import importlib
 
@@ -71,6 +71,8 @@ def test_installed_component_packages_follow_the_token_convention():
 
     checked = 0
     for package in discover_component_packages():
+        if not package.components:
+            continue
         module = importlib.import_module(package.components[0].__module__.split(".")[0])
         tokens = getattr(module, "TOKENS", None)
         if tokens is None:
@@ -82,7 +84,7 @@ def test_installed_component_packages_follow_the_token_convention():
             assert element("div").css(**{kwarg: "x"}).to_node()["props"]["style"]["Str"] == f"{prop}: x", (
                 f"{package.name}: css({kwarg}=…) does not produce {prop}"
             )
-            if package.name != "webawesome":
+            if not description.startswith("drives --spa-"):
                 assert prop.startswith(f"--spa-{package.name}-"), f"{package.name}: {prop} does not follow --spa-<package>-*"
     if not checked:
         pytest.skip("no component packages with TOKENS installed")
