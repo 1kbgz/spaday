@@ -20,7 +20,7 @@ def test_static_bootstrap_mounts_without_a_wire():
 def test_transports_wire_bootstrap():
     html = bootstrap(wire="transports", ws="/sock")
     assert "connectStore(" in html and "transports_bg.wasm" in html
-    assert 'spaday:wire-client' in html
+    assert "spaday:wire-client" in html
     assert 'namespace: null, url: "/sock"' in html
     assert "client.connect(`ws://${location.host}/sock`)" in html
     assert "mount(document.body, node, store)" in html
@@ -286,7 +286,7 @@ def test_wire_list_shares_one_store_with_namespaced_connectstores():
     assert '{ fromValue, toValue }, "a")' in html and '{ fromValue, toValue }, "b")' in html
     assert "client0.connect(`ws://${location.host}/ws`)" in html
     assert "client1.connect(`ws://${location.host}/ws/b`)" in html
-    assert html.count('spaday:wire-client') == 2
+    assert html.count("spaday:wire-client") == 2
     assert 'client: client0, store, namespace: "a", url: "/ws"' in html
     assert "transports_bg.wasm" in html and "await wasm.default(" in html  # the transports prologue
     assert html.count("mount(document.body, node, store)") == 1  # one mount of the shared store
