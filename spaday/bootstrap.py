@@ -291,6 +291,7 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
     lines = [
         f"const {client} = new Client({codec});",
         f"connectStore(store, {client}, undefined, {{ fromValue, toValue }}{extra});",
+        f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client: {client}, store, namespace: {_script_json(ns)}, url: {_script_json(url)} }} }}));',
     ]
     connected = spec.get("connected") or (f"{ns}.connected" if ns else None)
     if connected:
@@ -396,6 +397,7 @@ def _script(
                 *store_lines,
                 "const client = new Client();",
                 "connectStore(store, client, undefined, { fromValue, toValue });",
+                f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client, store, namespace: null, url: {_script_json(ws)} }} }}));',
                 f"client.run(`ws://${{location.host}}{base}{ws}`, {{ retry: 1000 }});",
                 f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
@@ -406,6 +408,7 @@ def _script(
                 *store_lines,
                 "const client = new Client();",
                 "connectStore(store, client, undefined, { fromValue, toValue });",
+                f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client, store, namespace: null, url: {_script_json(ws)} }} }}));',
                 f"client.connect(`ws://${{location.host}}{base}{ws}`);",
                 f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
