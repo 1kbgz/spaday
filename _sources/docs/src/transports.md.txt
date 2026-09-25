@@ -175,6 +175,20 @@ Wire(
 A raw `{"url": …, "namespace": …}` dict works anywhere a `Wire` does. The omnibus
 (`python -m spaday.examples`) wires four models this way.
 
+Component adapters that need a transports API outside model bindings can listen for
+`spaday:wire-client`. Spaday dispatches it after `connectStore` is configured and before the client
+connects:
+
+```js
+document.addEventListener("spaday:wire-client", ({ detail }) => {
+  const { client, store, namespace, url } = detail;
+});
+```
+
+The event exposes the existing managed client. Use it for transport-owned features such as ephemeral
+awareness instead of opening a second WebSocket. Match `namespace` or `url` when a page has several
+wires. The client and store are live objects for browser adapters, not serializable page state.
+
 ## Perspective (Mode B)
 
 A live Perspective table streams its **data** over Perspective's own websocket; spaday/transports sync

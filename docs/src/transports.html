@@ -408,6 +408,17 @@ and exposes its state as <code class="docutils literal notranslate"><span class=
 </div>
 <p>A raw <code class="docutils literal notranslate"><span class="pre">{&quot;url&quot;:</span> <span class="pre">…,</span> <span class="pre">&quot;namespace&quot;:</span> <span class="pre">…}</span></code> dict works anywhere a <code class="docutils literal notranslate"><span class="pre">Wire</span></code> does. The omnibus
 (<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.examples</span></code>) wires four models this way.</p>
+<p>Component adapters that need a transports API outside model bindings can listen for
+<code class="docutils literal notranslate"><span class="pre">spaday:wire-client</span></code>. Spaday dispatches it after <code class="docutils literal notranslate"><span class="pre">connectStore</span></code> is configured and before the client
+connects:</p>
+<div class="highlight-js notranslate"><div class="highlight"><pre><span></span><span class="nb">document</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s2">"spaday:wire-client"</span><span class="p">,</span><span class="w"> </span><span class="p">({</span><span class="w"> </span><span class="nx">detail</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">client</span><span class="p">,</span><span class="w"> </span><span class="nx">store</span><span class="p">,</span><span class="w"> </span><span class="nx">namespace</span><span class="p">,</span><span class="w"> </span><span class="nx">url</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">detail</span><span class="p">;</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+<p>The event exposes the existing managed client. Use it for transport-owned features such as ephemeral
+awareness instead of opening a second WebSocket. Match <code class="docutils literal notranslate"><span class="pre">namespace</span></code> or <code class="docutils literal notranslate"><span class="pre">url</span></code> when a page has several
+wires. The client and store are live objects for browser adapters, not serializable page state.</p>
 </section>
 <section id="perspective-mode-b">
 <h2>Perspective (Mode B)<a class="headerlink" href="#perspective-mode-b" title="Link to this heading">¶</a></h2>
