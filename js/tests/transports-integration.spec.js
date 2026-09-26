@@ -1,5 +1,58 @@
 import { test, expect } from "@playwright/test";
 
+test("bundled transports supports ephemeral awareness", async ({ page }) => {
+  await page.goto("/tests/transports.html");
+  await page.waitForFunction(() => window.__integration);
+
+  const result = await page.evaluate(() => {
+    const { Client } = window.__integration;
+    const client = new Client();
+    const sent = [];
+    const updates = [];
+    client.attach((frame) => sent.push(JSON.parse(frame)));
+    client.onAwareness((update) => updates.push(update));
+
+    const published = client.setAwareness(7, {
+      selection: { anchor: 2, head: 4 },
+    });
+    client.recv(
+      JSON.stringify({
+        t: "awareness",
+        id: 7,
+        peer: "remote",
+        state: { selection: { anchor: 5, head: 5 } },
+      }),
+    );
+
+    return {
+      published,
+      sent,
+      updates,
+      tracked: client.awareness(7).get("remote"),
+    };
+  });
+
+  expect(result).toEqual({
+    published: true,
+    sent: [
+      {
+        t: "awareness",
+        id: 7,
+        state: { selection: { anchor: 2, head: 4 } },
+      },
+    ],
+    updates: [
+      {
+        t: "awareness",
+        id: 7,
+        peer: "remote",
+        state: { selection: { anchor: 5, head: 5 } },
+      },
+    ],
+    tracked: { selection: { anchor: 5, head: 5 } },
+  });
+});
+
 for (const codec of ["json", "msgpack", "cbor"]) {
   test(`CRDT store bindings converge through transports with ${codec}`, async ({
     page,
@@ -185,7 +238,7 @@ test("a managed CRDT client flushes an offline store edit on reconnect", async (
       pending: client.pendingCrdtOps(1),
     };
     const sent = [];
-    client.opened((frame) => sent.push(frame));
+    client.attach((frame) => sent.push(frame));
     const edit = JSON.parse(sent[0]);
     server.apply(edit.ops);
     link.receive(JSON.stringify({ t: "crdt", id: 1, rev: 1, ops: edit.ops }));
