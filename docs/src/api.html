@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="prev" title="Generate typed classes from a manifest" href="cem.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>API reference - spaday v0.11.0</title>
+        <title>API reference - spaday v0.11.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.1</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -189,7 +189,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.1</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -1640,6 +1640,19 @@ shell does;</p></li>
 binds that prop to the same field that drives the root class:
 <code class="docutils literal notranslate"><span class="pre">component.compute(&quot;theme&quot;,</span> <span class="pre">cond(field(&quot;dark&quot;),</span> <span class="pre">&quot;dark&quot;,</span> <span class="pre">&quot;light&quot;))</span></code>.</p></li>
 </ul>
+<p>Component packages expose their theme metadata through <code class="docutils literal notranslate"><span class="pre">TOKENS</span></code>. A <code class="docutils literal notranslate"><span class="pre">spaday.Token</span></code> contains the CSS
+property, description, and optional shell fallback, so tooling can check theme coverage without
+parsing prose. It remains a two-item tuple for existing consumers.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.Token">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">Token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">property</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/theme.html#Token"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Token" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</p>
+<p>Metadata for one theme token.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Token</span></code> is a two-item <code class="docutils literal notranslate"><span class="pre">(property,</span> <span class="pre">description)</span></code> tuple. Existing unpacking, indexing,
+equality checks, and tuple type checks therefore keep working; new consumers can use named
+accessors and read <code class="xref py py-attr docutils literal notranslate"><span class="pre">fallback</span></code> directly.</p>
+</dd></dl>
+
 <p>A class states a boolean. For page-level state that carries a <em>value</em> — a design system whose tokens
 hang off <code class="docutils literal notranslate"><span class="pre">:root[data-density='comfortable']</span></code>, or a family of root flags in one control group —
 <code class="docutils literal notranslate"><span class="pre">Component.bind_root_attr(name,</span> <span class="pre">field)</span></code> writes an attribute on <code class="docutils literal notranslate"><span class="pre">&lt;html&gt;</span></code> instead:</p>
@@ -1934,7 +1947,10 @@ themes the page before the tree renders.</p>
 <li><a class="reference internal" href="#spaday.decode_frame"><code class="docutils literal notranslate"><span class="pre">decode_frame()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#theming">Theming</a></li>
+<li><a class="reference internal" href="#theming">Theming</a><ul>
+<li><a class="reference internal" href="#spaday.Token"><code class="docutils literal notranslate"><span class="pre">Token</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -1946,7 +1962,7 @@ themes the page before the tree renders.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=f3b36f1a"></script>
+</div><script src="../../_static/documentation_options.js?v=57cbeb03"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

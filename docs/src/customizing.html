@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Sync a UI to a server over transports" href="transports.html"><link rel="prev" title="Serve and embed a spaday app" href="serving.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Ship your own variant - spaday v0.11.0</title>
+        <title>Ship your own variant - spaday v0.11.1</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.0</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.1</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -189,7 +189,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.0</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.1</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -289,14 +289,17 @@ tree.</p>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">spaday.theme.SHELL_TOKENS</span></code> lists the shell palette (<code class="docutils literal notranslate"><span class="pre">--spa-surface</span></code>, <code class="docutils literal notranslate"><span class="pre">--spa-surface-2</span></code>,
 <code class="docutils literal notranslate"><span class="pre">--spa-border</span></code>, <code class="docutils literal notranslate"><span class="pre">--spa-muted</span></code>, <code class="docutils literal notranslate"><span class="pre">--spa-accent</span></code>, <code class="docutils literal notranslate"><span class="pre">--spa-info</span></code>, <code class="docutils literal notranslate"><span class="pre">--spa-success</span></code>, <code class="docutils literal notranslate"><span class="pre">--spa-warning</span></code>,
-<code class="docutils literal notranslate"><span class="pre">--spa-danger</span></code>, plus layout tokens). Each package publishes its own <code class="docutils literal notranslate"><span class="pre">TOKENS</span></code> mapping in the same
-shape:</p>
+<code class="docutils literal notranslate"><span class="pre">--spa-danger</span></code>, plus layout tokens). Each package publishes its own <code class="docutils literal notranslate"><span class="pre">TOKENS</span></code> mapping. A <code class="docutils literal notranslate"><span class="pre">Token</span></code>
+contains the CSS property, description, and optional shell fallback:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday_dagre</span><span class="w"> </span><span class="kn">import</span> <span class="n">TOKENS</span>
 
-<span class="k">for</span> <span class="n">kwarg</span><span class="p">,</span> <span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">what</span><span class="p">)</span> <span class="ow">in</span> <span class="n">TOKENS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">kwarg</span><span class="si">:</span><span class="s2">&lt;28</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">prop</span><span class="si">:</span><span class="s2">&lt;34</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">kwarg</span><span class="p">,</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">TOKENS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">fallback</span> <span class="o">=</span> <span class="n">token</span><span class="o">.</span><span class="n">fallback</span> <span class="ow">or</span> <span class="s2">"required"</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">kwarg</span><span class="si">:</span><span class="s2">&lt;28</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">property</span><span class="si">:</span><span class="s2">&lt;34</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">fallback</span><span class="si">:</span><span class="s2">&lt;18</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">Token</span></code> retains the former two-item tuple interface, so existing code that unpacks
+<code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">kwarg,</span> <span class="pre">(prop,</span> <span class="pre">what)</span> <span class="pre">in</span> <span class="pre">TOKENS.items()</span></code> continues to work.</p>
 <p>Package tokens are named <code class="docutils literal notranslate"><span class="pre">--spa-&lt;package&gt;-&lt;thing&gt;</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;package&gt;</span></code> is the name you pass to
 <code class="docutils literal notranslate"><span class="pre">packages=[...]</span></code>. They are only ever <em>read</em> by the package’s stylesheet, never defined by it — that
 is what lets a token set on an ancestor (an app-level theme) win over the package’s default.</p>
@@ -600,7 +603,7 @@ registering costs you that script, not every component on the page.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=f3b36f1a"></script>
+</div><script src="../../_static/documentation_options.js?v=57cbeb03"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
