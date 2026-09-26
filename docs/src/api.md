@@ -188,6 +188,14 @@ through whichever channel themes them:
   binds that prop to the same field that drives the root class:
   `component.compute("theme", cond(field("dark"), "dark", "light"))`.
 
+Component packages expose their theme metadata through `TOKENS`. A `spaday.Token` contains the CSS
+property, description, and optional shell fallback, so tooling can check theme coverage without
+parsing prose. It remains a two-item tuple for existing consumers.
+
+```{eval-rst}
+.. autoclass:: spaday.Token
+```
+
 A class states a boolean. For page-level state that carries a *value* — a design system whose tokens
 hang off `:root[data-density='comfortable']`, or a family of root flags in one control group —
 `Component.bind_root_attr(name, field)` writes an attribute on `<html>` instead:

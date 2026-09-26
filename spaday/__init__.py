@@ -48,7 +48,7 @@ from .conformance import check_script
 from .packages import ComponentPackage, discover_component_package_names, discover_component_packages, resolve_component_packages
 from .render import render_html
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
-from .theme import SHELL_TOKENS
+from .theme import SHELL_TOKENS, Token
 from .ui import (
     Alert,
     Button,
@@ -74,6 +74,7 @@ __all__ = [
     "check_script",
     # theming token reference (css custom properties are set via Component.css)
     "SHELL_TOKENS",
+    "Token",
     "CallEndpoint",
     "Download",
     "Component",

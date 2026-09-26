@@ -1,11 +1,12 @@
 """Per-component theming: CSS custom properties, inline declarations, and classes from Python."""
 
+import pickle
 import re
 from pathlib import Path
 
 import pytest
 
-from spaday import SHELL_TOKENS, element
+from spaday import SHELL_TOKENS, Token, element
 from spaday.theme import package_token
 
 
@@ -43,6 +44,24 @@ def test_shell_tokens_reference_is_exposed():
     assert SHELL_TOKENS["spa_surface"][0] == "--spa-surface"  # css(spa_surface=...) drives this property
 
 
+def test_token_adds_fallback_metadata_without_breaking_legacy_sequence_usage():
+    token = Token("--spa-chart-grid", "grid line color", fallback="--spa-border")
+
+    assert isinstance(token, tuple)
+    assert token == ("--spa-chart-grid", "grid line color")
+    assert len(token) == 2
+    assert token[0] == "--spa-chart-grid"
+    assert token[-1] == "grid line color"
+    assert token[:] == ("--spa-chart-grid", "grid line color")
+    assert tuple(token) == ("--spa-chart-grid", "grid line color")
+    assert token.property == "--spa-chart-grid"
+    assert token.description == "grid line color"
+    assert token.fallback == "--spa-border"
+    assert pickle.loads(pickle.dumps(token)).fallback == "--spa-border"
+    with pytest.raises(AttributeError, match="Token is immutable"):
+        token.fallback = "--spa-muted"
+
+
 def test_shell_tokens_documents_every_token_the_shell_palette_defines():
     """SHELL_TOKENS is what a Python author discovers; the palette in shell.ts is what actually
     renders. They drifted once — the palette gained the tone colors and the reference didn't, so
@@ -63,7 +82,8 @@ def test_installed_component_packages_follow_the_token_convention():
     properties `--spa-<package>-*`, with a css() kwarg that actually produces that property.
 
     Design-system packages may map their native tokens onto the shell palette instead of exposing
-    package tokens of their own. Those entries describe which `--spa-*` token they drive.
+    package tokens of their own. Those entries describe which `--spa-*` token they drive. Token
+    records may expose shell fallback metadata directly.
     """
     import importlib
 
@@ -79,12 +99,15 @@ def test_installed_component_packages_follow_the_token_convention():
             continue
         checked += 1
         for kwarg, entry in tokens.items():
-            prop, description = entry  # (property, what it controls), like SHELL_TOKENS
+            prop, description = entry
             assert description, f"{package.name}: {prop} has no description"
             assert element("div").css(**{kwarg: "x"}).to_node()["props"]["style"]["Str"] == f"{prop}: x", (
                 f"{package.name}: css({kwarg}=…) does not produce {prop}"
             )
             if not description.startswith("drives --spa-"):
                 assert prop.startswith(f"--spa-{package.name}-"), f"{package.name}: {prop} does not follow --spa-<package>-*"
+            fallback = getattr(entry, "fallback", None)
+            if fallback is not None:
+                assert fallback in {value[0] for value in SHELL_TOKENS.values()}, f"{package.name}: {prop} fallback {fallback} is not a shell token"
     if not checked:
         pytest.skip("no component packages with TOKENS installed")

@@ -7,7 +7,8 @@ a custom property set on a container cascades, so an **app-level** theme is just
 ``App`` root.
 
 ``SHELL_TOKENS`` documents the ``spa-*`` shell's own override tokens (the ``css()`` kwarg → the CSS
-custom property it drives and what it controls). The shell ships neutral **light and dark** defaults —
+custom property it drives and what it controls). Component packages use :class:`Token` to include
+the shell property a package token inherits. The shell ships neutral **light and dark** defaults —
 the dark palette is keyed off WebAwesome's ``wa-dark`` class (with ``wa-light`` flipping a nested
 island back), so ``App(...).bind_root_class("wa-dark", "dark")`` alone re-themes the whole page. Both
 palettes are emitted at zero specificity, so an application or component package overrides them by
@@ -32,24 +33,57 @@ order — the package's token, then the shell's, then a literal that keeps a sta
 
 An app therefore re-themes every package at once by setting the shell tokens, or re-themes one
 package without touching the others by setting its ``--spa-<package>-*`` tokens. Each package
-publishes a ``TOKENS`` mapping in this module's :data:`SHELL_TOKENS` shape listing what it exposes.
+publishes a ``TOKENS`` mapping listing what it exposes. A :class:`Token` stores the property,
+description, and optional shell fallback in one record while remaining a two-item tuple for existing
+consumers.
 """
+
+
+class Token(tuple[str, str]):
+    """Metadata for one theme token.
+
+    ``Token`` is a two-item ``(property, description)`` tuple. Existing unpacking, indexing,
+    equality checks, and tuple type checks therefore keep working; new consumers can use named
+    accessors and read :attr:`fallback` directly.
+    """
+
+    fallback: str | None
+
+    def __new__(cls, property: str, description: str, *, fallback: str | None = None) -> "Token":
+        token = super().__new__(cls, (property, description))
+        object.__setattr__(token, "fallback", fallback)
+        return token
+
+    def __setattr__(self, name: str, value: object) -> None:
+        raise AttributeError(f"{type(self).__name__!s} is immutable")
+
+    def __getnewargs_ex__(self) -> tuple[tuple[str, str], dict[str, str | None]]:
+        return (self.property, self.description), {"fallback": self.fallback}
+
+    @property
+    def description(self) -> str:
+        return self[1]
+
+    @property
+    def property(self) -> str:
+        return self[0]
+
 
 #: ``css()`` kwarg → (CSS custom property, what it controls). The shell reads these (see ``js shell.ts``).
 SHELL_TOKENS = {
-    "spa_surface": ("--spa-surface", "nav / footer / app surface color"),
-    "spa_surface_2": ("--spa-surface-2", "gutter / toolbar surface color"),
-    "spa_border": ("--spa-border", "shell border color"),
-    "spa_muted": ("--spa-muted", "footer / muted text color"),
-    "spa_accent": ("--spa-accent", "emphasis / hover / selection color"),
-    "spa_info": ("--spa-info", "info tone (Toast, component packages)"),
-    "spa_success": ("--spa-success", "success tone (Toast, component packages)"),
-    "spa_warning": ("--spa-warning", "warning tone (component packages)"),
-    "spa_danger": ("--spa-danger", "danger tone (Toast, component packages)"),
-    "spa_gap": ("--spa-gap", "default gap between shell children"),
-    "spa_align": ("--spa-align", "cross-axis alignment for Stack / Row / Toolbar"),
-    "spa_justify": ("--spa-justify", "main-axis justification for Row"),
-    "spa_gutter_width": ("--spa-gutter-width", "Gutter width"),
+    "spa_surface": Token("--spa-surface", "nav / footer / app surface color"),
+    "spa_surface_2": Token("--spa-surface-2", "gutter / toolbar surface color"),
+    "spa_border": Token("--spa-border", "shell border color"),
+    "spa_muted": Token("--spa-muted", "footer / muted text color"),
+    "spa_accent": Token("--spa-accent", "emphasis / hover / selection color"),
+    "spa_info": Token("--spa-info", "info tone (Toast, component packages)"),
+    "spa_success": Token("--spa-success", "success tone (Toast, component packages)"),
+    "spa_warning": Token("--spa-warning", "warning tone (component packages)"),
+    "spa_danger": Token("--spa-danger", "danger tone (Toast, component packages)"),
+    "spa_gap": Token("--spa-gap", "default gap between shell children"),
+    "spa_align": Token("--spa-align", "cross-axis alignment for Stack / Row / Toolbar"),
+    "spa_justify": Token("--spa-justify", "main-axis justification for Row"),
+    "spa_gutter_width": Token("--spa-gutter-width", "Gutter width"),
 }
 
 #: The prefix a component package's own tokens use: ``--spa-<package>-<thing>``.
@@ -60,7 +94,6 @@ def package_token(package: str, name: str) -> str:
     """The CSS custom property a component package exposes for one themeable thing.
 
     ``package_token("dagre", "node-fill")`` → ``"--spa-dagre-node-fill"``. Packages publish their
-    own ``TOKENS`` mapping in the same shape as :data:`SHELL_TOKENS`; this is the naming rule those
-    mappings follow.
+    own ``TOKENS`` mapping; this is the naming rule those mappings follow.
     """
     return f"{PACKAGE_TOKEN_PREFIX}{package}-{name}"
