@@ -45,15 +45,19 @@ Dagre(graph=g).css(spa_dagre_node_fill="#1a2028")   # only the graph
 
 `spaday.theme.SHELL_TOKENS` lists the shell palette (`--spa-surface`, `--spa-surface-2`,
 `--spa-border`, `--spa-muted`, `--spa-accent`, `--spa-info`, `--spa-success`, `--spa-warning`,
-`--spa-danger`, plus layout tokens). Each package publishes its own `TOKENS` mapping in the same
-shape:
+`--spa-danger`, plus layout tokens). Each package publishes its own `TOKENS` mapping. A `Token`
+contains the CSS property, description, and optional shell fallback:
 
 ```python
 from spaday_dagre import TOKENS
 
-for kwarg, (prop, what) in TOKENS.items():
-    print(f"{kwarg:<28} {prop:<34} {what}")
+for kwarg, token in TOKENS.items():
+    fallback = token.fallback or "required"
+    print(f"{kwarg:<28} {token.property:<34} {fallback:<18} {token.description}")
 ```
+
+`Token` retains the former two-item tuple interface, so existing code that unpacks
+`for kwarg, (prop, what) in TOKENS.items()` continues to work.
 
 Package tokens are named `--spa-<package>-<thing>`, where `<package>` is the name you pass to
 `packages=[...]`. They are only ever *read* by the package's stylesheet, never defined by it — that
