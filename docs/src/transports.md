@@ -181,13 +181,18 @@ connects:
 
 ```js
 document.addEventListener("spaday:wire-client", ({ detail }) => {
-  const { client, store, namespace, url } = detail;
+  const { client, link, store, namespace, url } = detail;
+  link.onModel((modelId) => {
+    // Use client APIs scoped to this wire's model.
+  });
 });
 ```
 
-The event exposes the existing managed client. Use it for transport-owned features such as ephemeral
-awareness instead of opening a second WebSocket. Match `namespace` or `url` when a page has several
-wires. The client and store are live objects for browser adapters, not serializable page state.
+The event exposes the existing managed client and its `StoreLink`. Use them for transport-owned
+features such as ephemeral awareness instead of opening a second WebSocket. `link.modelId` is
+`undefined` until the initial snapshot; `link.onModel()` runs after that snapshot has synchronized the
+store and calls late subscribers immediately. Match `namespace` or `url` when a page has several wires.
+The client, link, and store are live objects for browser adapters, not serializable page state.
 
 ## Perspective (Mode B)
 

@@ -108,6 +108,10 @@ export interface ValueCodec {
 }
 
 export interface StoreLink {
+  /** The first accepted model ID, once the initial snapshot arrives. */
+  readonly modelId: number | undefined;
+  /** Subscribe to model-ID discovery. Late subscribers are called immediately. */
+  onModel(listener: (id: number) => void): () => void;
   /** Feed an inbound wire frame; the mirrored model's fields flow into the store (and bound props). */
   receive(data: string | Uint8Array): void;
   /** Drop optimistic edits and reject new edits until another frame arrives. */
@@ -634,6 +638,7 @@ export function connectStore(
   flatten = true, // recurse nested sub-models to dotted fields; set false to keep an opaque map/dict whole
 ): StoreLink {
   let id: number | undefined;
+  const modelListeners = new Set<(id: number) => void>();
   let inbound = false; // true while applying a received frame, so we don't echo it straight back out
   let disposed = false;
   let disconnected = false;
@@ -969,7 +974,8 @@ export function connectStore(
   };
 
   const accept = (change: ReceiveChange) => {
-    if (id === undefined) id = change.id;
+    const discovered = id === undefined;
+    if (discovered) id = change.id;
     if (change.id !== id) return;
     if (change.t === "snapshot") {
       crdtBacked = false;
@@ -990,6 +996,8 @@ export function connectStore(
     } finally {
       inbound = false;
     }
+    if (discovered)
+      for (const listener of [...modelListeners]) listener(change.id);
   };
 
   const listensForChanges = client.onChange !== undefined;
@@ -1042,6 +1050,15 @@ export function connectStore(
     unsubs.push(client.onAbandon((proposals) => abandon(proposals)));
 
   return {
+    get modelId() {
+      return id;
+    },
+    onModel(listener) {
+      if (disposed) return () => {};
+      modelListeners.add(listener);
+      if (id !== undefined) listener(id);
+      return () => modelListeners.delete(listener);
+    },
     receive(data) {
       disconnected = false;
       const change = client.recv(data);
@@ -1057,7 +1074,8 @@ export function connectStore(
         accept(change);
         return;
       }
-      if (id === undefined) id = client.ids()[0];
+      const discovered = id === undefined;
+      if (discovered) id = client.ids()[0];
       if (id === undefined) return; // no model yet (snapshot not received)
       inbound = true;
       try {
@@ -1065,6 +1083,7 @@ export function connectStore(
       } finally {
         inbound = false;
       }
+      if (discovered) for (const listener of [...modelListeners]) listener(id);
     },
     disconnect() {
       if (disposed) return;
@@ -1078,6 +1097,7 @@ export function connectStore(
       for (const proposal of [...pending.keys()]) discardProposal(proposal);
       unwireFields();
       for (const unsub of unsubs) unsub();
+      modelListeners.clear();
     },
   };
 }

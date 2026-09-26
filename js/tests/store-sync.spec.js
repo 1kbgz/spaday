@@ -1292,6 +1292,46 @@ test("inbound list patches reach Each as keyed collection deltas", async ({
   });
 });
 
+test("a store link exposes its model after the initial store sync", async ({
+  page,
+}) => {
+  const result = await page.evaluate((makeFake) => {
+    const { client, codec } = eval(`(${makeFake})()`);
+    const { Store, connectStore } = window.__spaday;
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, codec);
+    const seen = [];
+    const stop = link.onModel((id) =>
+      seen.push({ id, name: store.get("profile.name") }),
+    );
+    const before = link.modelId ?? null;
+
+    link.receive(
+      JSON.stringify({
+        t: "snapshot",
+        id: 7,
+        value: { profile: { name: "Ada" } },
+      }),
+    );
+    const after = link.modelId;
+    const late = [];
+    const stopLate = link.onModel((id) => late.push(id));
+    client.emit({ t: "snapshot", id: 8 });
+    stop();
+    stopLate();
+    link.dispose();
+    link.onModel((id) => late.push(id));
+    return { before, after, seen, late };
+  }, LISTENER_FAKE.toString());
+
+  expect(result).toEqual({
+    before: null,
+    after: 7,
+    seen: [{ id: 7, name: "Ada" }],
+    late: [7],
+  });
+});
+
 test("onChange drives accepted updates and ignores non-change frames", async ({
   page,
 }) => {
