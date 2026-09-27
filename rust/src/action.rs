@@ -20,6 +20,7 @@
 //!   `{"kind":"call","method","url":<string>|<Expr>,"body":<Expr>|null,"result":<string>|null}` ·
 //!   `{"kind":"js","handler"}`
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// Parse a serialized action (the canonical wire form) into an [`Action`]. Used by the wasm
@@ -28,8 +29,29 @@ pub fn parse_action(json: &str) -> Result<Action, String> {
     serde_json::from_str(json).map_err(|e| e.to_string())
 }
 
+/// Validate and canonicalize one serialized action.
+pub fn normalize_action(json: &str) -> Result<String, String> {
+    serde_json::to_string(&parse_action(json)?).map_err(|e| e.to_string())
+}
+
+/// Validate and canonicalize one serialized expression.
+pub fn normalize_expr(json: &str) -> Result<String, String> {
+    let expr: Expr = serde_json::from_str(json).map_err(|e| e.to_string())?;
+    serde_json::to_string(&expr).map_err(|e| e.to_string())
+}
+
+/// Return the editor-facing JSON Schema for the complete action wire model.
+pub fn action_schema_json() -> Result<String, String> {
+    serde_json::to_string(&schemars::schema_for!(Action)).map_err(|e| e.to_string())
+}
+
+/// Return the editor-facing JSON Schema for the complete expression wire model.
+pub fn expr_schema_json() -> Result<String, String> {
+    serde_json::to_string(&schemars::schema_for!(Expr)).map_err(|e| e.to_string())
+}
+
 /// A reference to a DOM element an action targets.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "ref", rename_all = "lowercase")]
 pub enum Ref {
     /// The element the event fired on (the listener's element).
@@ -39,7 +61,7 @@ pub enum Ref {
 }
 
 /// A value computed in the browser at event time.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "expr", rename_all = "lowercase")]
 pub enum Expr {
     /// A literal (plain JSON) value.
@@ -105,7 +127,7 @@ pub enum Expr {
 }
 
 /// A static endpoint URL or one evaluated from event/store state at action time.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum EndpointUrl {
     Static(String),
@@ -125,7 +147,7 @@ impl From<String> for EndpointUrl {
 }
 
 /// A declarative event handler, interpreted in the browser.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum Action {
     /// Set `prop` on `target` to `value`.

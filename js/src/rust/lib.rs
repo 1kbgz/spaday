@@ -74,6 +74,42 @@ pub fn interpret(action: &str, host: Host) -> Result<(), JsError> {
     Ok(())
 }
 
+/// Validate and canonicalize a serialized action with the shared core model.
+#[wasm_bindgen]
+pub fn normalize_action(value: &str) -> Result<String, JsError> {
+    spaday::normalize_action(value).map_err(|error| JsError::new(&error))
+}
+
+/// Validate and canonicalize a serialized expression with the shared core model.
+#[wasm_bindgen]
+pub fn normalize_expr(value: &str) -> Result<String, JsError> {
+    spaday::normalize_expr(value).map_err(|error| JsError::new(&error))
+}
+
+/// Validate and canonicalize a serialized binding with the shared core model.
+#[wasm_bindgen]
+pub fn normalize_binding(value: &str) -> Result<String, JsError> {
+    spaday::normalize_binding(value).map_err(|error| JsError::new(&error))
+}
+
+/// Return JSON Schema for the complete action wire model.
+#[wasm_bindgen]
+pub fn action_schema() -> Result<String, JsError> {
+    spaday::action_schema_json().map_err(|error| JsError::new(&error))
+}
+
+/// Return JSON Schema for the complete expression wire model.
+#[wasm_bindgen]
+pub fn expr_schema() -> Result<String, JsError> {
+    spaday::expr_schema_json().map_err(|error| JsError::new(&error))
+}
+
+/// Return JSON Schema for the complete binding wire model.
+#[wasm_bindgen]
+pub fn binding_schema() -> Result<String, JsError> {
+    spaday::binding_schema_json().map_err(|error| JsError::new(&error))
+}
+
 fn run<'a>(action: &'a spaday::Action, host: &'a Host) -> Pin<Box<dyn Future<Output = ()> + 'a>> {
     Box::pin(run_inner(action, host))
 }

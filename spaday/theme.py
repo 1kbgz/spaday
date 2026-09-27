@@ -15,7 +15,7 @@ palettes are emitted at zero specificity, so an application or component package
 mapping its own theme onto these variables::
 
     from spaday.components.shell import App
-    App().css(spa_surface="#111", spa_border="#333", spa_muted="#999")  # retheme the whole shell
+    App().css(spa_surface="#111", spa_border="#333", spa_text="#eee")  # retheme the whole shell
 
 Component packages
 ------------------
@@ -74,6 +74,7 @@ SHELL_TOKENS = {
     "spa_surface": Token("--spa-surface", "nav / footer / app surface color"),
     "spa_surface_2": Token("--spa-surface-2", "gutter / toolbar surface color"),
     "spa_border": Token("--spa-border", "shell border color"),
+    "spa_text": Token("--spa-text", "body text color"),
     "spa_muted": Token("--spa-muted", "footer / muted text color"),
     "spa_accent": Token("--spa-accent", "emphasis / hover / selection color"),
     "spa_info": Token("--spa-info", "info tone (Toast, component packages)"),

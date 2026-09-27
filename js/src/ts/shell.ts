@@ -23,6 +23,7 @@ const THEME_CSS = `:where(.wa-dark) {
   --spa-surface: #15191e;
   --spa-surface-2: #1d232b;
   --spa-border: #333b45;
+  --spa-text: #f0f3f6;
   --spa-muted: #9aa3ad;
   --spa-accent: #8fb4dd;
   --spa-info: #5b9dd9;
@@ -34,6 +35,7 @@ const THEME_CSS = `:where(.wa-dark) {
   --spa-surface: #fff;
   --spa-surface-2: #fafafa;
   --spa-border: #e6e6e6;
+  --spa-text: #1f2328;
   --spa-muted: #666;
   --spa-accent: #4a90d9;
   --spa-info: #1565c0;

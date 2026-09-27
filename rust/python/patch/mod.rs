@@ -21,6 +21,36 @@ pub fn parse_cem(manifest: &str) -> PyResult<String> {
     spaday::parse_cem(manifest).map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
+#[pyfunction]
+pub fn normalize_action(value: &str) -> PyResult<String> {
+    spaday::normalize_action(value).map_err(PyValueError::new_err)
+}
+
+#[pyfunction]
+pub fn normalize_expr(value: &str) -> PyResult<String> {
+    spaday::normalize_expr(value).map_err(PyValueError::new_err)
+}
+
+#[pyfunction]
+pub fn normalize_binding(value: &str) -> PyResult<String> {
+    spaday::normalize_binding(value).map_err(PyValueError::new_err)
+}
+
+#[pyfunction]
+pub fn action_schema() -> PyResult<String> {
+    spaday::action_schema_json().map_err(PyValueError::new_err)
+}
+
+#[pyfunction]
+pub fn expr_schema() -> PyResult<String> {
+    spaday::expr_schema_json().map_err(PyValueError::new_err)
+}
+
+#[pyfunction]
+pub fn binding_schema() -> PyResult<String> {
+    spaday::binding_schema_json().map_err(PyValueError::new_err)
+}
+
 /// Frame a JSON-encoded tree/patch into transports' length-prefixed envelope bytes.
 ///
 /// `kind` is `"snapshot"` or `"patch"`; `codec` is `"application/json"` or `"application/msgpack"`.

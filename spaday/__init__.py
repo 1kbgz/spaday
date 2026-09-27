@@ -47,6 +47,7 @@ from .component import Component, Paragraph, Strong, Text, element
 from .conformance import check_script
 from .packages import ComponentPackage, discover_component_package_names, discover_component_packages, resolve_component_packages
 from .render import render_html
+from .schema import action_schema, binding_schema, expr_schema, validate_action, validate_binding, validate_expr
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
 from .theme import SHELL_TOKENS, Token
 from .ui import (
@@ -68,7 +69,7 @@ from .ui import (
 from .validate import ValidationError, validate
 from .worker import WorkerApp
 
-__version__ = "0.11.3"
+__version__ = "0.11.4"
 
 __all__ = [
     "check_script",
@@ -123,12 +124,14 @@ __all__ = [
     "__version__",
     # action DSL (declarative behavior, run in the browser)
     "actions",
+    "action_schema",
     "all_",
     "any_",
     "apply",
     "arr",
     "bind",
     "by_id",
+    "binding_schema",
     "call",
     "close_modal",
     "close_popup",
@@ -147,6 +150,7 @@ __all__ = [
     "event_closest",
     "event_prop",
     "event_value",
+    "expr_schema",
     "field",
     "item",
     "generate",
@@ -165,6 +169,9 @@ __all__ = [
     "this",
     # build-time validation
     "validate",
+    "validate_action",
+    "validate_binding",
+    "validate_expr",
 ]
 
 

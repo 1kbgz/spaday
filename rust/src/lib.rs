@@ -22,11 +22,17 @@ mod node;
 mod value;
 mod wire;
 
-pub use action::{parse_action, Action, EndpointUrl, Expr, Ref};
+pub use action::{
+    action_schema_json, expr_schema_json, normalize_action, normalize_expr, parse_action, Action,
+    EndpointUrl, Expr, Ref,
+};
 pub use cem::{parse_cem, parse_manifest, ComponentSchema, PropSchema, PropType};
 pub use diff::{apply, diff, Op, Patch, Path, PathSeg};
 pub use example::Example;
 pub use json::{apply_json, diff_json};
-pub use node::{Attr, EventName, Key, Node, SlotName, TagName, DEFAULT_SLOT};
+pub use node::{
+    binding_schema_json, normalize_binding, Attr, EventName, Key, Node, SlotName, TagName,
+    DEFAULT_SLOT,
+};
 pub use value::Value;
 pub use wire::{decode_frame, encode_frame};

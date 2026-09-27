@@ -1,6 +1,6 @@
 [package]
 name = "spaday"
-version = "0.11.3"
+version = "0.11.4"
 authors = ["1kbgz <dev@1kbgz.com>"]
 edition = "2021"
 license = "Apache-2.0"
@@ -16,6 +16,7 @@ crate-type = ["rlib"]
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+schemars = "0.8"
 # spaday's prop/state `Value` IS transports' core `Value`, and its tree/patch ride transports' `Frame` +
 # codecs (see rust/src/value.rs, rust/src/wire.rs). Tracks the published transports release.
 transports = "0.10.0"

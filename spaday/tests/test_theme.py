@@ -42,6 +42,7 @@ def test_unthemed_component_stays_prop_free():
 
 def test_shell_tokens_reference_is_exposed():
     assert SHELL_TOKENS["spa_surface"][0] == "--spa-surface"  # css(spa_surface=...) drives this property
+    assert SHELL_TOKENS["spa_text"] == ("--spa-text", "body text color")
 
 
 def test_token_adds_fallback_metadata_without_breaking_legacy_sequence_usage():

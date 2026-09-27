@@ -10,6 +10,43 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.__spaday);
 });
 
+test("shared core validates editor action, expression, and binding data", async ({
+  page,
+}) => {
+  const values = await page.evaluate(async () => {
+    const runtime = await import("/dist/esm/index.js");
+    return {
+      action: runtime.validateAction({
+        kind: "toggle-field",
+        field: "open",
+      }),
+      expression: runtime.validateExpr({ expr: "event" }),
+      binding: runtime.validateBinding({
+        field: "query",
+        mode: "two-way",
+      }),
+      titles: [
+        runtime.actionSchema().title,
+        runtime.exprSchema().title,
+        runtime.bindingSchema().title,
+      ],
+    };
+  });
+
+  expect(values).toEqual({
+    action: { kind: "toggle-field", field: "open" },
+    expression: { expr: "event" },
+    binding: { field: "query", mode: "two-way" },
+    titles: ["Action", "Expr", "Binding"],
+  });
+  await expect(
+    page.evaluate(async () => {
+      const runtime = await import("/dist/esm/index.js");
+      runtime.validateAction({ kind: "unknown" });
+    }),
+  ).rejects.toThrow();
+});
+
 test("Toggle flips a boolean prop on the event's own element (this)", async ({
   page,
 }) => {

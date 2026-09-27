@@ -8,6 +8,7 @@
 
 use std::collections::BTreeMap;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::action::Action;
@@ -25,7 +26,7 @@ pub const DEFAULT_SLOT: &str = "default";
 
 /// How a reactive [`Binding`] flows: one-way (state field → prop) or two-way (also prop → field, for
 /// value-like controls whose change should write the field back).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub enum BindMode {
     #[serde(rename = "one-way")]
     OneWay,
@@ -34,7 +35,7 @@ pub enum BindMode {
 }
 
 /// Conversion applied where a bound value crosses the DOM property boundary.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub enum BindingCodec {
     #[serde(rename = "number")]
     Number,
@@ -43,14 +44,14 @@ pub enum BindingCodec {
 }
 
 /// Outbound-only conversion applied before a value reaches a DOM property.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub enum BindingEncode {
     #[serde(rename = "string")]
     String,
 }
 
 /// Child option properties driven by a parent control's value binding.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct BindingSelection {
     pub tag: String,
     pub value: String,
@@ -58,7 +59,7 @@ pub struct BindingSelection {
 }
 
 /// How a bound generic options list is shaped for a concrete control.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct BindingOptions {
     pub value: String,
     pub label: String,
@@ -74,11 +75,12 @@ pub struct BindingOptions {
 /// two-way binding writes it back when the control changes) — or a `compute` expression *derived* from
 /// state fields (one-way; recomputed when any field it reads changes). The runtime's signal store
 /// drives both; the compute expression is an opaque field-expr the runtime evaluates (see signals.ts).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct Binding {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub field: Option<Field>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<crate::action::Expr>")]
     pub compute: Option<serde_json::Value>,
     pub mode: BindMode,
     /// Two-way only: the DOM event on which the control's value is written back to the field, for a
@@ -114,6 +116,40 @@ pub struct Binding {
     /// Transform a bound generic options list to the concrete control's item field names.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub options: Option<BindingOptions>,
+}
+
+/// Validate and canonicalize one serialized binding.
+pub fn normalize_binding(json: &str) -> Result<String, String> {
+    let binding: Binding = serde_json::from_str(json).map_err(|e| e.to_string())?;
+    if binding.field.is_some() == binding.compute.is_some() {
+        return Err("binding requires exactly one of field or compute".into());
+    }
+    if binding.compute.is_some() && binding.mode != BindMode::OneWay {
+        return Err("computed bindings must use one-way mode".into());
+    }
+    if binding.codec == Some(BindingCodec::Json) && binding.encode.is_some() {
+        return Err("binding encode cannot be combined with the json codec".into());
+    }
+    if let Some(compute) = &binding.compute {
+        serde_json::from_value::<crate::action::Expr>(compute.clone())
+            .map_err(|error| format!("invalid binding compute expression: {error}"))?;
+    }
+    serde_json::to_string(&binding).map_err(|e| e.to_string())
+}
+
+/// Return the editor-facing JSON Schema for the complete binding wire model.
+pub fn binding_schema_json() -> Result<String, String> {
+    let mut schema =
+        serde_json::to_value(schemars::schema_for!(Binding)).map_err(|e| e.to_string())?;
+    schema["oneOf"] = serde_json::json!([
+        {"required": ["field"], "not": {"required": ["compute"]}},
+        {
+            "required": ["compute"],
+            "not": {"required": ["field"]},
+            "properties": {"mode": {"const": "one-way"}}
+        }
+    ]);
+    serde_json::to_string(&schema).map_err(|e| e.to_string())
 }
 
 /// A node in the component tree.
@@ -264,5 +300,16 @@ mod node_tests {
         });
         let node: Node = serde_json::from_value(json.clone()).unwrap();
         assert_eq!(serde_json::to_value(node).unwrap(), json);
+    }
+
+    #[test]
+    fn editor_binding_validation_checks_semantics_and_schema() {
+        assert!(normalize_binding(r#"{"field":"query","mode":"two-way"}"#).is_ok());
+        assert!(normalize_binding(r#"{"mode":"one-way"}"#).is_err());
+        assert!(normalize_binding(r#"{"compute":{"expr":"unknown"},"mode":"one-way"}"#).is_err());
+        let schema: serde_json::Value =
+            serde_json::from_str(&binding_schema_json().unwrap()).unwrap();
+        assert_eq!(schema["oneOf"].as_array().unwrap().len(), 2);
+        assert!(schema["definitions"]["Expr"].is_object());
     }
 }
