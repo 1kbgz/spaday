@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Use spaday in a Jupyter notebook" href="notebook.html"><link rel="prev" title="Ship your own variant" href="customizing.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>Sync a UI to a server over transports - spaday v0.11.1</title>
+        <title>Sync a UI to a server over transports - spaday v0.11.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.1</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.2</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -189,7 +189,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.1</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.2</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -412,13 +412,18 @@ and exposes its state as <code class="docutils literal notranslate"><span class=
 <code class="docutils literal notranslate"><span class="pre">spaday:wire-client</span></code>. Spaday dispatches it after <code class="docutils literal notranslate"><span class="pre">connectStore</span></code> is configured and before the client
 connects:</p>
 <div class="highlight-js notranslate"><div class="highlight"><pre><span></span><span class="nb">document</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s2">"spaday:wire-client"</span><span class="p">,</span><span class="w"> </span><span class="p">({</span><span class="w"> </span><span class="nx">detail</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">client</span><span class="p">,</span><span class="w"> </span><span class="nx">store</span><span class="p">,</span><span class="w"> </span><span class="nx">namespace</span><span class="p">,</span><span class="w"> </span><span class="nx">url</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">detail</span><span class="p">;</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">client</span><span class="p">,</span><span class="w"> </span><span class="nx">link</span><span class="p">,</span><span class="w"> </span><span class="nx">store</span><span class="p">,</span><span class="w"> </span><span class="nx">namespace</span><span class="p">,</span><span class="w"> </span><span class="nx">url</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">detail</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">link</span><span class="p">.</span><span class="nx">onModel</span><span class="p">((</span><span class="nx">modelId</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Use client APIs scoped to this wire's model.</span>
+<span class="w">  </span><span class="p">});</span>
 <span class="p">});</span>
 </pre></div>
 </div>
-<p>The event exposes the existing managed client. Use it for transport-owned features such as ephemeral
-awareness instead of opening a second WebSocket. Match <code class="docutils literal notranslate"><span class="pre">namespace</span></code> or <code class="docutils literal notranslate"><span class="pre">url</span></code> when a page has several
-wires. The client and store are live objects for browser adapters, not serializable page state.</p>
+<p>The event exposes the existing managed client and its <code class="docutils literal notranslate"><span class="pre">StoreLink</span></code>. Use them for transport-owned
+features such as ephemeral awareness instead of opening a second WebSocket. <code class="docutils literal notranslate"><span class="pre">link.modelId</span></code> is
+<code class="docutils literal notranslate"><span class="pre">undefined</span></code> until the initial snapshot; <code class="docutils literal notranslate"><span class="pre">link.onModel()</span></code> runs after that snapshot has synchronized the
+store and calls late subscribers immediately. Match <code class="docutils literal notranslate"><span class="pre">namespace</span></code> or <code class="docutils literal notranslate"><span class="pre">url</span></code> when a page has several wires.
+The client, link, and store are live objects for browser adapters, not serializable page state.</p>
 </section>
 <section id="perspective-mode-b">
 <h2>Perspective (Mode B)<a class="headerlink" href="#perspective-mode-b" title="Link to this heading">¶</a></h2>
@@ -511,7 +516,7 @@ full pattern.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=57cbeb03"></script>
+</div><script src="../../_static/documentation_options.js?v=60336169"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
