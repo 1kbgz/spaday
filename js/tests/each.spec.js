@@ -80,6 +80,187 @@ test("spa-each reconciles keyed instances without losing live state", async ({
   });
 });
 
+test("direct spa-each items satisfy parent and slot contracts", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { applyPatch, mount, Store } = window.__spaday;
+    class DirectParent extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: "open" }).innerHTML =
+          '<slot name="children"></slot><slot></slot>';
+      }
+    }
+    class DirectChild extends HTMLElement {
+      connectedCallback() {
+        if (this.parentElement?.localName === "direct-parent")
+          this.slot = "children";
+      }
+      set label(value) {
+        this.textContent = value;
+      }
+    }
+    if (!customElements.get("direct-parent"))
+      customElements.define("direct-parent", DirectParent);
+    if (!customElements.get("direct-child"))
+      customElements.define("direct-child", DirectChild);
+
+    const store = new Store({
+      rows: [
+        { id: 1, name: "A" },
+        { id: 2, name: "B" },
+      ],
+    });
+    const root = mount(
+      document.body,
+      {
+        tag: "direct-parent",
+        slots: {
+          default: [
+            { tag: "span", props: { id: { Str: "before" } } },
+            {
+              tag: "spa-each",
+              props: { itemKey: { Str: "id" }, direct: { Bool: true } },
+              bindings: { items: { field: "rows", mode: "one-way" } },
+              slots: {
+                default: [
+                  {
+                    tag: "direct-child",
+                    props: { tabIndex: { Int: 0 } },
+                    bindings: {
+                      label: {
+                        compute: { expr: "item", path: "name" },
+                        mode: "one-way",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+            { tag: "button", props: { id: { Str: "after" } } },
+          ],
+        },
+      },
+      store,
+    );
+    const repeater = root.querySelector("spa-each");
+    const initial = [...root.querySelectorAll(":scope > direct-child")];
+    const focused = initial[1];
+    focused.focus();
+    focused.dataset.local = "kept";
+
+    applyPatch(
+      root,
+      {
+        ops: [
+          {
+            SetProp: {
+              path: [{ slot: "default", index: 2 }],
+              name: "data-state",
+              value: { Str: "patched" },
+            },
+          },
+        ],
+      },
+      store,
+    );
+    store.set("rows", [
+      { id: 2, name: "Bee" },
+      { id: 3, name: "C" },
+      { id: 1, name: "A" },
+    ]);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    const updated = [...root.querySelectorAll(":scope > direct-child")];
+    const assigned = root.shadowRoot
+      .querySelector('slot[name="children"]')
+      .assignedElements();
+    const beforeRemoval = {
+      direct: updated.every((child) => child.parentElement === root),
+      emptyAnchor: repeater.children.length === 0,
+      order: updated.map((child) => child.textContent),
+      movedIdentity: updated[0] === focused && updated[2] === initial[0],
+      focusKept: document.activeElement === focused,
+      propertyKept: focused.dataset.local,
+      slotted:
+        assigned.length === 3 &&
+        assigned.every((child) => child.slot === "children"),
+      siblingPatched: root.querySelector("#after").dataset.state,
+    };
+
+    applyPatch(
+      root,
+      {
+        ops: [
+          {
+            RemoveProp: {
+              path: [{ slot: "default", index: 1 }],
+              name: "direct",
+            },
+          },
+        ],
+      },
+      store,
+    );
+    const nestedAfterRemovingDirect = repeater.children.length;
+    applyPatch(
+      root,
+      {
+        ops: [
+          {
+            SetProp: {
+              path: [{ slot: "default", index: 1 }],
+              name: "direct",
+              value: { Bool: true },
+            },
+          },
+        ],
+      },
+      store,
+    );
+    const directAfterRestoring = root.querySelectorAll(
+      ":scope > direct-child",
+    ).length;
+
+    applyPatch(
+      root,
+      {
+        ops: [
+          {
+            RemoveChild: { path: [], slot: "default", index: 1 },
+          },
+        ],
+      },
+      store,
+    );
+    store.set("rows", [{ id: 4, name: "D" }]);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      beforeRemoval,
+      nestedAfterRemovingDirect,
+      directAfterRestoring,
+      remainingTags: [...root.children].map((child) => child.localName),
+    };
+  });
+
+  expect(result).toEqual({
+    beforeRemoval: {
+      direct: true,
+      emptyAnchor: true,
+      order: ["Bee", "C", "A"],
+      movedIdentity: true,
+      focusKept: true,
+      propertyKept: "kept",
+      slotted: true,
+      siblingPatched: "patched",
+    },
+    nestedAfterRemovingDirect: 3,
+    directAfterRestoring: 3,
+    remainingTags: ["span", "button"],
+  });
+});
+
 test("spa-each preserves focus on non-text inputs during a move", async ({
   page,
 }) => {
