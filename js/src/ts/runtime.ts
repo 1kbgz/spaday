@@ -87,7 +87,7 @@ export function mount(
   scope?: Scope,
 ): Element {
   const el = build(tree, store, scope);
-  container.appendChild(el);
+  container.appendChild(prepareInsertion(el));
   return el;
 }
 
@@ -248,6 +248,8 @@ function unbindEvent(el: Element, name: string): void {
 // subscribes the prop to its state field; a two-way binding also writes the field when the control changes.
 const bindings = new WeakMap<Element, Map<string, () => void>>();
 const structuralNodes = new WeakMap<Element, Node>();
+const directStructuralChildren = new WeakMap<Element, () => Element[]>();
+const structuralInstances = new WeakSet<Element>();
 type ConnectionCheck = () => boolean;
 const pendingConnections = new Set<WeakRef<ConnectionCheck>>();
 let pendingConnectionObserver: MutationObserver | undefined;
@@ -996,11 +998,17 @@ function prepareEachDeltas(
   return prepared;
 }
 
-function preserveEachFocus(el: Element, mutate: () => void): void {
+function preserveEachFocus(
+  instances: Iterable<EachInstance>,
+  mutate: () => void,
+): void {
+  const active = document.activeElement;
   const focused =
-    document.activeElement instanceof HTMLElement &&
-    el.contains(document.activeElement)
-      ? document.activeElement
+    active instanceof HTMLElement &&
+    Array.from(instances).some(
+      ({ element }) => element === active || element.contains(active),
+    )
+      ? active
       : undefined;
   let selection:
     | readonly [number, number, SelectionDirection | null]
@@ -1044,6 +1052,7 @@ function wireEach(
   const source = node.bindings?.items;
   const template = node.slots?.[DEFAULT_SLOT] ?? [];
   const itemKey = String(untag(node.props?.itemKey!));
+  const direct = Boolean(node.props?.direct && untag(node.props.direct));
   const scopeValue = node.props?.scopeName
     ? untag(node.props.scopeName)
     : undefined;
@@ -1055,6 +1064,28 @@ function wireEach(
   let order: string[] = [];
   let frame: number | undefined;
   let pendingDeltas: CollectionDelta[] | undefined;
+  const placeOrder = (): void => {
+    const parent = direct ? (el.parentElement ?? el) : el;
+    let reference: Element | null = direct && parent !== el ? el : null;
+    const movable = parent as Element & {
+      moveBefore?: (node: Element, child: Element | null) => void;
+    };
+    for (let index = order.length - 1; index >= 0; index--) {
+      const child = instances.get(order[index])!.element;
+      if (
+        child.parentElement !== parent ||
+        child.nextElementSibling !== reference
+      ) {
+        if (
+          child.parentElement === parent &&
+          typeof movable.moveBefore === "function"
+        )
+          movable.moveBefore(child, reference);
+        else parent.insertBefore(child, reference);
+      }
+      reference = child;
+    }
+  };
   const evaluate = (): unknown[] => {
     const value = source?.compute
       ? evalExpr(source.compute, store, parentScope)
@@ -1076,18 +1107,21 @@ function wireEach(
           element: build(template[0], store, itemScope),
           scope: itemScope,
         };
+        if (direct) structuralInstances.add(instance.element);
       }
-      const current = el.children[index];
-      if (current !== instance.element) {
-        const movable = el as Element & {
-          moveBefore?: (node: Element, child: Element | null) => void;
-        };
-        if (
-          instance.element.parentElement === el &&
-          typeof movable.moveBefore === "function"
-        )
-          movable.moveBefore(instance.element, current ?? null);
-        else el.insertBefore(instance.element, current ?? null);
+      if (!direct) {
+        const current = el.children[index];
+        if (current !== instance.element) {
+          const movable = el as Element & {
+            moveBefore?: (node: Element, child: Element | null) => void;
+          };
+          if (
+            instance.element.parentElement === el &&
+            typeof movable.moveBefore === "function"
+          )
+            movable.moveBefore(instance.element, current ?? null);
+          else el.insertBefore(instance.element, current ?? null);
+        }
       }
       stale.delete(identity);
       next.set(identity, instance);
@@ -1098,13 +1132,14 @@ function wireEach(
     }
     instances = next;
     order = items.map(([identity]) => identity);
+    if (direct) placeOrder();
   };
   const placeAt = (
     instance: EachInstance,
     index: number,
     previousIndex?: number,
   ): void => {
-    if (previousIndex === index) return;
+    if (direct || previousIndex === index) return;
     const current =
       el.children[
         previousIndex !== undefined && previousIndex < index ? index + 1 : index
@@ -1121,7 +1156,7 @@ function wireEach(
   };
   const applyDeltas = (deltas: readonly CollectionDelta[]): void => {
     const prepared = prepareEachDeltas(deltas, itemKey, order, instances);
-    preserveEachFocus(el, () => {
+    preserveEachFocus(instances.values(), () => {
       for (const delta of prepared) {
         if (delta.kind === "reset") {
           reconcileItems(delta.items);
@@ -1131,6 +1166,7 @@ function wireEach(
             element: build(template[0], store, itemScope),
             scope: itemScope,
           };
+          if (direct) structuralInstances.add(instance.element);
           instances.set(delta.identity, instance);
           order.splice(delta.index, 0, delta.identity);
           placeAt(instance, delta.index);
@@ -1142,8 +1178,9 @@ function wireEach(
           order.splice(delta.index, 0, delta.identity);
           placeAt(instances.get(delta.identity)!, delta.index, index);
         } else if (delta.kind === "reorder") {
-          for (const [index, identity] of delta.order.entries())
-            placeAt(instances.get(identity)!, index);
+          if (!direct)
+            for (const [index, identity] of delta.order.entries())
+              placeAt(instances.get(identity)!, index);
           order = [...delta.order];
         } else {
           const instance = instances.get(delta.identity)!;
@@ -1153,6 +1190,7 @@ function wireEach(
           order.splice(order.indexOf(delta.identity), 1);
         }
       }
+      if (direct) placeOrder();
     });
   };
   const flush = (): void => {
@@ -1161,7 +1199,7 @@ function wireEach(
     pendingDeltas = undefined;
     if (deltas) applyDeltas(deltas);
     else
-      preserveEachFocus(el, () =>
+      preserveEachFocus(instances.values(), () =>
         reconcileItems(keyedItems(evaluate(), itemKey)),
       );
   };
@@ -1179,6 +1217,12 @@ function wireEach(
   };
 
   reconcileItems(keyedItems(evaluate(), itemKey));
+  if (direct) {
+    directStructuralChildren.set(el, () =>
+      order.map((identity) => instances.get(identity)!.element),
+    );
+    placeOrder();
+  }
   const subs: Array<() => void> = [];
   if (source?.compute !== undefined) {
     if (store)
@@ -1199,6 +1243,7 @@ function wireEach(
       instance.element.remove();
     }
     instances.clear();
+    directStructuralChildren.delete(el);
   });
 }
 
@@ -1241,6 +1286,7 @@ function teardownTree(el: Element): void {
       bindings.delete(e);
     }
     structuralNodes.delete(e);
+    directStructuralChildren.delete(e);
   }
 }
 
@@ -1349,7 +1395,23 @@ function slotOf(child: Element): string {
 
 /** The child elements of `el` that belong to `slot`, in DOM order. */
 function childrenInSlot(el: Element, slot: string): Element[] {
-  return Array.from(el.children).filter((c) => slotOf(c) === slot);
+  return Array.from(el.children).filter(
+    (c) => !structuralInstances.has(c) && slotOf(c) === slot,
+  );
+}
+
+function prepareInsertion(child: Element): Element | DocumentFragment {
+  const direct = directStructuralChildren.get(child)?.() ?? [];
+  if (direct.length === 0) return child;
+  const fragment = document.createDocumentFragment();
+  const slot = child.getAttribute("slot");
+  for (const item of direct) {
+    if (slot !== null && !item.hasAttribute("slot"))
+      item.setAttribute("slot", slot);
+    fragment.appendChild(item);
+  }
+  fragment.appendChild(child);
+  return fragment;
 }
 
 function appendInSlot(parent: Element, slot: string, child: Element): void {
@@ -1366,11 +1428,14 @@ function insertInSlot(
   if (slot !== DEFAULT_SLOT) child.setAttribute("slot", slot);
   const siblings = childrenInSlot(parent, slot);
   if (index < siblings.length) {
-    parent.insertBefore(child, siblings[index]);
+    parent.insertBefore(prepareInsertion(child), siblings[index]);
   } else if (siblings.length > 0) {
-    parent.insertBefore(child, siblings[siblings.length - 1].nextSibling);
+    parent.insertBefore(
+      prepareInsertion(child),
+      siblings[siblings.length - 1].nextSibling,
+    );
   } else {
-    parent.appendChild(child);
+    parent.appendChild(prepareInsertion(child));
   }
 }
 
@@ -1492,13 +1557,23 @@ function applyOp(
     return root;
   }
   if ("SetProp" in op) {
-    setProp(
-      resolve(root, op.SetProp.path),
-      op.SetProp.name,
-      untag(op.SetProp.value),
-    );
+    const { path, name, value } = op.SetProp;
+    const el = resolve(root, path);
+    setProp(el, name, untag(value));
+    const node = structuralNodes.get(el);
+    if (node?.tag === "spa-each" && name === "direct") {
+      (node.props ??= {})[name] = value;
+      refreshed?.add(el);
+    }
   } else if ("RemoveProp" in op) {
-    removeProp(resolve(root, op.RemoveProp.path), op.RemoveProp.name);
+    const { path, name } = op.RemoveProp;
+    const el = resolve(root, path);
+    removeProp(el, name);
+    const node = structuralNodes.get(el);
+    if (node?.tag === "spa-each" && name === "direct") {
+      delete node.props?.[name];
+      refreshed?.add(el);
+    }
   } else if ("SetEvent" in op) {
     const { path, name, action } = op.SetEvent;
     bindEvent(resolve(root, path), name, action, store, scope);
@@ -1534,7 +1609,7 @@ function applyOp(
     const target = resolve(root, op.Replace.path);
     teardownTree(target); // release the replaced subtree's store subscriptions
     const replacement = build(op.Replace.node, store, scope);
-    target.replaceWith(replacement);
+    target.replaceWith(prepareInsertion(replacement));
     if (op.Replace.path.length === 0) return replacement; // the root element itself was swapped
   }
   // SetKey is diff-engine metadata (the key lives in the tree, not on the DOM element).

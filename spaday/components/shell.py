@@ -433,6 +433,8 @@ class Each(Component):
 
     The first release supports one component template root and read-only item scopes. Item keys must be
     unique strings or finite numbers. Reordering preserves each live root element and its local state.
+    Set ``direct=True`` when the parent custom element requires repeated roots to be direct light-DOM
+    children; the ``spa-each`` element remains as an empty reconciliation anchor.
     """
 
     tag = "spa-each"
@@ -445,6 +447,7 @@ class Each(Component):
         items: Any | None = None,
         key: str,
         scope: str | None = None,
+        direct: bool = False,
         **props: Any,
     ) -> None:
         if not isinstance(template, Component):
@@ -455,7 +458,10 @@ class Each(Component):
             raise ValueError("Each key must be a non-empty item field")
         if scope is not None and (not scope or "." in scope):
             raise ValueError("Each scope must be a non-empty name without dots")
-        super().__init__(template, props={"style": "display:contents", "itemKey": key, "scopeName": scope}, **props)
+        each_props: dict[str, Any] = {"style": "display:contents", "itemKey": key, "scopeName": scope}
+        if direct:
+            each_props["direct"] = True
+        super().__init__(template, props=each_props, **props)
         if field is not None:
             self._bindings["items"] = {"field": field, "mode": "one-way"}
         else:

@@ -249,6 +249,13 @@ def test_each_authors_a_keyed_collection_template():
     ]
 
 
+def test_each_can_render_items_as_direct_children_of_its_parent():
+    node = Each(Text(item("name")), field="rows", key="id", direct=True).to_node()
+
+    assert node["props"]["direct"] == {"Bool": True}
+    assert "direct" not in Each(Text(item("name")), field="rows", key="id").to_node()["props"]
+
+
 def test_each_accepts_a_nested_collection_expression():
     node = Each(element("span"), items=item("records"), key="id").to_node()
     assert node["bindings"]["items"] == {

@@ -273,6 +273,10 @@ collection updates at most once per animation frame. Existing keys retain their 
 focus, cursor position, local properties, bindings, and action scope. Item scopes are read-only; use an
 action to update global state, send a model patch, or call an endpoint.
 
+Set `direct=True` when a parent custom element discovers children through direct light-DOM parentage or
+native slots. Repeated roots then sit directly before the empty `spa-each` reconciliation anchor. The
+default keeps roots inside `spa-each`, preserving the existing DOM shape for other collections.
+
 Run the complete [keyed records example](../../spaday/examples/keyed_records.py) to try nested channels,
 server-driven add/update/remove/reorder operations, per-record endpoint payloads, and preserved local
 input state without page-specific JavaScript.
