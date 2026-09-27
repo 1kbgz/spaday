@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.component - spaday v0.11.3</title>
+        <title>spaday.component - spaday v0.11.4</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.3</code></div></a>
+      <a href="../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.4</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.3</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.4</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -264,6 +264,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Action</span><span class="p">,</span> <span class="n">Expr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentSchema</span><span class="p">,</span> <span class="n">PropertySchema</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_action</span><span class="p">,</span> <span class="n">validate_binding</span>
 
 <span class="c1">#: The conventional name of a component's unnamed (default) slot (matches the Rust core).</span>
 <span class="n">DEFAULT_SLOT</span> <span class="o">=</span> <span class="s2">"default"</span>
@@ -623,6 +624,27 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
+<div class="viewcode-block" id="Component.on_wire">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.on_wire">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_wire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Component"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Bind already-serialized action data after validating it with the shared core model.</span>
+
+<span class="sd">        Editors and source adapters use this when behavior starts as structured data rather than a</span>
+<span class="sd">        Python :class:`~spaday.actions.Action` instance.</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">[</span><span class="n">event</span><span class="p">]</span> <span class="o">=</span> <span class="n">validate_action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Component.bind_wire">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.bind_wire">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_wire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">binding</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Component"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Attach already-serialized binding data after shared-core validation."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_text_binding</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">validate_binding</span><span class="p">(</span><span class="n">binding</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
 <div class="viewcode-block" id="Component.bind">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.bind">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span>
@@ -845,7 +867,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=c44be570"></script>
+</div><script src="../../_static/documentation_options.js?v=0fc275bd"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

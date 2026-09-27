@@ -44,7 +44,7 @@ Dagre(graph=g).css(spa_dagre_node_fill="#1a2028")   # only the graph
 ```
 
 `spaday.theme.SHELL_TOKENS` lists the shell palette (`--spa-surface`, `--spa-surface-2`,
-`--spa-border`, `--spa-muted`, `--spa-accent`, `--spa-info`, `--spa-success`, `--spa-warning`,
+`--spa-border`, `--spa-text`, `--spa-muted`, `--spa-accent`, `--spa-info`, `--spa-success`, `--spa-warning`,
 `--spa-danger`, plus layout tokens). Each package publishes its own `TOKENS` mapping. A `Token`
 contains the CSS property, description, and optional shell fallback:
 
