@@ -19,6 +19,7 @@ from typing import Any, ClassVar, Union
 
 from .actions import Action, Expr
 from .catalog import ComponentSchema, PropertySchema
+from .schema import validate_action, validate_binding
 
 #: The conventional name of a component's unnamed (default) slot (matches the Rust core).
 DEFAULT_SLOT = "default"
@@ -341,6 +342,21 @@ class Component:
         if not isinstance(action, Action):
             raise TypeError(f"event action must be an Action, got {type(action).__name__}")
         self._events[event] = action.to_dict()
+        return self
+
+    def on_wire(self, event: str, action: object) -> "Component":
+        """Bind already-serialized action data after validating it with the shared core model.
+
+        Editors and source adapters use this when behavior starts as structured data rather than a
+        Python :class:`~spaday.actions.Action` instance.
+        """
+        self._events[event] = validate_action(action)
+        return self
+
+    def bind_wire(self, prop: str, binding: object) -> "Component":
+        """Attach already-serialized binding data after shared-core validation."""
+        self._check_text_binding(prop)
+        self._bindings[prop] = validate_binding(binding)
         return self
 
     def bind(

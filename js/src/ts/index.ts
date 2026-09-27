@@ -25,6 +25,35 @@ export const diff = (oldTree: string, newTree: string): string =>
 export const apply = (root: string, patch: string): string =>
   wasm.apply(root, patch);
 
+/** Validate an action against the Rust-owned wire model and return its canonical form. */
+export const validateAction = (value: unknown): Record<string, unknown> =>
+  JSON.parse(wasm.normalize_action(JSON.stringify(value))) as Record<
+    string,
+    unknown
+  >;
+
+/** Validate an expression against the Rust-owned wire model and return its canonical form. */
+export const validateExpr = (value: unknown): Record<string, unknown> =>
+  JSON.parse(wasm.normalize_expr(JSON.stringify(value))) as Record<
+    string,
+    unknown
+  >;
+
+/** Validate a binding against the Rust-owned wire model and return its canonical form. */
+export const validateBinding = (value: unknown): Record<string, unknown> =>
+  JSON.parse(wasm.normalize_binding(JSON.stringify(value))) as Record<
+    string,
+    unknown
+  >;
+
+/** JSON Schemas for editor and integration consumers of the shared wire model. */
+export const actionSchema = (): Record<string, unknown> =>
+  JSON.parse(wasm.action_schema()) as Record<string, unknown>;
+export const exprSchema = (): Record<string, unknown> =>
+  JSON.parse(wasm.expr_schema()) as Record<string, unknown>;
+export const bindingSchema = (): Record<string, unknown> =>
+  JSON.parse(wasm.binding_schema()) as Record<string, unknown>;
+
 /**
  * Frame a JSON-encoded tree (`kind: "snapshot"`) or patch (`kind: "patch"`) into transports'
  * length-prefixed envelope bytes, encoded with `codec` (`"application/json"` or `"application/msgpack"`).

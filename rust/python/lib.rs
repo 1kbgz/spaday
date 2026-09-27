@@ -15,6 +15,13 @@ fn spaday(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(patch::apply, m)?)?;
     // Custom Elements Manifest parser — manifest JSON -> component schemas JSON.
     m.add_function(wrap_pyfunction!(patch::parse_cem, m)?)?;
+    // Shared action/expression/binding validation and editor schemas.
+    m.add_function(wrap_pyfunction!(patch::normalize_action, m)?)?;
+    m.add_function(wrap_pyfunction!(patch::normalize_expr, m)?)?;
+    m.add_function(wrap_pyfunction!(patch::normalize_binding, m)?)?;
+    m.add_function(wrap_pyfunction!(patch::action_schema, m)?)?;
+    m.add_function(wrap_pyfunction!(patch::expr_schema, m)?)?;
+    m.add_function(wrap_pyfunction!(patch::binding_schema, m)?)?;
     // Framed wire — tree/patch over transports' Frame + JSON/msgpack codecs.
     m.add_function(wrap_pyfunction!(patch::encode_frame, m)?)?;
     m.add_function(wrap_pyfunction!(patch::decode_frame, m)?)?;

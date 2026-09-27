@@ -64,17 +64,25 @@ test("the shell ships a dark palette keyed off wa-dark, with wa-light flipping a
     const light = bg();
     document.documentElement.classList.add("wa-dark"); // what bind_root_class("wa-dark", ...) toggles
     const dark = bg();
+    const darkText = getComputedStyle(document.documentElement)
+      .getPropertyValue("--spa-text")
+      .trim();
     const island = document.createElement("div");
     island.className = "wa-light";
     document.body.append(island);
     const islandNav = window.__spaday.mount(island, { tag: "spa-nav" });
     const islandBg = getComputedStyle(islandNav).backgroundColor;
+    const islandText = getComputedStyle(island)
+      .getPropertyValue("--spa-text")
+      .trim();
     document.documentElement.classList.remove("wa-dark");
-    return { light, dark, islandBg, back: bg() };
+    return { light, dark, darkText, islandBg, islandText, back: bg() };
   });
   expect(r.light).toBe("rgb(255, 255, 255)"); // the light default
   expect(r.dark).toBe("rgb(21, 25, 30)"); // --spa-surface under .wa-dark
+  expect(r.darkText).toBe("#f0f3f6");
   expect(r.islandBg).toBe("rgb(255, 255, 255)"); // a light island inside a dark page
+  expect(r.islandText).toBe("#1f2328");
   expect(r.back).toBe("rgb(255, 255, 255)"); // removing the class restores the light palette
 });
 
