@@ -363,6 +363,115 @@ test("spa-each applies granular collection changes without resetting unchanged s
   });
 });
 
+for (const direct of [false, true]) {
+  test(`granular bursts settle item scopes once between structural changes (direct=${direct})`, async ({
+    page,
+  }) => {
+    const result = await page.evaluate(async (direct) => {
+      const { mount, Store } = window.__spaday;
+      class BurstProbe extends HTMLElement {
+        set record(value) {
+          (this.history ??= []).push(JSON.parse(JSON.stringify(value)));
+        }
+      }
+      customElements.define("burst-probe", BurstProbe);
+      const rows = [
+        { id: 1, details: { label: "A", count: 0 } },
+        { id: 2, details: { label: "B", count: 0 } },
+      ];
+      const store = new Store({ rows });
+      mount(
+        document.body,
+        {
+          tag: "spa-each",
+          props: { itemKey: { Str: "id" }, direct: { Bool: direct } },
+          bindings: { items: { field: "rows", mode: "one-way" } },
+          slots: {
+            default: [
+              {
+                tag: "burst-probe",
+                bindings: {
+                  record: { compute: { expr: "item" }, mode: "one-way" },
+                },
+              },
+            ],
+          },
+        },
+        store,
+      );
+      const [first, second] = document.querySelectorAll("burst-probe");
+      const publish = (delta) => {
+        const next = structuredClone(store.get("rows"));
+        const index = next.findIndex((row) => row.id === delta.key);
+        if (delta.kind === "update") {
+          let target = next[index];
+          for (const segment of delta.path.slice(0, -1))
+            target = target[segment];
+          target[delta.path.at(-1)] = delta.value;
+        } else if (delta.kind === "move") {
+          next.splice(delta.index, 0, next.splice(index, 1)[0]);
+        } else if (delta.kind === "remove") next.splice(index, 1);
+        else next.splice(delta.index, 0, delta.item);
+        store.setCollection("rows", next, [delta]);
+      };
+      const update = (key, path, value) => ({
+        kind: "update",
+        key,
+        path,
+        value,
+      });
+      publish(update(1, ["details", "label"], "intermediate"));
+      publish(update(2, ["details", "count"], 1));
+      publish(update(1, ["details"], { label: "replaced", count: 2 }));
+      publish(update(1, ["details", "label"], "settled"));
+      publish({ kind: "move", key: 1, index: 1 });
+      publish(update(1, ["details", "count"], 3));
+      publish(update(1, ["details", "count"], 4));
+      await new Promise(requestAnimationFrame);
+      const moved = [...document.querySelectorAll("burst-probe")];
+      const history = first.history;
+      publish({ kind: "remove", key: 1 });
+      publish({ kind: "insert", key: 1, index: 0, item: rows[0] });
+      publish(update(1, ["details", "label"], "new"));
+      publish(update(1, ["details", "label"], "newest"));
+      await new Promise(requestAnimationFrame);
+      const replacement = document.querySelector("burst-probe");
+      publish(update(1, ["details", "label"], "discarded"));
+      store.set("rows", rows);
+      publish(update(1, ["details", "label"], "after reset"));
+      publish(update(1, ["details", "label"], "final"));
+      await new Promise(requestAnimationFrame);
+      return {
+        history,
+        siblingHistory: second.history,
+        moved: moved[0] === second && moved[1] === first,
+        replaced: replacement !== first && !first.isConnected,
+        replacementHistory: replacement.history,
+      };
+    }, direct);
+    expect(result).toEqual({
+      history: [
+        { id: 1, details: { label: "A", count: 0 } },
+        { id: 1, details: { label: "settled", count: 2 } },
+        { id: 1, details: { label: "settled", count: 4 } },
+      ],
+      siblingHistory: [
+        { id: 2, details: { label: "B", count: 0 } },
+        { id: 2, details: { label: "B", count: 1 } },
+        { id: 2, details: { label: "B", count: 0 } },
+      ],
+      moved: true,
+      replaced: true,
+      replacementHistory: [
+        { id: 1, details: { label: "A", count: 0 } },
+        { id: 1, details: { label: "newest", count: 0 } },
+        { id: 1, details: { label: "A", count: 0 } },
+        { id: 1, details: { label: "final", count: 0 } },
+      ],
+    });
+  });
+}
+
 test("invalid granular collection batches leave existing DOM unchanged", async ({
   page,
 }) => {
@@ -406,6 +515,68 @@ test("invalid granular collection batches leave existing DOM unchanged", async (
   expect(result.same).toBe(true);
   expect(result.count).toBe(2);
   expect(result.error).toContain("references unknown key 99");
+});
+
+test("coalescing does not hide an invalid intermediate key change", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    const errors = [];
+    window.addEventListener("error", (event) => {
+      errors.push(event.error.message);
+      event.preventDefault();
+    });
+    const store = new Store({ rows: [{ id: 1, label: "original" }] });
+    const root = mount(
+      document.body,
+      {
+        tag: "spa-each",
+        props: { itemKey: { Str: "id" } },
+        bindings: { items: { field: "rows", mode: "one-way" } },
+        slots: {
+          default: [
+            {
+              tag: "input",
+              bindings: {
+                value: {
+                  compute: { expr: "item", path: "label" },
+                  mode: "one-way",
+                },
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    const original = root.firstElementChild;
+    store.setCollection(
+      "rows",
+      [{ id: 1, label: "new" }],
+      [
+        { kind: "update", key: 1, path: ["label"], value: "new" },
+        { kind: "update", key: 1, path: ["id"], value: 2 },
+        { kind: "update", key: 1, path: ["id"], value: 1 },
+      ],
+    );
+    await new Promise(requestAnimationFrame);
+    const unchanged = original.value === "original";
+    store.set("rows", [{ id: 1, label: "resnapshot" }]);
+    await new Promise(requestAnimationFrame);
+    return {
+      errors,
+      unchanged,
+      retained: root.firstElementChild === original,
+      value: original.value,
+    };
+  });
+  expect(result).toEqual({
+    errors: ["spa-each collection update cannot change an item key"],
+    unchanged: true,
+    retained: true,
+    value: "resnapshot",
+  });
 });
 
 test("native moves preserve custom-element connection state", async ({

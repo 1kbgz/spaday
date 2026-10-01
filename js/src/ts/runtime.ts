@@ -917,7 +917,12 @@ function prepareEachDeltas(
       ? values.get(identity)
       : instances.get(identity)?.scope.get();
   const prepared: PreparedEachDelta[] = [];
+  const updates = new Map<
+    string,
+    Extract<PreparedEachDelta, { kind: "update" }>
+  >();
   for (const delta of deltas) {
+    if (delta.kind !== "update") updates.clear();
     if (delta.kind === "reset") {
       const items = keyedItems(delta.items, itemKey);
       nextOrder = items.map(([identity]) => identity);
@@ -979,7 +984,13 @@ function prepareEachDeltas(
       if (eachIdentity(item, itemKey) !== identity)
         throw new Error("spa-each collection update cannot change an item key");
       values.set(identity, item);
-      prepared.push({ kind: "update", identity, item });
+      const previous = updates.get(identity);
+      if (previous) previous.item = item;
+      else {
+        const update = { kind: "update" as const, identity, item };
+        updates.set(identity, update);
+        prepared.push(update);
+      }
     } else if (delta.kind === "move") {
       const sequence = currentOrder();
       collectionIndex(delta.index, sequence.length);
