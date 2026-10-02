@@ -105,6 +105,9 @@ _INSTALL_BENCHMARK = """
       return metrics(started);
     },
     async update(workload, granular = false) {
+      let domMutations = 0;
+      const observer = new MutationObserver((records) => { domMutations += records.length; });
+      observer.observe(state.root, { childList: true, characterData: true, subtree: true });
       const started = performance.now();
       const size = state.rows.length;
       const middle = Math.floor(size / 2);
@@ -148,7 +151,9 @@ _INSTALL_BENCHMARK = """
         throw new Error(`unknown workload: ${workload}`);
       }
       await nextFrame();
-      return metrics(started);
+      domMutations += observer.takeRecords().length;
+      observer.disconnect();
+      return { ...metrics(started), domMutations };
     },
   };
 }

@@ -27,6 +27,7 @@ def _record_browser_metrics(
             "browser_duration_ms": result["durationMs"],
             "dom_nodes": result["domNodes"],
             "heap_used_bytes": result["heapUsedBytes"],
+            "dom_mutations": result.get("domMutations"),
         }
     )
 
