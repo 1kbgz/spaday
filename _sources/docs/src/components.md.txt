@@ -273,6 +273,13 @@ collection updates at most once per animation frame. Existing keys retain their 
 focus, cursor position, local properties, bindings, and action scope. Item scopes are read-only; use an
 action to update global state, send a model patch, or call an endpoint.
 
+Within an animation frame, consecutive granular updates to an item settle its scope once, including
+updates interleaved with other items. Insert, remove, move, and reorder operations separate these
+groups and retain their order. A reset supersedes all pending deltas; later deltas apply to that reset.
+Every intermediate update in the remaining batch is validated before any DOM change; an invalid path
+or key change rejects the batch even if a later update would overwrite it. Store subscribers still
+receive each published collection; coalescing applies only to the repeated item scopes.
+
 Set `direct=True` when a parent custom element discovers children through direct light-DOM parentage or
 native slots. Repeated roots then sit directly before the empty `spa-each` reconciliation anchor. The
 default keeps roots inside `spa-each`, preserving the existing DOM shape for other collections.

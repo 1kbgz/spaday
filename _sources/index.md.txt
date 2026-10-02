@@ -32,6 +32,10 @@ docs/src/cem.md
 
 docs/src/api.md
 
+docs/src/benchmarks.md
+
+benchmarks/README.md
+
 
 ```
 

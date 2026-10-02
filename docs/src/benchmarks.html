@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="How spaday compares to alternatives" href="comparison.html"><link rel="prev" title="Tutorial: build your first interactive UI" href="tutorial.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="How to benchmark collection updates" href="../../benchmarks/README.html"><link rel="prev" title="API reference" href="api.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>How spaday works - spaday v0.11.4</title>
+        <title>Collection benchmarks - spaday v0.11.4</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -200,7 +200,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial: build your first interactive UI</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">How spaday works</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">How spaday works</a></li>
 <li class="toctree-l1"><a class="reference internal" href="comparison.html">How spaday compares to alternatives</a></li>
 <li class="toctree-l1"><a class="reference internal" href="behavior.html">Add behavior and reactivity</a></li>
 <li class="toctree-l1"><a class="reference internal" href="components.html">Author a component tree</a></li>
@@ -212,7 +212,7 @@
 <li class="toctree-l1"><a class="reference internal" href="wrappers.html">Wrap an imperative JS library</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cem.html">Generate typed classes from a manifest</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="benchmarks.html">Collection benchmarks</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Collection benchmarks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../benchmarks/README.html">How to benchmark collection updates</a></li>
 </ul>
 
@@ -234,7 +234,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../../_sources/docs/src/concepts.md.txt" title="View this page">
+  <a class="muted-link" href="../../_sources/docs/src/benchmarks.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -252,116 +252,53 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section class="tex2jax_ignore mathjax_ignore" id="how-spaday-works">
-<h1>How spaday works<a class="headerlink" href="#how-spaday-works" title="Link to this heading">¶</a></h1>
-<p>This page explains the ideas behind spaday and why it is built the way it is. It is background reading,
-not a set of instructions — for those, see the <a class="reference internal" href="components.html"><span class="std std-doc">how-to guides</span></a>.</p>
-<section id="the-core-idea-configure-in-python-execute-in-javascript">
-<h2>The core idea: configure in Python, execute in JavaScript<a class="headerlink" href="#the-core-idea-configure-in-python-execute-in-javascript" title="Link to this heading">¶</a></h2>
-<p>A spaday UI is a <strong>tree of components</strong> you build in Python, plus <strong>behavior expressed as data</strong>. Python
-never renders anything and is never in the loop for an interaction. Instead, the tree and its behavior
-are serialized and handed to spaday’s JavaScript runtime, which instantiates real web components and
-interprets the behavior <strong>in the browser</strong>.</p>
-<p>This split is the whole point. The server holds lightweight per-session state; the UI and its logic are
-client-resident; Python is touched only when an interaction genuinely needs it (saving to a database,
-calling a REST API). That is what makes spaday suitable for <strong>massively multi-tenant</strong> apps — social
-feeds, dashboards, device walls — where a per-interaction round-trip to the server would never scale.</p>
-</section>
-<section id="the-component-tree-is-a-serializable-model">
-<h2>The component tree is a serializable model<a class="headerlink" href="#the-component-tree-is-a-serializable-model" title="Link to this heading">¶</a></h2>
-<p>Each node is a tag (<code class="docutils literal notranslate"><span class="pre">wa-switch</span></code>, or a shell tag like <code class="docutils literal notranslate"><span class="pre">spa-stack</span></code>), some props, named child slots, event
-handlers, and reactive bindings. The tree is plain data, so two trees can be <strong>diffed</strong> into a minimal
-patch, and a patch can be <strong>applied</strong> to a live DOM incrementally — a keyed reorder moves the same
-elements rather than rebuilding them, so a <code class="docutils literal notranslate"><span class="pre">wa-switch</span></code>’s internal state survives an update. Authoring in
-Python and mutating over time both reduce to producing patches the runtime applies.</p>
-<p>The typed Python classes are <strong>generated</strong> from a <a class="reference external" href="https://github.com/webcomponents/custom-elements-manifest">Custom Elements Manifest</a>
-— the standard description web-component libraries publish. The same generator turns <em>any</em> manifest
-into typed classes, and the same parse drives the browser runtime’s registry. Catalogs such as
-WebAwesome live in opt-in peer packages; spaday core is the binding layer for all of them.</p>
-<p>spaday deliberately operates at a <strong>higher altitude</strong> than an HTML builder: it does not expose <code class="docutils literal notranslate"><span class="pre">div</span></code>/<code class="docutils literal notranslate"><span class="pre">p</span></code>.
-You compose from curated shell pieces (App, Nav, gutters, Main, Stack, Row) and high-level components,
-with raw HTML elements available only as an escape hatch for text. This is what separates “a Python
-wrapper over one component catalog” from a UI framework.</p>
-</section>
-<section id="behavior-is-data-not-code">
-<h2>Behavior is data, not code<a class="headerlink" href="#behavior-is-data-not-code" title="Link to this heading">¶</a></h2>
-<p>An <code class="docutils literal notranslate"><span class="pre">onClick</span></code> in spaday is not a transpiled Python function and not arbitrary JavaScript — it is a
-<strong>declarative action</strong>: <code class="docutils literal notranslate"><span class="pre">Toggle(this,</span> <span class="pre">&quot;open&quot;)</span></code>, <code class="docutils literal notranslate"><span class="pre">SetProp(by_id(&quot;panel&quot;),</span> <span class="pre">&quot;hidden&quot;,</span> <span class="pre">true)</span></code>,
-<code class="docutils literal notranslate"><span class="pre">SendPatch(model,</span> <span class="pre">field,</span> <span class="pre">value)</span></code>, <code class="docutils literal notranslate"><span class="pre">CallEndpoint(&quot;POST&quot;,</span> <span class="pre">url,</span> <span class="pre">body)</span></code>. Actions compose (<code class="docutils literal notranslate"><span class="pre">Sequence</span></code>, <code class="docutils literal notranslate"><span class="pre">If</span></code>)
-and reference values through small <strong>expressions</strong> (<code class="docutils literal notranslate"><span class="pre">event_value</span></code>, <code class="docutils literal notranslate"><span class="pre">prop</span></code>, <code class="docutils literal notranslate"><span class="pre">lit</span></code>, <code class="docutils literal notranslate"><span class="pre">field</span></code>, …).</p>
-<p>Because behavior is serializable data interpreted by a fixed dispatcher — never <code class="docutils literal notranslate"><span class="pre">eval</span></code>, never codegen —
-it is <strong>safe to ship to untrusted, multi-tenant clients</strong>, fully diffable, and identical whether it
-originated in Python or rode over the wire. The one escape hatch, <code class="docutils literal notranslate"><span class="pre">NamedJs</span></code>, invokes a <em>pre-registered</em>
-handler by name; it still never evaluates arbitrary strings.</p>
-</section>
-<section id="the-reactive-engine">
-<h2>The reactive engine<a class="headerlink" href="#the-reactive-engine" title="Link to this heading">¶</a></h2>
-<p>Beyond one-shot actions, spaday has a small <strong>signal store</strong>: named state fields with subscribers.
-Component props <em>bind</em> to it:</p>
+          <section class="tex2jax_ignore mathjax_ignore" id="collection-benchmarks">
+<h1>Collection benchmarks<a class="headerlink" href="#collection-benchmarks" title="Link to this heading">¶</a></h1>
+<p>These reports are built by <code class="docutils literal notranslate"><span class="pre">benched.sphinx</span></code> from the recorded runs in <code class="docutils literal notranslate"><span class="pre">benchmarks/results</span></code>.
+Each run retains its revision, dirty-worktree flag, parameters, Python version, and machine metadata.
+The initial records are local development measurements, not release performance guarantees.</p>
+<section id="browser-collections">
+<h2>Browser collections<a class="headerlink" href="#browser-collections" title="Link to this heading">¶</a></h2>
+<p>The browser-only suite measures eager mount and collection reconciliation at 1k, 10k, and 100k
+records. Reset delivery reconciles the complete collection; delta delivery applies granular changes.
+Parameters distinguish append, front insert, update, reorder, and ten-update burst workloads.</p>
+<benched-report src="../../_static/benched/reports/results-e9281890ec66.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report></section>
+<section id="python-to-browser-collections">
+<h2>Python-to-browser collections<a class="headerlink" href="#python-to-browser-collections" title="Link to this heading">¶</a></h2>
+<p>The wire suite sends real Python Store snapshots and patches over a loopback WebSocket to the
+transports JavaScript client, <code class="docutils literal notranslate"><span class="pre">connectStore</span></code>, and <code class="docutils literal notranslate"><span class="pre">Each</span></code>. It covers JSON, MessagePack, and CBOR;
+positional and application-keyed diff policies; and streamed or batched updates. Every round checks
+final values, retained element identity, unsaved input, focus, and selection. Keyed cases require
+the optional <code class="docutils literal notranslate"><span class="pre">Store.host(list_keys=...)</span></code> API and skip on older transports builds. The browser client
+remains the version installed from Spaday’s lockfile.</p>
+<benched-report src="../../_static/benched/reports/results-aead0eaf8e88.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report></section>
+<section id="measurement-boundaries">
+<h2>Measurement boundaries<a class="headerlink" href="#measurement-boundaries" title="Link to this heading">¶</a></h2>
+<p>The charts show pytest-benchmark timing distributions. For wire cases, that timing includes the
+browser call and its correctness checks, but excludes initial snapshot delivery and eager mount.
+The run records also retain each round’s diagnostics in <code class="docutils literal notranslate"><span class="pre">extra_info</span></code>:</p>
 <ul class="simple">
-<li><p>a <strong>field binding</strong> keeps a prop in sync with a state field; two-way, it also writes the field back
-when the control changes (a switch ↔ <code class="docutils literal notranslate"><span class="pre">lamp</span></code>);</p></li>
-<li><p>a <strong>computed binding</strong> derives a prop from a <em>field-expression</em> (<code class="docutils literal notranslate"><span class="pre">not_(field(&quot;enabled&quot;))</span></code>,
-<code class="docutils literal notranslate"><span class="pre">eq(field(&quot;mode&quot;),</span> <span class="pre">&quot;advanced&quot;)</span></code>) and recomputes it whenever any field it reads changes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">roundtrip_render_ms</span></code>: update request through two animation frames, excluding final checks.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bridge_ms</span></code>, <code class="docutils literal notranslate"><span class="pre">diff_ms</span></code>, <code class="docutils literal notranslate"><span class="pre">encode_ms</span></code>: server model conversion, Store mutation/diff, and wire encoding.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">client_receive_apply_ms</span></code>: combined decoding, client reduction, and synchronous Store propagation.
+Deferred item-scope rendering is included in <code class="docutils literal notranslate"><span class="pre">roundtrip_render_ms</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">snapshot_bytes</span></code>, <code class="docutils literal notranslate"><span class="pre">patch_bytes</span></code>, <code class="docutils literal notranslate"><span class="pre">operations</span></code>, <code class="docutils literal notranslate"><span class="pre">frames</span></code>: encoded message bodies and update counts;
+WebSocket/TCP framing is excluded and compression is disabled.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scope_writes</span></code>, <code class="docutils literal notranslate"><span class="pre">dom_mutations</span></code>: label-property writes and observed child-list/character-data
+mutations. Attribute mutations are not counted by the text-update probes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">long_tasks</span></code>, <code class="docutils literal notranslate"><span class="pre">long_task_ms</span></code>, <code class="docutils literal notranslate"><span class="pre">max_frame_gap_ms</span></code>, <code class="docutils literal notranslate"><span class="pre">estimated_missed_frames</span></code>: browser responsiveness
+diagnostics. Missed frames are estimated from the median idle animation-frame interval, not GPU
+dropped-frame counters.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">heap_used_bytes</span></code>: Chromium’s JavaScript heap estimate, not total browser memory.</p></li>
 </ul>
-<p>The engine runs in the browser, so a derived value or a two-way control updates immediately, with no
-round-trip. The store is the seam where UI state meets app state — see below.</p>
-</section>
-<section id="one-core-two-bindings">
-<h2>One core, two bindings<a class="headerlink" href="#one-core-two-bindings" title="Link to this heading">¶</a></h2>
-<p>The component-tree model, the diff engine, the CEM parser, the action interpreter, and the reactive
-engine all live in a single <strong>Rust core</strong>. It compiles to two thin bindings:</p>
-<ul class="simple">
-<li><p><strong>PyO3</strong> — Python builds and validates the tree, and serializes it;</p></li>
-<li><p><strong>wasm</strong> — the browser reconstructs the tree, renders it, and interprets actions.</p></li>
-</ul>
-<p>Python and JavaScript therefore share <em>one</em> implementation of the diff, the wire format, and the action
-semantics — they can’t drift. The Python side adds only ergonomic typed component classes; the JavaScript
-side adds only thin DOM glue. This mirrors the decision in <a class="reference external" href="https://github.com/1kbgz/transports">transports</a>,
-which spaday is built on.</p>
-</section>
-<section id="the-wire-transports">
-<h2>The wire: transports<a class="headerlink" href="#the-wire-transports" title="Link to this heading">¶</a></h2>
-<p>spaday does not invent its own networking. UI state is a <strong>transports model</strong>, so it inherits
-transports’ connection- and codec-agnostic sync: the same state moves over a WebSocket, SSE, or a Jupyter
-comm, in JSON or MessagePack, with multi-tenant sessions, without spaday reimplementing any of it.</p>
-<p>The boundary is strict and enforced in the types: spaday owns the UI (the tree, bindings, the signal
-store) and knows nothing about the wire; transports owns the wire (a <code class="docutils literal notranslate"><span class="pre">Client</span></code> that mirrors a model and
-sends edits) and knows nothing about UI. A single small adapter marries them through the client’s model
-access, edit, and accepted-change surface. So you can back the same reactive store with a transports
-session on a webserver, or with the synced state of a Jupyter widget, and the UI code is identical.</p>
-<p>Accepted patch paths flow directly into the affected store branches, preserving unchanged object identity
-and avoiding a full model decode. Rejected edits arrive with an authoritative snapshot that restores the
-UI; their separate rejection notification, stale revisions, and message types from newer servers do not
-cause redundant store refreshes. This keeps high-frequency updates narrow while allowing the transports
-protocol to evolve independently of the rendering runtime.</p>
-</section>
-<section id="the-page-generates-itself">
-<h2>The page generates itself<a class="headerlink" href="#the-page-generates-itself" title="Link to this heading">¶</a></h2>
-<p>A spaday web page is not hand-written — it is a <strong>function of the Python description</strong>. <code class="docutils literal notranslate"><span class="pre">serve(page,</span> <span class="pre">…)</span></code>
-(and the lower-level <code class="docutils literal notranslate"><span class="pre">bootstrap</span></code>) generate the bootstrap HTML: package asset tags, wasm init, the
-fetch of the tree, the websocket wiring, and the mount. Because the page is generated rather than authored,
-there is a single <strong>integration ladder</strong> — <code class="docutils literal notranslate"><span class="pre">serve</span></code> (spaday runs the whole app) → <code class="docutils literal notranslate"><span class="pre">mount</span></code> (spaday under a
-sub-path of your app) → a <code class="docutils literal notranslate"><span class="pre">fragment</span></code> (spaday in one node of a page you own) → an anywidget (a notebook
-cell). It is the same generated bootstrap handing progressively more of the page to a host; nothing is
-re-implemented per rung. (See <a class="reference internal" href="serving.html"><span class="std std-doc">Serve and embed</span></a>.)</p>
-<p>And because the wire is just data, <strong>several models can share one page</strong>: each is mirrored into the signal
-store under its own <em>namespace</em>, so a page can compose a global model, a per-tenant model, and a form
-without their fields colliding — the multi-model dashboard, still with no hand-written glue.</p>
-</section>
-<section id="two-hosts-one-ui">
-<h2>Two hosts, one UI<a class="headerlink" href="#two-hosts-one-ui" title="Link to this heading">¶</a></h2>
-<p>Because spaday is <em>a web-component runtime driven by a serialized model over a connection</em>, it slots into
-two places with the same tree:</p>
-<ul class="simple">
-<li><p>a <strong>web app</strong> — your tree served over a WebSocket, state in a transports <code class="docutils literal notranslate"><span class="pre">Session</span></code> (or a multi-tenant
-<code class="docutils literal notranslate"><span class="pre">Hub</span></code>); see <a class="reference internal" href="transports.html"><span class="std std-doc">the transports guide</span></a>;</p></li>
-<li><p>a <strong>Jupyter notebook</strong> (and the wider anywidget ecosystem — Marimo, Shiny, Solara, Panel) — the tree
-packaged as an <a class="reference external" href="https://anywidget.dev">anywidget</a>, state synced over the widget’s comm; see
-<a class="reference internal" href="notebook.html"><span class="std std-doc">the notebook guide</span></a>.</p></li>
-</ul>
-<p>The notebook host is the same engine with a different wire — which is exactly why the <a class="reference internal" href="tutorial.html"><span class="std std-doc">tutorial</span></a>
-can teach the whole model with no server at all.</p>
+<p>Benched’s process peak-memory metric is distinct from the browser heap measurement. Timing and memory
+depend on hardware, browser version, scheduling, and whether data is already cached. Partial runs
+contain only the selected cases; missing cases are not zero-cost results. No regression budgets are
+set yet. This single-connection harness does not measure Hub fan-out, reconnect, or slow consumers.</p>
+<p>MutationObserver and PerformanceObserver instrumentation runs inside the measured interval. These
+timings include its overhead and are not directly comparable with older uninstrumented measurements.</p>
+<p>See <a class="reference internal" href="../../benchmarks/README.html"><span class="std std-doc">How to benchmark collection updates</span></a> for commands and local
+transports-build selection.</p>
 </section>
 </section>
 
@@ -370,23 +307,23 @@ can teach the whole model with no server at all.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="comparison.html">
+          <a class="next-page" href="../../benchmarks/README.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">How spaday compares to alternatives</div>
+                <div class="title">How to benchmark collection updates</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="tutorial.html">
+          <a class="prev-page" href="api.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Tutorial: build your first interactive UI</div>
+                <div class="title">API reference</div>
                 
               </div>
             </a>
@@ -420,15 +357,10 @@ can teach the whole model with no server at all.</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">How spaday works</a><ul>
-<li><a class="reference internal" href="#the-core-idea-configure-in-python-execute-in-javascript">The core idea: configure in Python, execute in JavaScript</a></li>
-<li><a class="reference internal" href="#the-component-tree-is-a-serializable-model">The component tree is a serializable model</a></li>
-<li><a class="reference internal" href="#behavior-is-data-not-code">Behavior is data, not code</a></li>
-<li><a class="reference internal" href="#the-reactive-engine">The reactive engine</a></li>
-<li><a class="reference internal" href="#one-core-two-bindings">One core, two bindings</a></li>
-<li><a class="reference internal" href="#the-wire-transports">The wire: transports</a></li>
-<li><a class="reference internal" href="#the-page-generates-itself">The page generates itself</a></li>
-<li><a class="reference internal" href="#two-hosts-one-ui">Two hosts, one UI</a></li>
+<li><a class="reference internal" href="#">Collection benchmarks</a><ul>
+<li><a class="reference internal" href="#browser-collections">Browser collections</a></li>
+<li><a class="reference internal" href="#python-to-browser-collections">Python-to-browser collections</a></li>
+<li><a class="reference internal" href="#measurement-boundaries">Measurement boundaries</a></li>
 </ul>
 </li>
 </ul>

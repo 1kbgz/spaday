@@ -1,0 +1,537 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-02T00:10:43.655056+00:00",
+  "source_run_ids": [
+    "58dfa0fbb00341dbb89afa9e9667ceae"
+  ],
+  "runs": [
+    {
+      "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+      "started_at": "2026-10-02T00:10:34.947973+00:00",
+      "status": "success",
+      "suite": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.11.4",
+        "revision": "ce8d6198441c63e088585a33bed54d67cd0784d6",
+        "branch": "benchmark-collection-wire",
+        "dirty": true,
+        "labels": {}
+      },
+      "subject": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.11.4",
+        "revision": "ce8d6198441c63e088585a33bed54d67cd0784d6",
+        "branch": "benchmark-collection-wire",
+        "dirty": true,
+        "labels": {
+          "purpose": "local-development",
+          "transports": "published-0.10.0"
+        }
+      },
+      "machine": {
+        "id": "mbp-m5",
+        "fingerprint": "4947e1f640c8e065b0bdc2b3f1c521f706461fb493daa642d995091105a41e96",
+        "metadata": {
+          "architecture": "arm64",
+          "cpu_count": 18,
+          "memory_gib": 64.0,
+          "processor": "arm",
+          "release": "25.6.0",
+          "system": "Darwin"
+        },
+        "labels": {}
+      },
+      "environment": {
+        "fingerprint": "e4432bb0961b1d2934fc8bd062ad9a356dddc2bf67c1aa8fb03ebca29237f377",
+        "python_implementation": "CPython",
+        "python_version": "3.12.14",
+        "platform": "Darwin",
+        "architecture": "arm64",
+        "labels": {}
+      }
+    }
+  ],
+  "benchmarks": [
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_delta|size=1000&workload=%22append%22",
+      "nodeid": "benchmarks/test_each.py::test_each_delta[append-1k]",
+      "name": "test_each_delta[append-1k]",
+      "group": "each-delta-append",
+      "parameters": {
+        "workload": "append",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.0068296665558591485,
+            "mean": 0.006884687324054539,
+            "min": 0.006154583068564534,
+            "max": 0.00769608304835856,
+            "ops": 145.24987888790258,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_delta|size=1000&workload=%22append%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_delta[append-1k]",
+      "name": "test_each_delta[append-1k] peak memory",
+      "group": "each-delta-append",
+      "parameters": {
+        "workload": "append",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_delta|size=1000&workload=%22burst%22",
+      "nodeid": "benchmarks/test_each.py::test_each_delta[burst-1k]",
+      "name": "test_each_delta[burst-1k]",
+      "group": "each-delta-burst",
+      "parameters": {
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.0065024999203160405,
+            "mean": 0.006616716785356402,
+            "min": 0.0057627500500530005,
+            "max": 0.007819666992872953,
+            "ops": 151.13235649032484,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_delta|size=1000&workload=%22burst%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_delta[burst-1k]",
+      "name": "test_each_delta[burst-1k] peak memory",
+      "group": "each-delta-burst",
+      "parameters": {
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_delta|size=1000&workload=%22front-insert%22",
+      "nodeid": "benchmarks/test_each.py::test_each_delta[front-insert-1k]",
+      "name": "test_each_delta[front-insert-1k]",
+      "group": "each-delta-front-insert",
+      "parameters": {
+        "workload": "front-insert",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.006734978989697993,
+            "mean": 0.006843045772984624,
+            "min": 0.006267666816711426,
+            "max": 0.007557583972811699,
+            "ops": 146.13375873472285,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_delta|size=1000&workload=%22front-insert%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_delta[front-insert-1k]",
+      "name": "test_each_delta[front-insert-1k] peak memory",
+      "group": "each-delta-front-insert",
+      "parameters": {
+        "workload": "front-insert",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_delta|size=1000&workload=%22random-update%22",
+      "nodeid": "benchmarks/test_each.py::test_each_delta[random-update-1k]",
+      "name": "test_each_delta[random-update-1k]",
+      "group": "each-delta-random-update",
+      "parameters": {
+        "workload": "random-update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.006500000134110451,
+            "mean": 0.0064827916910871865,
+            "min": 0.005613750079646707,
+            "max": 0.007081291871145368,
+            "ops": 154.25453225264695,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_delta|size=1000&workload=%22random-update%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_delta[random-update-1k]",
+      "name": "test_each_delta[random-update-1k] peak memory",
+      "group": "each-delta-random-update",
+      "parameters": {
+        "workload": "random-update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_initial_mount|size=1000",
+      "nodeid": "benchmarks/test_each.py::test_each_initial_mount[1k]",
+      "name": "test_each_initial_mount[1k]",
+      "group": "each-initial-mount",
+      "parameters": {
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.004022290930151939,
+            "mean": 0.004032995738089085,
+            "min": 0.003746124915778637,
+            "max": 0.004451249958947301,
+            "ops": 247.954638423154,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_initial_mount|size=1000:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_initial_mount[1k]",
+      "name": "test_each_initial_mount[1k] peak memory",
+      "group": "each-initial-mount",
+      "parameters": {
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22append%22",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[append-1k]",
+      "name": "test_each_reconcile[append-1k]",
+      "group": "each-append",
+      "parameters": {
+        "workload": "append",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.007345207966864109,
+            "mean": 0.007218487490899861,
+            "min": 0.005544791929423809,
+            "max": 0.008086625020951033,
+            "ops": 138.53317627282325,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22append%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[append-1k]",
+      "name": "test_each_reconcile[append-1k] peak memory",
+      "group": "each-append",
+      "parameters": {
+        "workload": "append",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22burst%22",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[burst-1k]",
+      "name": "test_each_reconcile[burst-1k]",
+      "group": "each-burst",
+      "parameters": {
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.007248771144077182,
+            "mean": 0.006582350027747453,
+            "min": 0.0018262909725308418,
+            "max": 0.007609458174556494,
+            "ops": 151.921425597935,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22burst%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[burst-1k]",
+      "name": "test_each_reconcile[burst-1k] peak memory",
+      "group": "each-burst",
+      "parameters": {
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22front-insert%22",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[front-insert-1k]",
+      "name": "test_each_reconcile[front-insert-1k]",
+      "group": "each-front-insert",
+      "parameters": {
+        "workload": "front-insert",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.006979291560128331,
+            "mean": 0.0070015874458476905,
+            "min": 0.006461540935561061,
+            "max": 0.007834416115656495,
+            "ops": 142.8247533483357,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22front-insert%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[front-insert-1k]",
+      "name": "test_each_reconcile[front-insert-1k] peak memory",
+      "group": "each-front-insert",
+      "parameters": {
+        "workload": "front-insert",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22random-update%22",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[random-update-1k]",
+      "name": "test_each_reconcile[random-update-1k]",
+      "group": "each-random-update",
+      "parameters": {
+        "workload": "random-update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.00761550001334399,
+            "mean": 0.007358629209920764,
+            "min": 0.005987042095512152,
+            "max": 0.007793291937559843,
+            "ops": 135.894875454768,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22random-update%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[random-update-1k]",
+      "name": "test_each_reconcile[random-update-1k] peak memory",
+      "group": "each-random-update",
+      "parameters": {
+        "workload": "random-update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22reorder%22",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[reorder-1k]",
+      "name": "test_each_reconcile[reorder-1k]",
+      "group": "each-reorder",
+      "parameters": {
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.004681166494265199,
+            "mean": 0.005143629293888808,
+            "min": 0.004478875081986189,
+            "max": 0.009633667068555951,
+            "ops": 194.41525484507778,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_each.py::test_each_reconcile|size=1000&workload=%22reorder%22:peak-memory",
+      "nodeid": "benchmarks/test_each.py::test_each_reconcile[reorder-1k]",
+      "name": "test_each_reconcile[reorder-1k] peak memory",
+      "group": "each-reorder",
+      "parameters": {
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    }
+  ],
+  "warnings": []
+}

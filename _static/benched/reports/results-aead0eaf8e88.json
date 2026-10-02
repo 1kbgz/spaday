@@ -1,0 +1,2811 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-02T00:13:36.186413+00:00",
+  "source_run_ids": [
+    "58dfa0fbb00341dbb89afa9e9667ceae",
+    "d7e902381e3b44548eb9cccf86f6481a"
+  ],
+  "runs": [
+    {
+      "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+      "started_at": "2026-10-02T00:10:34.947973+00:00",
+      "status": "success",
+      "suite": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.11.4",
+        "revision": "ce8d6198441c63e088585a33bed54d67cd0784d6",
+        "branch": "benchmark-collection-wire",
+        "dirty": true,
+        "labels": {}
+      },
+      "subject": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.11.4",
+        "revision": "ce8d6198441c63e088585a33bed54d67cd0784d6",
+        "branch": "benchmark-collection-wire",
+        "dirty": true,
+        "labels": {
+          "purpose": "local-development",
+          "transports": "published-0.10.0"
+        }
+      },
+      "machine": {
+        "id": "mbp-m5",
+        "fingerprint": "4947e1f640c8e065b0bdc2b3f1c521f706461fb493daa642d995091105a41e96",
+        "metadata": {
+          "architecture": "arm64",
+          "cpu_count": 18,
+          "memory_gib": 64.0,
+          "processor": "arm",
+          "release": "25.6.0",
+          "system": "Darwin"
+        },
+        "labels": {}
+      },
+      "environment": {
+        "fingerprint": "e4432bb0961b1d2934fc8bd062ad9a356dddc2bf67c1aa8fb03ebca29237f377",
+        "python_implementation": "CPython",
+        "python_version": "3.12.14",
+        "platform": "Darwin",
+        "architecture": "arm64",
+        "labels": {}
+      }
+    },
+    {
+      "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+      "started_at": "2026-10-02T00:11:04.863056+00:00",
+      "status": "success",
+      "suite": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.11.4",
+        "revision": "ce8d6198441c63e088585a33bed54d67cd0784d6",
+        "branch": "benchmark-collection-wire",
+        "dirty": true,
+        "labels": {}
+      },
+      "subject": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.11.4",
+        "revision": "ce8d6198441c63e088585a33bed54d67cd0784d6",
+        "branch": "benchmark-collection-wire",
+        "dirty": true,
+        "labels": {
+          "purpose": "local-development",
+          "transports": "local-keyed-diffs-8160ed4-dirty"
+        }
+      },
+      "machine": {
+        "id": "mbp-m5",
+        "fingerprint": "4947e1f640c8e065b0bdc2b3f1c521f706461fb493daa642d995091105a41e96",
+        "metadata": {
+          "architecture": "arm64",
+          "cpu_count": 18,
+          "memory_gib": 64.0,
+          "processor": "arm",
+          "release": "25.6.0",
+          "system": "Darwin"
+        },
+        "labels": {}
+      },
+      "environment": {
+        "fingerprint": "e4432bb0961b1d2934fc8bd062ad9a356dddc2bf67c1aa8fb03ebca29237f377",
+        "python_implementation": "CPython",
+        "python_version": "3.12.14",
+        "platform": "Darwin",
+        "architecture": "arm64",
+        "labels": {}
+      }
+    }
+  ],
+  "benchmarks": [
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22batch-burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-batch-burst-1k]",
+      "name": "test_collection_wire[positional-cbor-batch-burst-1k]",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.034856332931667566,
+            "mean": 0.03682534691567222,
+            "min": 0.03382183285430074,
+            "max": 0.041797874961048365,
+            "ops": 27.15520921744304,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22batch-burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-batch-burst-1k]",
+      "name": "test_collection_wire[positional-cbor-batch-burst-1k] peak memory",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-burst-1k]",
+      "name": "test_collection_wire[positional-cbor-burst-1k]",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.03568458301015198,
+            "mean": 0.037677777387822665,
+            "min": 0.03551308298483491,
+            "max": 0.04183566616848111,
+            "ops": 26.54084368371465,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-burst-1k]",
+      "name": "test_collection_wire[positional-cbor-burst-1k] peak memory",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22insert%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-insert-1k]",
+      "name": "test_collection_wire[positional-cbor-insert-1k]",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.02618237491697073,
+            "mean": 0.02616699963497619,
+            "min": 0.02612008317373693,
+            "max": 0.026198540814220905,
+            "ops": 38.21607421369576,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22insert%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-insert-1k]",
+      "name": "test_collection_wire[positional-cbor-insert-1k] peak memory",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22move%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-move-1k]",
+      "name": "test_collection_wire[positional-cbor-move-1k]",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.0263219999615103,
+            "mean": 0.02626601397059858,
+            "min": 0.026096499990671873,
+            "max": 0.02637954195961356,
+            "ops": 38.072012034995915,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22move%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-move-1k]",
+      "name": "test_collection_wire[positional-cbor-move-1k] peak memory",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22move-update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-move-update-1k]",
+      "name": "test_collection_wire[positional-cbor-move-update-1k]",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.026812999974936247,
+            "mean": 0.029072916756073635,
+            "min": 0.026403583120554686,
+            "max": 0.03400216717272997,
+            "ops": 34.396273631234116,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22move-update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-move-update-1k]",
+      "name": "test_collection_wire[positional-cbor-move-update-1k] peak memory",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22remove%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-remove-1k]",
+      "name": "test_collection_wire[positional-cbor-remove-1k]",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.026013416005298495,
+            "mean": 0.025919722315544885,
+            "min": 0.025593416998162866,
+            "max": 0.02615233394317329,
+            "ops": 38.58066023339564,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22remove%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-remove-1k]",
+      "name": "test_collection_wire[positional-cbor-remove-1k] peak memory",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22reorder%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-reorder-1k]",
+      "name": "test_collection_wire[positional-cbor-reorder-1k]",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.026338249910622835,
+            "mean": 0.02768931972483794,
+            "min": 0.025277000153437257,
+            "max": 0.031452709110453725,
+            "ops": 36.11500787803673,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22reorder%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-reorder-1k]",
+      "name": "test_collection_wire[positional-cbor-reorder-1k] peak memory",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-update-1k]",
+      "name": "test_collection_wire[positional-cbor-update-1k]",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.026076541980728507,
+            "mean": 0.02640338901740809,
+            "min": 0.02602762496098876,
+            "max": 0.02710600011050701,
+            "ops": 37.873925932034226,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=false&size=1000&workload=%22update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-cbor-update-1k]",
+      "name": "test_collection_wire[positional-cbor-update-1k] peak memory",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "cbor",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22batch-burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-batch-burst-1k]",
+      "name": "test_collection_wire[keyed-cbor-batch-burst-1k]",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.04298620787449181,
+            "mean": 0.04559022195947667,
+            "min": 0.042676958022639155,
+            "max": 0.05110749998129904,
+            "ops": 21.93452799788648,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22batch-burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-batch-burst-1k]",
+      "name": "test_collection_wire[keyed-cbor-batch-burst-1k] peak memory",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-burst-1k]",
+      "name": "test_collection_wire[keyed-cbor-burst-1k]",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.042897291015833616,
+            "mean": 0.04294341639615595,
+            "min": 0.04281241609714925,
+            "max": 0.04312054207548499,
+            "ops": 23.286456549589154,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-burst-1k]",
+      "name": "test_collection_wire[keyed-cbor-burst-1k] peak memory",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22insert%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-insert-1k]",
+      "name": "test_collection_wire[keyed-cbor-insert-1k]",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.02614720887504518,
+            "mean": 0.025961916893720627,
+            "min": 0.0250797918997705,
+            "max": 0.026658749906346202,
+            "ops": 38.51795705585471,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22insert%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-insert-1k]",
+      "name": "test_collection_wire[keyed-cbor-insert-1k] peak memory",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22move%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-move-1k]",
+      "name": "test_collection_wire[keyed-cbor-move-1k]",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.02648291690275073,
+            "mean": 0.026144291662300628,
+            "min": 0.025113875046372414,
+            "max": 0.026836083037778735,
+            "ops": 38.24926729386107,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22move%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-move-1k]",
+      "name": "test_collection_wire[keyed-cbor-move-1k] peak memory",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22move-update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-move-update-1k]",
+      "name": "test_collection_wire[keyed-cbor-move-update-1k]",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026081792078912258,
+            "mean": 0.02888869463155667,
+            "min": 0.026034999871626496,
+            "max": 0.034549291944131255,
+            "ops": 34.61561738091296,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22move-update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-move-update-1k]",
+      "name": "test_collection_wire[keyed-cbor-move-update-1k] peak memory",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22remove%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-remove-1k]",
+      "name": "test_collection_wire[keyed-cbor-remove-1k]",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026093791937455535,
+            "mean": 0.025836805580183864,
+            "min": 0.025172249879688025,
+            "max": 0.02624437492340803,
+            "ops": 38.70447516805147,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22remove%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-remove-1k]",
+      "name": "test_collection_wire[keyed-cbor-remove-1k] peak memory",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22reorder%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-reorder-1k]",
+      "name": "test_collection_wire[keyed-cbor-reorder-1k]",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.025926125003024936,
+            "mean": 0.026041388666878145,
+            "min": 0.025834541069343686,
+            "max": 0.02636349992826581,
+            "ops": 38.400409931744264,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22reorder%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-reorder-1k]",
+      "name": "test_collection_wire[keyed-cbor-reorder-1k] peak memory",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-update-1k]",
+      "name": "test_collection_wire[keyed-cbor-update-1k]",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026018083095550537,
+            "mean": 0.02642715279944241,
+            "min": 0.025977000128477812,
+            "max": 0.027286375174298882,
+            "ops": 37.83986900098822,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22cbor%22&keyed=true&size=1000&workload=%22update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-cbor-update-1k]",
+      "name": "test_collection_wire[keyed-cbor-update-1k] peak memory",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "cbor",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22batch-burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-batch-burst-1k]",
+      "name": "test_collection_wire[positional-json-batch-burst-1k]",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.04263929114677012,
+            "mean": 0.039892666429902114,
+            "min": 0.03439770801924169,
+            "max": 0.04264100012369454,
+            "ops": 25.0672639733712,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22batch-burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-batch-burst-1k]",
+      "name": "test_collection_wire[positional-json-batch-burst-1k] peak memory",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-burst-1k]",
+      "name": "test_collection_wire[positional-json-burst-1k]",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.03457745909690857,
+            "mean": 0.0376268750987947,
+            "min": 0.03454558318480849,
+            "max": 0.043757583014667034,
+            "ops": 26.576748597228924,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-burst-1k]",
+      "name": "test_collection_wire[positional-json-burst-1k] peak memory",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22insert%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-insert-1k]",
+      "name": "test_collection_wire[positional-json-insert-1k]",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.026093624997884035,
+            "mean": 0.025824611075222492,
+            "min": 0.024774666177108884,
+            "max": 0.026605542050674558,
+            "ops": 38.72275160648802,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22insert%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-insert-1k]",
+      "name": "test_collection_wire[positional-json-insert-1k] peak memory",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22move%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-move-1k]",
+      "name": "test_collection_wire[positional-json-move-1k]",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.025940916035324335,
+            "mean": 0.02570138832864662,
+            "min": 0.025121415965259075,
+            "max": 0.02604183298535645,
+            "ops": 38.908403982418555,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22move%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-move-1k]",
+      "name": "test_collection_wire[positional-json-move-1k] peak memory",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22move-update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-move-update-1k]",
+      "name": "test_collection_wire[positional-json-move-update-1k]",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.034636792028322816,
+            "mean": 0.035004777989039816,
+            "min": 0.03456529206596315,
+            "max": 0.03581224987283349,
+            "ops": 28.567528704598708,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22move-update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-move-update-1k]",
+      "name": "test_collection_wire[positional-json-move-update-1k] peak memory",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22remove%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-remove-1k]",
+      "name": "test_collection_wire[positional-json-remove-1k]",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.026004625018686056,
+            "mean": 0.025966694578528404,
+            "min": 0.02584741683676839,
+            "max": 0.026048041880130768,
+            "ops": 38.51087002913685,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22remove%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-remove-1k]",
+      "name": "test_collection_wire[positional-json-remove-1k] peak memory",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22reorder%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-reorder-1k]",
+      "name": "test_collection_wire[positional-json-reorder-1k]",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.026886999839916825,
+            "mean": 0.028818235887835424,
+            "min": 0.024932999862357974,
+            "max": 0.03463470796123147,
+            "ops": 34.70025035162246,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22reorder%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-reorder-1k]",
+      "name": "test_collection_wire[positional-json-reorder-1k] peak memory",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-update-1k]",
+      "name": "test_collection_wire[positional-json-update-1k]",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.02607658412307501,
+            "mean": 0.026097222386548918,
+            "min": 0.025929625146090984,
+            "max": 0.026285457890480757,
+            "ops": 38.3182541493543,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=false&size=1000&workload=%22update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-json-update-1k]",
+      "name": "test_collection_wire[positional-json-update-1k] peak memory",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "json",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22batch-burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-batch-burst-1k]",
+      "name": "test_collection_wire[keyed-json-batch-burst-1k]",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.04328991589136422,
+            "mean": 0.043982999632135034,
+            "min": 0.04304608306847513,
+            "max": 0.04561299993656576,
+            "ops": 22.73605730313528,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22batch-burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-batch-burst-1k]",
+      "name": "test_collection_wire[keyed-json-batch-burst-1k] peak memory",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-burst-1k]",
+      "name": "test_collection_wire[keyed-json-burst-1k]",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.04372154199518263,
+            "mean": 0.043447388956944145,
+            "min": 0.0427709580399096,
+            "max": 0.04384966683574021,
+            "ops": 23.016342846079617,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-burst-1k]",
+      "name": "test_collection_wire[keyed-json-burst-1k] peak memory",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22insert%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-insert-1k]",
+      "name": "test_collection_wire[keyed-json-insert-1k]",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026068249950185418,
+            "mean": 0.02629797199430565,
+            "min": 0.025904790963977575,
+            "max": 0.026920875068753958,
+            "ops": 38.02574587183118,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22insert%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-insert-1k]",
+      "name": "test_collection_wire[keyed-json-insert-1k] peak memory",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22move%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-move-1k]",
+      "name": "test_collection_wire[keyed-json-move-1k]",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.02619437500834465,
+            "mean": 0.02614537502328555,
+            "min": 0.025897667044773698,
+            "max": 0.026344083016738296,
+            "ops": 38.247682395428704,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22move%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-move-1k]",
+      "name": "test_collection_wire[keyed-json-move-1k] peak memory",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22move-update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-move-update-1k]",
+      "name": "test_collection_wire[keyed-json-move-update-1k]",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.02553700003772974,
+            "mean": 0.025649999966844916,
+            "min": 0.025496082846075296,
+            "max": 0.025916917016729712,
+            "ops": 38.98635482622206,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22move-update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-move-update-1k]",
+      "name": "test_collection_wire[keyed-json-move-update-1k] peak memory",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22remove%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-remove-1k]",
+      "name": "test_collection_wire[keyed-json-remove-1k]",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026071749860420823,
+            "mean": 0.026060486289982993,
+            "min": 0.026007709093391895,
+            "max": 0.026101999916136265,
+            "ops": 38.372269376430445,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22remove%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-remove-1k]",
+      "name": "test_collection_wire[keyed-json-remove-1k] peak memory",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22reorder%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-reorder-1k]",
+      "name": "test_collection_wire[keyed-json-reorder-1k]",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026194291887804866,
+            "mean": 0.025993374952425558,
+            "min": 0.025385624961927533,
+            "max": 0.02640020800754428,
+            "ops": 38.471341325635954,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22reorder%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-reorder-1k]",
+      "name": "test_collection_wire[keyed-json-reorder-1k] peak memory",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-update-1k]",
+      "name": "test_collection_wire[keyed-json-update-1k]",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.027434624964371324,
+            "mean": 0.029683916674305994,
+            "min": 0.026157750049605966,
+            "max": 0.0354593750089407,
+            "ops": 33.688276751753136,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=1000&workload=%22update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-update-1k]",
+      "name": "test_collection_wire[keyed-json-update-1k] peak memory",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=10000&workload=%22batch-burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-batch-burst-10k]",
+      "name": "test_collection_wire[keyed-json-batch-burst-10k]",
+      "group": "collection-wire-batch-burst-10000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "batch-burst",
+        "size": 10000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.2841526670381427,
+            "mean": 0.2853593473167469,
+            "min": 0.27624849998392165,
+            "max": 0.2956768749281764,
+            "ops": 3.5043534035351116,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=10000&workload=%22batch-burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-batch-burst-10k]",
+      "name": "test_collection_wire[keyed-json-batch-burst-10k] peak memory",
+      "group": "collection-wire-batch-burst-10000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "batch-burst",
+        "size": 10000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=10000&workload=%22move-update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-move-update-10k]",
+      "name": "test_collection_wire[keyed-json-move-update-10k]",
+      "group": "collection-wire-move-update-10000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "move-update",
+        "size": 10000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.05731987487524748,
+            "mean": 0.05540890293195844,
+            "min": 0.049379499861970544,
+            "max": 0.05952733405865729,
+            "ops": 18.04764121079946,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=10000&workload=%22move-update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-move-update-10k]",
+      "name": "test_collection_wire[keyed-json-move-update-10k] peak memory",
+      "group": "collection-wire-move-update-10000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "move-update",
+        "size": 10000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=100000&workload=%22batch-burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-batch-burst-100k]",
+      "name": "test_collection_wire[keyed-json-batch-burst-100k]",
+      "group": "collection-wire-batch-burst-100000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "batch-burst",
+        "size": 100000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 4.554896958870813,
+            "mean": 4.565892833207424,
+            "min": 4.540422624908388,
+            "max": 4.6023589158430696,
+            "ops": 0.21901521488350953,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=100000&workload=%22batch-burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-batch-burst-100k]",
+      "name": "test_collection_wire[keyed-json-batch-burst-100k] peak memory",
+      "group": "collection-wire-batch-burst-100000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "batch-burst",
+        "size": 100000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=100000&workload=%22move-update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-move-update-100k]",
+      "name": "test_collection_wire[keyed-json-move-update-100k]",
+      "group": "collection-wire-move-update-100000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "move-update",
+        "size": 100000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.7991113329771906,
+            "mean": 0.7991342640016228,
+            "min": 0.7742816670797765,
+            "max": 0.8240097919479012,
+            "ops": 1.2513541779482118,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22json%22&keyed=true&size=100000&workload=%22move-update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-json-move-update-100k]",
+      "name": "test_collection_wire[keyed-json-move-update-100k] peak memory",
+      "group": "collection-wire-move-update-100000",
+      "parameters": {
+        "keyed": true,
+        "codec": "json",
+        "workload": "move-update",
+        "size": 100000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22batch-burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-batch-burst-1k]",
+      "name": "test_collection_wire[positional-msgpack-batch-burst-1k]",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.0343878751154989,
+            "mean": 0.03443495797303816,
+            "min": 0.03414504090324044,
+            "max": 0.03477195790037513,
+            "ops": 29.040256148504053,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22batch-burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-batch-burst-1k]",
+      "name": "test_collection_wire[positional-msgpack-batch-burst-1k] peak memory",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-burst-1k]",
+      "name": "test_collection_wire[positional-msgpack-burst-1k]",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.0344632079359144,
+            "mean": 0.03416343033313751,
+            "min": 0.03336925012990832,
+            "max": 0.034657832933589816,
+            "ops": 29.271065295513658,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-burst-1k]",
+      "name": "test_collection_wire[positional-msgpack-burst-1k] peak memory",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22insert%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-insert-1k]",
+      "name": "test_collection_wire[positional-msgpack-insert-1k]",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.026041709119454026,
+            "mean": 0.02611547235089044,
+            "min": 0.026031000073999166,
+            "max": 0.02627370785921812,
+            "ops": 38.29147666042134,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22insert%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-insert-1k]",
+      "name": "test_collection_wire[positional-msgpack-insert-1k] peak memory",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22move%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-move-1k]",
+      "name": "test_collection_wire[positional-msgpack-move-1k]",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.0261696670204401,
+            "mean": 0.02617495832964778,
+            "min": 0.026139291003346443,
+            "max": 0.026215916965156794,
+            "ops": 38.20445432638274,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22move%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-move-1k]",
+      "name": "test_collection_wire[positional-msgpack-move-1k] peak memory",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22move-update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-move-update-1k]",
+      "name": "test_collection_wire[positional-msgpack-move-update-1k]",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.027525832876563072,
+            "mean": 0.029714277635018032,
+            "min": 0.026678208028897643,
+            "max": 0.03493879199959338,
+            "ops": 33.65385530427663,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22move-update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-move-update-1k]",
+      "name": "test_collection_wire[positional-msgpack-move-update-1k] peak memory",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22remove%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-remove-1k]",
+      "name": "test_collection_wire[positional-msgpack-remove-1k]",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.025022041983902454,
+            "mean": 0.025436166984339554,
+            "min": 0.025001874892041087,
+            "max": 0.026284584077075124,
+            "ops": 39.31409951097098,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22remove%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-remove-1k]",
+      "name": "test_collection_wire[positional-msgpack-remove-1k] peak memory",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22reorder%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-reorder-1k]",
+      "name": "test_collection_wire[positional-msgpack-reorder-1k]",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.02627491601742804,
+            "mean": 0.026517944410443306,
+            "min": 0.026268667075783014,
+            "max": 0.027010250138118863,
+            "ops": 37.71031360960919,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22reorder%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-reorder-1k]",
+      "name": "test_collection_wire[positional-msgpack-reorder-1k] peak memory",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-update-1k]",
+      "name": "test_collection_wire[positional-msgpack-update-1k]",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": 0.025972249917685986,
+            "mean": 0.02606718063664933,
+            "min": 0.025968875037506223,
+            "max": 0.026260416954755783,
+            "ops": 38.36241494387173,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=false&size=1000&workload=%22update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[positional-msgpack-update-1k]",
+      "name": "test_collection_wire[positional-msgpack-update-1k] peak memory",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": false,
+        "codec": "msgpack",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "58dfa0fbb00341dbb89afa9e9667ceae",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 315392000.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22batch-burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-batch-burst-1k]",
+      "name": "test_collection_wire[keyed-msgpack-batch-burst-1k]",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.04383058403618634,
+            "mean": 0.08512558330160876,
+            "min": 0.04303145804442465,
+            "max": 0.1685147078242153,
+            "ops": 11.747349753327345,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22batch-burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-batch-burst-1k]",
+      "name": "test_collection_wire[keyed-msgpack-batch-burst-1k] peak memory",
+      "group": "collection-wire-batch-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "batch-burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22burst%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-burst-1k]",
+      "name": "test_collection_wire[keyed-msgpack-burst-1k]",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.04307937505654991,
+            "mean": 0.043323763723795615,
+            "min": 0.04291820805519819,
+            "max": 0.04397370805963874,
+            "ops": 23.082020444376795,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22burst%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-burst-1k]",
+      "name": "test_collection_wire[keyed-msgpack-burst-1k] peak memory",
+      "group": "collection-wire-burst-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "burst",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22insert%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-insert-1k]",
+      "name": "test_collection_wire[keyed-msgpack-insert-1k]",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026419333880767226,
+            "mean": 0.026181666956593592,
+            "min": 0.025366958929225802,
+            "max": 0.02675870805978775,
+            "ops": 38.194665055433376,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22insert%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-insert-1k]",
+      "name": "test_collection_wire[keyed-msgpack-insert-1k] peak memory",
+      "group": "collection-wire-insert-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "insert",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22move%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-move-1k]",
+      "name": "test_collection_wire[keyed-msgpack-move-1k]",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026050500106066465,
+            "mean": 0.02611458332588275,
+            "min": 0.026031249901279807,
+            "max": 0.026261999970301986,
+            "ops": 38.29278022632195,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22move%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-move-1k]",
+      "name": "test_collection_wire[keyed-msgpack-move-1k] peak memory",
+      "group": "collection-wire-move-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "move",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22move-update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-move-update-1k]",
+      "name": "test_collection_wire[keyed-msgpack-move-update-1k]",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026215708116069436,
+            "mean": 0.026246139003584783,
+            "min": 0.02620666683651507,
+            "max": 0.026316042058169842,
+            "ops": 38.1008421796218,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22move-update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-move-update-1k]",
+      "name": "test_collection_wire[keyed-msgpack-move-update-1k] peak memory",
+      "group": "collection-wire-move-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "move-update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22remove%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-remove-1k]",
+      "name": "test_collection_wire[keyed-msgpack-remove-1k]",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026270541129633784,
+            "mean": 0.026431847053269546,
+            "min": 0.02622508304193616,
+            "max": 0.026799916988238692,
+            "ops": 37.833148700680866,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22remove%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-remove-1k]",
+      "name": "test_collection_wire[keyed-msgpack-remove-1k] peak memory",
+      "group": "collection-wire-remove-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "remove",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22reorder%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-reorder-1k]",
+      "name": "test_collection_wire[keyed-msgpack-reorder-1k]",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.028536207973957062,
+            "mean": 0.028401277726516128,
+            "min": 0.028080500196665525,
+            "max": 0.028587125008925796,
+            "ops": 35.20968350893508,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22reorder%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-reorder-1k]",
+      "name": "test_collection_wire[keyed-msgpack-reorder-1k] peak memory",
+      "group": "collection-wire-reorder-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "reorder",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22update%22",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-update-1k]",
+      "name": "test_collection_wire[keyed-msgpack-update-1k]",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": 0.026400249917060137,
+            "mean": 0.026273458342378337,
+            "min": 0.025812417035922408,
+            "max": 0.02660770807415247,
+            "ops": 38.06122463851774,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_wire.py::test_collection_wire|codec=%22msgpack%22&keyed=true&size=1000&workload=%22update%22:peak-memory",
+      "nodeid": "benchmarks/test_collection_wire.py::test_collection_wire[keyed-msgpack-update-1k]",
+      "name": "test_collection_wire[keyed-msgpack-update-1k] peak memory",
+      "group": "collection-wire-update-1000",
+      "parameters": {
+        "keyed": true,
+        "codec": "msgpack",
+        "workload": "update",
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "d7e902381e3b44548eb9cccf86f6481a",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 1804386304.0
+          }
+        }
+      ]
+    }
+  ],
+  "warnings": []
+}
