@@ -274,9 +274,10 @@ focus, cursor position, local properties, bindings, and action scope. Item scope
 action to update global state, send a model patch, or call an endpoint.
 
 Within an animation frame, consecutive granular updates to an item settle its scope once, including
-updates interleaved with other items. Insert, remove, move, reorder, and reset operations separate these
-groups and retain their order. Every intermediate update is validated before any DOM change; an invalid
-path or key change rejects the batch even if a later update would overwrite it. Store subscribers still
+updates interleaved with other items. Insert, remove, move, and reorder operations separate these
+groups and retain their order. A reset supersedes all pending deltas; later deltas apply to that reset.
+Every intermediate update in the remaining batch is validated before any DOM change; an invalid path
+or key change rejects the batch even if a later update would overwrite it. Store subscribers still
 receive each published collection; coalescing applies only to the repeated item scopes.
 
 Set `direct=True` when a parent custom element discovers children through direct light-DOM parentage or

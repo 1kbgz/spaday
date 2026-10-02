@@ -46,6 +46,7 @@ tornado = ["tornado"]  # the Tornado backend (spaday.backends.tornado)
 develop = [
     "aiohttp",  # the aiohttp backend — covered by test_backend_aiohttp
     "anywidget",
+    "benched[sphinx]>=0.5,<0.6; python_version >= '3.11'",
     "build",
     "bump-my-version",
     "check-dist",
@@ -280,6 +281,10 @@ section-order = [
     "F403",
 ]
 
+[tool.benched]
+benchmark_paths = ["benchmarks"]
+results_dir = "benchmarks/results"
+
 [tool.yardang]
 title = "spaday"
 root = "README.md"
@@ -297,8 +302,11 @@ pages = [
     "docs/src/wrappers.md",
     "docs/src/cem.md",
     "docs/src/api.md",
+    "docs/src/benchmarks.md",
+    "benchmarks/README.md",
 ]
 use-autoapi = false
+extensions = ["benched.sphinx"]
 exclude_patterns = [
     "README.md",
     "AGENTS.md",
