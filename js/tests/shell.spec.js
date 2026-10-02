@@ -397,16 +397,17 @@ test("spa-popup clamps into the viewport and closes on Escape", async ({
     menu.y = 290;
     menu.open = true;
   });
-  await page.waitForTimeout(50); // clamping happens on the next animation frame
-  const r = await page.evaluate(() => {
-    const rect = document.getElementById("clamped").getBoundingClientRect();
-    return {
-      right: rect.right,
-      bottom: rect.bottom,
-    };
-  });
-  expect(r.right).toBeLessThanOrEqual(500);
-  expect(r.bottom).toBeLessThanOrEqual(300);
+  await expect(async () => {
+    const r = await page.evaluate(() => {
+      const rect = document.getElementById("clamped").getBoundingClientRect();
+      return {
+        right: rect.right,
+        bottom: rect.bottom,
+      };
+    });
+    expect(r.right).toBeLessThanOrEqual(500);
+    expect(r.bottom).toBeLessThanOrEqual(300);
+  }).toPass({ timeout: 5000 });
   await page.keyboard.press("Escape");
   expect(
     await page.evaluate(() => document.getElementById("clamped").open),
