@@ -34,6 +34,14 @@ from spaday.actions import (
 )
 
 
+@pytest.mark.parametrize("kwargs", [{"watch": "draft"}, {"watch": [1]}, {"key": 1}, {"pending": True}])
+def test_request_rejects_invalid_field_options(kwargs):
+    from spaday import Request
+
+    with pytest.raises(TypeError):
+        Request(**{"key": "preview", **kwargs})
+
+
 def test_action_to_dict_wire_shapes():
     assert Toggle(this(), "hidden").to_dict() == {
         "kind": "toggle",
@@ -255,6 +263,41 @@ def test_bind_authors_a_setprop_on_the_source_change():
 def test_node_with_events_round_trips_through_core_diff_apply():
     tree = element("button").on("click", Toggle(this(), "hidden")).to_json()
     assert json.loads(apply(tree, diff(tree, tree))) == json.loads(tree)
+
+
+def test_listener_options_round_trip_and_reset():
+    action = Toggle(this(), "hidden")
+    component = element("form").on("invalid", action)
+    old = component.to_json()
+    assert "event_options" not in component.to_node()
+    component.on("invalid", action, capture=True, once=True, passive=False)
+    new = component.to_json()
+    assert component.to_node()["event_options"] == {"invalid": {"capture": True, "once": True, "passive": False}}
+    patch = diff(old, new)
+    assert "SetEventOptions" in patch
+    assert json.loads(apply(old, patch)) == json.loads(new)
+    assert json.loads(apply(new, diff(new, old))) == json.loads(old)
+    component.on_wire("invalid", action.to_dict())
+    assert component.to_json() == old
+    with pytest.raises(TypeError, match="listener options"):
+        component.on("invalid", action, capture="true")
+
+
+def test_core_rejects_invalid_listener_options():
+    for options in ({"capture": "true"}, {"unknown": True}):
+        tree = json.dumps({"tag": "form", "event_options": {"invalid": options}})
+        with pytest.raises(ValueError):
+            diff(tree, tree)
+
+
+def test_managed_request_options_round_trip_through_shared_action_model():
+    from spaday import Request, validate_action
+
+    action = CallEndpoint("POST", "/preview", field("draft"), result="preview", request=Request("preview", pending="busy", watch=("draft",)))
+    wire = action.to_dict()
+    assert wire["request"] == {"key": "preview", "pending": "busy", "watch": ["draft"]}
+    assert validate_action(wire) == wire
+    assert "request" not in CallEndpoint("GET", "/preview").to_dict()
 
 
 def test_every_action_kind_round_trips_through_core():

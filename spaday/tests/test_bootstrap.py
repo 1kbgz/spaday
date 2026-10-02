@@ -2,12 +2,38 @@ import json
 
 import pytest
 
-from spaday import decode_frame, element
+from spaday import Lifecycle, decode_frame, element
 from spaday.bootstrap import bootstrap, bundles_dir, tree_frame, tree_json
 from spaday.components.shell import Main
 from spaday.packages import ComponentPackage
 
 # The generic bootstrapping layer is framework-agnostic — these run with no webserver dependency.
+
+
+def test_lifecycle_is_opt_in_and_validated():
+    assert "spaday:bootstrap" not in bootstrap()
+    with pytest.raises(TypeError, match="Lifecycle"):
+        bootstrap(lifecycle={})
+    for timeout in (0, -1, True, 1.5):
+        with pytest.raises(ValueError, match="timeout"):
+            Lifecycle(timeout=timeout)
+    for elements in ("wa-tab", ["div"], [None]):
+        with pytest.raises(ValueError, match="elements"):
+            Lifecycle(elements=elements)
+
+
+def test_lifecycle_assets_are_awaited_and_connections_disposed(tmp_path):
+    package = ComponentPackage("fixture", tmp_path, (("css", "theme.css"), ("js", "index.js")))
+    html = bootstrap(packages=[package], wire="transports", reconnect=True, lifecycle=Lifecycle(elements=("fixture-editor",)), nonce="test")
+    assert "spaday-style-nonce" not in html
+    assert 'for (const url of ["/components/fixture/index.js"]) await import(url)' in html
+    assert "link.addEventListener('load'" in html
+    assert '"/components/fixture/theme.css"' in html
+    assert 'await whenReady(root, ["fixture-editor"], 10000)' in html
+    assert "connection.stop()" in html and "link.dispose()" in html
+    assert "client.closeSocket()" in html
+    assert "class MountClient extends Client" in html
+    assert " onload=" not in html and " onerror=" not in html
 
 
 def test_static_bootstrap_mounts_without_a_wire():

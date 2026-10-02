@@ -76,8 +76,25 @@ export type { ComponentSchema, PropSchema, PropType } from "./cem";
 
 // Browser runtime: render a component tree to the DOM and apply tree patches incrementally.
 // `hydrate` adopts server-rendered HTML (Python `spaday.render_html`) instead of rebuilding.
-export { mount, applyPatch, hydrate, trackRoot, refreshRoots } from "./runtime";
-export type { Binding, Node } from "./runtime";
+export {
+  mount,
+  unmount,
+  applyPatch,
+  hydrate,
+  trackRoot,
+  refreshRoots,
+} from "./runtime";
+export { attachController, whenReady } from "./lifecycle";
+export type { RequestOptions } from "./requests";
+export { createFormController } from "./forms";
+export type { FormController, FormOptions, FormSubmission } from "./forms";
+export type {
+  Binding,
+  EventOptions,
+  Node,
+  RootHandle,
+  RootLifecycle,
+} from "./runtime";
 
 // Reactive engine: a signal store whose fields back the tree's reactive `bindings` (prop ↔ field).
 export { Scope, Store } from "./signals";

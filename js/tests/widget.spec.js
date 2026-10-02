@@ -130,3 +130,35 @@ test("two-way binds a control to the widget _state (notebook reactive)", async (
   expect(result.stateAfterToggle).toEqual({ on: true }); // the control wrote _state back
   expect(result.recheckedFalse).toBe(false); // a Python-side _state change updated the control
 });
+
+test("widget cleanup aborts pending managed requests", async ({ page }) => {
+  expect(
+    await page.evaluate(async () => {
+      const { widget, fakeModel } = window.__widget;
+      let signal;
+      window.fetch = (_url, options) => {
+        signal = options.signal;
+        return new Promise(() => {});
+      };
+      const model = fakeModel({
+        _tree: {
+          tag: "button",
+          events: {
+            click: {
+              kind: "call",
+              method: "GET",
+              url: "/test",
+              request: { key: "test" },
+            },
+          },
+        },
+      });
+      const el = document.createElement("div");
+      document.body.append(el);
+      const cleanup = await widget.render({ model, el });
+      el.firstElementChild.click();
+      cleanup();
+      return signal.aborted;
+    }),
+  ).toBe(true);
+});

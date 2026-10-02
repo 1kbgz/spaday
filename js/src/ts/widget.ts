@@ -10,7 +10,7 @@
 // (the action DSL) runs client-side here with no kernel round-trip; the DSL's outbound intents
 // (a `SendPatch` action's `spaday:patch`) are forwarded to the kernel over the model.
 
-import { applyPatch, diff, init, mount, Node, Store } from "./index";
+import { applyPatch, diff, init, mount, Node, Store, unmount } from "./index";
 
 // the spaday wasm core, inlined into this bundle as bytes (esbuild `binary` loader; see build.mjs),
 // so the widget is one self-contained ESM with no separately-synced `_wasm`.
@@ -119,7 +119,7 @@ export default {
       stateLink();
       model.off("change:_tree", onTree);
       for (const name of INTENTS) el.removeEventListener(name, forward);
-      root.remove();
+      unmount(root);
     };
   },
 };

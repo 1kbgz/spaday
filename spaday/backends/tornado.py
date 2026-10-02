@@ -18,7 +18,7 @@ from collections.abc import Awaitable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..bootstrap import AssetLayout, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Lifecycle, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, _select_page_design
 
@@ -45,6 +45,7 @@ def mount(
     styles: Sequence[str] = (),
     head: str = "",
     design: Design | str | None = None,
+    lifecycle: Lifecycle | None = None,
 ) -> Application:
     """Add spaday's handlers to an existing Tornado ``app`` under ``prefix``. ``routes`` is a list of
     Tornado handler tuples (``(pattern, Handler[, kwargs])`` — including your ``{prefix}/ws`` handler when
@@ -69,6 +70,7 @@ def mount(
         title=title,
         layout=asset_layout,
         design=page_design,
+        lifecycle=lifecycle,
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     pre = re.escape(prefix)

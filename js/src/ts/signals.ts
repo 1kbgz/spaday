@@ -122,6 +122,7 @@ export class Store {
   private collectionSubscribers: Map<Field, Set<CollectionSubscription>> =
     new Map();
   private subscriberIndex: SubscriberIndex = { children: new Map() };
+  private notifying = new Map<Field, object>();
 
   constructor(initial: Record<Field, unknown> = {}) {
     this.values = new Map(Object.entries(initial));
@@ -221,23 +222,73 @@ export class Store {
         setPath(root as Record<string, unknown>, parts.slice(1), value),
       );
     }
-    for (const key of related) {
-      const now = this.get(key);
-      if (Object.is(before.get(key), now)) continue;
-      const subscribers = this.subscribers.get(key);
-      if (subscribers)
-        for (const cb of [...subscribers]) cb(now, field, change);
-      const collectionSubscribers = this.collectionSubscribers.get(key);
-      if (!collectionSubscribers) continue;
-      const changes =
-        key === field && deltas
-          ? deltas
-          : [{ kind: "reset", items: Array.isArray(now) ? now : [] } as const];
-      for (const delta of changes) {
-        for (const subscription of [...collectionSubscribers])
-          subscription.subscriber(delta);
+    // A subscriber can synchronously write again. Claim all affected paths before
+    // notifying parents, so an older notification cannot overwrite a newer value.
+    const token = {};
+    const notifications = related
+      .map((key) => ({
+        key,
+        now: this.get(key),
+        interrupted: this.notifying.has(key),
+        subscribers: [...(this.subscribers.get(key) ?? [])],
+        collectionSubscribers: [...(this.collectionSubscribers.get(key) ?? [])],
+      }))
+      .filter(({ key, now }) => !Object.is(before.get(key), now));
+    for (const { key } of notifications) this.notifying.set(key, token);
+    let failed = false;
+    let failure: unknown;
+    const notify = (callback: () => void) => {
+      try {
+        callback();
+      } catch (error) {
+        // Finish delivery before propagating a callback error. DOM event dispatch
+        // can swallow a nested throw, leaving callers unable to retry the update.
+        if (!failed) failure = error;
+        failed = true;
+      }
+    };
+    try {
+      for (const {
+        key,
+        now,
+        interrupted,
+        subscribers,
+        collectionSubscribers,
+      } of notifications) {
+        const current = () => this.notifying.get(key) === token;
+        if (!current()) continue;
+        for (const cb of subscribers) {
+          if (!current()) break;
+          if (this.subscribers.get(key)?.has(cb))
+            notify(() => cb(now, field, interrupted ? undefined : change));
+        }
+        // Some consumers missed the interrupted write. Its successor must use a
+        // complete snapshot, not ranges/deltas based on that intermediate state.
+        const changes =
+          key === field && deltas && !interrupted
+            ? deltas
+            : [
+                {
+                  kind: "reset",
+                  items: Array.isArray(now) ? now : [],
+                } as const,
+              ];
+        for (const delta of changes) {
+          for (const subscription of collectionSubscribers) {
+            if (!current()) break;
+            if (this.collectionSubscribers.get(key)?.has(subscription))
+              notify(() => subscription.subscriber(delta));
+          }
+          if (!current()) break;
+        }
+        if (current()) this.notifying.delete(key);
+      }
+    } finally {
+      for (const { key } of notifications) {
+        if (this.notifying.get(key) === token) this.notifying.delete(key);
       }
     }
+    if (failed) throw failure;
   }
 
   /**

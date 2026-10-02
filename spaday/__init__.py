@@ -8,6 +8,7 @@ from .actions import (
     Invoke,
     NamedJs,
     RefreshTree,
+    Request,
     SendPatch,
     Sequence,
     SetField,
@@ -40,7 +41,7 @@ from .actions import (
     scope,
     this,
 )
-from .bootstrap import Js, Wire
+from .bootstrap import Js, Lifecycle, Wire
 from .catalog import ComponentSchema, PropertyKind, PropertySchema
 from .cem import classes, generate
 from .component import Component, Paragraph, Strong, Text, element
@@ -72,6 +73,7 @@ from .worker import WorkerApp
 __version__ = "0.11.4"
 
 __all__ = [
+    "Lifecycle",
     "check_script",
     # theming token reference (css custom properties are set via Component.css)
     "SHELL_TOKENS",
@@ -87,6 +89,7 @@ __all__ = [
     "Invoke",
     "NamedJs",
     "RefreshTree",
+    "Request",
     "Paragraph",
     "PropertyKind",
     "PropertySchema",

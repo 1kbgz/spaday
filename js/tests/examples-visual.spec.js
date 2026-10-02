@@ -20,6 +20,7 @@ const EXAMPLES = [
   { name: "keyed_records", selector: "spa-each .record" },
   { name: "reactive", selector: "spa-main" },
   { name: "ssr", selector: "spa-app" },
+  { name: "tabbed_form", selector: "wa-tab-group" },
   { name: "webawesome_content", selector: "wa-card" },
   { name: "webawesome_feedback", selector: "wa-callout" },
   { name: "webawesome_forms", selector: "wa-input" },

@@ -42,6 +42,7 @@ extern "C" {
         url: JsValue,
         body: JsValue,
         result: Option<&str>,
+        request: JsValue,
     ) -> JsValue;
     #[wasm_bindgen(method, js_name = refreshTree)]
     fn refresh_tree(this: &Host, url: Option<&str>) -> JsValue;
@@ -62,7 +63,9 @@ extern "C" {
 #[wasm_bindgen]
 pub fn interpret(action: &str, host: Host) -> Result<(), JsError> {
     let action = spaday::parse_action(action).map_err(|e| JsError::new(&e))?;
-    let mut fut = Box::pin(async move { run(&action, &host).await });
+    let mut fut = Box::pin(async move {
+        run(&action, &host).await;
+    });
     // Drive synchronously to the first pending await: purely-sync action chains apply inline
     // (same-tick reads keep working); only a chain blocked on a real promise — an `invoke` of
     // an async method — continues on the microtask queue, preserving `seq` ordering across it.
@@ -110,11 +113,11 @@ pub fn binding_schema() -> Result<String, JsError> {
     spaday::binding_schema_json().map_err(|error| JsError::new(&error))
 }
 
-fn run<'a>(action: &'a spaday::Action, host: &'a Host) -> Pin<Box<dyn Future<Output = ()> + 'a>> {
+fn run<'a>(action: &'a spaday::Action, host: &'a Host) -> Pin<Box<dyn Future<Output = bool> + 'a>> {
     Box::pin(run_inner(action, host))
 }
 
-async fn run_inner(action: &spaday::Action, host: &Host) {
+async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
     use spaday::Action::{
         CallEndpoint, Download, Emit, If, Invoke, NamedJs, Refresh, SendPatch, Sequence, SetField,
         SetProp, SetStorage, Toggle, ToggleField,
@@ -144,7 +147,9 @@ async fn run_inner(action: &spaday::Action, host: &Host) {
         }
         Sequence { actions } => {
             for a in actions {
-                run(a, host).await;
+                if !run(a, host).await {
+                    return false;
+                }
             }
         }
         Emit { event, detail } => {
@@ -162,9 +167,9 @@ async fn run_inner(action: &spaday::Action, host: &Host) {
         }
         If { cond, then, els } => {
             if truthy(&eval(cond, host)) {
-                run(then, host).await;
+                return run(then, host).await;
             } else if let Some(e) = els {
-                run(e, host).await;
+                return run(e, host).await;
             }
         }
         CallEndpoint {
@@ -172,15 +177,22 @@ async fn run_inner(action: &spaday::Action, host: &Host) {
             url,
             body,
             result,
+            request,
         } => {
             let u = match url {
                 spaday::EndpointUrl::Static(value) => JsValue::from_str(value),
                 spaday::EndpointUrl::Expr(expr) => eval(expr, host),
             };
             let b = body.as_ref().map_or(JsValue::UNDEFINED, |e| eval(e, host));
-            let done = host.call_endpoint(method, u, b, result.as_deref());
+            let options = request
+                .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
+                .unwrap_or(JsValue::UNDEFINED);
+            let done = host.call_endpoint(method, u, b, result.as_deref(), options);
             // await the round-trip so a `seq` continues after the response (and `result`) landed
-            await_thenable(done).await;
+            let outcome = resolve_thenable(done).await;
+            if request.is_some() && outcome.as_bool() == Some(false) {
+                return false;
+            }
         }
         Refresh { url } => {
             await_thenable(host.refresh_tree(url.as_deref())).await;
@@ -216,6 +228,7 @@ async fn run_inner(action: &spaday::Action, host: &Host) {
         }
         NamedJs { handler } => host.call_named(handler),
     }
+    true
 }
 
 async fn await_thenable(value: JsValue) {

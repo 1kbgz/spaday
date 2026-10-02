@@ -2,7 +2,7 @@ import pytest
 
 pytest.importorskip("flask")  # the Flask (WSGI) backend — flask is not a spaday dependency
 
-from spaday import Button, Design, decode_frame
+from spaday import Button, Design, Lifecycle, decode_frame
 from spaday.backends.flask import serve
 from spaday.components.shell import Main
 from spaday.packages import ComponentPackage
@@ -36,3 +36,8 @@ def test_serve_frame_tree(tmp_path):
     client = serve(Main("hi"), js=tmp_path, tree="frame").test_client()
     assert client.get("/tree.json").status_code == 404
     assert decode_frame(client.get("/tree").data)
+
+
+def test_lifecycle_reaches_bootstrap(tmp_path):
+    client = serve(Main("hi"), js=tmp_path, lifecycle=Lifecycle(timeout=2345)).test_client()
+    assert "await whenReady(root, [], 2345)" in client.get("/").get_data(as_text=True)

@@ -7,6 +7,7 @@
 // handlers, rebinding/detaching them as incremental `SetEvent`/`RemoveEvent` patches arrive.
 
 import { interpret } from "./actions";
+import { disposeControllers } from "./lifecycle";
 import {
   type CollectionDelta,
   type CollectionPathSegment,
@@ -53,12 +54,18 @@ export interface Binding {
   };
 }
 
+export type EventOptions = Pick<
+  AddEventListenerOptions,
+  "capture" | "once" | "passive"
+>;
+
 export interface Node {
   tag: string;
   key?: string;
   props?: Record<string, Value>;
   slots?: Record<string, Node[]>;
   events?: Record<string, unknown>;
+  event_options?: Record<string, EventOptions>;
   bindings?: Record<string, Binding>;
 }
 
@@ -86,24 +93,29 @@ export function mount(
   store?: Store,
   scope?: Scope,
 ): Element {
+  if (!container) throw new Error("spaday: mount target not found");
   const el = build(tree, store, scope);
   container.appendChild(prepareInsertion(el));
   return el;
 }
 
-/**
- * Apply a tree patch (from the core `diff`) to a mounted root, mutating the DOM in place. Returns the
- * current root — a root-level `Replace` swaps the element, so callers must keep the returned value
- * (the original `root` reference would be left detached).
- */
 // Mounted roots that can be refreshed from their tree URL (registered by the bootstrap; a page
 // normally has one). `refreshRoots` re-fetches, diffs against the tree as-mounted (via the core),
 // and applies the patch in place — "server state changed, re-render" without a live wire.
-interface TrackedRoot {
+export interface RootHandle {
+  readonly root: Element;
+  dispose(): void;
+}
+export interface RootLifecycle {
+  onDispose?: () => void;
+  onReplace?: (root: Element) => void;
+}
+interface TrackedRoot extends RootHandle {
   root: Element;
   node: Node;
   src: string;
   store?: Store;
+  lifecycle?: RootLifecycle;
 }
 const trackedRoots: TrackedRoot[] = [];
 
@@ -112,25 +124,51 @@ export function trackRoot(
   node: Node,
   src: string,
   store?: Store,
-): void {
-  trackedRoots.push({ root, node, src, store });
+  lifecycle?: RootLifecycle,
+): RootHandle {
+  const previous = trackedRoots.find((entry) => entry.root === root);
+  if (previous) {
+    Object.assign(previous, { node, src, store });
+    if (lifecycle) previous.lifecycle = lifecycle;
+    return previous;
+  }
+  const tracked: TrackedRoot = {
+    root,
+    node,
+    src,
+    store,
+    lifecycle,
+    dispose() {
+      if (trackedRoots.includes(tracked)) unmount(tracked.root);
+    },
+  };
+  trackedRoots.push(tracked);
+  return tracked;
+}
+
+/** Release a mounted tree's controllers, listeners, subscriptions and refresh registration. */
+export function unmount(root: Element): void {
+  teardownTree(root);
+  root.remove();
 }
 
 export async function refreshRoots(url?: string): Promise<void> {
   const { diff } = await import("../../dist/pkg/spaday");
   lazyCache.clear(); // server state changed: cached lazy bodies are stale
-  for (const tracked of trackedRoots) {
+  for (const tracked of [...trackedRoots]) {
     const source = url ?? tracked.src;
     if (!source) continue;
     const response = await fetch(source);
     if (!response.ok)
       throw new Error(`refresh: ${source} responded ${response.status}`);
     const next = (await response.json()) as Node;
+    if (!trackedRoots.includes(tracked)) continue;
     const patch = JSON.parse(
       diff(JSON.stringify(tracked.node), JSON.stringify(next)),
     ) as { ops: Op[] };
     tracked.root = applyPatch(tracked.root, patch, tracked.store);
     tracked.node = next;
+    if (!trackedRoots.includes(tracked)) continue;
     // mounted lazy bodies live at their own URLs, which the tree diff can't see — refetch
     // them (the reloader swaps the body only if the payload actually changed)
     for (const el of tracked.root.querySelectorAll("spa-lazy"))
@@ -140,12 +178,18 @@ export async function refreshRoots(url?: string): Promise<void> {
   }
 }
 
+/**
+ * Apply a tree patch (from the core `diff`) to a mounted root, mutating the DOM in place. Returns the
+ * current root — a root-level `Replace` swaps the element, so callers must keep the returned value
+ * (the original `root` reference would be left detached).
+ */
 export function applyPatch(
   root: Element,
   patch: { ops: Op[] },
   store?: Store,
   scope?: Scope,
 ): Element {
+  const tracked = trackedRoots.find((entry) => entry.root === root);
   let current = root;
   const refreshed = new Set<Element>();
   for (const op of patch.ops)
@@ -153,6 +197,10 @@ export function applyPatch(
   // structural elements whose stored definitions changed re-wire once, after all ops landed
   for (const el of refreshed)
     if (el.isConnected) refreshStructural(el, store, scope);
+  if (tracked && current !== root) {
+    tracked.root = current;
+    tracked.lifecycle?.onReplace?.(current);
+  }
   return current;
 }
 
@@ -180,6 +228,8 @@ function hydrateNode(
   store?: Store,
   scope?: Scope,
 ): void {
+  if (node.event_options)
+    eventOptions.set(el, new Map(Object.entries(node.event_options)));
   for (const [name, value] of Object.entries(node.props ?? {})) {
     setProp(el, name, untag(value)); // re-affirm props; sets complex/property-only ones the HTML omitted
   }
@@ -201,7 +251,7 @@ function hydrateNode(
     }
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
-    bindEvent(el, name, action, store, scope); // actions ride the wire as the core's DSL form (plain JSON)
+    bindEvent(el, name, action, store, scope, node.event_options?.[name]);
   }
   for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
     if (isStructuralBinding(node, prop)) continue;
@@ -212,7 +262,15 @@ function hydrateNode(
 
 // Live action listeners per element, so an incremental patch can update them: the diff engine emits
 // `SetEvent` when an action is added/changed and `RemoveEvent` when one is removed on an existing node.
-const listeners = new WeakMap<Element, Map<string, EventListener>>();
+interface Listener {
+  handler: EventListener;
+  action: unknown;
+  options?: EventOptions;
+  store?: Store;
+  scope?: Scope;
+}
+const listeners = new WeakMap<Element, Map<string, Listener>>();
+const eventOptions = new WeakMap<Element, Map<string, EventOptions>>();
 
 function bindEvent(
   el: Element,
@@ -220,26 +278,33 @@ function bindEvent(
   action: unknown,
   store?: Store,
   scope?: Scope,
+  options = eventOptions.get(el)?.get(name),
 ): void {
+  if (options) {
+    let specs = eventOptions.get(el);
+    if (!specs) eventOptions.set(el, (specs = new Map()));
+    specs.set(name, options);
+  }
   let map = listeners.get(el);
   if (!map) listeners.set(el, (map = new Map()));
   const existing = map.get(name);
-  if (existing) el.removeEventListener(name, existing); // replace, don't stack
+  if (existing)
+    el.removeEventListener(name, existing.handler, existing.options);
   const handler: EventListener = (event) => {
     // A bound context menu replaces the native one; suppression is scoped to exactly the
     // elements that carry a `contextmenu` action.
-    if (name === "contextmenu") event.preventDefault();
+    if (name === "contextmenu" && !options?.passive) event.preventDefault();
     interpret(action, { event, currentTarget: el, store, scope });
   };
-  el.addEventListener(name, handler);
-  map.set(name, handler);
+  el.addEventListener(name, handler, options);
+  map.set(name, { handler, action, options, store, scope });
 }
 
 function unbindEvent(el: Element, name: string): void {
   const map = listeners.get(el);
-  const handler = map?.get(name);
-  if (handler) {
-    el.removeEventListener(name, handler);
+  const listener = map?.get(name);
+  if (listener) {
+    el.removeEventListener(name, listener.handler, listener.options);
     map!.delete(name);
   }
 }
@@ -1287,10 +1352,19 @@ function rewireStructuralBinding(
 }
 
 // Tear down the reactive bindings (store subscriptions) registered across an element subtree, so removing
-// it doesn't leak subscriptions that keep detached elements alive. DOM event listeners are released when
-// the element itself is garbage-collected.
-function teardownTree(el: Element): void {
+// it doesn't leak subscriptions or action listeners that keep detached elements alive.
+function teardownTree(el: Element, preserveRoot = false): void {
+  const disposed: TrackedRoot[] = [];
+  for (let i = trackedRoots.length - 1; i >= 0; i--)
+    if (
+      !(preserveRoot && trackedRoots[i].root === el) &&
+      (trackedRoots[i].root === el || el.contains(trackedRoots[i].root))
+    )
+      disposed.push(...trackedRoots.splice(i, 1));
   for (const e of [el, ...el.querySelectorAll("*")]) {
+    disposeControllers(e);
+    for (const name of listeners.get(e)?.keys() ?? []) unbindEvent(e, name);
+    eventOptions.delete(e);
     const map = bindings.get(e);
     if (map) {
       for (const teardown of map.values()) teardown();
@@ -1299,10 +1373,19 @@ function teardownTree(el: Element): void {
     structuralNodes.delete(e);
     directStructuralChildren.delete(e);
   }
+  for (const tracked of disposed) {
+    try {
+      tracked.lifecycle?.onDispose?.();
+    } catch (error) {
+      console.error("spaday: root cleanup failed", error);
+    }
+  }
 }
 
 function build(node: Node, store?: Store, scope?: Scope): Element {
   const el = document.createElement(node.tag);
+  if (node.event_options)
+    eventOptions.set(el, new Map(Object.entries(node.event_options)));
   for (const [name, value] of Object.entries(node.props ?? {})) {
     setProp(el, name, untag(value));
   }
@@ -1321,7 +1404,7 @@ function build(node: Node, store?: Store, scope?: Scope): Element {
     }
   }
   for (const [name, action] of Object.entries(node.events ?? {})) {
-    bindEvent(el, name, action, store, scope); // actions ride the wire as the core's DSL form (plain JSON)
+    bindEvent(el, name, action, store, scope, node.event_options?.[name]);
   }
   for (const [prop, spec] of Object.entries(node.bindings ?? {})) {
     if (isStructuralBinding(node, prop)) continue;
@@ -1455,6 +1538,13 @@ type Op =
   | { RemoveProp: { path: Path; name: string } }
   | { SetEvent: { path: Path; name: string; action: unknown } }
   | { RemoveEvent: { path: Path; name: string } }
+  | {
+      SetEventOptions: {
+        path: Path;
+        name: string;
+        options: EventOptions | null;
+      };
+    }
   | { SetBinding: { path: Path; name: string; binding: Binding } }
   | { RemoveBinding: { path: Path; name: string } }
   | { SetKey: { path: Path; key: string | null } }
@@ -1528,7 +1618,11 @@ function applyOpToDefinition(node: Node, rest: Path, op: Op): void {
   else if ("SetEvent" in op)
     (node.events ??= {})[op.SetEvent.name] = op.SetEvent.action;
   else if ("RemoveEvent" in op) delete node.events?.[op.RemoveEvent.name];
-  else if ("SetBinding" in op)
+  else if ("SetEventOptions" in op) {
+    const { name, options } = op.SetEventOptions;
+    if (options) (node.event_options ??= {})[name] = options;
+    else delete node.event_options?.[name];
+  } else if ("SetBinding" in op)
     (node.bindings ??= {})[op.SetBinding.name] = op.SetBinding.binding;
   else if ("RemoveBinding" in op) delete node.bindings?.[op.RemoveBinding.name];
   else if ("SetKey" in op) {
@@ -1591,6 +1685,16 @@ function applyOp(
   } else if ("RemoveEvent" in op) {
     const { path, name } = op.RemoveEvent;
     unbindEvent(resolve(root, path), name);
+  } else if ("SetEventOptions" in op) {
+    const { path, name, options } = op.SetEventOptions;
+    const el = resolve(root, path);
+    let specs = eventOptions.get(el);
+    if (!specs) eventOptions.set(el, (specs = new Map()));
+    if (options) specs.set(name, options);
+    else specs.delete(name);
+    const listener = listeners.get(el)?.get(name);
+    if (listener)
+      bindEvent(el, name, listener.action, listener.store, listener.scope);
   } else if ("SetBinding" in op) {
     const { path, name, binding } = op.SetBinding;
     const el = resolve(root, path);
@@ -1618,7 +1722,7 @@ function applyOp(
     insertInSlot(parent, slot, to, moving);
   } else if ("Replace" in op) {
     const target = resolve(root, op.Replace.path);
-    teardownTree(target); // release the replaced subtree's store subscriptions
+    teardownTree(target, op.Replace.path.length === 0); // keep the tracked mount session, not element controllers
     const replacement = build(op.Replace.node, store, scope);
     target.replaceWith(prepareInsertion(replacement));
     if (op.Replace.path.length === 0) return replacement; // the root element itself was swapped

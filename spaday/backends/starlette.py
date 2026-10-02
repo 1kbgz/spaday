@@ -25,7 +25,7 @@ from inspect import signature
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..bootstrap import AssetLayout, Page, TreeMode, Wire, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Lifecycle, Page, TreeMode, Wire, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import ComponentPackage, PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, _select_page_design
 
@@ -59,6 +59,7 @@ class PageSpec:
     persist: dict[str, str] | None = None
     url: dict[str, str] | None = None
     design: Design | str | None = None
+    lifecycle: Lifecycle | None = None
 
 
 @dataclass(frozen=True)
@@ -150,6 +151,7 @@ def _page_routes(
         persist=spec.persist,
         url=spec.url,
         design=page_design,
+        lifecycle=spec.lifecycle,
     )
 
     async def homepage(_request: Request):
@@ -199,6 +201,7 @@ def build_routes(
     persist: dict[str, str] | None = None,
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
+    lifecycle: Lifecycle | None = None,
 ) -> list[BaseRoute]:
     """Build spaday's Starlette routes (page, tree, ``/js``, plus ``routes``) under
     ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``
@@ -233,6 +236,7 @@ def build_routes(
         persist=persist,
         url=url,
         design=design,
+        lifecycle=lifecycle,
     )
     package_mounts = [Mount(package_url_prefix(package, prefix), StaticFiles(directory=package.assets_dir)) for package in component_packages]
     return [
@@ -408,6 +412,7 @@ def mount(
     persist: dict[str, str] | None = None,
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
+    lifecycle: Lifecycle | None = None,
 ) -> Starlette:
     """Add :func:`build_routes` to an existing Starlette ``app`` and return the app for chaining.
 
@@ -437,6 +442,7 @@ def mount(
             persist=persist,
             url=url,
             design=design,
+            lifecycle=lifecycle,
         )
     )
     return app

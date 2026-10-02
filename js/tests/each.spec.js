@@ -11,6 +11,127 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.__spaday);
 });
 
+test("spa-each renders the latest collection after a reentrant update", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ rows: [{ id: 1, name: "A" }] });
+    let nested = false;
+    store.subscribe("rows", () => {
+      if (nested) return;
+      nested = true;
+      store.setCollection(
+        "rows",
+        [
+          { id: 1, name: "A" },
+          { id: 2, name: "B" },
+          { id: 3, name: "C" },
+        ],
+        [{ kind: "insert", key: 3, index: 2, item: { id: 3, name: "C" } }],
+      );
+    });
+    const root = mount(
+      document.body,
+      {
+        tag: "spa-each",
+        props: { itemKey: { Str: "id" } },
+        bindings: { items: { field: "rows", mode: "one-way" } },
+        slots: {
+          default: [
+            {
+              tag: "input",
+              bindings: {
+                value: {
+                  compute: { expr: "item", path: "name" },
+                  mode: "one-way",
+                },
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    const first = root.firstElementChild;
+    first.focus();
+    first.setSelectionRange(1, 1);
+    store.setCollection(
+      "rows",
+      [
+        { id: 1, name: "A" },
+        { id: 2, name: "B" },
+      ],
+      [{ kind: "insert", key: 2, index: 1, item: { id: 2, name: "B" } }],
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      values: [...root.children].map((child) => child.value),
+      retained: first === root.firstElementChild,
+      focused: document.activeElement === first,
+      selection: first.selectionStart,
+    };
+  });
+  expect(result).toEqual({
+    values: ["A", "B", "C"],
+    retained: true,
+    focused: true,
+    selection: 1,
+  });
+});
+
+test("spa-each mounted during a notification does not apply the same insert twice", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const result = await page.evaluate(async () => {
+    const { Store, mount } = window.__spaday;
+    const store = new Store({ rows: [{ id: 1 }] });
+    let root;
+    store.subscribe("rows", () => {
+      if (root) return;
+      root = mount(
+        document.body,
+        {
+          tag: "spa-each",
+          props: { itemKey: { Str: "id" } },
+          bindings: { items: { field: "rows", mode: "one-way" } },
+          slots: {
+            default: [
+              {
+                tag: "span",
+                bindings: {
+                  textContent: {
+                    compute: { expr: "item", path: "id" },
+                    mode: "one-way",
+                  },
+                },
+              },
+            ],
+          },
+        },
+        store,
+      );
+    });
+    store.setCollection(
+      "rows",
+      [{ id: 1 }, { id: 2 }],
+      [{ kind: "insert", key: 2, index: 1, item: { id: 2 } }],
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    store.setCollection(
+      "rows",
+      [{ id: 1 }, { id: 2 }, { id: 3 }],
+      [{ kind: "insert", key: 3, index: 2, item: { id: 3 } }],
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return [...root.children].map((child) => child.textContent);
+  });
+  expect(result).toEqual(["1", "2", "3"]);
+  expect(errors).toEqual([]);
+});
+
 test("spa-each reconciles keyed instances without losing live state", async ({
   page,
 }) => {

@@ -1,4 +1,4 @@
-import { applyPatch, mount, Node } from "./runtime";
+import { applyPatch, mount, Node, unmount } from "./runtime";
 
 interface SnapshotMessage {
   type: "snapshot";
@@ -40,7 +40,7 @@ export function connectWorker(container: Element, worker: Worker): WorkerLink {
   const receive = (event: MessageEvent<WorkerMessage>) => {
     const message = event.data;
     if (message.type === "snapshot") {
-      if (root) root.remove();
+      if (root) unmount(root);
       root = mount(container, message.tree);
       resolveReady();
     } else if (message.type === "patch") {
@@ -69,7 +69,7 @@ export function connectWorker(container: Element, worker: Worker): WorkerLink {
       worker.removeEventListener("message", receive);
       worker.removeEventListener("error", fail);
       container.removeEventListener("spaday:patch", forward);
-      root?.remove();
+      if (root) unmount(root);
     },
   };
 }

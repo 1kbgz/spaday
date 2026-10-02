@@ -7,6 +7,7 @@
 
 import { interpret as wasmInterpret } from "../../dist/pkg/spaday";
 import { getHandler } from "./handlers";
+import { manageRequest, type RequestOptions } from "./requests";
 import { refreshRoots, setProp } from "./runtime";
 import type { Scope, Store } from "./signals";
 import { assertReady } from "./wasm-ready";
@@ -113,23 +114,34 @@ function host(ctx: ActionContext) {
       ),
     // CallEndpoint: the one intentional server round-trip. With a result field, the response is
     // written to the store as {status, ok, body} on completion (so the outcome can drive reactive
-    // UI, e.g. show a 422 validation error); without one it stays fire-and-forget.
+    // UI, e.g. show a 422 validation error); without one the response is not stored.
     callEndpoint: (
       method: string,
       url: unknown,
       body: unknown,
       result?: string,
+      options?: RequestOptions,
     ) => {
       // returns the settled round-trip so the interpreter can await it: a `seq` continues
       // only after the response landed (and `result`, when set, is already written)
-      const request = fetch(String(url), {
-        method,
-        headers:
-          body === undefined
-            ? undefined
-            : { "content-type": "application/json" },
-        body: body === undefined ? undefined : JSON.stringify(body),
-      });
+      const managed = options
+        ? manageRequest(ctx.currentTarget, ctx.store, options)
+        : undefined;
+      let request: Promise<Response>;
+      try {
+        request = fetch(String(url), {
+          signal: managed?.signal,
+          method,
+          headers:
+            body === undefined
+              ? undefined
+              : { "content-type": "application/json" },
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+      } catch (error) {
+        if (!managed) throw error;
+        request = Promise.reject(error);
+      }
       const store = ctx.store;
       return request
         .then(async (r) => {
@@ -144,8 +156,12 @@ function host(ctx: ActionContext) {
         })
         .catch((err) => ({ status: 0, ok: false, body: String(err) })) // network failure
         .then((outcome) => {
+          if (managed?.signal.aborted) return false;
           if (result && store) store.set(result, outcome);
-        });
+          managed?.finish();
+          return !managed?.signal.aborted;
+        })
+        .finally(() => managed?.finish());
     },
     // NamedJs escape hatch: invoke a pre-registered handler by name (no eval).
     callNamed: (handler: string) =>
