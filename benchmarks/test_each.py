@@ -86,6 +86,8 @@ def test_each_delta(benchmark: Any, runtime_page: Page, size: int, workload: str
 
     expected_rows = size + 1 if workload in {"append", "front-insert"} else size
     assert result["rows"] == expected_rows
+    if workload == "burst":
+        assert result["domMutations"] == 1
     _record_browser_metrics(
         benchmark,
         result,

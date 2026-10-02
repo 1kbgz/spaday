@@ -102,7 +102,7 @@ check: checks
 #########
 # TESTS #
 #########
-.PHONY: test-py tests-py coverage-py benchmark-py
+.PHONY: test-py tests-py coverage-py benchmark-py benchmark-history
 test-py:  ## run python tests
 	python -m pytest -v spaday/tests
 
@@ -115,6 +115,10 @@ coverage-py:  ## run python tests and collect test coverage
 benchmark-py: build-js  ## benchmark browser collection rendering and emit pytest-benchmark JSON
 	python -m playwright install chromium
 	python -m pytest benchmarks --benchmark-only --benchmark-json=.benchmarks/pytest-benchmark.json
+
+benchmark-history: build-js  ## record collection benchmarks for the Sphinx reports
+	python -m playwright install chromium
+	python -m benched run --subject-version "$$(python -c 'import json; print(json.load(open("js/package.json"))["version"])')" benchmarks $(BENCHMARK_ARGS)
 
 .PHONY: test-js tests-js coverage-js
 test-js:  ## run js tests

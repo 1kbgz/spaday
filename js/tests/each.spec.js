@@ -400,6 +400,10 @@ for (const direct of [false, true]) {
         store,
       );
       const [first, second] = document.querySelectorAll("burst-probe");
+      let notifications = 0;
+      store.subscribe("rows", () => {
+        notifications += 1;
+      });
       const publish = (delta) => {
         const next = structuredClone(store.get("rows"));
         const index = next.findIndex((row) => row.id === delta.key);
@@ -429,6 +433,16 @@ for (const direct of [false, true]) {
       publish(update(1, ["details", "count"], 4));
       await new Promise(requestAnimationFrame);
       const moved = [...document.querySelectorAll("burst-probe")];
+      publish(update(1, ["details", "count"], 5));
+      const current = store.get("rows");
+      store.setCollection(
+        "rows",
+        [current[1], current[0]],
+        [{ kind: "reorder", keys: [1, 2] }],
+      );
+      publish(update(1, ["details", "count"], 6));
+      publish(update(1, ["details", "count"], 7));
+      await new Promise(requestAnimationFrame);
       const history = first.history;
       publish({ kind: "remove", key: 1 });
       publish({ kind: "insert", key: 1, index: 0, item: rows[0] });
@@ -443,6 +457,7 @@ for (const direct of [false, true]) {
       await new Promise(requestAnimationFrame);
       return {
         history,
+        notifications,
         siblingHistory: second.history,
         moved: moved[0] === second && moved[1] === first,
         replaced: replacement !== first && !first.isConnected,
@@ -454,7 +469,10 @@ for (const direct of [false, true]) {
         { id: 1, details: { label: "A", count: 0 } },
         { id: 1, details: { label: "settled", count: 2 } },
         { id: 1, details: { label: "settled", count: 4 } },
+        { id: 1, details: { label: "settled", count: 5 } },
+        { id: 1, details: { label: "settled", count: 7 } },
       ],
+      notifications: 19,
       siblingHistory: [
         { id: 2, details: { label: "B", count: 0 } },
         { id: 2, details: { label: "B", count: 1 } },
