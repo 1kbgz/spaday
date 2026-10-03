@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
-        <title>spaday.backends.starlette - spaday v0.11.4</title>
+        <title>spaday.backends.starlette - spaday v0.12.0</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -168,7 +168,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.4</code></div></a>
+      <a href="../../../index.html"><div class="brand">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.12.0</code></div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -189,7 +189,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
-  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.11.4</code></span>
+  <span class="sidebar-brand-text">spaday <code style='font-size: var(--font-size--small--4);color: var(--sd-color-primary);'>v0.12.0</code></span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -273,7 +273,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">..bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssetLayout</span><span class="p">,</span> <span class="n">Page</span><span class="p">,</span> <span class="n">TreeMode</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_frame</span><span class="p">,</span> <span class="n">tree_json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssetLayout</span><span class="p">,</span> <span class="n">Lifecycle</span><span class="p">,</span> <span class="n">Page</span><span class="p">,</span> <span class="n">TreeMode</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_frame</span><span class="p">,</span> <span class="n">tree_json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..packages</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentPackage</span><span class="p">,</span> <span class="n">PackageRef</span><span class="p">,</span> <span class="n">package_url_prefix</span><span class="p">,</span> <span class="n">resolve_component_packages</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..ui.design</span><span class="w"> </span><span class="kn">import</span> <span class="n">Design</span><span class="p">,</span> <span class="n">_select_page_design</span>
 
@@ -308,7 +308,8 @@
     <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">persist</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+    <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">lifecycle</span><span class="p">:</span> <span class="n">Lifecycle</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
 
@@ -407,6 +408,7 @@
         <span class="n">persist</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">persist</span><span class="p">,</span>
         <span class="n">url</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
         <span class="n">design</span><span class="o">=</span><span class="n">page_design</span><span class="p">,</span>
+        <span class="n">lifecycle</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">lifecycle</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">homepage</span><span class="p">(</span><span class="n">_request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
@@ -458,6 +460,7 @@
     <span class="n">persist</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lifecycle</span><span class="p">:</span> <span class="n">Lifecycle</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseRoute</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build spaday's Starlette routes (page, tree, ``/js``, plus ``routes``) under</span>
 <span class="sd">    ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``</span>
@@ -492,6 +495,7 @@
         <span class="n">persist</span><span class="o">=</span><span class="n">persist</span><span class="p">,</span>
         <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
         <span class="n">design</span><span class="o">=</span><span class="n">design</span><span class="p">,</span>
+        <span class="n">lifecycle</span><span class="o">=</span><span class="n">lifecycle</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">package_mounts</span> <span class="o">=</span> <span class="p">[</span><span class="n">Mount</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span> <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">component_packages</span><span class="p">]</span>
     <span class="k">return</span> <span class="p">[</span>
@@ -676,6 +680,7 @@
     <span class="n">persist</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lifecycle</span><span class="p">:</span> <span class="n">Lifecycle</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Starlette</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Add :func:`build_routes` to an existing Starlette ``app`` and return the app for chaining.</span>
 
@@ -705,6 +710,7 @@
             <span class="n">persist</span><span class="o">=</span><span class="n">persist</span><span class="p">,</span>
             <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
             <span class="n">design</span><span class="o">=</span><span class="n">design</span><span class="p">,</span>
+            <span class="n">lifecycle</span><span class="o">=</span><span class="n">lifecycle</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">app</span></div>
@@ -765,7 +771,7 @@
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=0fc275bd"></script>
+</div><script src="../../../_static/documentation_options.js?v=61ccb1f1"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
