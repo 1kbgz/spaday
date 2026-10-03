@@ -78,13 +78,42 @@ def test_package_token_spells_the_component_package_convention():
     assert package_token("dagre", "node-fill") == "--spa-dagre-node-fill"
 
 
-def test_installed_component_packages_follow_the_token_convention():
-    """Every component package publishes a TOKENS mapping shaped like SHELL_TOKENS, naming
-    properties `--spa-<package>-*`, with a css() kwarg that actually produces that property.
+def _check_package_tokens(name, tokens, *, native=False):
+    for kwarg, entry in tokens.items():
+        prop, description = entry
+        assert description, f"{name}: {prop} has no description"
+        assert element("div").css(**{kwarg: "x"}).to_node()["props"]["style"]["Str"] == f"{prop}: x", (
+            f"{name}: css({kwarg}=…) does not produce {prop}"
+        )
+        if not native or prop.startswith("--spa-"):
+            assert prop.startswith(f"--spa-{name}-"), f"{name}: {prop} does not follow --spa-<package>-*"
+        fallback = getattr(entry, "fallback", None)
+        if fallback is not None:
+            assert fallback in {value[0] for value in SHELL_TOKENS.values()}, f"{name}: {prop} fallback {fallback} is not a shell token"
 
-    Design-system packages may map their native tokens onto the shell palette instead of exposing
-    package tokens of their own. Those entries describe which `--spa-*` token they drive. Token
-    records may expose shell fallback metadata directly.
+
+@pytest.mark.parametrize("fallback", [None, "--spa-muted"])
+def test_design_system_native_tokens_do_not_require_shell_mapping_descriptions(fallback):
+    _check_package_tokens("lion", {"disabled_text_color": Token("--disabled-text-color", "disabled text color", fallback=fallback)}, native=True)
+
+
+@pytest.mark.parametrize(
+    ("name", "tokens", "native"),
+    [
+        ("lion", {"spa_other_color": Token("--spa-other-color", "color")}, True),
+        ("vega", {"color": Token("--color", "drives --spa-text")}, False),
+        ("lion", {"color": Token("--color", "color", fallback="--missing")}, True),
+        ("lion", {"wrong": Token("--color", "color")}, True),
+    ],
+)
+def test_native_token_support_retains_namespace_serialization_and_fallback_checks(name, tokens, native):
+    with pytest.raises(AssertionError):
+        _check_package_tokens(name, tokens, native=native)
+
+
+def test_installed_component_packages_follow_the_token_convention():
+    """Package-owned tokens use --spa-<package>-*. Design systems can expose native properties
+    with or without a shell fallback. Every token must serialize through its published css() kwarg.
     """
     import importlib
 
@@ -99,16 +128,6 @@ def test_installed_component_packages_follow_the_token_convention():
         if tokens is None:
             continue
         checked += 1
-        for kwarg, entry in tokens.items():
-            prop, description = entry
-            assert description, f"{package.name}: {prop} has no description"
-            assert element("div").css(**{kwarg: "x"}).to_node()["props"]["style"]["Str"] == f"{prop}: x", (
-                f"{package.name}: css({kwarg}=…) does not produce {prop}"
-            )
-            if not description.startswith("drives --spa-"):
-                assert prop.startswith(f"--spa-{package.name}-"), f"{package.name}: {prop} does not follow --spa-<package>-*"
-            fallback = getattr(entry, "fallback", None)
-            if fallback is not None:
-                assert fallback in {value[0] for value in SHELL_TOKENS.values()}, f"{package.name}: {prop} fallback {fallback} is not a shell token"
+        _check_package_tokens(package.name, tokens, native=package.design is not None)
     if not checked:
         pytest.skip("no component packages with TOKENS installed")
