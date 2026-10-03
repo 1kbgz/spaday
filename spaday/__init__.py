@@ -70,7 +70,7 @@ from .ui import (
 from .validate import ValidationError, validate
 from .worker import WorkerApp
 
-__version__ = "0.11.4"
+__version__ = "0.12.0"
 
 __all__ = [
     "Lifecycle",
