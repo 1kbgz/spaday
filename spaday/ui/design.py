@@ -690,6 +690,8 @@ class _Resolver:
             control["slots"] = slots
         if node.get("events"):
             control["events"] = {spec.events.get(event, event): action for event, action in node["events"].items()}
+        if node.get("event_options"):
+            control["event_options"] = {spec.events.get(event, event): options for event, options in node["event_options"].items()}
         if bindings:
             control["bindings"] = bindings
 

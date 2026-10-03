@@ -4,6 +4,8 @@
 // these with its own elements; this is what an app gets with none installed, and the reference every
 // realization is checked against.
 
+import { createStyle } from "./style";
+
 const BORDER = "var(--spa-border, #e6e6e6)";
 const SURFACE = "var(--spa-surface, #fff)";
 const MUTED = "var(--spa-muted, #666)";
@@ -92,7 +94,7 @@ if (
   typeof document !== "undefined" &&
   !document.querySelector("style[data-spaday-ui]")
 ) {
-  const style = document.createElement("style");
+  const style = createStyle();
   style.setAttribute("data-spaday-ui", "");
   style.textContent = UI_CSS;
   document.head.append(style);

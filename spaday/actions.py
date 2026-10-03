@@ -24,6 +24,7 @@ round-trip); and ``NamedJs`` (a no-``eval`` escape hatch to a pre-registered han
 authored with ``Component.bind`` and interpreted by the runtime's signal store.
 """
 
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -461,6 +462,29 @@ class If(Action):
         }
 
 
+@dataclass(frozen=True)
+class Request:
+    """Latest-request group within a Store. Cancel on invoking-element disposal or watched-field changes."""
+
+    key: str
+    pending: str | None = None
+    watch: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.key, str) or (self.pending is not None and not isinstance(self.pending, str)):
+            raise TypeError("request key and pending field must be strings")
+        if isinstance(self.watch, str) or not isinstance(self.watch, (tuple, list)) or any(not isinstance(field, str) for field in self.watch):
+            raise TypeError("request watch must be a sequence of field names")
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {"key": self.key}
+        if self.pending is not None:
+            result["pending"] = self.pending
+        if self.watch:
+            result["watch"] = list(self.watch)
+        return result
+
+
 class CallEndpoint(Action):
     """A REST round-trip: ``method`` ``url`` with an optional JSON ``body``. ``url`` may be a static
     string or an :class:`Expr`; ``body`` may be an expression or a plain value. The runtime performs the
@@ -472,16 +496,22 @@ class CallEndpoint(Action):
 
         CallEndpoint("POST", "/api/order", obj({"symbol": field("symbol")}), result="order_result")
 
-    Without ``result`` the call is fire-and-forget.
+    Without ``result`` the response is not stored. A surrounding ``Sequence`` still waits for
+    completion. ``request=Request(...)`` opts into latest-request cancellation, pending state,
+    and disposal cleanup; canceled calls also stop their remaining action sequence.
     """
 
-    def __init__(self, method: str, url: str | Expr, body: Any = None, result: str | None = None) -> None:
+    def __init__(self, method: str, url: str | Expr, body: Any = None, result: str | None = None, *, request: Request | None = None) -> None:
         self.method, self.url, self.body, self.result = method, url, body, result
+        self.request = request
 
     def to_dict(self) -> dict[str, Any]:
         url = self.url.to_dict() if isinstance(self.url, Expr) else self.url
         body = _expr(self.body).to_dict() if self.body is not None else None
-        return {"kind": "call", "method": self.method, "url": url, "body": body, "result": self.result}
+        out = {"kind": "call", "method": self.method, "url": url, "body": body, "result": self.result}
+        if self.request is not None:
+            out["request"] = self.request.to_dict()
+        return out
 
 
 class Invoke(Action):

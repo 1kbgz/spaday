@@ -23,7 +23,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use crate::action::Action;
-use crate::node::{Attr, Binding, EventName, Key, Node, SlotName};
+use crate::node::{Attr, Binding, EventName, EventOptions, Key, Node, SlotName};
 
 /// One step down into a tree: the `index`-th child of slot `slot`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,6 +56,11 @@ pub enum Op {
     RemoveEvent {
         path: Path,
         name: EventName,
+    },
+    SetEventOptions {
+        path: Path,
+        name: EventName,
+        options: Option<EventOptions>,
     },
     SetBinding {
         path: Path,
@@ -101,6 +106,7 @@ impl Op {
             | Op::RemoveProp { path, .. }
             | Op::SetEvent { path, .. }
             | Op::RemoveEvent { path, .. }
+            | Op::SetEventOptions { path, .. }
             | Op::SetBinding { path, .. }
             | Op::RemoveBinding { path, .. }
             | Op::SetKey { path, .. }
@@ -215,6 +221,21 @@ fn diff_node(path: &Path, old: &Node, new: &Node, ops: &mut Vec<Op>) {
             ops.push(Op::RemoveEvent {
                 path: path.to_vec(),
                 name: name.clone(),
+            });
+        }
+    }
+
+    for name in old
+        .event_options
+        .keys()
+        .chain(new.event_options.keys())
+        .collect::<BTreeSet<_>>()
+    {
+        if old.event_options.get(name) != new.event_options.get(name) {
+            ops.push(Op::SetEventOptions {
+                path: path.to_vec(),
+                name: name.clone(),
+                options: new.event_options.get(name).cloned(),
             });
         }
     }
@@ -380,6 +401,13 @@ fn apply_op(root: &mut Node, op: &Op) {
         Op::RemoveEvent { name, .. } => {
             target.events.remove(name);
         }
+        Op::SetEventOptions { name, options, .. } => {
+            if let Some(options) = options {
+                target.event_options.insert(name.clone(), options.clone());
+            } else {
+                target.event_options.remove(name);
+            }
+        }
         Op::SetBinding { name, binding, .. } => {
             target.bindings.insert(name.clone(), binding.clone());
         }
@@ -480,6 +508,29 @@ mod diff_tests {
                 },
             );
         assert_round_trip(&old, &new);
+    }
+
+    #[test]
+    fn event_options_change_without_replacing_actions() {
+        let old = Node::new("form");
+        let mut new = old.clone();
+        new.event_options.insert(
+            "invalid".into(),
+            EventOptions {
+                capture: Some(true),
+                once: Some(true),
+                passive: Some(false),
+            },
+        );
+        let patch = diff(&old, &new);
+        assert!(matches!(patch.ops.as_slice(), [Op::SetEventOptions { .. }]));
+        assert_round_trip(&old, &new);
+        assert_round_trip(&new, &old);
+        assert!(!serde_json::to_string(&old)
+            .unwrap()
+            .contains("event_options"));
+        assert!(serde_json::from_str::<EventOptions>(r#"{"capture":"true"}"#).is_err());
+        assert!(serde_json::from_str::<EventOptions>(r#"{"unknown":true}"#).is_err());
     }
 
     #[test]

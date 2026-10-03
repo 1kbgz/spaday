@@ -23,6 +23,17 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+/// An opt-in latest-request group scoped to a Store and disposed with its invoking element.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RequestOptions {
+    pub key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub watch: Vec<String>,
+}
+
 /// Parse a serialized action (the canonical wire form) into an [`Action`]. Used by the wasm
 /// interpreter so parsing/validation live in the core, not the binding.
 pub fn parse_action(json: &str) -> Result<Action, String> {
@@ -205,6 +216,8 @@ pub enum Action {
         body: Option<Expr>,
         #[serde(default)]
         result: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        request: Option<RequestOptions>,
     },
     /// Call `method` on `target` with evaluated `args`, discarding the result. An async method's
     /// promise is fire-and-forget (a rejection is logged, not thrown). Methods are part of a
@@ -566,6 +579,7 @@ mod tests {
     fn call_endpoint_wire() {
         round(
             &Action::CallEndpoint {
+                request: None,
                 method: "POST".into(),
                 url: "/api/order".into(),
                 body: Some(Expr::Event { path: None }),
@@ -575,6 +589,7 @@ mod tests {
         );
         round(
             &Action::CallEndpoint {
+                request: None,
                 method: "GET".into(),
                 url: "/ping".into(),
                 body: None,
@@ -585,9 +600,27 @@ mod tests {
     }
 
     #[test]
+    fn managed_request_wire() {
+        let wire = json!({"kind": "call", "method": "GET", "url": "/preview", "body": null,
+            "result": "preview", "request": {"key": "preview", "pending": "busy", "watch": ["draft"]}});
+        let parsed = parse_action(&wire.to_string()).unwrap();
+        assert_eq!(serde_json::to_value(parsed).unwrap(), wire);
+        for request in [
+            json!({"key": 1}),
+            json!({"key": "preview", "watch": "draft"}),
+            json!({"key": "preview", "unknown": true}),
+        ] {
+            let mut invalid = wire.clone();
+            invalid["request"] = request;
+            assert!(parse_action(&invalid.to_string()).is_err());
+        }
+    }
+
+    #[test]
     fn call_endpoint_with_computed_url() {
         round(
             &Action::CallEndpoint {
+                request: None,
                 method: "POST".into(),
                 url: EndpointUrl::Expr(Expr::Concat {
                     parts: vec![
@@ -618,6 +651,7 @@ mod tests {
         // the result field routes the response {status, ok, body} into the signal store
         round(
             &Action::CallEndpoint {
+                request: None,
                 method: "POST".into(),
                 url: "/api/order".into(),
                 body: Some(Expr::Event { path: None }),
@@ -636,6 +670,7 @@ mod tests {
         assert_eq!(
             a,
             Action::CallEndpoint {
+                request: None,
                 method: "GET".into(),
                 url: "/ping".into(),
                 body: None,
@@ -712,6 +747,7 @@ mod tests {
         fields.insert("qty".to_string(), Expr::Lit { value: json!(10) });
         round(
             &Action::CallEndpoint {
+                request: None,
                 method: "POST".into(),
                 url: "/api/order".into(),
                 body: Some(Expr::Obj { fields }),
@@ -743,6 +779,7 @@ mod tests {
         );
         round(
             &Action::CallEndpoint {
+                request: None,
                 method: "POST".into(),
                 url: "/api/order".into(),
                 body: Some(Expr::Obj { fields }),

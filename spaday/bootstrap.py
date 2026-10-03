@@ -39,6 +39,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal, Union
+from uuid import uuid4
 
 from .component import Component
 from .packages import ComponentPackage, PackageRef, npm_package, package_url_prefix, resolve_component_packages
@@ -268,7 +269,7 @@ def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | Non
     return f'<script type="importmap"{n}>\n{body}\n</script>'
 
 
-def _wire_block(spec: dict, base: str, idx: int) -> list:
+def _wire_block(spec: dict, base: str, idx: int, *, managed: bool = False) -> list:
     """Generate one managed transports client and connect it to the shared store."""
     url = spec["url"]
     ns = spec.get("namespace")
@@ -290,7 +291,7 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
     target = f"`ws://${{location.host}}{base}{url}{query}`"
     codec = _script_json(spec.get("codec", "json"))
     lines = [
-        f"const {client} = new Client({codec});",
+        f"const {client} = new {'MountClient' if managed and spec.get('reconnect') else 'Client'}({codec});",
         f"const {link} = connectStore(store, {client}, undefined, {{ fromValue, toValue }}{extra});",
         f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client: {client}, link: {link}, store, namespace: {_script_json(ns)}, url: {_script_json(url)} }} }}));',
     ]
@@ -303,9 +304,13 @@ def _wire_block(spec: dict, base: str, idx: int) -> list:
         ]
     if spec.get("reconnect"):
         options = _script_json({"authority": spec.get("authority", "server"), "retry": spec.get("retry", 1000)})
-        lines.append(f"{client}.run({target}, {options});")
+        lines.append(f"const connection{idx} = {client}.run({target}, {options});" if managed else f"{client}.run({target}, {options});")
+        if managed:
+            lines.append(f"cleanups.push(() => connection{idx}.stop(), () => {client}.closeSocket(), () => {link}.dispose());")
     else:
-        lines.append(f"{client}.connect({target});")
+        lines.append(f"const connection{idx} = {client}.connect({target});" if managed else f"{client}.connect({target});")
+        if managed:
+            lines.append(f"cleanups.push(() => connection{idx}.close(), () => {link}.dispose());")
     return lines
 
 
@@ -323,6 +328,11 @@ def _script(
     layout: AssetLayout | None = None,
     persist: dict[str, str] | None = None,
     url: dict[str, str] | None = None,
+    lifecycle: Lifecycle | None = None,
+    stylesheet_urls: Sequence[str] = (),
+    nonce: str | None = None,
+    stylesheet_anchor: str | None = None,
+    package_scripts: Sequence[str] = (),
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
     to transports. ``wire="transports"`` mirrors one model with default settings; a :class:`Wire` or list
@@ -336,7 +346,7 @@ def _script(
     uses a snapshot on that connection.)"""
     js = _js(base)
     assets = _ASSETS[_layout(layout)]
-    into = f'document.querySelector("{target}")' if target else "document.body"
+    into = f"document.querySelector({_script_json(target)})" if target else "document.body"
     transports = wire == "transports"
     # Raw dicts follow the same validation as Wire rather than silently ignoring bad options.
     if isinstance(wire, (Wire, dict)):
@@ -356,10 +366,12 @@ def _script(
     for field_name, storage_key in (persist or {}).items():
         f_js, k_js = _script_json(str(field_name)), _script_json(str(storage_key))
         store_lines.append(f"try {{ const v = localStorage.getItem({k_js}); if (v !== null) store.set({f_js}, JSON.parse(v)); }} catch {{}}")
-        store_lines.append(f"store.subscribe({f_js}, (v) => {{ try {{ localStorage.setItem({k_js}, JSON.stringify(v)); }} catch {{}} }});")
+        subscription = f"store.subscribe({f_js}, (v) => {{ try {{ localStorage.setItem({k_js}, JSON.stringify(v)); }} catch {{}} }})"
+        store_lines.append(f"cleanups.push({subscription});" if lifecycle else f"{subscription};")
     # `url` seeds after `persist`: a deep link beats a remembered preference
     if url:
-        store_lines.append(f"bindUrl(store, {_script_json({str(k): str(v) for k, v in url.items()})});")
+        binding = f"bindUrl(store, {_script_json({str(k): str(v) for k, v in url.items()})})"
+        store_lines.append(f"cleanups.push({binding});" if lifecycle else f"{binding};")
     # the refresh action's re-fetch source: frame and inline pages have no JSON tree URL, so
     # `RefreshTree` there requires an explicit url
     refresh_url = '""' if frame or inline else _script_json(tree_url)
@@ -370,9 +382,52 @@ def _script(
         + (["connectStore"] if wired else [])
         + (["decodeFrame"] if frame else [])
     )
-    lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{assets["runtime"]}";']
+    if lifecycle:
+        runtime_names[2] = "trackRoot: trackTree"
+        runtime_names += ["whenReady"]
+        lines = [f'const {{ {", ".join(runtime_names)} }} = await import("{js}{assets["runtime"]}");']
+        lines += [
+            "async function activate(root) {",
+            "  const generation = ++activation;",
+            "  const inert = root.inert; root.inert = true;",
+            "  await Promise.resolve();",
+            "  if (expired || generation !== activation) return;",
+            "  notify('mounted');",
+            "  if (expired || generation !== activation) return;",
+            "  try {",
+            f"    await whenReady(root, {_script_json(list(lifecycle.elements))}, {lifecycle.timeout});",
+            "    if (expired || generation !== activation) return;",
+            "    root.inert = inert; notify('ready');",
+            "  } catch (error) { if (!expired && generation === activation) throw error; }",
+            "}",
+            "function trackRoot(root, tree, url, store) {",
+            "  session = trackTree(root, tree, url, store, {",
+            "    onDispose: cleanup,",
+            "    onReplace: root => { pendingReady = activate(root).catch(fail); },",
+            "  });",
+            "  detail = { get root() { return session.root; }, store, dispose: () => session.dispose() };",
+            "  pendingReady = activate(root);",
+            "}",
+        ]
+    else:
+        lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{assets["runtime"]}";']
     if wired:
-        lines.append(f'import {{ Client, fromValue, toValue, wasm }} from "{js}{assets["transports"]}";')
+        lines.append(
+            f'const {{ Client, fromValue, toValue, wasm }} = await import("{js}{assets["transports"]}");'
+            if lifecycle
+            else f'import {{ Client, fromValue, toValue, wasm }} from "{js}{assets["transports"]}";'
+        )
+        if lifecycle and (reconnect or any(spec.get("reconnect") for spec in wires or [])):
+            # Client.run().stop() stops retries but does not close its current socket.
+            lines += [
+                "class MountClient extends Client {",
+                "  #socket;",
+                "  connect(url) { return this.#socket = super.connect(url); }",
+                "  closeSocket() { this.#socket?.close(); }",
+                "}",
+            ]
+    if lifecycle and package_scripts:
+        lines.append(f"for (const url of {_script_json(list(package_scripts))}) await import(url);")
     if scripts:
         # dynamic + caught, not `import "…"`: a static import of a third-party bundle that throws
         # while registering (two copies of one custom element, say) aborts this module before
@@ -380,7 +435,9 @@ def _script(
         # registered before the tree mounts; a failure costs that one script, not the page.
         urls = ", ".join(_script_json(script) for script in scripts)
         lines.append(
-            f"await Promise.all([{urls}].map((u) => import(u).catch((e) => console.error(`spaday: extra script ${{u}} failed to load`, e))));"
+            f"await Promise.all([{urls}].map((u) => import(u)));"
+            if lifecycle
+            else f"await Promise.all([{urls}].map((u) => import(u).catch((e) => console.error(`spaday: extra script ${{u}} failed to load`, e))));"
         )
     lines.append(f'await init({{ module_or_path: "{js}{assets["wasm"]}" }});')
     if wired:
@@ -392,14 +449,19 @@ def _script(
         lines.append(f"const node = {_script_json(inline_tree)};")
     else:
         lines.append(f"const node = await (await fetch({_script_json(tree_url)})).json();")
+    if lifecycle:
+        lines.append("if (expired) throw new Error('spaday: bootstrap expired');")
     if transports and reconnect:
         lines.extend(
             [
                 *store_lines,
-                "const client = new Client();",
+                "const client = new MountClient();" if lifecycle else "const client = new Client();",
                 "const link = connectStore(store, client, undefined, { fromValue, toValue });",
                 f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client, link, store, namespace: null, url: {_script_json(ws)} }} }}));',
-                f"client.run(`ws://${{location.host}}{base}{ws}`, {{ retry: 1000 }});",
+                f"const connection = client.run(`ws://${{location.host}}{base}{ws}`, {{ retry: 1000 }});"
+                if lifecycle
+                else f"client.run(`ws://${{location.host}}{base}{ws}`, {{ retry: 1000 }});",
+                *(["cleanups.push(() => connection.stop(), () => client.closeSocket(), () => link.dispose());"] if lifecycle else []),
                 f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
         )
@@ -410,18 +472,23 @@ def _script(
                 "const client = new Client();",
                 "const link = connectStore(store, client, undefined, { fromValue, toValue });",
                 f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client, link, store, namespace: null, url: {_script_json(ws)} }} }}));',
-                f"client.connect(`ws://${{location.host}}{base}{ws}`);",
+                f"const connection = client.connect(`ws://${{location.host}}{base}{ws}`);"
+                if lifecycle
+                else f"client.connect(`ws://${{location.host}}{base}{ws}`);",
+                *(["cleanups.push(() => connection.close(), () => link.dispose());"] if lifecycle else []),
                 f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
         )
     elif wires:  # several models share ONE store, each mirrored under its own namespace (see _wire_block)
         lines.extend(store_lines)
         for i, spec in enumerate(wires):
-            lines.extend(_wire_block(spec, base, i))
+            lines.extend(_wire_block(spec, base, i, managed=lifecycle is not None))
         # a SendPatch fires `spaday:patch {model, field, value}`; route it into the namespaced store so the
         # matching connectStore subscriber sends the edit (an empty model writes the bare field).
         lines.append(
-            'document.addEventListener("spaday:patch", (event) => store.set('
+            'const routePatch = (event) => { if (session?.root.contains(event.target)) store.set(event.detail.model ? event.detail.model + "." + event.detail.field : event.detail.field, event.detail.value); }; document.addEventListener("spaday:patch", routePatch); cleanups.push(() => document.removeEventListener("spaday:patch", routePatch));'
+            if lifecycle
+            else 'document.addEventListener("spaday:patch", (event) => store.set('
             'event.detail.model ? event.detail.model + "." + event.detail.field : event.detail.field, '
             "event.detail.value));"
         )
@@ -430,7 +497,64 @@ def _script(
         lines.extend([*store_lines, f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);"])
     else:
         lines.append(f"trackRoot(mount({into}, node), node, {refresh_url});")
+    if lifecycle:
+        lines += [
+            "while (!expired) { const pending = pendingReady; await pending; if (pending === pendingReady) break; }",
+        ]
+        script = "\n".join(lines)
+        return f"""let session, detail, pendingReady, timer, activation = 0, expired = false;
+const cleanups = [];
+const cleanup = () => {{ expired = true; for (const fn of cleanups.splice(0)) {{ try {{ fn(); }} catch (error) {{ console.error('spaday: bootstrap cleanup failed', error); }} }} }};
+const notify = (state, error) => document.dispatchEvent(new CustomEvent(`spaday:${{state}}`, {{ detail: {{ ...detail, get root() {{ return session?.root; }}, target: {_script_json(target)}, error }} }}));
+const fail = error => {{
+  if (expired) return;
+  session?.dispose(); cleanup();
+  notify('error', error);
+  console.error('spaday: bootstrap failed', error);
+}};
+try {{
+  await Promise.race([
+    (async () => {{
+      const anchor = document.getElementById({_script_json(stylesheet_anchor)});
+      anchor?.removeAttribute('id');
+      cleanups.push(() => anchor?.remove());
+      await Promise.all({_script_json(list(stylesheet_urls))}.map(url => new Promise((resolve, reject) => {{
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        if ({_script_json(nonce)}) link.nonce = {_script_json(nonce)};
+        const loaded = () => resolve();
+        const failed = () => reject(new Error(`spaday: stylesheet failed: ${{url}}`));
+        link.addEventListener('load', loaded, {{ once: true }});
+        link.addEventListener('error', failed, {{ once: true }});
+        cleanups.push(() => {{ link.removeEventListener('load', loaded); link.removeEventListener('error', failed); link.remove(); }});
+        link.href = url; anchor.before(link);
+      }})));
+      anchor?.remove();
+      {script}
+    }})(),
+    new Promise((_, reject) => {{ timer = setTimeout(() => reject(new Error('spaday: bootstrap timed out')), {lifecycle.timeout}); }})
+  ]);
+}} catch (error) {{
+  fail(error);
+}} finally {{ clearTimeout(timer); }}"""
     return "\n      ".join(lines)
+
+
+@dataclass(frozen=True)
+class Lifecycle:
+    """Opt-in mounted/ready/error events. Only named elements participate in component readiness.
+
+    ``timeout`` bounds initialization in milliseconds. Application data is not part of readiness.
+    """
+
+    elements: Sequence[str] = ()
+    timeout: int = 10000
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.timeout, int) or isinstance(self.timeout, bool) or self.timeout <= 0:
+            raise ValueError("lifecycle timeout must be a positive integer")
+        if isinstance(self.elements, str) or any(not isinstance(name, str) or "-" not in name for name in self.elements):
+            raise ValueError("lifecycle elements must be a sequence of custom element names")
 
 
 def bootstrap(
@@ -456,6 +580,7 @@ def bootstrap(
     persist: dict[str, str] | None = None,
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
+    lifecycle: Lifecycle | None = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
@@ -489,9 +614,14 @@ def bootstrap(
     ``tree_url`` overrides the JSON or frame fetch URL without changing the asset and websocket ``base``;
     inline trees reject it because they perform no initial tree fetch.
     ``layout`` selects source-checkout or installed-wheel asset URLs; by default it follows
-    :func:`bundles_dir`."""
+    :func:`bundles_dir`. ``lifecycle=Lifecycle(...)`` enables mounted/ready/error events,
+    bounded required-asset loading, and root-owned cleanup; default behavior is unchanged.
+    Readiness covers declared components, not application data. See the API reference for
+    event details and host fallback composition."""
     if tree not in ("json", "frame", "inline"):
         raise ValueError(f"tree must be 'json', 'frame', or 'inline', not {tree!r}")
+    if lifecycle is not None and not isinstance(lifecycle, Lifecycle):
+        raise TypeError("lifecycle must be a Lifecycle or None")
     n = f' nonce="{nonce}"' if nonce else ""
     component_packages = resolve_component_packages(packages)
     if tree == "inline" and page is None:
@@ -507,13 +637,46 @@ def bootstrap(
         raise ValueError("ws= applies only to wire='transports'; set the URL on each Wire instead")
     resolved_tree_url = tree_url or f"{base}/tree{'' if tree == 'frame' else '.json'}"
     inline_tree = tree_node(page, _select_page_design(design, component_packages, page)) if tree == "inline" else None
-    style_tags = [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
+    style_tags = [] if lifecycle else [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
     style_tags += [f"<style{n}>{css}</style>" for css in styles]
+    stylesheet_anchor = f"spaday-assets-{uuid4().hex}" if lifecycle else None
     # the import map must come before any module script, including the packages' own
     head_markup = "\n    ".join(
-        p for p in (_importmap(component_packages, base, nonce), _package_head(component_packages, base, nonce), *style_tags, head) if p
+        p
+        for p in (
+            _importmap(component_packages, base, nonce),
+            _package_head(component_packages, base, nonce) if lifecycle is None else "",
+            f'<template id="{stylesheet_anchor}"></template>' if stylesheet_anchor else "",
+            *style_tags,
+            head,
+        )
+        if p
     )
-    script = _script(base, wire, scripts, ws, tree, resolved_tree_url, inline_tree, reconnect, store, target, layout, persist, url)
+    package_scripts = [f"{package_url_prefix(p, base)}/{path}" for p in component_packages for kind, path in p.assets if kind == "js"]
+    stylesheet_urls = [
+        *(f"{package_url_prefix(p, base)}/{path}" for p in component_packages for kind, path in p.assets if kind == "css"),
+        *stylesheets,
+    ]
+    script = _script(
+        base,
+        wire,
+        scripts,
+        ws,
+        tree,
+        resolved_tree_url,
+        inline_tree,
+        reconnect,
+        store,
+        target,
+        layout,
+        persist,
+        url,
+        lifecycle,
+        stylesheet_urls,
+        nonce,
+        stylesheet_anchor,
+        package_scripts,
+    )
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""
         return f'{head_block}<script type="module"{n}>\n  {script}\n</script>\n'

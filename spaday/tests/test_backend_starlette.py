@@ -11,7 +11,7 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 
 import spaday.packages as package_registry
-from spaday import Button, Design, decode_frame
+from spaday import Button, Design, Lifecycle, decode_frame
 from spaday.backends.starlette import PageSpec, build_routes, build_site, mount, mount_site, serve
 from spaday.components.shell import Main
 from spaday.packages import ComponentPackage
@@ -64,6 +64,17 @@ def test_serve_inline_tree_needs_no_tree_route(tmp_path):
     assert 'const node = {"tag": "x-button"' in home and "fetch(" not in home
     assert client.get("/tree.json").status_code == 404
     assert client.get("/tree").status_code == 404
+
+
+def test_lifecycle_reaches_single_and_multiple_page_bootstraps(tmp_path):
+    from starlette.applications import Starlette
+
+    lifecycle = Lifecycle(elements=("required-editor",), timeout=2345)
+    single = TestClient(serve(Main("hi"), js=tmp_path, lifecycle=lifecycle))
+    site = build_site({"/editor": PageSpec(Main("hi"), lifecycle=lifecycle)}, js=tmp_path)
+    multiple = TestClient(Starlette(routes=site.all()))
+    for html in (single.get("/").text, multiple.get("/editor").text):
+        assert 'await whenReady(root, ["required-editor"], 2345)' in html
 
 
 def test_multiple_design_packages_only_need_a_choice_for_generic_controls(tmp_path):

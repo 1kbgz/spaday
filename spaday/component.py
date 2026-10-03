@@ -191,6 +191,7 @@ class Component:
             self._check_prop_kinds()
         self._slots: dict[str, list[Child]] = {}
         self._events: dict[str, dict] = {}
+        self._event_options: dict[str, dict[str, bool]] = {}
         self._bindings: dict[str, dict] = {}
         self._style: dict[str, str] = {}  # inline CSS declarations + custom properties (theming)
         self._classes: list[str] = []  # CSS classes (variants / states)
@@ -333,24 +334,40 @@ class Component:
         self._classes.extend(n for n in names if n)
         return self
 
-    def on(self, event: str, action: Action) -> "Component":
+    def on(self, event: str, action: Action, *, capture: bool | None = None, once: bool | None = None, passive: bool | None = None) -> "Component":
         """Bind a declarative :class:`~spaday.actions.Action` to a DOM event (e.g. ``"click"``).
 
         The action is serialized as data and interpreted in the browser when the event fires — no
         round-trip to Python.
+
+        ``capture``, ``once`` and ``passive`` are optional DOM listener options. ``None`` preserves
+        the browser default; explicit ``False`` is retained. Capture observes non-bubbling events
+        such as native ``invalid`` within the same tree, not non-composed events inside a shadow root.
+        Rebinding this event replaces its action and options. A replaced once-only listener is armed again.
         """
         if not isinstance(action, Action):
             raise TypeError(f"event action must be an Action, got {type(action).__name__}")
-        self._events[event] = action.to_dict()
-        return self
+        return self._on(event, action.to_dict(), capture=capture, once=once, passive=passive)
 
-    def on_wire(self, event: str, action: object) -> "Component":
+    def on_wire(
+        self, event: str, action: object, *, capture: bool | None = None, once: bool | None = None, passive: bool | None = None
+    ) -> "Component":
         """Bind already-serialized action data after validating it with the shared core model.
 
         Editors and source adapters use this when behavior starts as structured data rather than a
         Python :class:`~spaday.actions.Action` instance.
         """
-        self._events[event] = validate_action(action)
+        return self._on(event, validate_action(action), capture=capture, once=once, passive=passive)
+
+    def _on(self, event: str, action: dict, *, capture: bool | None, once: bool | None, passive: bool | None) -> "Component":
+        options = {name: value for name, value in {"capture": capture, "once": once, "passive": passive}.items() if value is not None}
+        if any(not isinstance(value, bool) for value in options.values()):
+            raise TypeError("listener options must be bool or None")
+        self._events[event] = action
+        if options:
+            self._event_options[event] = options
+        else:
+            self._event_options.pop(event, None)
         return self
 
     def bind_wire(self, prop: str, binding: object) -> "Component":
@@ -491,6 +508,8 @@ class Component:
         if self._events:
             # actions are the core's own DSL wire form (see spaday.actions) — plain, not a tagged Value
             node["events"] = dict(self._events)
+        if self._event_options:
+            node["event_options"] = {name: dict(options) for name, options in self._event_options.items()}
         if self._bindings:
             node["bindings"] = dict(self._bindings)
         return node

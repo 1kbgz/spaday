@@ -6,7 +6,7 @@ pytest.importorskip("aiohttp")  # the aiohttp backend — aiohttp is not a spada
 
 from aiohttp.test_utils import TestClient, TestServer
 
-from spaday import Button, Design, decode_frame
+from spaday import Button, Design, Lifecycle, decode_frame
 from spaday.backends.aiohttp import serve
 from spaday.components.shell import Main
 from spaday.packages import ComponentPackage
@@ -54,5 +54,13 @@ def test_serve_frame_tree(tmp_path):
         async with TestClient(TestServer(serve(Main("hi"), js=tmp_path, tree="frame"))) as client:
             assert (await client.get("/tree.json")).status == 404
             assert decode_frame(await (await client.get("/tree")).read())
+
+    asyncio.run(check())
+
+
+def test_lifecycle_reaches_bootstrap(tmp_path):
+    async def check():
+        async with TestClient(TestServer(serve(Main("hi"), js=tmp_path, lifecycle=Lifecycle(timeout=2345)))) as client:
+            assert "await whenReady(root, [], 2345)" in await (await client.get("/")).text()
 
     asyncio.run(check())

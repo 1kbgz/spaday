@@ -9,6 +9,8 @@
 // `width` — map to the corresponding CSS custom properties. Importing this module (side effect, via
 // the runtime entry) defines the elements.
 
+import { createStyle } from "./style";
+
 const BORDER = "var(--spa-border, #e6e6e6)";
 const SURFACE = "var(--spa-surface, #fff)";
 const SURFACE_2 = "var(--spa-surface-2, #fafafa)";
@@ -94,7 +96,7 @@ const ATTR_VARS: Record<string, string> = {
 // rather than touching `customElements`/`HTMLElement`, which only exist in the browser.
 if (typeof customElements !== "undefined") {
   if (!document.querySelector("style[data-spaday-shell-theme]")) {
-    const theme = document.createElement("style");
+    const theme = createStyle();
     theme.setAttribute("data-spaday-shell-theme", "");
     theme.textContent = THEME_CSS;
     document.head.append(theme);
@@ -110,7 +112,7 @@ if (typeof customElements !== "undefined") {
         constructor() {
           super();
           const root = this.attachShadow({ mode: "open" });
-          const style = document.createElement("style");
+          const style = createStyle();
           style.textContent = css;
           root.append(style, document.createElement("slot"));
         }
@@ -250,7 +252,7 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-table")) {
       constructor() {
         super();
         this.root = this.attachShadow({ mode: "open" });
-        const style = document.createElement("style");
+        const style = createStyle();
         style.textContent = TABLE_CSS;
         this.root.append(style);
         this.render(true);
@@ -359,7 +361,7 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-popup")) {
       constructor() {
         super();
         const root = this.attachShadow({ mode: "open" });
-        const style = document.createElement("style");
+        const style = createStyle();
         style.textContent = POPUP_CSS;
         root.append(style, document.createElement("slot"));
       }
@@ -481,7 +483,7 @@ if (typeof customElements !== "undefined" && !customElements.get("spa-toast")) {
       constructor() {
         super();
         this.#root = this.attachShadow({ mode: "open" });
-        const style = document.createElement("style");
+        const style = createStyle();
         style.textContent = TOAST_CSS;
         this.#root.append(style);
       }

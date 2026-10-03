@@ -152,6 +152,18 @@ pub fn binding_schema_json() -> Result<String, String> {
     serde_json::to_string(&schema).map_err(|e| e.to_string())
 }
 
+/// DOM listener options. Omitted options retain the browser's defaults.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EventOptions {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub once: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub passive: Option<bool>,
+}
+
 /// A node in the component tree.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Node {
@@ -169,6 +181,8 @@ pub struct Node {
     /// Event handlers keyed by event name (`"click"`, `"wa-change"`, ...).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub events: BTreeMap<EventName, Action>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub event_options: BTreeMap<EventName, EventOptions>,
     /// Reactive prop bindings: a prop name → the state field it tracks (see the runtime signal store).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub bindings: BTreeMap<Attr, Binding>,
@@ -183,6 +197,7 @@ impl Node {
             props: BTreeMap::new(),
             slots: BTreeMap::new(),
             events: BTreeMap::new(),
+            event_options: BTreeMap::new(),
             bindings: BTreeMap::new(),
         }
     }

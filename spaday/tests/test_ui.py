@@ -202,6 +202,8 @@ def test_a_design_maps_names_values_parts_events_and_bindings():
     button = _plain(resolve(Button(label="Go", intent="primary", size="lg").on("click", spaday.SetField("x", 1)).to_node(), design))
     assert button["props"] == {"textContent": "Go", "variant": "brand"}  # size is unsupported: dropped, not leaked
     assert list(button["events"]) == ["x-press"]
+    captured = resolve(Button().on("click", spaday.SetField("x", 1), capture=True).to_node(), design)
+    assert captured["event_options"] == {"x-press": {"capture": True}}
     text = _plain(
         resolve(TextInput(label="Name", help="Hint", error="Bad").bind("value", "name", mode="two-way").bind("label", "caption").to_node(), design)
     )

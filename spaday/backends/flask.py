@@ -15,7 +15,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..bootstrap import AssetLayout, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
+from ..bootstrap import AssetLayout, Lifecycle, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, _select_page_design
 
@@ -42,6 +42,7 @@ def mount(
     styles: Sequence[str] = (),
     head: str = "",
     design: Design | str | None = None,
+    lifecycle: Lifecycle | None = None,
 ) -> Flask:
     """Add spaday's routes to an existing Flask ``app`` under ``prefix``. ``routes`` is a list of
     ``(rule, endpoint, view_func)`` tuples. Endpoints are keyed by ``prefix`` so several spaday pages can
@@ -66,6 +67,7 @@ def mount(
         title=title,
         layout=asset_layout,
         design=page_design,
+        lifecycle=lifecycle,
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     key = prefix.strip("/").replace("/", "_") or "root"  # unique endpoint names per mount

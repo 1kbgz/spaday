@@ -7,6 +7,11 @@ import cpy from "cpy";
 
 const BUNDLES = [
   {
+    entryPoints: ["src/ts/examples/tabbed-form.ts"],
+    outfile: "dist/cdn/examples/tabbed-form.js",
+    external: ["/js/cdn/index.js"],
+  },
+  {
     entryPoints: ["src/ts/index.ts"],
     plugins: [node_modules_external()],
     outfile: "dist/esm/index.js",

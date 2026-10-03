@@ -16,6 +16,184 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => window.__spaday);
 });
 
+test("reentrant writes cannot leave later bindings at an older value", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store, mount } = window.__spaday;
+    const store = new Store({ busy: true });
+    store.subscribe("busy", (value) => {
+      if (!value) store.set("busy", true);
+    });
+    const button = mount(
+      document.body,
+      {
+        tag: "button",
+        bindings: { disabled: { field: "busy", mode: "one-way" } },
+      },
+      store,
+    );
+    const seen = [];
+    store.subscribe("busy", (value) => seen.push(value));
+    store.set("busy", false);
+    return { seen, value: store.get("busy"), disabled: button.disabled };
+  });
+  expect(result).toEqual({ seen: [true], value: true, disabled: true });
+});
+
+test("nested writes preserve unaffected descendants and omit stale range metadata", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ model: { text: "a", sibling: "old" } });
+    const seen = [];
+    store.subscribe("model", (value) => {
+      if (value.text === "ab")
+        store.set("model.text", "abc", {
+          ranges: [{ from: 2, to: 2, insert: "c" }],
+          unit: "utf16",
+        });
+    });
+    store.subscribe("model.text", (value, field, change) =>
+      seen.push({ value, field, change: change ?? null }),
+    );
+    store.subscribe("model.sibling", (value) => seen.push({ sibling: value }));
+    store.set("model", { text: "ab", sibling: "new" });
+    return seen;
+  });
+  expect(result).toEqual([
+    { value: "abc", field: "model.text", change: null },
+    { sibling: "new" },
+  ]);
+});
+
+for (const reenterFrom of ["value", "collection"]) {
+  test(`reentrant ${reenterFrom} callbacks reset collections instead of replaying stale deltas`, async ({
+    page,
+  }) => {
+    const result = await page.evaluate((reenterFrom) => {
+      const { Store } = window.__spaday;
+      const store = new Store({ rows: [{ id: 1 }] });
+      let updated = false;
+      const reenter = () => {
+        if (updated) return;
+        updated = true;
+        store.setCollection(
+          "rows",
+          [{ id: 1 }, { id: 2 }, { id: 3 }],
+          [{ kind: "insert", key: 3, index: 2, item: { id: 3 } }],
+        );
+      };
+      if (reenterFrom === "value") store.subscribe("rows", reenter);
+      else store.subscribeCollection("rows", "id", reenter);
+      const seen = [];
+      store.subscribeCollection("rows", "id", (delta) => seen.push(delta));
+      store.setCollection(
+        "rows",
+        [{ id: 1 }, { id: 2 }],
+        [{ kind: "insert", key: 2, index: 1, item: { id: 2 } }],
+      );
+      return seen;
+    }, reenterFrom);
+    expect(result).toEqual([
+      { kind: "reset", items: [{ id: 1 }, { id: 2 }, { id: 3 }] },
+    ]);
+  });
+}
+
+test("a throwing nested event subscriber still updates later bindings", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ value: 0 });
+    const target = new EventTarget();
+    const errors = [];
+    window.addEventListener("error", (event) => {
+      errors.push(event.message);
+      event.preventDefault();
+    });
+    target.addEventListener("update", () => store.set("value", 2));
+    let once = true;
+    store.subscribe("value", () => {
+      if (once) {
+        once = false;
+        target.dispatchEvent(new Event("update"));
+      }
+    });
+    store.subscribe("value", (value) => {
+      if (value === 2) throw new Error("subscriber failed");
+    });
+    const seen = [];
+    store.subscribe("value", (value) => seen.push(value));
+    store.set("value", 1);
+    return { seen, value: store.get("value"), errors };
+  });
+  expect(result).toEqual({
+    seen: [2],
+    value: 2,
+    errors: ["Uncaught Error: subscriber failed"],
+  });
+});
+
+test("subscribers added during a write do not replay its ranges or deltas", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ rows: [{ id: 1 }], model: { text: "a" } });
+    const deltas = [],
+      ranges = [];
+    store.subscribe("rows", () =>
+      store.subscribeCollection("rows", "id", (delta) => deltas.push(delta)),
+    );
+    store.subscribe("model", () =>
+      store.subscribe("model.text", (value, field, change) =>
+        ranges.push({ value, change }),
+      ),
+    );
+    store.setCollection(
+      "rows",
+      [{ id: 1 }, { id: 2 }],
+      [{ kind: "insert", key: 2, index: 1, item: { id: 2 } }],
+    );
+    store.set("model.text", "ab", {
+      ranges: [{ from: 1, to: 1, insert: "b" }],
+      unit: "utf16",
+    });
+    return { deltas, ranges };
+  });
+  expect(result).toEqual({ deltas: [], ranges: [] });
+});
+
+test("notification bookkeeping is released when a subscriber throws", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { Store } = window.__spaday;
+    const store = new Store({ rows: [] });
+    const off = store.subscribe("rows", () => {
+      throw new Error("subscriber");
+    });
+    try {
+      store.set("rows", [{ id: 1 }]);
+    } catch {}
+    off();
+    const seen = [];
+    store.subscribeCollection("rows", "id", (delta) => seen.push(delta));
+    store.setCollection(
+      "rows",
+      [{ id: 1 }, { id: 2 }],
+      [{ kind: "insert", key: 2, index: 1, item: { id: 2 } }],
+    );
+    return seen;
+  });
+  expect(result).toEqual([
+    { kind: "insert", key: 2, index: 1, item: { id: 2 } },
+  ]);
+});
+
 test("one-way binding flows a field to the bound prop, reactively", async ({
   page,
 }) => {

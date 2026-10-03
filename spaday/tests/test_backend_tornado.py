@@ -7,7 +7,7 @@ pytest.importorskip("tornado")  # the Tornado backend — tornado is not a spada
 
 from tornado.testing import AsyncHTTPTestCase
 
-from spaday import Button, Design, decode_frame
+from spaday import Button, Design, Lifecycle, decode_frame
 from spaday.backends.tornado import serve
 from spaday.components.shell import Main
 from spaday.packages import ComponentPackage
@@ -53,3 +53,11 @@ class TestTornadoFrameTree(AsyncHTTPTestCase):
     def test_serves_frame_without_json_route(self):
         assert self.fetch("/tree.json").code == 404
         assert decode_frame(self.fetch("/tree").body)
+
+
+class TestTornadoLifecycle(AsyncHTTPTestCase):
+    def get_app(self):
+        return serve(Main("hi"), lifecycle=Lifecycle(timeout=2345))
+
+    def test_lifecycle_reaches_bootstrap(self):
+        assert "await whenReady(root, [], 2345)" in self.fetch("/").body.decode()
