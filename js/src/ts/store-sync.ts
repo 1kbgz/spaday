@@ -483,11 +483,12 @@ function stringSplices(
         break;
       }
       const inserted = [...range.insert];
-      const removed = [...current.slice(range.from, range.to)].length;
+      // Editor offsets use UTF-16; CRDT sequence offsets count code points.
+      const removed = Array.from(current.slice(range.from, range.to)).length;
       mutations.push({
         kind: "sequence_splice",
         path,
-        index: [...current.slice(0, range.from)].length + shift,
+        index: Array.from(current.slice(0, range.from)).length + shift,
         delete_count: removed,
         values: inserted,
       });
