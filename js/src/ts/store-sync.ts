@@ -483,11 +483,11 @@ function stringSplices(
         break;
       }
       const inserted = [...range.insert];
-      const removed = [...current.slice(range.from, range.to)].length;
+      const removed = current.slice(range.from, range.to).length;
       mutations.push({
         kind: "sequence_splice",
         path,
-        index: [...current.slice(0, range.from)].length + shift,
+        index: current.slice(0, range.from).length + shift,
         delete_count: removed,
         values: inserted,
       });
