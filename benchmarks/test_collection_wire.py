@@ -110,6 +110,11 @@ def test_collection_wire(benchmark: Any, runtime_page: Page, collection_wire_url
         assert result["focus_preserved"]
         assert result["selection_preserved"]
         assert result["received_frames"] == result["frames"]
+        if keyed:
+            expected_ops = 10 if workload in {"burst", "batch-burst"} else 2 if workload == "move-update" else 1
+            assert result["operations"] == expected_ops
+            if workload != "reorder":
+                assert result["patch_bytes"] <= 512 * expected_ops
         if workload == "batch-burst":
             assert result["scope_writes"] == 1
             assert result["dom_mutations"] == 1

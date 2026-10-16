@@ -35,6 +35,37 @@ remains the version installed from Spaday's lockfile.
 
 ## Measurement boundaries
 
+The keyed wire cases enforce operation-count budgets: one operation for insert, removal, update,
+move, or reorder; two for a moved-and-edited record; ten for a ten-update burst. Non-reorder
+payloads are bounded to 512 bytes per operation for these fixtures. These are structural regression
+checks, not universal limits on application data.
+
+## Virtual collections and server windows
+
+`test_virtual_collection` measures fixed-height mount and scroll at 1k, 10k, and 100k records.
+Its viewport realizes 18 rows at each size. `test_server_window_round_trip` serves the Python
+example over HTTP and checks that a 100k-record source returns at most 20 records per window.
+
+```{benched} ../../benchmarks/results
+:view: trend
+:metric: median
+:benchmark-filter: *test_virtual_collection*
+:x-axis: time
+```
+
+```{benched} ../../benchmarks/results
+:view: trend
+:metric: median
+:benchmark-filter: *test_server_window_round_trip*
+:x-axis: time
+```
+
+Virtualization bounds the DOM while retaining the full source array. Server windows bound both the
+response and mirrored data. Rows leaving the viewport are disposed, except a focused row that still
+exists in the available data. Neither mode preserves arbitrary offscreen element-local state.
+
+## Timing and instrumentation
+
 The charts show pytest-benchmark timing distributions. For wire cases, that timing includes the
 browser call and its correctness checks, but excludes initial snapshot delivery and eager mount.
 The run records also retain each round's diagnostics in `extra_info`:
@@ -54,8 +85,9 @@ The run records also retain each round's diagnostics in `extra_info`:
 
 Benched's process peak-memory metric is distinct from the browser heap measurement. Timing and memory
 depend on hardware, browser version, scheduling, and whether data is already cached. Partial runs
-contain only the selected cases; missing cases are not zero-cost results. No regression budgets are
-set yet. This single-connection harness does not measure Hub fan-out, reconnect, or slow consumers.
+contain only the selected cases; missing cases are not zero-cost results. Structural budgets are
+enforced above; latency thresholds require calibration on representative hardware. This
+single-connection harness does not measure Hub fan-out, reconnect, or slow consumers.
 
 MutationObserver and PerformanceObserver instrumentation runs inside the measured interval. These
 timings include its overhead and are not directly comparable with older uninstrumented measurements.
