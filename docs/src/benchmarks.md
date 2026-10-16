@@ -85,8 +85,9 @@ The run records also retain each round's diagnostics in `extra_info`:
 
 Benched's process peak-memory metric is distinct from the browser heap measurement. Timing and memory
 depend on hardware, browser version, scheduling, and whether data is already cached. Partial runs
-contain only the selected cases; missing cases are not zero-cost results. No regression budgets are
-set yet. This single-connection harness does not measure Hub fan-out, reconnect, or slow consumers.
+contain only the selected cases; missing cases are not zero-cost results. Structural budgets are
+enforced above; latency thresholds require calibration on representative hardware. This
+single-connection harness does not measure Hub fan-out, reconnect, or slow consumers.
 
 MutationObserver and PerformanceObserver instrumentation runs inside the measured interval. These
 timings include its overhead and are not directly comparable with older uninstrumented measurements.
