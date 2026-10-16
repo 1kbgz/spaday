@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-15T23:33:55.964965+00:00",
+  "source_run_ids": [
+    "9b40aa6981f74c93bf1c2b17617616f9"
+  ],
+  "runs": [
+    {
+      "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+      "started_at": "2026-10-15T23:33:53.733901+00:00",
+      "status": "success",
+      "suite": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.12.0",
+        "revision": "28fa75adfdb83a2092d4b0edd628e7e9ce66d225",
+        "branch": "scale-keyed-collections",
+        "dirty": true,
+        "labels": {}
+      },
+      "subject": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.12.0",
+        "revision": "28fa75adfdb83a2092d4b0edd628e7e9ce66d225",
+        "branch": "scale-keyed-collections",
+        "dirty": true,
+        "labels": {
+          "transports": "local-keyed-diffs"
+        }
+      },
+      "machine": {
+        "id": "mbp-m5",
+        "fingerprint": "4947e1f640c8e065b0bdc2b3f1c521f706461fb493daa642d995091105a41e96",
+        "metadata": {
+          "architecture": "arm64",
+          "cpu_count": 18,
+          "memory_gib": 64.0,
+          "processor": "arm",
+          "release": "25.6.0",
+          "system": "Darwin"
+        },
+        "labels": {}
+      },
+      "environment": {
+        "fingerprint": "5b9c9aaa5c636d501770437337ffaf3148e2469f74b46acdccd9298815e39f9a",
+        "python_implementation": "CPython",
+        "python_version": "3.13.14",
+        "platform": "Darwin",
+        "architecture": "arm64",
+        "labels": {}
+      }
+    }
+  ],
+  "benchmarks": [
+    {
+      "benchmark_id": "benchmarks/test_collection_windows.py::test_server_window_round_trip",
+      "nodeid": "benchmarks/test_collection_windows.py::test_server_window_round_trip",
+      "name": "test_server_window_round_trip",
+      "group": null,
+      "parameters": {},
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+          "metrics": {
+            "median": 0.03168091690167785,
+            "mean": 0.047963416669517756,
+            "min": 0.0296682920306921,
+            "max": 0.08254104107618332,
+            "ops": 20.849223625795847,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_collection_windows.py::test_server_window_round_trip:peak-memory",
+      "nodeid": "benchmarks/test_collection_windows.py::test_server_window_round_trip",
+      "name": "test_server_window_round_trip peak memory",
+      "group": null,
+      "parameters": {},
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 178044928.0
+          }
+        }
+      ]
+    }
+  ],
+  "warnings": []
+}

@@ -308,6 +308,15 @@ The streamed burst sends ten revisions as they are generated; the batched burst 
 in one transports batch. Long tasks come from Chromium’s observer; estimated missed frames use the
 median idle animation-frame interval. They are diagnostics, not hardware-independent release budgets.
 This single-connection harness does not measure Hub fan-out, reconnect, or slow-consumer policy.</p>
+<p>Run the bounded-rendering and real HTTP window tests separately:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>benched<span class="w"> </span>run<span class="w"> </span>benchmarks/test_virtual_collection.py<span class="w"> </span>benchmarks/test_collection_windows.py
+</pre></div>
+</div>
+<p>The window test imports the local Python example, so build the native extension and browser assets
+from the same checkout. It uses the existing managed-request action to reject stale completions.
+Operation-count, wire-size, and realized-row budgets run without hardware-specific timing thresholds.
+Collect repeated idle-machine baselines before setting latency thresholds; do not treat a concurrent
+development run or a partial large-matrix run as a stable CI budget.</p>
 </section>
 
         </article>

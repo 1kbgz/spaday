@@ -507,6 +507,31 @@ default keeps roots inside <code class="docutils literal notranslate"><span clas
 server-driven add/update/remove/reorder operations, per-record endpoint payloads, and preserved local
 input state without page-specific JavaScript.</p>
 </section>
+<section id="render-a-large-collection">
+<h2>Render a large collection<a class="headerlink" href="#render-a-large-collection" title="Link to this heading">¶</a></h2>
+<p>Give <code class="docutils literal notranslate"><span class="pre">Each</span></code> a fixed row height to mount only visible records and overscan:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Text</span><span class="p">,</span> <span class="n">item</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components</span><span class="w"> </span><span class="kn">import</span> <span class="n">Each</span>
+
+<span class="n">Each</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="n">item</span><span class="p">(</span><span class="s2">"label"</span><span class="p">)),</span> <span class="n">field</span><span class="o">=</span><span class="s2">"rows"</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">"id"</span><span class="p">,</span> <span class="n">row_height</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">384</span><span class="p">,</span> <span class="n">overscan</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This limits mounted subtrees, not the dataset in the Store. Rows use absolute positioning and fixed
+pixel heights without margins. Do not combine this mode with <code class="docutils literal notranslate"><span class="pre">direct=True</span></code>. One focused row remains
+mounted outside the viewport while its record is available. Other offscreen rows are disposed;
+keep edits that must survive scrolling in application state.</p>
+<p>To limit browser-held data too, set <code class="docutils literal notranslate"><span class="pre">window=True</span></code> and bind the source to an envelope with
+<code class="docutils literal notranslate"><span class="pre">items</span></code>, <code class="docutils literal notranslate"><span class="pre">offset</span></code>, and <code class="docutils literal notranslate"><span class="pre">total</span></code>. Handle <code class="docutils literal notranslate"><span class="pre">spaday:range</span></code> to fetch the requested half-open range
+<code class="docutils literal notranslate"><span class="pre">{start,</span> <span class="pre">stop}</span></code>, including overscan, and replace that envelope atomically. Use
+<code class="docutils literal notranslate"><span class="pre">CallEndpoint(...,</span> <span class="pre">request=Request(...))</span></code> so an older response cannot replace a newer window.
+Keep authorization, sorting, filtering, and maximum request size in the server endpoint.</p>
+<p>Run the <a class="reference download internal" download="" href="../../_downloads/2899029c6198dda41fbfe0819b66f400/windowed_collection.py"><span class="xref download myst">windowed collection example</span></a>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>spaday.examples.windowed_collection
+</pre></div>
+</div>
+<p>The example serves 100,000 logical records but sends at most 20 rows per viewport request.
+See the <a class="reference internal" href="benchmarks.html"><span class="std std-doc">collection benchmarks</span></a> for measured rendering and wire costs.</p>
+</section>
 <section id="reach-for-a-raw-element">
 <h2>Reach for a raw element<a class="headerlink" href="#reach-for-a-raw-element" title="Link to this heading">¶</a></h2>
 <p>For text or a structural tag a typed class doesn’t cover, use <code class="docutils literal notranslate"><span class="pre">element</span></code>:</p>
@@ -611,6 +636,7 @@ they are served as the tree the browser mounts.</p>
 <li><a class="reference internal" href="#generate-a-form-from-a-model">Generate a form from a model</a></li>
 <li><a class="reference internal" href="#show-data-in-a-table">Show data in a table</a></li>
 <li><a class="reference internal" href="#render-an-action-for-every-live-record">Render an action for every live record</a></li>
+<li><a class="reference internal" href="#render-a-large-collection">Render a large collection</a></li>
 <li><a class="reference internal" href="#reach-for-a-raw-element">Reach for a raw element</a></li>
 <li><a class="reference internal" href="#set-a-prop-a-typed-class-doesn-t-expose">Set a prop a typed class doesn’t expose</a></li>
 <li><a class="reference internal" href="#key-for-stable-updates">Key for stable updates</a></li>

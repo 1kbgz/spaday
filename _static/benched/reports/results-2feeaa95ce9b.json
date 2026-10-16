@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-15T23:33:55.964965+00:00",
+  "source_run_ids": [
+    "9b40aa6981f74c93bf1c2b17617616f9"
+  ],
+  "runs": [
+    {
+      "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+      "started_at": "2026-10-15T23:33:53.733901+00:00",
+      "status": "success",
+      "suite": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.12.0",
+        "revision": "28fa75adfdb83a2092d4b0edd628e7e9ce66d225",
+        "branch": "scale-keyed-collections",
+        "dirty": true,
+        "labels": {}
+      },
+      "subject": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.12.0",
+        "revision": "28fa75adfdb83a2092d4b0edd628e7e9ce66d225",
+        "branch": "scale-keyed-collections",
+        "dirty": true,
+        "labels": {
+          "transports": "local-keyed-diffs"
+        }
+      },
+      "machine": {
+        "id": "mbp-m5",
+        "fingerprint": "4947e1f640c8e065b0bdc2b3f1c521f706461fb493daa642d995091105a41e96",
+        "metadata": {
+          "architecture": "arm64",
+          "cpu_count": 18,
+          "memory_gib": 64.0,
+          "processor": "arm",
+          "release": "25.6.0",
+          "system": "Darwin"
+        },
+        "labels": {}
+      },
+      "environment": {
+        "fingerprint": "5b9c9aaa5c636d501770437337ffaf3148e2469f74b46acdccd9298815e39f9a",
+        "python_implementation": "CPython",
+        "python_version": "3.13.14",
+        "platform": "Darwin",
+        "architecture": "arm64",
+        "labels": {}
+      }
+    }
+  ],
+  "benchmarks": [
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=1000",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[1k]",
+      "name": "test_virtual_collection[1k]",
+      "group": null,
+      "parameters": {
+        "size": 1000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+          "metrics": {
+            "median": 0.06615324970334768,
+            "mean": 0.06201862528299292,
+            "min": 0.05351483402773738,
+            "max": 0.0663877921178937,
+            "ops": 16.124188426250484,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=10000",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[10k]",
+      "name": "test_virtual_collection[10k]",
+      "group": null,
+      "parameters": {
+        "size": 10000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+          "metrics": {
+            "median": 0.06618454214185476,
+            "mean": 0.06555108369017641,
+            "min": 0.06323949992656708,
+            "max": 0.06722920900210738,
+            "ops": 15.255277925326833,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=100000",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[100k]",
+      "name": "test_virtual_collection[100k]",
+      "group": null,
+      "parameters": {
+        "size": 100000
+      },
+      "unit": "seconds",
+      "series": [
+        {
+          "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+          "metrics": {
+            "median": 0.06666162516921759,
+            "mean": 0.06500005535781384,
+            "min": 0.06160929100587964,
+            "max": 0.06672924989834428,
+            "ops": 15.3846022821854,
+            "peak_memory": null
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=100000:peak-memory",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[100k]",
+      "name": "test_virtual_collection[100k] peak memory",
+      "group": null,
+      "parameters": {
+        "size": 100000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 178044928.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=10000:peak-memory",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[10k]",
+      "name": "test_virtual_collection[10k] peak memory",
+      "group": null,
+      "parameters": {
+        "size": 10000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 178044928.0
+          }
+        }
+      ]
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=1000:peak-memory",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[1k]",
+      "name": "test_virtual_collection[1k] peak memory",
+      "group": null,
+      "parameters": {
+        "size": 1000
+      },
+      "unit": "bytes",
+      "series": [
+        {
+          "run_id": "9b40aa6981f74c93bf1c2b17617616f9",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 178044928.0
+          }
+        }
+      ]
+    }
+  ],
+  "warnings": []
+}

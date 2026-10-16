@@ -271,9 +271,25 @@ positional and application-keyed diff policies; and streamed or batched updates.
 final values, retained element identity, unsaved input, focus, and selection. Keyed cases require
 the optional <code class="docutils literal notranslate"><span class="pre">Store.host(list_keys=...)</span></code> API and skip on older transports builds. The browser client
 remains the version installed from Spaday’s lockfile.</p>
-<benched-report src="../../_static/benched/reports/results-aead0eaf8e88.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report></section>
+<benched-report src="../../_static/benched/reports/results-ae5517fd23f8.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report></section>
 <section id="measurement-boundaries">
 <h2>Measurement boundaries<a class="headerlink" href="#measurement-boundaries" title="Link to this heading">¶</a></h2>
+<p>The keyed wire cases enforce operation-count budgets: one operation for insert, removal, update,
+move, or reorder; two for a moved-and-edited record; ten for a ten-update burst. Non-reorder
+payloads are bounded to 512 bytes per operation for these fixtures. These are structural regression
+checks, not universal limits on application data.</p>
+</section>
+<section id="virtual-collections-and-server-windows">
+<h2>Virtual collections and server windows<a class="headerlink" href="#virtual-collections-and-server-windows" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">test_virtual_collection</span></code> measures fixed-height mount and scroll at 1k, 10k, and 100k records.
+Its viewport realizes 18 rows at each size. <code class="docutils literal notranslate"><span class="pre">test_server_window_round_trip</span></code> serves the Python
+example over HTTP and checks that a 100k-record source returns at most 20 records per window.</p>
+<benched-report src="../../_static/benched/reports/results-2feeaa95ce9b.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report><benched-report src="../../_static/benched/reports/results-34e59adbddb9.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report><p>Virtualization bounds the DOM while retaining the full source array. Server windows bound both the
+response and mirrored data. Rows leaving the viewport are disposed, except a focused row that still
+exists in the available data. Neither mode preserves arbitrary offscreen element-local state.</p>
+</section>
+<section id="timing-and-instrumentation">
+<h2>Timing and instrumentation<a class="headerlink" href="#timing-and-instrumentation" title="Link to this heading">¶</a></h2>
 <p>The charts show pytest-benchmark timing distributions. For wire cases, that timing includes the
 browser call and its correctness checks, but excludes initial snapshot delivery and eager mount.
 The run records also retain each round’s diagnostics in <code class="docutils literal notranslate"><span class="pre">extra_info</span></code>:</p>
@@ -293,8 +309,9 @@ dropped-frame counters.</p></li>
 </ul>
 <p>Benched’s process peak-memory metric is distinct from the browser heap measurement. Timing and memory
 depend on hardware, browser version, scheduling, and whether data is already cached. Partial runs
-contain only the selected cases; missing cases are not zero-cost results. No regression budgets are
-set yet. This single-connection harness does not measure Hub fan-out, reconnect, or slow consumers.</p>
+contain only the selected cases; missing cases are not zero-cost results. Structural budgets are
+enforced above; latency thresholds require calibration on representative hardware. This
+single-connection harness does not measure Hub fan-out, reconnect, or slow consumers.</p>
 <p>MutationObserver and PerformanceObserver instrumentation runs inside the measured interval. These
 timings include its overhead and are not directly comparable with older uninstrumented measurements.</p>
 <p>See <a class="reference internal" href="../../benchmarks/README.html"><span class="std std-doc">How to benchmark collection updates</span></a> for commands and local
@@ -361,6 +378,8 @@ transports-build selection.</p>
 <li><a class="reference internal" href="#browser-collections">Browser collections</a></li>
 <li><a class="reference internal" href="#python-to-browser-collections">Python-to-browser collections</a></li>
 <li><a class="reference internal" href="#measurement-boundaries">Measurement boundaries</a></li>
+<li><a class="reference internal" href="#virtual-collections-and-server-windows">Virtual collections and server windows</a></li>
+<li><a class="reference internal" href="#timing-and-instrumentation">Timing and instrumentation</a></li>
 </ul>
 </li>
 </ul>
