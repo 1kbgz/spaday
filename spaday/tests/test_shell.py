@@ -256,6 +256,29 @@ def test_each_can_render_items_as_direct_children_of_its_parent():
     assert "direct" not in Each(Text(item("name")), field="rows", key="id").to_node()["props"]
 
 
+def test_each_virtualization_configuration():
+    props = Each(Text(item("name")), field="rows", key="id", row_height=24, height=240, overscan=2, window=True).to_node()["props"]
+    assert props["rowHeight"] == {"Int": 24}
+    assert props["viewportHeight"] == {"Int": 240}
+    assert props["windowed"] == {"Bool": True}
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"row_height": 0},
+        {"row_height": True},
+        {"row_height": 20, "height": 0},
+        {"row_height": 20, "overscan": -1},
+        {"row_height": 20, "direct": True},
+        {"window": True},
+    ],
+)
+def test_each_rejects_invalid_virtualization(options):
+    with pytest.raises(ValueError):
+        Each(Text(item("name")), field="rows", key="id", **options)
+
+
 def test_each_accepts_a_nested_collection_expression():
     node = Each(element("span"), items=item("records"), key="id").to_node()
     assert node["bindings"]["items"] == {

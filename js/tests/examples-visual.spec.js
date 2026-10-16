@@ -27,6 +27,7 @@ const EXAMPLES = [
   { name: "webawesome_navigation", selector: "wa-page" },
   { name: "webawesome_observers", selector: "spa-app" },
   { name: "widget", selector: "section" },
+  { name: "windowed_collection", selector: "spa-each spa-row" },
 ];
 
 function freePort() {
@@ -132,6 +133,39 @@ test.describe("example visual smoke tests", () => {
           });
           expect(colors.color).toBe("rgb(226, 232, 240)");
           expect(colors.background).toBe("rgb(15, 23, 42)");
+        }
+
+        if (example.name === "windowed_collection") {
+          const rows = page.locator("spa-each spa-row");
+          await expect(rows).toHaveCount(16);
+          let finishDelayed;
+          const delayed = new Promise((resolve) => {
+            finishDelayed = resolve;
+          });
+          await page.route("**/records", async (route) => {
+            const response = await route.fetch();
+            if (route.request().postDataJSON().start === 996) {
+              await new Promise((resolve) => setTimeout(resolve, 300));
+              await route.fulfill({ response });
+              finishDelayed();
+            } else await route.fulfill({ response });
+          });
+          const firstRequest = page.waitForRequest(
+            (request) =>
+              request.url().endsWith("/records") &&
+              request.postDataJSON().start === 996,
+          );
+          await page.locator("spa-each").evaluate((el) => {
+            el.scrollTop = 32000;
+          });
+          await firstRequest;
+          await page.locator("spa-each").evaluate((el) => {
+            el.scrollTop = 96000;
+          });
+          await expect(rows.first()).toContainText("Record 2996");
+          await delayed;
+          await expect(rows.first()).toContainText("Record 2996");
+          await expect(rows).toHaveCount(20);
         }
 
         if (example.name === "cluster") {
