@@ -101,6 +101,7 @@ def _partial(text: str) -> tuple[int | None, int | None, int | None, tuple[int |
 def _simple(token: str) -> list[Comparator]:
     """Desugar one range token (``^1.2``, ``>=1.2.3``, ``1.x``) into comparators."""
     match = _SIMPLE.match(token)  # any token matches; its partial version is checked below
+    assert match is not None
     op, (major, minor, patch, pre) = match.group("op") or "", _partial(match.group("partial"))
     if major is None:
         # "*", "x", ">=*": any version; "<*" and ">*" match nothing
@@ -119,6 +120,7 @@ def _simple(token: str) -> list[Comparator]:
             return [(">=", Version(major, 0, 0)), ("<", _floor(major + 1))]
         return [(">=", Version(major, minor, patch or 0, pre)), ("<", _floor(major, minor + 1))]
     if patch is not None:
+        assert minor is not None
         return [(op or "=", Version(major, minor, patch, pre))]
     # a partial version: the whole release line it names
     low = Version(major, minor or 0, 0)

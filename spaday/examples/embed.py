@@ -27,7 +27,7 @@ from starlette.applications import Starlette
 from starlette.responses import HTMLResponse
 from starlette.routing import Route, WebSocketRoute
 
-from spaday import element
+from spaday import Component, element
 from spaday.backends.starlette import mount
 from spaday.components.shell import App, Body, Main, Nav, Row, Stack
 
@@ -44,7 +44,7 @@ session.host(shared)
 server = transports.Server(session)
 
 
-def panel() -> object:
+def panel() -> Component:
     """A live spaday panel, two-way bound to the hosted ``Shared`` model over transports."""
     return (
         App()

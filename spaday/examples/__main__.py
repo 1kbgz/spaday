@@ -49,7 +49,7 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket
 from superstore import RandomWalk, superstore
 
-from spaday import Wire, element
+from spaday import Component, Wire, element
 from spaday.actions import CallEndpoint, SendPatch, Sequence, SetProp, Toggle, bind, by_id, cond, field, lit, not_, obj
 from spaday.backends.starlette import serve
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Show, Stack, Toolbar
@@ -216,16 +216,16 @@ class Blotter:
 blotter = Blotter()
 
 
-def callout(id: str, text: str, *, hidden: bool = False) -> object:
+def callout(id: str, text: str, *, hidden: bool = False) -> Component:
     return WaCallout(variant="neutral").prop("id", id).prop("hidden", hidden or None).text(text)
 
 
-def type_button(label: str, value: str) -> object:
+def type_button(label: str, value: str) -> Component:
     """A button that switches the action-DSL chart's series type — client-side, no server."""
     return WaButton(variant="neutral").text(label).on("click", SetProp(by_id("dsl-chart"), "type", value))
 
 
-def dsl_card() -> object:
+def dsl_card() -> Component:
     """Behavior that runs entirely in the browser: each control carries a declarative Action."""
     return WaCard(appearance="outlined").child(
         Stack()
@@ -263,7 +263,7 @@ def dsl_card() -> object:
     )
 
 
-def structure_card() -> object:
+def structure_card() -> Component:
     """Reactive structure — a toggle that creates and removes a real chart element, client-side.
 
     The switch is two-way bound to a signal ``show_chart``; a :class:`~spaday.components.shell.Show`
@@ -289,7 +289,7 @@ def structure_card() -> object:
     )
 
 
-def transports_panel(prefix: str, title: str) -> object:
+def transports_panel(prefix: str, title: str) -> Component:
     """One live chart + its controls, fully declarative against the model's ``{prefix}.*`` namespace in the
     shared store. Type/Live are two-way binds (inbound reflects the model onto the control, outbound sends a
     server edit via connectStore); the chart props and the status are ``compute``s; "Clear" is a SendPatch
@@ -325,7 +325,7 @@ def transports_panel(prefix: str, title: str) -> object:
     )
 
 
-def transports_card() -> object:
+def transports_card() -> Component:
     """Live models over transports: a shared global one and a per-tab private one."""
     return WaCard(appearance="outlined").child(
         Stack()
@@ -342,7 +342,7 @@ def transports_card() -> object:
     )
 
 
-def form_card() -> object:
+def form_card() -> Component:
     """A whole form generated from a pydantic model and two-way bound over transports.
 
     ``form(Device)`` emits a labelled ``wa-*`` control per field — including a ``wa-select`` for the
@@ -363,7 +363,7 @@ def form_card() -> object:
     )
 
 
-def perspective_card() -> object:
+def perspective_card() -> Component:
     """A live Perspective table whose CONFIG (server, tables, layout + per-viewer views) is synced — and
     pushed — over transports, while the table DATA streams over Perspective's own websocket (Mode B)."""
     return WaCard(appearance="outlined").child(
@@ -388,12 +388,17 @@ def perspective_card() -> object:
             .prop("id", "psp")
             .prop("style", "height:360px;display:block")
             .compute("theme", DARK_THEME)
-            .compute("config", obj({"ws_url": field("psp.ws_url"), "tables": field("psp.tables"), "layout": field("psp.layout")}))
+            .compute(
+                "config",
+                cond(
+                    field("psp.tables"), obj({"ws_url": field("psp.ws_url"), "tables": field("psp.tables"), "layout": field("psp.layout")}), lit(None)
+                ),
+            )
         )
     )
 
 
-def page() -> object:
+def page() -> Component:
     """The whole page, authored from shell components (no layout divs; raw elements only for text)."""
     return (
         App()

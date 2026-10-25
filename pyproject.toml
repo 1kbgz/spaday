@@ -31,7 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 
-dependencies = ["pydantic>=2"]
+dependencies = ["pydantic>=2", "typing-extensions>=4"]
 
 [project.optional-dependencies]
 widget = ["anywidget"]
@@ -164,11 +164,8 @@ xbuild-tools = ["cargo", "rustc", "rustup"]
 branch = true
 omit = [
     "spaday/tests/integration/*",
-<<<<<<< before updating
     "spaday/tests/test_examples.py",  # integration-style example smokes; don't gate unit coverage on server startup/shutdown paths
     "spaday/examples/*",
-=======
->>>>>>> after updating
 ]
 
 [tool.coverage.report]
@@ -223,12 +220,6 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-artifacts = [
-    "spaday/*.dll",
-    "spaday/*.dylib",
-    "spaday/*.so",
-    "spaday/extension",
-]
 packages = [
     "spaday",
 ]

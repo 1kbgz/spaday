@@ -39,7 +39,7 @@ def test_request_rejects_invalid_field_options(kwargs):
     from spaday import Request
 
     with pytest.raises(TypeError):
-        Request(**{"key": "preview", **kwargs})
+        Request(**{"key": "preview", **kwargs})  # ty: ignore[invalid-argument-type]
 
 
 def test_action_to_dict_wire_shapes():
@@ -109,13 +109,13 @@ def test_scope_requires_a_name():
 
 def test_composite_actions_reject_non_actions_at_authoring_time():
     with pytest.raises(TypeError, match="Sequence entries must be Actions"):
-        Sequence(Emit("ready"), 3)
+        Sequence(Emit("ready"), 3)  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError, match="Sequence entries must be Actions"):
-        Sequence(None)
+        Sequence(None)  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError, match="then branch must be an Action"):
-        If(True, 3)
+        If(True, 3)  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError, match="else branch must be an Action"):
-        If(True, Emit("ready"), 3)
+        If(True, Emit("ready"), 3)  # ty: ignore[invalid-argument-type]
 
 
 def test_logical_combinators_coerce_values_to_expressions():
@@ -280,7 +280,7 @@ def test_listener_options_round_trip_and_reset():
     component.on_wire("invalid", action.to_dict())
     assert component.to_json() == old
     with pytest.raises(TypeError, match="listener options"):
-        component.on("invalid", action, capture="true")
+        component.on("invalid", action, capture="true")  # ty: ignore[invalid-argument-type]
 
 
 def test_core_rejects_invalid_listener_options():

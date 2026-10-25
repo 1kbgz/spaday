@@ -455,7 +455,7 @@ class Each(Component):
         template: Component,
         *,
         field: str | None = None,
-        items: Any | None = None,
+        items: Any = None,
         key: str,
         scope: str | None = None,
         direct: bool = False,
@@ -522,7 +522,7 @@ class Table(Component):
         key: str | None = None,
         **props: Any,
     ) -> None:
-        normalized_rows = None if rows is None else []
+        normalized_rows = []
         rich_cells: list[tuple[str, Component]] = []
         identities: set[tuple[str, str | float]] = set()
         for row in rows or []:
@@ -546,6 +546,6 @@ class Table(Component):
                 else:
                     normalized_row[name] = value
             normalized_rows.append(normalized_row)
-        super().__init__(key=key, props={"columns": columns, "rowKey": row_key, "rows": normalized_rows}, **props)
+        super().__init__(key=key, props={"columns": columns, "rowKey": row_key, "rows": None if rows is None else normalized_rows}, **props)
         for slot, component in rich_cells:
             self.child_in(slot, component)
