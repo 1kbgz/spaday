@@ -31,7 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 
-dependencies = ["pydantic>=2"]
+dependencies = ["pydantic>=2", "typing-extensions>=4"]
 
 [project.optional-dependencies]
 widget = ["anywidget"]
@@ -58,6 +58,7 @@ develop = [
     "hatchling",
     "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
+    "mdformat-frontmatter",
     "mdformat-tables>=1",
     "perspective-python",  # gateway + omnibus browser example tests
     "playwright",  # browser-backed Each performance benchmarks
@@ -207,9 +208,10 @@ packages = [
     "Cargo.lock",
 ]
 exclude = [
-    "spaday/*.dll",
-    "spaday/*.dylib",
-    "spaday/*.so",
+    "*.dll",
+    "*.dylib",
+    "*.so",
+    "*.pyd",
     "spaday/extension",
     "js/dist",
     "js/node_modules",

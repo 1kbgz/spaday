@@ -32,7 +32,7 @@ def render_html(tree: Component | dict, design: Design | str | None = None) -> s
     return _render(resolve(tree.to_node() if isinstance(tree, Component) else tree, select_design(design)), None)
 
 
-def _render(node: dict, slot: str) -> str:
+def _render(node: dict, slot: str | None) -> str:
     tag = node["tag"]
     attrs = ""
     if slot and slot != DEFAULT_SLOT:

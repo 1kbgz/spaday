@@ -17,6 +17,8 @@ import re
 from functools import lru_cache
 from typing import Any, ClassVar, Union
 
+from typing_extensions import Self
+
 from .actions import Action, Expr
 from .catalog import ComponentSchema, PropertySchema
 from .schema import validate_action, validate_binding
@@ -106,7 +108,7 @@ def _tag(value: Any) -> Any:
     raise TypeError(f"unsupported prop value type for spaday: {type(value)!r}")
 
 
-def _as_node(child: Child) -> dict:
+def _as_node(child: Component | dict) -> dict:
     return child.to_node() if isinstance(child, Component) else child
 
 
@@ -189,7 +191,7 @@ class Component:
                 self._check_prop_names()
                 self._check_prop_shapes()
             self._check_prop_kinds()
-        self._slots: dict[str, list[Child]] = {}
+        self._slots: dict[str, list[Component | dict]] = {}
         self._events: dict[str, dict] = {}
         self._event_options: dict[str, dict[str, bool]] = {}
         self._bindings: dict[str, dict] = {}
@@ -241,6 +243,7 @@ class Component:
         """Reject keywords the class's catalog ``schema`` does not describe (opt-in; see
         :meth:`set_strict_props`). Reports every unknown name at once, by the same rules and in the
         same words :func:`spaday.validate` uses on a built tree."""
+        assert self.schema is not None
         problems = [problem for name in self._props if (problem := _unknown_prop(self.schema, self.tag, name))]
         if problems:
             raise TypeError("; ".join(problems))
@@ -274,25 +277,25 @@ class Component:
             if not isinstance(value, expected) or (kinds[name] == "number" and isinstance(value, bool)):
                 raise TypeError(f"<{self.tag}> prop {name!r} expects kind {kinds[name]!r}, got {value!r} ({type(value).__name__})")
 
-    def key(self, key: str) -> "Component":
+    def key(self, key: str) -> Self:
         """Set the reconciliation key (for keyed child diffing)."""
         self._key = key
         return self
 
-    def child(self, *nodes: Child) -> "Component":
+    def child(self, *nodes: Child) -> Self:
         """Append one or more children to the default slot (a string child becomes a text node)."""
         for node in nodes:
             self.child_in(DEFAULT_SLOT, node)
         return self
 
-    def child_in(self, slot: str, node: Child) -> "Component":
+    def child_in(self, slot: str, node: Child) -> Self:
         """Append a child to a named slot (a string becomes a ``<span>`` text node)."""
         if not isinstance(node, (Component, dict, str)):
             raise TypeError(f"child must be a Component, node dict, or string, got {type(node).__name__}")
         self._slots.setdefault(slot, []).append(element("span", textContent=node) if isinstance(node, str) else node)
         return self
 
-    def text(self, value: str | Expr) -> "Component":
+    def text(self, value: str | Expr) -> Self:
         """Set the element's literal or reactive text content (e.g. a button or option label).
 
         Text is set as the ``textContent`` DOM property by the runtime, so this is for leaf elements
@@ -304,13 +307,13 @@ class Component:
         self._props["textContent"] = value
         return self
 
-    def prop(self, name: str, value: Any) -> "Component":
+    def prop(self, name: str, value: Any) -> Self:
         """Set an arbitrary prop (escape hatch for attributes a typed class doesn't expose)."""
         if value is not None:
             self._props[name] = value
         return self
 
-    def style(self, **decls: Any) -> "Component":
+    def style(self, **decls: Any) -> Self:
         """Set inline CSS declarations, e.g. ``.style(padding="1rem", font_size="2rem")``.
 
         Keys are kebab-cased (``font_size`` → ``font-size``; a trailing ``_`` is dropped so reserved
@@ -319,7 +322,7 @@ class Component:
         self._style.update({_css_name(k): str(v) for k, v in decls.items() if v is not None})
         return self
 
-    def css(self, **variables: Any) -> "Component":
+    def css(self, **variables: Any) -> Self:
         """Set CSS **custom properties** — the theming knob, e.g. ``.css(background_color="navy")`` →
         ``--background-color: navy``. This is how a web component's documented `--*` theme tokens are
         set from Python (per component), and how the ``spa-*`` shell is re-themed at the app level
@@ -329,12 +332,12 @@ class Component:
         self._style.update({"--" + _css_name(k): str(v) for k, v in variables.items() if v is not None})
         return self
 
-    def classes(self, *names: str) -> "Component":
+    def classes(self, *names: str) -> Self:
         """Add CSS classes (component variants / theme states), e.g. ``.classes("wa-dark")``."""
         self._classes.extend(n for n in names if n)
         return self
 
-    def on(self, event: str, action: Action, *, capture: bool | None = None, once: bool | None = None, passive: bool | None = None) -> "Component":
+    def on(self, event: str, action: Action, *, capture: bool | None = None, once: bool | None = None, passive: bool | None = None) -> Self:
         """Bind a declarative :class:`~spaday.actions.Action` to a DOM event (e.g. ``"click"``).
 
         The action is serialized as data and interpreted in the browser when the event fires — no
@@ -349,9 +352,7 @@ class Component:
             raise TypeError(f"event action must be an Action, got {type(action).__name__}")
         return self._on(event, action.to_dict(), capture=capture, once=once, passive=passive)
 
-    def on_wire(
-        self, event: str, action: object, *, capture: bool | None = None, once: bool | None = None, passive: bool | None = None
-    ) -> "Component":
+    def on_wire(self, event: str, action: object, *, capture: bool | None = None, once: bool | None = None, passive: bool | None = None) -> Self:
         """Bind already-serialized action data after validating it with the shared core model.
 
         Editors and source adapters use this when behavior starts as structured data rather than a
@@ -359,7 +360,7 @@ class Component:
         """
         return self._on(event, validate_action(action), capture=capture, once=once, passive=passive)
 
-    def _on(self, event: str, action: dict, *, capture: bool | None, once: bool | None, passive: bool | None) -> "Component":
+    def _on(self, event: str, action: dict, *, capture: bool | None, once: bool | None, passive: bool | None) -> Self:
         options = {name: value for name, value in {"capture": capture, "once": once, "passive": passive}.items() if value is not None}
         if any(not isinstance(value, bool) for value in options.values()):
             raise TypeError("listener options must be bool or None")
@@ -370,7 +371,7 @@ class Component:
             self._event_options.pop(event, None)
         return self
 
-    def bind_wire(self, prop: str, binding: object) -> "Component":
+    def bind_wire(self, prop: str, binding: object) -> Self:
         """Attach already-serialized binding data after shared-core validation."""
         self._check_text_binding(prop)
         self._bindings[prop] = validate_binding(binding)
@@ -388,7 +389,7 @@ class Component:
         defer: bool = False,
         codec: str | None = None,
         encode: str | None = None,
-    ) -> "Component":
+    ) -> Self:
         """Reactively bind a ``prop`` to a state ``field`` in the runtime's signal store.
 
         ``mode="one-way"`` keeps the prop in sync with the field; ``"two-way"`` also writes the field
@@ -439,7 +440,7 @@ class Component:
         self._bindings[prop] = binding
         return self
 
-    def compute(self, prop: str, expr: Expr) -> "Component":
+    def compute(self, prop: str, expr: Expr) -> Self:
         """Reactively set ``prop`` to a value *computed* from state fields (one-way).
 
         ``expr`` is a field expression (:func:`~spaday.actions.field` / ``eq`` / ``not_`` / ``all_`` /
@@ -455,7 +456,7 @@ class Component:
     def _check_text_binding(self, prop: str) -> None:
         _check_text_binding_target(self.tag, type(self).schema, prop)
 
-    def bind_root_class(self, name: str, field: str) -> "Component":
+    def bind_root_class(self, name: str, field: str) -> Self:
         """Toggle a CSS class on the document root (``<html>``) from a boolean reactive state ``field``.
 
         The escape hatch for *page-level* theming that lives outside the component tree — most notably
@@ -467,7 +468,7 @@ class Component:
         self._bindings[f"root-class:{name}"] = {"field": field, "mode": "one-way"}
         return self
 
-    def bind_root_attr(self, name: str, field: str) -> "Component":
+    def bind_root_attr(self, name: str, field: str) -> Self:
         """Set an attribute on the document root (``<html>``) from a reactive state ``field``.
 
         The attribute counterpart to :meth:`bind_root_class`, for the page-level state a class cannot

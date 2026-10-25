@@ -4,6 +4,8 @@ The check exists to catch bundles that break the implicit contract silently, so 
 conforming bundle and a broken one and asserts it distinguishes them.
 """
 
+from pathlib import Path
+
 import pytest
 
 from spaday import Component, ComponentPackage, ComponentSchema, PropertySchema
@@ -24,7 +26,7 @@ def _package(name: str = "demo") -> ComponentPackage:
             ),
         )
 
-    return ComponentPackage(name=name, assets_dir=".", assets=(("js", "cdn/index.js"),), components=(Chart,))
+    return ComponentPackage(name=name, assets_dir=Path("."), assets=(("js", "cdn/index.js"),), components=(Chart,))
 
 
 def test_expectations_name_the_tag_and_only_its_json_props():

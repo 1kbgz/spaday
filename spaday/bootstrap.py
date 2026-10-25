@@ -35,10 +35,10 @@ What an app would otherwise hand-write in HTML is declared in Python:
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal, cast
 from uuid import uuid4
 
 from .component import Component
@@ -48,7 +48,7 @@ from .ui.design import Design, _select_page_design, resolve, select_design
 
 #: A page is a built :class:`~spaday.component.Component`, or a zero-arg callable returning one (called
 #: per request, so the tree can reflect current state).
-Page = Union[Component, "object"]
+Page = Component | Callable[[], Component]
 
 
 @dataclass(frozen=True)
@@ -201,7 +201,7 @@ def _js(base: str) -> str:
 
 
 def _resolve(page: Page) -> Component:
-    return page() if callable(page) else page
+    return cast(Component, page() if callable(page) else page)
 
 
 def tree_node(page: Page, design: Design | str | None = None) -> dict:
@@ -636,7 +636,7 @@ def bootstrap(
     if typed_wires and ws != "/ws":
         raise ValueError("ws= applies only to wire='transports'; set the URL on each Wire instead")
     resolved_tree_url = tree_url or f"{base}/tree{'' if tree == 'frame' else '.json'}"
-    inline_tree = tree_node(page, _select_page_design(design, component_packages, page)) if tree == "inline" else None
+    inline_tree = tree_node(page, _select_page_design(design, component_packages, page)) if tree == "inline" and page is not None else None
     style_tags = [] if lifecycle else [f'<link rel="stylesheet"{n} href="{url}" />' for url in stylesheets]
     style_tags += [f"<style{n}>{css}</style>" for css in styles]
     stylesheet_anchor = f"spaday-assets-{uuid4().hex}" if lifecycle else None

@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -106,7 +106,7 @@ def test_build_routes_does_not_mutate_an_app(tmp_path):
     app = Starlette()
     routes = build_routes(Main("hi"), prefix="/dash", js=tmp_path, tree="inline")
     assert app.routes == []
-    assert [route.path for route in routes] == ["/dash/", "/dash/js"]
+    assert [cast(Any, route).path for route in routes] == ["/dash/", "/dash/js"]
     app.routes.extend(routes)
     assert "const node" in TestClient(app).get("/dash/").text
 
@@ -115,7 +115,7 @@ def test_build_routes_returns_the_complete_prefixed_route_set(tmp_path):
     package = ComponentPackage("fixture", tmp_path, ())
     supplied = Route("/ping", lambda _request: PlainTextResponse("pong"))
     routes = build_routes(Main("hi"), prefix="/dash", routes=[supplied], packages=[package], js=tmp_path)
-    assert [route.path for route in routes] == [
+    assert [cast(Any, route).path for route in routes] == [
         "/dash/",
         "/dash/tree.json",
         "/dash/ping",
@@ -138,15 +138,15 @@ def test_build_site_hosts_pages_with_independent_tree_modes_and_shared_assets(tm
         routes=[Route("/ping", lambda _request: PlainTextResponse("pong"))],
         js=tmp_path,
     )
-    assert [route.path for route in site.pages] == [
+    assert [cast(Any, route).path for route in site.pages] == [
         "/dash/",
         "/dash/tree.json",
         "/dash/login",
         "/dash/login/tree",
         "/dash/help",
     ]
-    assert [route.path for route in site.supplied] == ["/dash/ping"]
-    assert [route.path for route in site.assets] == ["/dash/components/fixture", "/dash/js"]
+    assert [cast(Any, route).path for route in site.supplied] == ["/dash/ping"]
+    assert [cast(Any, route).path for route in site.assets] == ["/dash/components/fixture", "/dash/js"]
     assert [route.name for route in site.pages] == [
         "spaday:page:/",
         "spaday:tree:/",
@@ -183,7 +183,7 @@ def test_build_site_keeps_each_pages_packages_in_its_own_head(tmp_path):
     second_page = client.get("/second").text
     assert "/components/first/first.js" in root and "/components/second/second.js" not in root
     assert "/components/second/second.js" in second_page and "/components/first/first.js" not in second_page
-    assert [route.path for route in site.assets] == ["/components/first", "/components/second", "/js"]
+    assert [cast(Any, route).path for route in site.assets] == ["/components/first", "/components/second", "/js"]
 
 
 def test_build_site_rejects_path_and_package_collisions(tmp_path):
@@ -220,7 +220,7 @@ def test_build_site_rejects_invalid_paths(pages, prefix, message, tmp_path):
 
 def test_build_site_accepts_a_root_slash_prefix(tmp_path):
     site = build_site({"/": Main("hi")}, prefix="/", js=tmp_path)
-    assert [route.path for route in site.pages] == ["/", "/tree.json"]
+    assert [cast(Any, route).path for route in site.pages] == ["/", "/tree.json"]
 
 
 def test_build_site_rejects_supplied_get_collisions_but_allows_other_scopes(tmp_path):
@@ -283,7 +283,7 @@ def test_mount_site_adds_all_route_groups(tmp_path):
     app = Starlette()
     returned = mount_site(app, {"/": Main("home"), "/about": Main("about")}, js=tmp_path)
     assert returned is app
-    assert [route.path for route in app.routes] == ["/", "/tree.json", "/about", "/about/tree.json", "/js"]
+    assert [cast(Any, route).path for route in app.routes] == ["/", "/tree.json", "/about", "/about/tree.json", "/js"]
     assert TestClient(app).get("/about/tree.json").json() == Main("about").to_node()
 
 
@@ -327,6 +327,7 @@ def test_build_routes_endpoints_work_on_a_fastapi_router(tmp_path):
         if isinstance(route, Mount):
             app.routes.append(route)
         else:
+            assert isinstance(route, Route)
             router.add_api_route(route.path, route.endpoint, methods=route.methods, include_in_schema=False)
     app.include_router(router)
 
@@ -364,6 +365,7 @@ def test_build_routes_adapts_a_transports_style_websocket_for_fastapi(tmp_path):
         elif isinstance(route, WebSocketRoute):
             router.add_api_websocket_route(route.path, route.endpoint)
         else:
+            assert isinstance(route, Route)
             router.add_api_route(route.path, route.endpoint, methods=route.methods, include_in_schema=False)
     app.include_router(router)
 
