@@ -58,6 +58,7 @@ develop = [
     "hatchling",
     "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
+    "mdformat-frontmatter",
     "mdformat-tables>=1",
     "perspective-python",  # gateway + omnibus browser example tests
     "playwright",  # browser-backed Each performance benchmarks
@@ -163,8 +164,11 @@ xbuild-tools = ["cargo", "rustc", "rustup"]
 branch = true
 omit = [
     "spaday/tests/integration/*",
+<<<<<<< before updating
     "spaday/tests/test_examples.py",  # integration-style example smokes; don't gate unit coverage on server startup/shutdown paths
     "spaday/examples/*",
+=======
+>>>>>>> after updating
 ]
 
 [tool.coverage.report]
@@ -207,9 +211,10 @@ packages = [
     "Cargo.lock",
 ]
 exclude = [
-    "spaday/*.dll",
-    "spaday/*.dylib",
-    "spaday/*.so",
+    "*.dll",
+    "*.dylib",
+    "*.so",
+    "*.pyd",
     "spaday/extension",
     "js/dist",
     "js/node_modules",
@@ -218,6 +223,12 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
+artifacts = [
+    "spaday/*.dll",
+    "spaday/*.dylib",
+    "spaday/*.so",
+    "spaday/extension",
+]
 packages = [
     "spaday",
 ]
