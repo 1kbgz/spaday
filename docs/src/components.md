@@ -22,6 +22,27 @@ To bind a different component library, [generate its classes from a manifest](ce
 An independently distributed integration can also register its browser assets through the
 [`ComponentPackage` serving contract](serving.md).
 
+## Compare files and patches
+
+Install `spaday-diffs` to display a read-only file comparison with [Pierre Diffs](https://diffs.com):
+
+```python
+from spaday.backends.starlette import serve
+from spaday_diffs import Diff
+
+comparison = Diff(
+    old_file={"name": "settings.py", "contents": "retries = 1\n"},
+    new_file={"name": "settings.py", "contents": "retries = 3\n"},
+    diff_style="split",
+)
+app = serve(comparison, packages=["diffs"])
+```
+
+Set `diff_style="unified"` for a single-column view, or pass `patch=patch_text` to display a unified
+patch. Bind file contents, selected lines, and annotations through normal spaday bindings. See the
+[package documentation](https://1kbgz.github.io/spaday-diffs/) for selection events, styling tokens,
+and a Python/transports example, or [try it in the browser](https://1kbgz.github.io/spaday-diffs/lite/).
+
 ## Nest children into slots
 
 Compose a tree with `.child(...)` for the default slot and `.child_in("slot", ...)` for a named one:
