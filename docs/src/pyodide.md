@@ -89,7 +89,9 @@ make test-pyodide-browser
 
 [Open the standalone gallery](https://1kbgz.github.io/spaday/lite/js/examples/standalone.html) to run
 the focused examples without installing Python. Use the picker to switch among seven core examples.
-Peer packages host their own standalone examples; for example, [open spaday-trees in Pyodide](https://1kbgz.github.io/spaday-trees/lite/).
+Peer packages host their own standalone examples, including [spaday-trees](https://1kbgz.github.io/spaday-trees/lite/)
+and [spaday-diffs](https://1kbgz.github.io/spaday-diffs/lite/). The Diffs example runs file updates,
+line-selection handlers, and transports synchronization in Python through Pyodide.
 
 The page installs the Python wheels in a Pyodide Web Worker and loads each wheel's browser assets on
 the main thread. When an example exports a transports `Server`, the runner detects it and uses
