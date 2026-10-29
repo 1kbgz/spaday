@@ -80,15 +80,16 @@ def mount(
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     pre = re.escape(prefix)
 
+    # Tornado declares handlers as callable attributes; ty versions classify the overrides differently.
     class _Index(RequestHandler):
-        def get(self):  # ty: ignore[invalid-method-override]
+        def get(self):  # ty: ignore
             self.set_header("Content-Type", "text/html")
             self.write(body)
 
     if tree == "frame":
 
         class _Tree(RequestHandler):
-            def get(self):  # ty: ignore[invalid-method-override]
+            def get(self):  # ty: ignore
                 self.set_header("Content-Type", "application/octet-stream")
                 self.write(tree_frame(page, design=page_design))
 
@@ -96,7 +97,7 @@ def mount(
     elif tree == "json":
 
         class _Tree(RequestHandler):
-            def get(self):  # ty: ignore[invalid-method-override]
+            def get(self):  # ty: ignore
                 self.set_header("Content-Type", "application/json")
                 self.write(tree_json(page, page_design))
 
@@ -110,14 +111,14 @@ def mount(
             def initialize(self, **kwargs):
                 self.bundle = kwargs["bundle"]
 
-            async def get(self, path):  # ty: ignore[invalid-method-override]
+            async def get(self, path):  # ty: ignore
                 result = await asyncio.to_thread(self.bundle.response, path, self.request.headers, self.request.method)
                 self.set_status(result.status)
                 for name, value in result.headers.items():
                     self.set_header(name, value)
                 self.finish(result.body if result.body else None)
 
-            async def head(self, path):  # ty: ignore[invalid-method-override]
+            async def head(self, path):  # ty: ignore
                 await self.get(path)
 
         handlers = [(rf"{pre}/", _Index), *tree_rules, *routes, *((rf"{re.escape(b.prefix)}/(.*)", _Asset, {"bundle": b}) for b in bundles)]
