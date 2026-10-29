@@ -98,6 +98,20 @@
   var restore = document.getElementById("fd-sidebar-restore");
   if (restore) restore.addEventListener("click", function () { setCollapsed(false); });
 
+  var tocCollapse = document.querySelector(".fd-toc-collapse");
+  var tocRestore = document.getElementById("fd-toc-restore");
+  function setTocCollapsed(collapsed) {
+    if (collapsed) docEl.dataset.tocCollapsed = "true";
+    else delete docEl.dataset.tocCollapsed;
+    try {
+      localStorage.setItem("fuma-toc", collapsed ? "collapsed" : "expanded");
+    } catch (e) {}
+    (collapsed ? tocRestore : tocCollapse).focus();
+    if (!collapsed) requestAnimationFrame(drawRail);
+  }
+  if (tocCollapse) tocCollapse.addEventListener("click", function () { setTocCollapsed(true); });
+  if (tocRestore) tocRestore.addEventListener("click", function () { setTocCollapsed(false); });
+
   /* Keep the active sidebar entry in view ------------------------------ */
 
   var current = sidebar && sidebar.querySelector(".fd-link.fd-current");
