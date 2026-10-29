@@ -59,6 +59,45 @@ needed. A callable page is evaluated once while the routes are built. Use the de
 must be evaluated for each request. `RefreshTree` also needs an explicit `url=` in inline mode because
 there is no default tree route to refresh from.
 
+## Cache and compress browser assets
+
+Pass `AssetPolicy` to serve compressed assets directly from spaday, without a CDN or proxy:
+
+```python
+from spaday import AssetPolicy
+from spaday.backends.starlette import serve
+
+app = serve(
+    page,
+    packages=["webawesome"],
+    assets=AssetPolicy(cache="immutable", compression="gzip"),
+)
+```
+
+This also works with Flask, aiohttp, Tornado, and Starlette's `mount`, `build_routes`,
+`mount_site`, and `build_site`. FastAPI hosts can use the Starlette adapters.
+Omit `assets` to keep the backend's existing static-file behavior.
+
+Use `cache="immutable"` for deployments. Spaday snapshots core and selected peer bundles
+in memory when building the routes. Generated URLs include a content hash of each bundle,
+including its relative JS, CSS, and WASM dependencies. Browsers can reuse those URLs for a
+year; rebuilding the app with changed files produces new URLs. Restart the app after an
+asset build or package upgrade. In a rolling deployment, route each page's asset requests
+to the same deployment: an older process cannot serve a newer bundle's hash.
+
+Use `AssetPolicy(compression="gzip")` during development to keep stable URLs and pick up
+file changes on each request. Responses use `Cache-Control: no-cache` and ETags, allowing
+browsers to revalidate cached files with a `304` response.
+
+Gzip is negotiated through `Accept-Encoding` for compressible files of at least 1 KiB.
+Compressed bytes are cached in process memory, alongside the original bytes. Larger
+bundles therefore increase each worker's memory use. Legacy URLs remain available with
+revalidation, including when immutable URLs are enabled.
+
+The policy applies only to core and selected peer static assets. It does not change page,
+tree, application route, or WebSocket caching or compression, and does not rewrite URLs
+in user-supplied `scripts`, `stylesheets`, or `head`.
+
 ## Install an external component package
 
 External integrations use one `ComponentPackage` descriptor for both `<head>` tags and static routes.

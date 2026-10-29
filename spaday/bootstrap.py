@@ -230,18 +230,19 @@ def tree_frame(page: Page, *, id: str = "spa-tree", design: Design | str | None 
     return encode_frame(json.dumps(tree_node(page, design)), id, "snapshot", 0, "application/json")
 
 
-def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None) -> str:
+def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None, asset_urls: dict[str, str] | None = None) -> str:
     n = f' nonce="{nonce}"' if nonce else ""
     tags = []
     for package in packages:
         prefix = package_url_prefix(package, base)
+        prefix = (asset_urls or {}).get(prefix, prefix)
         for kind, path in package.assets:
             url = f"{prefix}/{path}"
             tags.append(f'<link rel="stylesheet"{n} href="{url}" />' if kind == "css" else f'<script type="module"{n} src="{url}"></script>')
     return "\n    ".join(tags)
 
 
-def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None) -> str:
+def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None, asset_urls: dict[str, str] | None = None) -> str:
     """The page's import map: every specifier a selected package publishes, resolved to the URL that
     package is served from.
 
@@ -256,6 +257,7 @@ def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | Non
     owners: dict[str, ComponentPackage] = {}
     for package in packages:
         prefix = package_url_prefix(package, base)
+        prefix = (asset_urls or {}).get(prefix, prefix)
         for specifier, path in package.imports:
             url = f"{prefix}/{path}"
             if specifier in resolved and resolved[specifier] != url:
@@ -350,6 +352,7 @@ def _script(
     nonce: str | None = None,
     stylesheet_anchor: str | None = None,
     package_scripts: Sequence[str] = (),
+    asset_urls: dict[str, str] | None = None,
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
     to transports. ``wire="transports"`` mirrors one model with default settings; a :class:`Wire` or list
@@ -361,7 +364,7 @@ def _script(
     Mounts into ``target`` (a CSS selector) when given, else ``document.body``. (``ws``/``reconnect``/
     ``tree="frame"`` apply to the single-model string form only; a typed wire carries its own URL and
     uses a snapshot on that connection.)"""
-    js = _js(base)
+    js = (asset_urls or {}).get(_js(base), _js(base))
     assets = _ASSETS[_layout(layout)]
     into = f"document.querySelector({_script_json(target)})" if target else "document.body"
     transports = wire == "transports"
@@ -606,6 +609,7 @@ def bootstrap(
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    _asset_urls: dict[str, str] | None = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
     ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``
@@ -669,17 +673,27 @@ def bootstrap(
     head_markup = "\n    ".join(
         p
         for p in (
-            _importmap(component_packages, base, nonce),
-            _package_head(component_packages, base, nonce) if lifecycle is None else "",
+            _importmap(component_packages, base, nonce, _asset_urls),
+            _package_head(component_packages, base, nonce, _asset_urls) if lifecycle is None else "",
             f'<template id="{stylesheet_anchor}"></template>' if stylesheet_anchor else "",
             *style_tags,
             head,
         )
         if p
     )
-    package_scripts = [f"{package_url_prefix(p, base)}/{path}" for p in component_packages for kind, path in p.assets if kind == "js"]
+    package_scripts = [
+        f"{(_asset_urls or {}).get(package_url_prefix(p, base), package_url_prefix(p, base))}/{path}"
+        for p in component_packages
+        for kind, path in p.assets
+        if kind == "js"
+    ]
     stylesheet_urls = [
-        *(f"{package_url_prefix(p, base)}/{path}" for p in component_packages for kind, path in p.assets if kind == "css"),
+        *(
+            f"{(_asset_urls or {}).get(package_url_prefix(p, base), package_url_prefix(p, base))}/{path}"
+            for p in component_packages
+            for kind, path in p.assets
+            if kind == "css"
+        ),
         *stylesheets,
     ]
     script = _script(
@@ -701,6 +715,7 @@ def bootstrap(
         nonce,
         stylesheet_anchor,
         package_scripts,
+        asset_urls=_asset_urls,
     )
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""

@@ -15,6 +15,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..assets import AssetPolicy, asset_bundles
 from ..bootstrap import AssetLayout, Lifecycle, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, _select_page_design
@@ -43,6 +44,7 @@ def mount(
     head: str = "",
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    assets: AssetPolicy | None = None,
 ) -> Flask:
     """Add spaday's routes to an existing Flask ``app`` under ``prefix``. ``routes`` is a list of
     ``(rule, endpoint, view_func)`` tuples. Endpoints are keyed by ``prefix`` so several spaday pages can
@@ -52,6 +54,8 @@ def mount(
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
     page_design = _select_page_design(design, component_packages, page)
+    asset_directory = Path(js) if js is not None else bundles_dir(asset_layout)
+    bundles = asset_bundles(asset_directory, component_packages, prefix, assets, source=js is None and asset_directory == bundles_dir("source"))
     body = bootstrap(
         base=prefix,
         packages=component_packages,
@@ -68,6 +72,7 @@ def mount(
         layout=asset_layout,
         design=page_design,
         lifecycle=lifecycle,
+        _asset_urls={b.prefix: b.url for b in bundles},
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     key = prefix.strip("/").replace("/", "_") or "root"  # unique endpoint names per mount
@@ -79,15 +84,30 @@ def mount(
         )
     elif tree == "json":
         app.add_url_rule(f"{prefix}/tree.json", f"spaday_tree_{key}", lambda: Response(tree_json(page, page_design), mimetype="application/json"))
-    app.add_url_rule(f"{prefix}/js/<path:path>", f"spaday_js_{key}", lambda path: send_from_directory(js_dir, path))
-    for package in component_packages:
-        package_dir = package.assets_dir
-        package_key = package.name.replace("-", "_").replace(".", "_")
-        app.add_url_rule(
-            f"{package_url_prefix(package, prefix)}/<path:path>",
-            f"spaday_component_{key}_{package_key}",
-            lambda path, directory=package_dir: send_from_directory(directory, path),
-        )
+    if assets is not None:
+        from flask import request
+
+        def handler(bundle):
+            def respond(path):
+                result = bundle.response(path, {k.lower(): v for k, v in request.headers.items()}, request.method)
+                response = Response(result.body, status=result.status)
+                response.headers.update(result.headers)
+                return response
+
+            return respond
+
+        for index, bundle in enumerate(bundles):
+            app.add_url_rule(bundle.prefix + "/<path:path>", f"spaday_asset_{key}_{index}", handler(bundle))
+    else:
+        app.add_url_rule(f"{prefix}/js/<path:path>", f"spaday_js_{key}", lambda path: send_from_directory(js_dir, path))
+        for package in component_packages:
+            package_dir = package.assets_dir
+            package_key = package.name.replace("-", "_").replace(".", "_")
+            app.add_url_rule(
+                f"{package_url_prefix(package, prefix)}/<path:path>",
+                f"spaday_component_{key}_{package_key}",
+                lambda path, directory=package_dir: send_from_directory(directory, path),
+            )
     for rule in routes:
         app.add_url_rule(*rule)
     return app

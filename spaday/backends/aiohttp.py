@@ -17,6 +17,7 @@ from collections.abc import Awaitable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..assets import AssetPolicy, asset_bundles
 from ..bootstrap import AssetLayout, Lifecycle, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, _select_page_design
@@ -45,6 +46,7 @@ def mount(
     head: str = "",
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    assets: AssetPolicy | None = None,
 ) -> web.Application:
     """Add spaday's routes to an existing aiohttp ``app`` under ``prefix``. ``routes`` is a list of
     ``aiohttp.web`` route defs (``web.get(...)`` — including your ``{prefix}/ws`` handler when wiring
@@ -54,6 +56,8 @@ def mount(
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
     page_design = _select_page_design(design, component_packages, page)
+    asset_directory = Path(js) if js is not None else bundles_dir(asset_layout)
+    bundles = asset_bundles(asset_directory, component_packages, prefix, assets, source=js is None and asset_directory == bundles_dir("source"))
     body = bootstrap(
         base=prefix,
         packages=component_packages,
@@ -70,6 +74,7 @@ def mount(
         layout=asset_layout,
         design=page_design,
         lifecycle=lifecycle,
+        _asset_urls={b.prefix: b.url for b in bundles},
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
 
@@ -91,9 +96,21 @@ def mount(
         tree_routes.append(web.get(f"{prefix}/tree.json", tree_handler))
 
     app.add_routes([web.get(f"{prefix}/", homepage), *tree_routes, *routes])
-    for package in component_packages:
-        app.router.add_static(package_url_prefix(package, prefix), str(package.assets_dir))
-    app.router.add_static(f"{prefix}/js", js_dir)
+    if assets is not None:
+
+        def handler(bundle):
+            async def respond(request):
+                result = await asyncio.to_thread(bundle.response, request.match_info["path"], request.headers, request.method)
+                return web.Response(body=result.body, status=result.status, headers=result.headers)
+
+            return respond
+
+        for bundle in bundles:
+            app.router.add_get(bundle.prefix + "/{path:.*}", handler(bundle))
+    else:
+        for package in component_packages:
+            app.router.add_static(package_url_prefix(package, prefix), str(package.assets_dir))
+        app.router.add_static(f"{prefix}/js", js_dir)
     return app
 
 
