@@ -108,7 +108,7 @@ def mount(
     if assets is not None:
 
         class _Asset(RequestHandler):
-            def initialize(self, **kwargs):
+            def initialize(self, **kwargs):  # ty: ignore
                 self.bundle = kwargs["bundle"]
 
             async def get(self, path):  # ty: ignore
