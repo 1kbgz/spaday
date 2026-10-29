@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>spaday.bootstrap &#8212; spaday v0.12.0</title>
+    <title>spaday.bootstrap &#8212; spaday v0.13.0</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma.css?v=ca04d621" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma-code.css?v=a950e949" />
@@ -16,7 +16,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
-    <script src="../../_static/documentation_options.js?v=61ccb1f1"></script>
+    <script src="../../_static/documentation_options.js?v=1019fba8"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -455,7 +455,7 @@ window.runMermaid = runMermaid;</script>
   <div class="fd-subnav-inner">
     <button type="button" class="fd-icon-button fd-sidebar-toggle" aria-controls="fd-sidebar" aria-expanded="false" aria-label="Toggle navigation" title="Toggle navigation">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.12.0</span>
+    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.13.0</span>
 </a>
 
     <div class="fd-nav-actions">
@@ -470,7 +470,7 @@ window.runMermaid = runMermaid;</script>
 
 <aside id="fd-sidebar" aria-label="Documentation">
   <div class="fd-sidebar-header">
-    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.12.0</span>
+    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.13.0</span>
 </a>
       <button type="button" class="fd-icon-button fd-sidebar-collapse" aria-label="Collapse sidebar" title="Collapse sidebar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
     </div>
@@ -832,18 +832,19 @@ window.runMermaid = runMermaid;</script>
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_package_head</span><span class="p">(</span><span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_package_head</span><span class="p">(</span><span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">asset_urls</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">' nonce="</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">"'</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">""</span>
     <span class="n">tags</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
         <span class="n">prefix</span> <span class="o">=</span> <span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="p">(</span><span class="n">asset_urls</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">assets</span><span class="p">:</span>
             <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span>
             <span class="n">tags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">'&lt;link rel="stylesheet"</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> href="</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">" /&gt;'</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"css"</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">'&lt;script type="module"</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> src="</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">"&gt;&lt;/script&gt;'</span><span class="p">)</span>
     <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">    "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_importmap</span><span class="p">(</span><span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_importmap</span><span class="p">(</span><span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">],</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">asset_urls</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The page's import map: every specifier a selected package publishes, resolved to the URL that</span>
 <span class="sd">    package is served from.</span>
 
@@ -858,6 +859,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">owners</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ComponentPackage</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
         <span class="n">prefix</span> <span class="o">=</span> <span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="p">(</span><span class="n">asset_urls</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">specifier</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">imports</span><span class="p">:</span>
             <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span>
             <span class="k">if</span> <span class="n">specifier</span> <span class="ow">in</span> <span class="n">resolved</span> <span class="ow">and</span> <span class="n">resolved</span><span class="p">[</span><span class="n">specifier</span><span class="p">]</span> <span class="o">!=</span> <span class="n">url</span><span class="p">:</span>
@@ -952,6 +954,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">nonce</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">stylesheet_anchor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">package_scripts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">asset_urls</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired</span>
 <span class="sd">    to transports. ``wire="transports"`` mirrors one model with default settings; a :class:`Wire` or list</span>
@@ -963,7 +966,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Mounts into ``target`` (a CSS selector) when given, else ``document.body``. (``ws``/``reconnect``/</span>
 <span class="sd">    ``tree="frame"`` apply to the single-model string form only; a typed wire carries its own URL and</span>
 <span class="sd">    uses a snapshot on that connection.)"""</span>
-    <span class="n">js</span> <span class="o">=</span> <span class="n">_js</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+    <span class="n">js</span> <span class="o">=</span> <span class="p">(</span><span class="n">asset_urls</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_js</span><span class="p">(</span><span class="n">base</span><span class="p">),</span> <span class="n">_js</span><span class="p">(</span><span class="n">base</span><span class="p">))</span>
     <span class="n">assets</span> <span class="o">=</span> <span class="n">_ASSETS</span><span class="p">[</span><span class="n">_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">)]</span>
     <span class="n">into</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"document.querySelector(</span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span> <span class="k">if</span> <span class="n">target</span> <span class="k">else</span> <span class="s2">"document.body"</span>
     <span class="n">transports</span> <span class="o">=</span> <span class="n">wire</span> <span class="o">==</span> <span class="s2">"transports"</span>
@@ -1213,6 +1216,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">lifecycle</span><span class="p">:</span> <span class="n">Lifecycle</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">_asset_urls</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /</span>
 <span class="sd">    ``/js`` / ws URLs so the page can be mounted under a sub-path. ``store`` seeds a local signal ``Store``</span>
@@ -1276,17 +1280,27 @@ window.runMermaid = runMermaid;</script>
     <span class="n">head_markup</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">    "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="n">p</span>
         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span>
-            <span class="n">_importmap</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">),</span>
-            <span class="n">_package_head</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">)</span> <span class="k">if</span> <span class="n">lifecycle</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="n">_importmap</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">_asset_urls</span><span class="p">),</span>
+            <span class="n">_package_head</span><span class="p">(</span><span class="n">component_packages</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">nonce</span><span class="p">,</span> <span class="n">_asset_urls</span><span class="p">)</span> <span class="k">if</span> <span class="n">lifecycle</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span>
             <span class="sa">f</span><span class="s1">'&lt;template id="</span><span class="si">{</span><span class="n">stylesheet_anchor</span><span class="si">}</span><span class="s1">"&gt;&lt;/template&gt;'</span> <span class="k">if</span> <span class="n">stylesheet_anchor</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span>
             <span class="o">*</span><span class="n">style_tags</span><span class="p">,</span>
             <span class="n">head</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">p</span>
     <span class="p">)</span>
-    <span class="n">package_scripts</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">base</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">component_packages</span> <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">assets</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"js"</span><span class="p">]</span>
+    <span class="n">package_scripts</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="p">(</span><span class="n">_asset_urls</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">base</span><span class="p">),</span><span class="w"> </span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">base</span><span class="p">))</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">component_packages</span>
+        <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">assets</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"js"</span>
+    <span class="p">]</span>
     <span class="n">stylesheet_urls</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="o">*</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">base</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">component_packages</span> <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">assets</span> <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"css"</span><span class="p">),</span>
+        <span class="o">*</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="p">(</span><span class="n">_asset_urls</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">base</span><span class="p">),</span><span class="w"> </span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">base</span><span class="p">))</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">component_packages</span>
+            <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">assets</span>
+            <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">"css"</span>
+        <span class="p">),</span>
         <span class="o">*</span><span class="n">stylesheets</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">script</span> <span class="o">=</span> <span class="n">_script</span><span class="p">(</span>
@@ -1308,6 +1322,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">nonce</span><span class="p">,</span>
         <span class="n">stylesheet_anchor</span><span class="p">,</span>
         <span class="n">package_scripts</span><span class="p">,</span>
+        <span class="n">asset_urls</span><span class="o">=</span><span class="n">_asset_urls</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment</span><span class="p">:</span>
         <span class="n">head_block</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">head_markup</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span> <span class="k">if</span> <span class="n">head_markup</span> <span class="k">else</span> <span class="s2">""</span>

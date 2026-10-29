@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>spaday.backends.starlette &#8212; spaday v0.12.0</title>
+    <title>spaday.backends.starlette &#8212; spaday v0.13.0</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/fuma.css?v=ca04d621" />
     <link rel="stylesheet" type="text/css" href="../../../_static/fuma-code.css?v=a950e949" />
@@ -16,7 +16,7 @@
     <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/custom.css?v=88c24c6a" />
-    <script src="../../../_static/documentation_options.js?v=61ccb1f1"></script>
+    <script src="../../../_static/documentation_options.js?v=1019fba8"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -455,7 +455,7 @@ window.runMermaid = runMermaid;</script>
   <div class="fd-subnav-inner">
     <button type="button" class="fd-icon-button fd-sidebar-toggle" aria-controls="fd-sidebar" aria-expanded="false" aria-label="Toggle navigation" title="Toggle navigation">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-    </button><a class="fd-brand" href="../../../index.html"><span class="fd-brand-name">spaday v0.12.0</span>
+    </button><a class="fd-brand" href="../../../index.html"><span class="fd-brand-name">spaday v0.13.0</span>
 </a>
 
     <div class="fd-nav-actions">
@@ -470,7 +470,7 @@ window.runMermaid = runMermaid;</script>
 
 <aside id="fd-sidebar" aria-label="Documentation">
   <div class="fd-sidebar-header">
-    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../../index.html"><span class="fd-brand-name">spaday v0.12.0</span>
+    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../../index.html"><span class="fd-brand-name">spaday v0.13.0</span>
 </a>
       <button type="button" class="fd-icon-button fd-sidebar-collapse" aria-label="Collapse sidebar" title="Collapse sidebar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
     </div>
@@ -615,6 +615,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">..assets</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssetBundle</span><span class="p">,</span> <span class="n">AssetPolicy</span><span class="p">,</span> <span class="n">asset_bundles</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssetLayout</span><span class="p">,</span> <span class="n">Lifecycle</span><span class="p">,</span> <span class="n">Page</span><span class="p">,</span> <span class="n">TreeMode</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">,</span> <span class="n">bundles_dir</span><span class="p">,</span> <span class="n">tree_frame</span><span class="p">,</span> <span class="n">tree_json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..packages</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentPackage</span><span class="p">,</span> <span class="n">PackageRef</span><span class="p">,</span> <span class="n">package_url_prefix</span><span class="p">,</span> <span class="n">resolve_component_packages</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..ui.design</span><span class="w"> </span><span class="kn">import</span> <span class="n">Design</span><span class="p">,</span> <span class="n">_select_page_design</span>
@@ -719,6 +720,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">layout</span><span class="p">:</span> <span class="n">AssetLayout</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">],</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">asset_urls</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Route</span><span class="p">]:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.requests</span><span class="w"> </span><span class="kn">import</span> <span class="n">Request</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileResponse</span><span class="p">,</span> <span class="n">HTMLResponse</span><span class="p">,</span> <span class="n">Response</span>
@@ -751,6 +753,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">url</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
         <span class="n">design</span><span class="o">=</span><span class="n">page_design</span><span class="p">,</span>
         <span class="n">lifecycle</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">lifecycle</span><span class="p">,</span>
+        <span class="n">_asset_urls</span><span class="o">=</span><span class="n">asset_urls</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">homepage</span><span class="p">(</span><span class="n">_request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
@@ -775,6 +778,18 @@ window.runMermaid = runMermaid;</script>
         <span class="k">assert</span> <span class="n">tree_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">routes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Route</span><span class="p">(</span><span class="n">tree_path</span><span class="p">,</span> <span class="n">tree_route_json</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">"spaday:tree:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">routes</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_asset_mount</span><span class="p">(</span><span class="n">bundle</span><span class="p">:</span> <span class="n">AssetBundle</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mount</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.concurrency</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_in_threadpool</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">Response</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mount</span><span class="p">,</span> <span class="n">Route</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">endpoint</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">run_in_threadpool</span><span class="p">(</span><span class="n">bundle</span><span class="o">.</span><span class="n">response</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">path_params</span><span class="p">[</span><span class="s2">"path"</span><span class="p">],</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Mount</span><span class="p">(</span><span class="n">bundle</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">Route</span><span class="p">(</span><span class="s2">"/{path:path}"</span><span class="p">,</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"HEAD"</span><span class="p">])])</span>
 
 
 <div class="viewcode-block" id="build_routes">
@@ -803,6 +818,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">lifecycle</span><span class="p">:</span> <span class="n">Lifecycle</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">assets</span><span class="p">:</span> <span class="n">AssetPolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseRoute</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build spaday's Starlette routes (page, tree, ``/js``, plus ``routes``) under</span>
 <span class="sd">    ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``</span>
@@ -818,6 +834,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">asset_layout</span> <span class="o">=</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"source"</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
     <span class="n">js_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">js</span><span class="p">)</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">bundles_dir</span><span class="p">(</span><span class="n">asset_layout</span><span class="p">)</span>
+    <span class="n">bundles</span> <span class="o">=</span> <span class="n">asset_bundles</span><span class="p">(</span><span class="n">js_dir</span><span class="p">,</span> <span class="n">component_packages</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">js</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">js_dir</span> <span class="o">==</span> <span class="n">bundles_dir</span><span class="p">(</span><span class="s2">"source"</span><span class="p">))</span>
     <span class="n">tree_path</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"inline"</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/tree</span><span class="si">{</span><span class="s1">''</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">tree</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s1">'frame'</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'.json'</span><span class="si">}</span><span class="s2">"</span>
     <span class="n">spec</span> <span class="o">=</span> <span class="n">PageSpec</span><span class="p">(</span>
         <span class="n">page</span><span class="p">,</span>
@@ -839,7 +856,14 @@ window.runMermaid = runMermaid;</script>
         <span class="n">design</span><span class="o">=</span><span class="n">design</span><span class="p">,</span>
         <span class="n">lifecycle</span><span class="o">=</span><span class="n">lifecycle</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">package_mounts</span> <span class="o">=</span> <span class="p">[</span><span class="n">Mount</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span> <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">component_packages</span><span class="p">]</span>
+    <span class="n">package_mounts</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">[</span><span class="n">_asset_mount</span><span class="p">(</span><span class="n">bundle</span><span class="p">)</span> <span class="k">for</span> <span class="n">bundle</span> <span class="ow">in</span> <span class="n">bundles</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">assets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="p">[</span>
+            <span class="o">*</span><span class="p">(</span><span class="n">Mount</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span> <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">component_packages</span><span class="p">),</span>
+            <span class="n">Mount</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/js"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">js_dir</span><span class="p">)),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="o">*</span><span class="n">_page_routes</span><span class="p">(</span>
             <span class="n">spec</span><span class="p">,</span>
@@ -848,10 +872,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">base</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
             <span class="n">layout</span><span class="o">=</span><span class="n">asset_layout</span><span class="p">,</span>
             <span class="n">packages</span><span class="o">=</span><span class="n">component_packages</span><span class="p">,</span>
+            <span class="n">asset_urls</span><span class="o">=</span><span class="p">{</span><span class="n">b</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">url</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bundles</span><span class="p">},</span>
         <span class="p">),</span>
         <span class="o">*</span><span class="n">_prefixed</span><span class="p">(</span><span class="n">routes</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span>
         <span class="o">*</span><span class="n">package_mounts</span><span class="p">,</span>
-        <span class="n">Mount</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/js"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">js_dir</span><span class="p">)),</span>
     <span class="p">]</span></div>
 
 
@@ -878,6 +902,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">routes</span><span class="p">:</span> <span class="n">Sequence</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">js</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">layout</span><span class="p">:</span> <span class="n">AssetLayout</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">assets</span><span class="p">:</span> <span class="n">AssetPolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SiteRoutes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build a multi-page Starlette site with one shared asset surface.</span>
 
@@ -901,6 +926,8 @@ window.runMermaid = runMermaid;</script>
         <span class="n">normalized_prefix</span> <span class="o">=</span> <span class="s2">""</span>
     <span class="n">asset_layout</span> <span class="o">=</span> <span class="n">layout</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"source"</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">js_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">js</span><span class="p">)</span> <span class="k">if</span> <span class="n">js</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">bundles_dir</span><span class="p">(</span><span class="n">asset_layout</span><span class="p">)</span>
+
+    <span class="n">bundles</span> <span class="o">=</span> <span class="n">asset_bundles</span><span class="p">(</span><span class="n">js_dir</span><span class="p">,</span> <span class="p">(),</span> <span class="n">normalized_prefix</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">js</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">js_dir</span> <span class="o">==</span> <span class="n">bundles_dir</span><span class="p">(</span><span class="s2">"source"</span><span class="p">))</span>
 
     <span class="n">normalized_pages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PageSpec</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">sources</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -942,6 +969,8 @@ window.runMermaid = runMermaid;</script>
             <span class="n">existing</span> <span class="o">=</span> <span class="n">packages_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">existing</span> <span class="o">!=</span> <span class="n">package</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"pages select different component package descriptors named </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">assets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">bundles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AssetBundle</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">,</span> <span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">normalized_prefix</span><span class="p">),</span> <span class="n">assets</span><span class="p">))</span>
             <span class="n">packages_by_name</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">package</span><span class="p">)</span>
         <span class="n">page_routes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
             <span class="n">_page_routes</span><span class="p">(</span>
@@ -952,6 +981,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">layout</span><span class="o">=</span><span class="n">asset_layout</span><span class="p">,</span>
                 <span class="n">packages</span><span class="o">=</span><span class="n">component_packages</span><span class="p">,</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+                <span class="n">asset_urls</span><span class="o">=</span><span class="p">{</span><span class="n">b</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">url</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bundles</span><span class="p">},</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
@@ -971,11 +1001,18 @@ window.runMermaid = runMermaid;</script>
             <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="n">asset</span> <span class="o">==</span> <span class="n">path</span> <span class="ow">or</span> <span class="n">asset</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">/"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">asset</span><span class="si">}</span><span class="s2">/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">asset_paths</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"supplied mount </span><span class="si">{</span><span class="n">path</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'/'</span><span class="si">}</span><span class="s2"> shadows the site's asset route"</span><span class="p">)</span>
 
-    <span class="n">assets</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Mount</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="o">*</span><span class="p">(</span><span class="n">Mount</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">normalized_prefix</span><span class="p">),</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span> <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
-        <span class="n">Mount</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">normalized_prefix</span><span class="si">}</span><span class="s2">/js"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">js_dir</span><span class="p">)),</span>
-    <span class="p">]</span>
-    <span class="k">return</span> <span class="n">SiteRoutes</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">page_routes</span><span class="p">),</span> <span class="n">supplied</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">assets</span><span class="p">))</span></div>
+    <span class="n">static_mounts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Mount</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">[</span><span class="n">_asset_mount</span><span class="p">(</span><span class="n">bundle</span><span class="p">)</span> <span class="k">for</span> <span class="n">bundle</span> <span class="ow">in</span> <span class="n">bundles</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">assets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="p">[</span>
+            <span class="o">*</span><span class="p">(</span>
+                <span class="n">Mount</span><span class="p">(</span><span class="n">package_url_prefix</span><span class="p">(</span><span class="n">package</span><span class="p">,</span> <span class="n">normalized_prefix</span><span class="p">),</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">package</span><span class="o">.</span><span class="n">assets_dir</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages_by_name</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="p">),</span>
+            <span class="n">Mount</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">normalized_prefix</span><span class="si">}</span><span class="s2">/js"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">js_dir</span><span class="p">)),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">SiteRoutes</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">page_routes</span><span class="p">),</span> <span class="n">supplied</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">static_mounts</span><span class="p">))</span></div>
 
 
 
@@ -1023,6 +1060,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">lifecycle</span><span class="p">:</span> <span class="n">Lifecycle</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">assets</span><span class="p">:</span> <span class="n">AssetPolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Starlette</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Add :func:`build_routes` to an existing Starlette ``app`` and return the app for chaining.</span>
 
@@ -1053,6 +1091,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span>
             <span class="n">design</span><span class="o">=</span><span class="n">design</span><span class="p">,</span>
             <span class="n">lifecycle</span><span class="o">=</span><span class="n">lifecycle</span><span class="p">,</span>
+            <span class="n">assets</span><span class="o">=</span><span class="n">assets</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">app</span></div>
