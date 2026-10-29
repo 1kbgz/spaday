@@ -75,15 +75,16 @@ def mount(
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     pre = re.escape(prefix)
 
+    # Tornado declares handlers as callable attributes; ty versions classify the overrides differently.
     class _Index(RequestHandler):
-        def get(self):  # ty: ignore[invalid-method-override]
+        def get(self):  # ty: ignore
             self.set_header("Content-Type", "text/html")
             self.write(body)
 
     if tree == "frame":
 
         class _Tree(RequestHandler):
-            def get(self):  # ty: ignore[invalid-method-override]
+            def get(self):  # ty: ignore
                 self.set_header("Content-Type", "application/octet-stream")
                 self.write(tree_frame(page, design=page_design))
 
@@ -91,7 +92,7 @@ def mount(
     elif tree == "json":
 
         class _Tree(RequestHandler):
-            def get(self):  # ty: ignore[invalid-method-override]
+            def get(self):  # ty: ignore
                 self.set_header("Content-Type", "application/json")
                 self.write(tree_json(page, page_design))
 
