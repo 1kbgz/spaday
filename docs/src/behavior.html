@@ -234,7 +234,8 @@ browser — no per-interaction round-trip. For the underlying idea, see <a class
 <li><p><code class="docutils literal notranslate"><span class="pre">Sequence(a,</span> <span class="pre">b,</span> <span class="pre">…)</span></code> — run several actions in order. Import it as <code class="docutils literal notranslate"><span class="pre">ActionSequence</span></code> when another
 <code class="docutils literal notranslate"><span class="pre">Sequence</span></code> is already in scope.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">If(cond,</span> <span class="pre">then,</span> <span class="pre">els=None)</span></code> — branch on a live condition.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Emit(event,</span> <span class="pre">detail=None)</span></code> — dispatch a custom DOM event.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Emit(event,</span> <span class="pre">detail=None,</span> <span class="pre">composed=False)</span></code> — dispatch a bubbling custom DOM event. Set
+<code class="docutils literal notranslate"><span class="pre">composed=True</span></code> when listeners outside the emitting shadow root must receive it.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code>, <code class="docutils literal notranslate"><span class="pre">CallEndpoint</span></code>, <code class="docutils literal notranslate"><span class="pre">NamedJs</span></code> — see below.</p></li>
 </ul>
 </section>

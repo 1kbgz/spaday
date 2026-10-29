@@ -15,6 +15,7 @@ export class ClientState {
     prepare(message_json: string): string;
     proposal(id: bigint, ops_json: string, proposal?: string | null): string;
     revisions(): string;
+    type_name(id: bigint): string | undefined;
 }
 
 /**
@@ -46,7 +47,7 @@ export class Store {
     /**
      * Host a model from its JSON; returns the assigned id.
      */
-    host(type_name: string, value_json: string): bigint;
+    host(type_name: string, value_json: string, list_keys?: string | null): bigint;
     /**
      * Replace a hosted model from JSON; returns the JSON patch (or `undefined` if id unknown).
      */
@@ -91,7 +92,7 @@ export function decode_message(data: Uint8Array, codec: string): string;
 /**
  * Diff two JSON-encoded models, returning the JSON-encoded patch.
  */
-export function diff(old: string, _new: string): string;
+export function diff(old: string, _new: string, list_keys?: string | null): string;
 
 /**
  * Encode a JSON-encoded model to codec bytes (a `Uint8Array` in JS).
@@ -155,6 +156,7 @@ export interface InitOutput {
     readonly clientstate_prepare: (a: number, b: number, c: number) => [number, number, number, number];
     readonly clientstate_proposal: (a: number, b: bigint, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly clientstate_revisions: (a: number) => [number, number, number, number];
+    readonly clientstate_type_name: (a: number, b: bigint) => [number, number];
     readonly crdt_spec_hash: (a: number, b: number) => [number, number, number, number];
     readonly crdtdocument_apply: (a: number, b: number, c: number) => [number, number, number, number];
     readonly crdtdocument_compact: (a: number, b: number, c: number) => [number, number, number];
@@ -167,7 +169,7 @@ export interface InitOutput {
     readonly decode: (a: number, b: number) => [number, number, number, number];
     readonly decode_as: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly decode_message: (a: number, b: number, c: number, d: number) => [number, number, number, number];
-    readonly diff: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly diff: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly encode: (a: number, b: number) => [number, number, number, number];
     readonly encode_as: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly encode_message: (a: number, b: number, c: number, d: number) => [number, number, number, number];
@@ -178,7 +180,7 @@ export interface InitOutput {
     readonly normalize_message: (a: number, b: number) => [number, number, number, number];
     readonly require_crdt_spec_hash: (a: number, b: number, c: number, d: number) => [number, number];
     readonly store_apply: (a: number, b: bigint, c: number, d: number) => [number, number, number];
-    readonly store_host: (a: number, b: number, c: number, d: number, e: number) => [bigint, number, number];
+    readonly store_host: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [bigint, number, number];
     readonly store_mutate: (a: number, b: bigint, c: number, d: number) => [number, number, number, number];
     readonly store_new: () => number;
     readonly store_snapshot: (a: number, b: bigint) => [number, number];

@@ -327,6 +327,8 @@ store, so give each one a <strong>namespace</strong> when their fields could col
 <p>The tree then binds against namespaced fields — <code class="docutils literal notranslate"><span class="pre">bind(&quot;value&quot;,</span> <span class="pre">&quot;global.type&quot;)</span></code>,
 <code class="docutils literal notranslate"><span class="pre">compute(&quot;data&quot;,</span> <span class="pre">field(&quot;global.data&quot;))</span></code>. A <code class="docutils literal notranslate"><span class="pre">Wire</span></code>:</p>
 <ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">model</span></code></strong> — select a numeric model ID or a unique snapshot type name. Omit to mirror the first
+model received. A namespace changes store field names; it does not select a model.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">namespace</span></code></strong> — mirror the model’s fields under <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.</span></code> (omit for bare fields, e.g. a form).</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">session</span></code></strong> — append <code class="docutils literal notranslate"><span class="pre">?session=&lt;uuid&gt;</span></code>, making the model a fresh per-page-load tenant.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">flatten</span></code></strong> — recurse nested sub-models into dotted <code class="docutils literal notranslate"><span class="pre">parent.child</span></code> fields (the default, what a form
@@ -342,6 +344,26 @@ already publishes <code class="docutils literal notranslate"><span class="pre">&
 It becomes true when the WebSocket opens, including a reconnect where the client is already current
 and the server sends no model frame.</p></li>
 </ul>
+<p>To mirror two models from one endpoint, select each model explicitly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">wire</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Wire</span><span class="p">(</span><span class="s2">"/ws"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">orders_id</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"orders"</span><span class="p">,</span> <span class="n">reconnect</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Wire</span><span class="p">(</span><span class="s2">"/ws"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"Settings"</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"settings"</span><span class="p">,</span> <span class="n">reconnect</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>Selected wires share one client and WebSocket within a bootstrap mount when <code class="docutils literal notranslate"><span class="pre">url</span></code>, <code class="docutils literal notranslate"><span class="pre">codec</span></code>, <code class="docutils literal notranslate"><span class="pre">session</span></code>,
+<code class="docutils literal notranslate"><span class="pre">batch</span></code>, <code class="docutils literal notranslate"><span class="pre">reconnect</span></code>, <code class="docutils literal notranslate"><span class="pre">retry</span></code>, and <code class="docutils literal notranslate"><span class="pre">authority</span></code> match. Each wire retains its own namespace, flattening,
+connection-status field, and model link. Disposing a managed mount closes its shared connection.
+Unselected wires retain independent clients and first-model discovery.</p>
+<p>A numeric selector is the ID returned by <code class="docutils literal notranslate"><span class="pre">Session.host</span></code> or <code class="docutils literal notranslate"><span class="pre">Hub.share</span></code>. Type-name selection requires a
+transports client exposing <code class="docutils literal notranslate"><span class="pre">typeName(id)</span></code>. It waits for a matching snapshot; a missing model stays
+unbound. If a second matching type arrives, that link stops edits, clears its mirrored fields, sets
+<code class="docutils literal notranslate"><span class="pre">link.error</span></code>, and dispatches <code class="docutils literal notranslate"><span class="pre">spaday:wire-error</span></code> with <code class="docutils literal notranslate"><span class="pre">{namespace,</span> <span class="pre">model,</span> <span class="pre">error}</span></code> on <code class="docutils literal notranslate"><span class="pre">document</span></code>. Select by
+ID when a session contains multiple instances of the same type. A selected model changing type also
+disables its type-selected link. <code class="docutils literal notranslate"><span class="pre">connected</span></code> describes socket state,
+not successful model selection. Selectors do not change server permissions or filter network traffic.</p>
+<p>Generated connections use <code class="docutils literal notranslate"><span class="pre">wss:</span></code> on HTTPS pages and <code class="docutils literal notranslate"><span class="pre">ws:</span></code> on HTTP pages. Reconnect remains opt-in;
+set <code class="docutils literal notranslate"><span class="pre">reconnect=True</span></code> for dashboards that must recover after a dropped connection.</p>
 <p>For example, this single connection uses MessagePack, requests server batching, retries after 250 ms,
 and exposes its state as <code class="docutils literal notranslate"><span class="pre">editor_connected</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Wire</span><span class="p">(</span>
