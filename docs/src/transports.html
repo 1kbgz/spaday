@@ -213,11 +213,11 @@ no hand-written browser glue.</p>
 <section id="host-a-model-and-wire-the-page">
 <h2>Host a model and wire the page<a class="headerlink" href="#host-a-model-and-wire-the-page" title="Link to this heading">¶</a></h2>
 <p>Host a model in a transports <code class="docutils literal notranslate"><span class="pre">Session</span></code>, author a tree whose controls <strong>two-way bind</strong> to its fields, and
-serve it with <code class="docutils literal notranslate"><span class="pre">wire=&quot;transports&quot;</span></code> — supply the websocket route and run <code class="docutils literal notranslate"><span class="pre">autosync</span></code> as a background task:</p>
+serve it with a reconnecting <code class="docutils literal notranslate"><span class="pre">Wire</span></code>. Supply the websocket route and run <code class="docutils literal notranslate"><span class="pre">autosync</span></code> as a background task:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">transports</span><span class="o">,</span><span class="w"> </span><span class="nn">uvicorn</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">starlette.routing</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebSocketRoute</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">cond</span><span class="p">,</span> <span class="n">element</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday.backends.starlette</span><span class="w"> </span><span class="kn">import</span> <span class="n">serve</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">spaday_webawesome</span><span class="w"> </span><span class="kn">import</span> <span class="n">WaInput</span><span class="p">,</span> <span class="n">WaSwitch</span>
 
@@ -232,6 +232,9 @@ serve it with <code class="docutils literal notranslate"><span class="pre">wire=
 <span class="k">def</span><span class="w"> </span><span class="nf">page</span><span class="p">():</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">element</span><span class="p">(</span><span class="s2">"div"</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">element</span><span class="p">(</span><span class="s2">"p"</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">"status"</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span>
+            <span class="s2">"textContent"</span><span class="p">,</span> <span class="n">cond</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"connected"</span><span class="p">),</span> <span class="s2">"Connected"</span><span class="p">,</span> <span class="s2">"Disconnected — retrying"</span><span class="p">)</span>
+        <span class="p">))</span>
         <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaInput</span><span class="p">()</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"label"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">))</span>
         <span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">WaSwitch</span><span class="p">()</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"checked"</span><span class="p">,</span> <span class="s2">"on"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">))</span>
     <span class="p">)</span>
@@ -239,7 +242,7 @@ serve it with <code class="docutils literal notranslate"><span class="pre">wire=
 <span class="n">app</span> <span class="o">=</span> <span class="n">serve</span><span class="p">(</span>
     <span class="n">page</span><span class="p">,</span>
     <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">],</span>
-    <span class="n">wire</span><span class="o">=</span><span class="s2">"transports"</span><span class="p">,</span>
+    <span class="n">wire</span><span class="o">=</span><span class="n">Wire</span><span class="p">(</span><span class="s2">"/ws"</span><span class="p">,</span> <span class="n">reconnect</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">connected</span><span class="o">=</span><span class="s2">"connected"</span><span class="p">),</span>
     <span class="n">routes</span><span class="o">=</span><span class="p">[</span><span class="n">WebSocketRoute</span><span class="p">(</span><span class="s2">"/ws"</span><span class="p">,</span> <span class="n">transports</span><span class="o">.</span><span class="n">ws_endpoint</span><span class="p">(</span><span class="n">server</span><span class="p">))],</span>
     <span class="n">background</span><span class="o">=</span><span class="p">[</span><span class="n">transports</span><span class="o">.</span><span class="n">autosync</span><span class="p">(</span><span class="n">server</span><span class="p">)],</span>   <span class="c1"># fan host-side changes to every client</span>
 <span class="p">)</span>
@@ -255,7 +258,9 @@ an older server echo cannot replace newer input. An accepted proposal applies th
 value, and a rejection restores the last authoritative value. Other server patches continue to update
 the store while an edit is pending. Generated <code class="docutils literal notranslate"><span class="pre">Wire</span></code> connections use the managed transports client for
 sending and disconnect abandonment. The single-model <code class="docutils literal notranslate"><span class="pre">reconnect=True</span></code> form also retries the connection.
-A complete, runnable version is <code class="docutils literal notranslate"><span class="pre">spaday/examples/reactive.py</span></code>.</p>
+The example opts into reconnect and displays socket status through the explicit <code class="docutils literal notranslate"><span class="pre">connected</span></code> store
+field. After a dropped connection it retries and resyncs with the server. <code class="docutils literal notranslate"><span class="pre">connected</span></code> reports socket
+state, not model readiness. A complete, runnable version is <code class="docutils literal notranslate"><span class="pre">spaday/examples/reactive.py</span></code>.</p>
 <p>Generic controls with a two-way value binding also bind their error presentation to
 <code class="docutils literal notranslate"><span class="pre">$errors.&lt;field&gt;</span></code>. A rejected proposal writes the server’s validation message there; a new edit or an
 accepted proposal clears it. The runtime also dispatches <code class="docutils literal notranslate"><span class="pre">spaday:reject</span></code> on <code class="docutils literal notranslate"><span class="pre">document</span></code>. Its detail has
