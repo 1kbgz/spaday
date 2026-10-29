@@ -17,13 +17,13 @@ pip install "spaday[examples]"   # spaday + transports + starlette + uvicorn
 ## Host a model and wire the page
 
 Host a model in a transports `Session`, author a tree whose controls **two-way bind** to its fields, and
-serve it with `wire="transports"` — supply the websocket route and run `autosync` as a background task:
+serve it with a reconnecting `Wire`. Supply the websocket route and run `autosync` as a background task:
 
 ```python
 import transports, uvicorn
 from pydantic import BaseModel
 from starlette.routing import WebSocketRoute
-from spaday import element
+from spaday import Wire, cond, element, field
 from spaday.backends.starlette import serve
 from spaday_webawesome import WaInput, WaSwitch
 
@@ -38,6 +38,9 @@ server = transports.Server(session)
 def page():
     return (
         element("div")
+        .child(element("p", role="status").compute(
+            "textContent", cond(field("connected"), "Connected", "Disconnected — retrying")
+        ))
         .child(WaInput().bind("value", "label", mode="two-way"))
         .child(WaSwitch().bind("checked", "on", mode="two-way"))
     )
@@ -45,7 +48,7 @@ def page():
 app = serve(
     page,
     packages=["webawesome"],
-    wire="transports",
+    wire=Wire("/ws", reconnect=True, connected="connected"),
     routes=[WebSocketRoute("/ws", transports.ws_endpoint(server))],
     background=[transports.autosync(server)],   # fan host-side changes to every client
 )
@@ -61,7 +64,9 @@ an older server echo cannot replace newer input. An accepted proposal applies th
 value, and a rejection restores the last authoritative value. Other server patches continue to update
 the store while an edit is pending. Generated `Wire` connections use the managed transports client for
 sending and disconnect abandonment. The single-model `reconnect=True` form also retries the connection.
-A complete, runnable version is `spaday/examples/reactive.py`.
+The example opts into reconnect and displays socket status through the explicit `connected` store
+field. After a dropped connection it retries and resyncs with the server. `connected` reports socket
+state, not model readiness. A complete, runnable version is `spaday/examples/reactive.py`.
 
 Generic controls with a two-way value binding also bind their error presentation to
 `$errors.<field>`. A rejected proposal writes the server's validation message there; a new edit or an

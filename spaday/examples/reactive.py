@@ -22,7 +22,7 @@ import uvicorn
 from pydantic import BaseModel
 from starlette.routing import WebSocketRoute
 
-from spaday import Strong, element
+from spaday import Strong, Wire, cond, element, field
 from spaday.backends.starlette import serve
 from spaday.components.shell import Column, Main, Row
 
@@ -43,6 +43,7 @@ def page():
     """The UI: controls two-way-bound to model fields, plus a one-way echo — no event wiring."""
     return Main(
         Strong("Reactive controls over transports — bindings, no glue"),
+        element("p", role="status").compute("textContent", cond(field("connected"), "Connected", "Disconnected — retrying")),
         Column(
             Row(element("label", "Label"), element("input", type="text").bind("value", "label", mode="two-way")),
             Row(element("label", "On"), element("input", type="checkbox").bind("checked", "on", mode="two-way")),
@@ -53,7 +54,7 @@ def page():
 
 app = serve(
     page,
-    wire="transports",  # generate the Client + connectStore + websocket bootstrap
+    wire=Wire("/ws", reconnect=True, connected="connected"),
     tree="frame",  # the tree rides a transports Snapshot frame — UI tree + model data on one wire
     routes=[WebSocketRoute("/ws", transports.ws_endpoint(server))],
     background=[transports.autosync(server)],
