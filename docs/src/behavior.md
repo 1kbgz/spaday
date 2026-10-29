@@ -23,7 +23,8 @@ WaButton().text("Details").on("click", Toggle(by_id("info"), "hidden"))
 - `Sequence(a, b, …)` — run several actions in order. Import it as `ActionSequence` when another
   `Sequence` is already in scope.
 - `If(cond, then, els=None)` — branch on a live condition.
-- `Emit(event, detail=None)` — dispatch a custom DOM event.
+- `Emit(event, detail=None, composed=False)` — dispatch a bubbling custom DOM event. Set
+  `composed=True` when listeners outside the emitting shadow root must receive it.
 - `SendPatch`, `CallEndpoint`, `NamedJs` — see below.
 
 ## Reference live values in an action

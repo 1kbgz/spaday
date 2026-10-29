@@ -503,6 +503,7 @@ mod diff_tests {
             .event(
                 "dblclick",
                 Action::Emit {
+                    composed: false,
                     event: "x".into(),
                     detail: None,
                 },

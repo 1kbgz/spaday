@@ -49,7 +49,7 @@ def test_transports_wire_bootstrap():
     assert "spaday:wire-client" in html
     assert "detail: { client, link, store" in html
     assert 'namespace: null, url: "/sock"' in html
-    assert "client.connect(`ws://${location.host}/sock`)" in html
+    assert "client.connect(`${wsProtocol}//${location.host}/sock`)" in html
     assert "mount(document.body, node, store)" in html
 
 
@@ -87,7 +87,7 @@ def test_inline_tree_requires_a_page_and_tree_modes_are_validated():
 
 def test_reconnect_bootstrap_reopens_the_socket():
     html = bootstrap(wire="transports", reconnect=True)
-    assert "client.run(`ws://${location.host}/ws`, { retry: 1000 })" in html
+    assert "client.run(`${wsProtocol}//${location.host}/ws`, { retry: 1000 })" in html
     assert "connectStore(store, client, undefined" in html
 
 
@@ -311,8 +311,8 @@ def test_wire_list_shares_one_store_with_namespaced_connectstores():
     assert "connectStore(store, client0, undefined" in html
     assert "connectStore(store, client1, undefined" in html
     assert '{ fromValue, toValue }, "a")' in html and '{ fromValue, toValue }, "b")' in html
-    assert "client0.connect(`ws://${location.host}/ws`)" in html
-    assert "client1.connect(`ws://${location.host}/ws/b`)" in html
+    assert "client0.connect(`${wsProtocol}//${location.host}/ws`)" in html
+    assert "client1.connect(`${wsProtocol}//${location.host}/ws/b`)" in html
     assert html.count("spaday:wire-client") == 2
     assert 'client: client0, link: link0, store, namespace: "a", url: "/ws"' in html
     assert "transports_bg.wasm" in html and "await wasm.default(" in html  # the transports prologue
@@ -348,7 +348,7 @@ def test_wire_list_generates_the_patch_sink():
 
 def test_wire_list_respects_base_prefix():
     html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}], base="/dash")
-    assert "client0.connect(`ws://${location.host}/dash/ws`)" in html  # the base prefixes each wire url
+    assert "client0.connect(`${wsProtocol}//${location.host}/dash/ws`)" in html  # the base prefixes each wire url
     assert 'fetch("/dash/tree.json")' in html
 
 
@@ -393,7 +393,7 @@ def test_wire_exposes_managed_transport_options_and_direct_typed_form():
         )
     )
     assert 'const client0 = new Client("msgpack")' in html
-    assert 'client0.run(`ws://${location.host}/ws?tenant=shared&batch=1`, {"authority": "client", "retry": 250})' in html
+    assert 'client0.run(`${wsProtocol}//${location.host}/ws?tenant=shared&batch=1`, {"authority": "client", "retry": 250})' in html
     assert 'client0.onConnect(() => store.set("wire_ready", true))' in html
     assert "client0.onChange(" not in html
     assert 'client0.onDisconnect(() => store.set("wire_ready", false))' in html
@@ -442,3 +442,25 @@ def test_typed_wires_reject_ignored_page_level_connection_options():
         bootstrap(wire=[Wire("/socket")], ws="/ignored")
     with pytest.raises(ValueError, match="set the URL on each Wire"):
         bootstrap(wire={"url": "/socket"}, ws="/ignored")
+
+
+def test_selected_wires_share_only_compatible_connections():
+    from spaday import Wire
+
+    html = bootstrap(wire=[Wire("/ws", model=1, namespace="a"), Wire("/ws", model="Orders", namespace="b")])
+    assert "const client1 = client0;" in html
+    assert html.count(".connect(") == 1
+    assert '{ fromValue, toValue }, "b", true, "Orders")' in html
+    for option in ({"codec": "msgpack"}, {"session": True}, {"batch": True}, {"reconnect": True}, {"retry": 50}, {"authority": "client"}):
+        separate = bootstrap(wire=[Wire("/ws", model=1), {"url": "/ws", "model": 2, **option}])
+        assert "const client1 = new Client(" in separate
+    legacy = bootstrap(wire=[Wire("/ws", namespace="a"), Wire("/ws", namespace="b")])
+    assert legacy.count(".connect(") == 2
+
+
+@pytest.mark.parametrize("model", [True, False, -1, 1.5, 2**53, "", [], {}])
+def test_wire_rejects_invalid_model_selectors(model):
+    from spaday import Wire
+
+    with pytest.raises(ValueError, match="Wire model"):
+        Wire("/ws", model=model)

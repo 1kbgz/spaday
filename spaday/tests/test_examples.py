@@ -69,7 +69,7 @@ def test_mount_embeds_a_wired_panel_into_an_existing_app():
         assert "/spaday/" in home.text  # which links to the mounted spaday panel
         spa = client.get("/spaday/")  # spaday lives only under the prefix
         assert spa.status_code == 200
-        assert "ws://${location.host}/spaday/ws" in spa.text  # the wire URL is prefixed to match the route
+        assert "${wsProtocol}//${location.host}/spaday/ws" in spa.text  # the wire URL is prefixed to match the route
         assert client.get("/spaday/tree.json").status_code == 200
     assert any(getattr(r, "path", None) == "/spaday/ws" for r in embed.app.routes)  # supplied route, prefixed
 
@@ -140,9 +140,25 @@ def test_omnibus_serves_the_namespaced_multi_wire_page():
 
     tree = tree_json(main.page)
     assert '"root-class:wa-dark"' in tree and "global.data" in tree  # namespaced declarative tree
-    with _client(main.app) as client:  # runs the 4 autosync loops + the ticker
+    with _client(main.app) as client:  # runs the 3 autosync loops + the ticker
         page = client.get("/")
         assert page.status_code == 200
         assert "connectStore(store, client0" in page.text and '"global"' in page.text  # several namespaced wires
         assert 'src="/components/perspective/cdn/index.js"' in page.text  # external package, not a core bundle
         assert client.get("/tree.json").status_code == 200
+        assert "const client3 = client0;" in page.text
+        with client.websocket_connect("/ws") as socket:
+            snapshots = [socket.receive_json(), socket.receive_json()]
+            models = {frame["type"]: frame for frame in snapshots}
+            assert "Device" in models and main.global_chart_id in [frame["id"] for frame in snapshots]
+            device = models["Device"]
+            socket.send_json(
+                {
+                    "t": "patch",
+                    "id": device["id"],
+                    "patch": {"rev": 0, "ops": [{"Set": {"path": [{"Key": "name"}], "value": {"Str": "Shared lamp"}}}]},
+                }
+            )
+            reply = socket.receive_json()
+            assert reply["t"] == "patch" and reply["id"] == device["id"]
+            assert main.global_session.snapshot(device["id"])["value"]["Map"]["name"] == {"Str": "Shared lamp"}

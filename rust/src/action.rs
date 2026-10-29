@@ -185,6 +185,8 @@ pub enum Action {
     #[serde(rename = "emit")]
     Emit {
         event: String,
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        composed: bool,
         #[serde(default)]
         detail: Option<Expr>,
     },
@@ -507,6 +509,7 @@ mod tests {
                         prop: "hidden".into(),
                     },
                     Action::Emit {
+                        composed: false,
                         event: "opened".into(),
                         detail: Some(Expr::Lit { value: json!(true) }),
                     },
@@ -547,6 +550,7 @@ mod tests {
                     prop: "hidden".into(),
                 }),
                 els: Some(Box::new(Action::Emit {
+                    composed: false,
                     event: "off".into(),
                     detail: None,
                 })),
@@ -715,6 +719,7 @@ mod tests {
         // matches the Python authoring (detail key present, null) and the JS `detail != null` check
         round(
             &Action::Emit {
+                composed: false,
                 event: "ping".into(),
                 detail: None,
             },
@@ -728,6 +733,7 @@ mod tests {
         assert_eq!(
             a,
             Action::Emit {
+                composed: false,
                 event: "ping".into(),
                 detail: None
             }

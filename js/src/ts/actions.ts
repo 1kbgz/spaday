@@ -100,9 +100,9 @@ function host(ctx: ActionContext) {
       ctx.scope?.resolve(name)?.get(path),
     // write a reactive state field (SetField/ToggleField) — a no-op if the tree has no store
     setField: (name: string, value: unknown) => ctx.store?.set(name, value),
-    emit: (event: string, detail: unknown) =>
+    emit: (event: string, detail: unknown, composed: boolean) =>
       ctx.currentTarget.dispatchEvent(
-        new CustomEvent(event, { detail, bubbles: true }),
+        new CustomEvent(event, { detail, bubbles: true, composed }),
       ),
     // SendPatch is surfaced as a bubbling intent the app routes to its wire (e.g. a transports edit).
     sendPatch: (model: string, field: string, value: unknown) =>
