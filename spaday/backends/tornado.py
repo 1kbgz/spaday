@@ -18,6 +18,7 @@ from collections.abc import Awaitable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..assets import AssetPolicy, asset_bundles
 from ..bootstrap import AssetLayout, Lifecycle, Page, TreeMode, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, _select_page_design
@@ -46,6 +47,7 @@ def mount(
     head: str = "",
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    assets: AssetPolicy | None = None,
 ) -> Application:
     """Add spaday's handlers to an existing Tornado ``app`` under ``prefix``. ``routes`` is a list of
     Tornado handler tuples (``(pattern, Handler[, kwargs])`` — including your ``{prefix}/ws`` handler when
@@ -55,6 +57,8 @@ def mount(
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
     page_design = _select_page_design(design, component_packages, page)
+    asset_directory = Path(js) if js is not None else bundles_dir(asset_layout)
+    bundles = asset_bundles(asset_directory, component_packages, prefix, assets, source=js is None and asset_directory == bundles_dir("source"))
     body = bootstrap(
         base=prefix,
         packages=component_packages,
@@ -71,6 +75,7 @@ def mount(
         layout=asset_layout,
         design=page_design,
         lifecycle=lifecycle,
+        _asset_urls={b.prefix: b.url for b in bundles},
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     pre = re.escape(prefix)
@@ -100,15 +105,33 @@ def mount(
     else:
         tree_rules = []
 
-    package_handlers = [
-        (
-            rf"{re.escape(package_url_prefix(package, prefix))}/(.*)",
-            StaticFileHandler,
-            {"path": str(package.assets_dir)},
-        )
-        for package in component_packages
-    ]
-    handlers = [(rf"{pre}/", _Index), *tree_rules, *routes, *package_handlers, (rf"{pre}/js/(.*)", StaticFileHandler, {"path": js_dir})]
+    if assets is not None:
+
+        class _Asset(RequestHandler):
+            def initialize(self, **kwargs):  # ty: ignore
+                self.bundle = kwargs["bundle"]
+
+            async def get(self, path):  # ty: ignore
+                result = await asyncio.to_thread(self.bundle.response, path, self.request.headers, self.request.method)
+                self.set_status(result.status)
+                for name, value in result.headers.items():
+                    self.set_header(name, value)
+                self.finish(result.body if result.body else None)
+
+            async def head(self, path):  # ty: ignore
+                await self.get(path)
+
+        handlers = [(rf"{pre}/", _Index), *tree_rules, *routes, *((rf"{re.escape(b.prefix)}/(.*)", _Asset, {"bundle": b}) for b in bundles)]
+    else:
+        package_handlers = [
+            (
+                rf"{re.escape(package_url_prefix(package, prefix))}/(.*)",
+                StaticFileHandler,
+                {"path": str(package.assets_dir)},
+            )
+            for package in component_packages
+        ]
+        handlers = [(rf"{pre}/", _Index), *tree_rules, *routes, *package_handlers, (rf"{pre}/js/(.*)", StaticFileHandler, {"path": js_dir})]
     app.add_handlers(r".*", handlers)
     return app
 

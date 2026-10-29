@@ -41,6 +41,7 @@ from .actions import (
     scope,
     this,
 )
+from .assets import AssetPolicy
 from .bootstrap import Js, Lifecycle, Wire
 from .catalog import ComponentSchema, PropertyKind, PropertySchema
 from .cem import classes, generate
@@ -73,6 +74,7 @@ from .worker import WorkerApp
 __version__ = "0.12.0"
 
 __all__ = [
+    "AssetPolicy",
     "Lifecycle",
     "check_script",
     # theming token reference (css custom properties are set via Component.css)

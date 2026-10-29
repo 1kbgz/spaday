@@ -25,6 +25,7 @@ from inspect import signature
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..assets import AssetBundle, AssetPolicy, asset_bundles
 from ..bootstrap import AssetLayout, Lifecycle, Page, TreeMode, Wire, bootstrap, bundles_dir, tree_frame, tree_json
 from ..packages import ComponentPackage, PackageRef, package_url_prefix, resolve_component_packages
 from ..ui.design import Design, _select_page_design
@@ -120,6 +121,7 @@ def _page_routes(
     layout: AssetLayout | None,
     packages: Sequence[ComponentPackage],
     name: str | None = None,
+    asset_urls: dict[str, str] | None = None,
 ) -> list[Route]:
     from starlette.requests import Request
     from starlette.responses import FileResponse, HTMLResponse, Response
@@ -152,6 +154,7 @@ def _page_routes(
         url=spec.url,
         design=page_design,
         lifecycle=spec.lifecycle,
+        _asset_urls=asset_urls,
     )
 
     async def homepage(_request: Request):
@@ -178,6 +181,18 @@ def _page_routes(
     return routes
 
 
+def _asset_mount(bundle: AssetBundle) -> Mount:
+    from starlette.concurrency import run_in_threadpool
+    from starlette.responses import Response
+    from starlette.routing import Mount, Route
+
+    async def endpoint(request):
+        result = await run_in_threadpool(bundle.response, request.path_params["path"], request.headers, request.method)
+        return Response(result.body, status_code=result.status, headers=result.headers)
+
+    return Mount(bundle.prefix, routes=[Route("/{path:path}", endpoint, methods=["GET", "HEAD"])])
+
+
 def build_routes(
     page: Page,
     *,
@@ -202,6 +217,7 @@ def build_routes(
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    assets: AssetPolicy | None = None,
 ) -> list[BaseRoute]:
     """Build spaday's Starlette routes (page, tree, ``/js``, plus ``routes``) under
     ``prefix``. The supplied ``routes`` are **prefixed too** (a ``Route``/``WebSocketRoute`` at ``/ws``
@@ -217,6 +233,7 @@ def build_routes(
     asset_layout = layout or ("source" if js is not None else None)
     component_packages = resolve_component_packages(packages)
     js_dir = Path(js) if js is not None else bundles_dir(asset_layout)
+    bundles = asset_bundles(js_dir, component_packages, prefix, assets, source=js is None and js_dir == bundles_dir("source"))
     tree_path = None if tree == "inline" else f"{prefix}/tree{'' if tree == 'frame' else '.json'}"
     spec = PageSpec(
         page,
@@ -238,7 +255,14 @@ def build_routes(
         design=design,
         lifecycle=lifecycle,
     )
-    package_mounts = [Mount(package_url_prefix(package, prefix), StaticFiles(directory=package.assets_dir)) for package in component_packages]
+    package_mounts = (
+        [_asset_mount(bundle) for bundle in bundles]
+        if assets is not None
+        else [
+            *(Mount(package_url_prefix(package, prefix), StaticFiles(directory=package.assets_dir)) for package in component_packages),
+            Mount(f"{prefix}/js", StaticFiles(directory=js_dir)),
+        ]
+    )
     return [
         *_page_routes(
             spec,
@@ -247,10 +271,10 @@ def build_routes(
             base=prefix,
             layout=asset_layout,
             packages=component_packages,
+            asset_urls={b.prefix: b.url for b in bundles},
         ),
         *_prefixed(routes, prefix),
         *package_mounts,
-        Mount(f"{prefix}/js", StaticFiles(directory=js_dir)),
     ]
 
 
@@ -274,6 +298,7 @@ def build_site(
     routes: Sequence = (),
     js: str | Path | None = None,
     layout: AssetLayout | None = None,
+    assets: AssetPolicy | None = None,
 ) -> SiteRoutes:
     """Build a multi-page Starlette site with one shared asset surface.
 
@@ -297,6 +322,8 @@ def build_site(
         normalized_prefix = ""
     asset_layout = layout or ("source" if js is not None else None)
     js_dir = Path(js) if js is not None else bundles_dir(asset_layout)
+
+    bundles = asset_bundles(js_dir, (), normalized_prefix, assets, source=js is None and js_dir == bundles_dir("source"))
 
     normalized_pages: list[tuple[str, PageSpec]] = []
     sources: dict[str, str] = {}
@@ -338,6 +365,8 @@ def build_site(
             existing = packages_by_name.get(package.name)
             if existing is not None and existing != package:
                 raise ValueError(f"pages select different component package descriptors named {package.name!r}")
+            if existing is None and assets is not None:
+                bundles.append(AssetBundle(package.assets_dir, package_url_prefix(package, normalized_prefix), assets))
             packages_by_name.setdefault(package.name, package)
         page_routes.extend(
             _page_routes(
@@ -348,6 +377,7 @@ def build_site(
                 layout=asset_layout,
                 packages=component_packages,
                 name=path,
+                asset_urls={b.prefix: b.url for b in bundles},
             )
         )
 
@@ -367,11 +397,18 @@ def build_site(
             if any(not path or asset == path or asset.startswith(f"{path}/") or path.startswith(f"{asset}/") for asset in asset_paths):
                 raise ValueError(f"supplied mount {path or '/'} shadows the site's asset route")
 
-    assets: list[Mount] = [
-        *(Mount(package_url_prefix(package, normalized_prefix), StaticFiles(directory=package.assets_dir)) for package in packages_by_name.values()),
-        Mount(f"{normalized_prefix}/js", StaticFiles(directory=js_dir)),
-    ]
-    return SiteRoutes(tuple(page_routes), supplied, tuple(assets))
+    static_mounts: list[Mount] = (
+        [_asset_mount(bundle) for bundle in bundles]
+        if assets is not None
+        else [
+            *(
+                Mount(package_url_prefix(package, normalized_prefix), StaticFiles(directory=package.assets_dir))
+                for package in packages_by_name.values()
+            ),
+            Mount(f"{normalized_prefix}/js", StaticFiles(directory=js_dir)),
+        ]
+    )
+    return SiteRoutes(tuple(page_routes), supplied, tuple(static_mounts))
 
 
 def mount_site(
@@ -413,6 +450,7 @@ def mount(
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    assets: AssetPolicy | None = None,
 ) -> Starlette:
     """Add :func:`build_routes` to an existing Starlette ``app`` and return the app for chaining.
 
@@ -443,6 +481,7 @@ def mount(
             url=url,
             design=design,
             lifecycle=lifecycle,
+            assets=assets,
         )
     )
     return app

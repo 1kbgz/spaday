@@ -166,6 +166,7 @@ Generate a page and deliver it on any backend; see [Serve and embed](serving.md)
 .. autofunction:: spaday.bootstrap.bootstrap
 .. autoclass:: spaday.Wire
 .. autoclass:: spaday.Lifecycle
+.. autoclass:: spaday.AssetPolicy
 .. autofunction:: spaday.bootstrap.tree_json
 .. autofunction:: spaday.bootstrap.tree_frame
 .. autofunction:: spaday.bootstrap.bundles_dir
