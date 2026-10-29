@@ -445,3 +445,12 @@ def test_action_sequence_alias_avoids_collections_sequence_collision():
     assert spaday.actions.ActionSequence is Sequence
     assert {"ActionSequence", "Sequence"} <= set(spaday.__all__)
     assert spaday.ActionSequence(SetField("view", "orders")).to_dict()["kind"] == "seq"
+
+
+def test_composed_emit_round_trips_through_shared_core():
+    action = Emit("focus-table", {"table": "Trades"}, composed=True)
+    assert action.to_dict()["composed"] is True
+    assert "composed" not in Emit("focus-table").to_dict()
+    before = element("button").to_node()
+    after = element("button").on("click", action).to_node()
+    assert json.loads(apply(json.dumps(before), diff(json.dumps(before), json.dumps(after)))) == after

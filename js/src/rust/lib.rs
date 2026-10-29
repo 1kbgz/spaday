@@ -32,7 +32,7 @@ extern "C" {
     #[wasm_bindgen(method, js_name = setField)]
     fn set_field(this: &Host, name: &str, value: JsValue);
     #[wasm_bindgen(method)]
-    fn emit(this: &Host, event: &str, detail: JsValue);
+    fn emit(this: &Host, event: &str, detail: JsValue, composed: bool);
     #[wasm_bindgen(method, js_name = sendPatch)]
     fn send_patch(this: &Host, model: &str, field: &str, value: JsValue);
     #[wasm_bindgen(method, js_name = callEndpoint)]
@@ -152,11 +152,15 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
                 }
             }
         }
-        Emit { event, detail } => {
+        Emit {
+            event,
+            detail,
+            composed,
+        } => {
             let d = detail
                 .as_ref()
                 .map_or(JsValue::UNDEFINED, |e| eval(e, host));
-            host.emit(event, d);
+            host.emit(event, d, *composed);
         }
         SendPatch {
             model,

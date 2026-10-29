@@ -111,6 +111,9 @@ for (const codec of ["json", "msgpack", "cbor"]) {
           client,
           (frame) => sent.push(frame),
           valueCodec,
+          undefined,
+          true,
+          "Document",
         );
         link.receive(snapshot);
         return { client, store, sent, link };
@@ -523,3 +526,119 @@ for (const codec of ["json", "msgpack", "cbor"]) {
     expect(result).toEqual({ doc: "A", pending: [] });
   });
 }
+
+test("selected links share a client, route edits, and reject ambiguous types", async ({
+  page,
+}) => {
+  await page.goto("/tests/transports.html");
+  await page.waitForFunction(() => window.__integration);
+  const result = await page.evaluate(() => {
+    const { Client, Store, connectStore, toValue, fromValue } =
+      window.__integration;
+    const client = new Client();
+    const store = new Store();
+    const sent = [];
+    const send = (frame) => {
+      sent.push(JSON.parse(frame));
+      return true;
+    };
+    const a = connectStore(
+      store,
+      client,
+      send,
+      { toValue, fromValue },
+      "a",
+      true,
+      7,
+    );
+    const b = connectStore(
+      store,
+      client,
+      send,
+      { toValue, fromValue },
+      "b",
+      true,
+      "Orders",
+    );
+    const snapshot = (id, type, count) =>
+      client.recv(
+        JSON.stringify({
+          t: "snapshot",
+          id,
+          type,
+          rev: 0,
+          value: toValue({ count }),
+        }),
+      );
+    snapshot(9, "Orders", 20);
+    snapshot(7, "Counter", 10);
+    const initial = [
+      a.modelId,
+      b.modelId,
+      store.get("a.count"),
+      store.get("b.count"),
+    ];
+    store.set("b.count", 21);
+    store.set("a.count", 11);
+    const late = connectStore(
+      store,
+      client,
+      send,
+      { toValue, fromValue },
+      "late",
+      true,
+      9,
+    );
+    const lateValue = store.get("late.count");
+    const named = connectStore(
+      store,
+      client,
+      send,
+      { toValue, fromValue },
+      "named",
+      true,
+      "Counter",
+    );
+    const missing = connectStore(
+      store,
+      client,
+      send,
+      { toValue, fromValue },
+      "missing",
+      true,
+      999,
+    );
+    store.set("missing.count", 5);
+    late.dispose();
+    store.set("late.count", 99);
+    const errors = [];
+    document.addEventListener("spaday:wire-error", (event) =>
+      errors.push(event.detail),
+    );
+    snapshot(11, "Orders", 30);
+    store.set("b.count", 200);
+    store.set("a.count", 12);
+    snapshot(7, "Renamed", 12);
+    store.set("named.count", 99);
+    return {
+      changedType: named.error,
+      missing: missing.modelId === undefined,
+      initial,
+      lateValue,
+      ids: sent.map((msg) => msg.id),
+      error: b.error,
+      disabled: b.modelId === undefined,
+      errors: errors.length,
+      a: store.get("a.count"),
+    };
+  });
+  expect(result.initial).toEqual([7, 9, 10, 20]);
+  expect(result.lateValue).toBe(20);
+  expect(result.ids).toEqual([9, 7, 7]);
+  expect(result.error).toContain("Ambiguous model type");
+  expect(result.disabled).toBe(true);
+  expect(result.errors).toBe(2);
+  expect(result.changedType).toContain("no longer has type");
+  expect(result.missing).toBe(true);
+  expect(result.a).toBe(12);
+});

@@ -143,6 +143,8 @@ app = serve(
 The tree then binds against namespaced fields — `bind("value", "global.type")`,
 `compute("data", field("global.data"))`. A `Wire`:
 
+- **`model`** — select a numeric model ID or a unique snapshot type name. Omit to mirror the first
+  model received. A namespace changes store field names; it does not select a model.
 - **`namespace`** — mirror the model's fields under `<namespace>.` (omit for bare fields, e.g. a form).
 - **`session`** — append `?session=<uuid>`, making the model a fresh per-page-load tenant.
 - **`flatten`** — recurse nested sub-models into dotted `parent.child` fields (the default, what a form
@@ -157,6 +159,31 @@ The tree then binds against namespaced fields — `bind("value", "global.type")`
   already publishes `<namespace>.connected`; set this option for a bare wire or to choose another field.
   It becomes true when the WebSocket opens, including a reconnect where the client is already current
   and the server sends no model frame.
+
+To mirror two models from one endpoint, select each model explicitly:
+
+```python
+wire = [
+    Wire("/ws", model=orders_id, namespace="orders", reconnect=True),
+    Wire("/ws", model="Settings", namespace="settings", reconnect=True),
+]
+```
+
+Selected wires share one client and WebSocket within a bootstrap mount when `url`, `codec`, `session`,
+`batch`, `reconnect`, `retry`, and `authority` match. Each wire retains its own namespace, flattening,
+connection-status field, and model link. Disposing a managed mount closes its shared connection.
+Unselected wires retain independent clients and first-model discovery.
+
+A numeric selector is the ID returned by `Session.host` or `Hub.share`. Type-name selection requires a
+transports client exposing `typeName(id)`. It waits for a matching snapshot; a missing model stays
+unbound. If a second matching type arrives, that link stops edits, clears its mirrored fields, sets
+`link.error`, and dispatches `spaday:wire-error` with `{namespace, model, error}` on `document`. Select by
+ID when a session contains multiple instances of the same type. A selected model changing type also
+disables its type-selected link. `connected` describes socket state,
+not successful model selection. Selectors do not change server permissions or filter network traffic.
+
+Generated connections use `wss:` on HTTPS pages and `ws:` on HTTP pages. Reconnect remains opt-in;
+set `reconnect=True` for dashboards that must recover after a dropped connection.
 
 For example, this single connection uses MessagePack, requests server batching, retries after 250 ms,
 and exposes its state as `editor_connected`:

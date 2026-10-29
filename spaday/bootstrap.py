@@ -57,6 +57,8 @@ class Wire:
     in ``serve``/``bootstrap`` ``wire=[…]`` (both forms are accepted, mix freely):
 
     - ``url`` — the websocket endpoint the model is mirrored over (matches a backend ``routes=`` entry).
+    - ``model`` — select a numeric model ID or unique snapshot type name. Selected wires with the
+      same connection settings share one client within this page. Omit to mirror the first model.
     - ``namespace`` — mirror the model's fields under ``<namespace>.`` so several models share one signal
       store without colliding (two ``Chart`` models on ``global.*`` / ``session.*``); omit for bare fields.
     - ``session`` — append ``?session=<uuid>`` so the model is a fresh per-page-load tenant (a ``Hub``).
@@ -87,8 +89,13 @@ class Wire:
     retry: int = 1000
     authority: Literal["server", "client"] = "server"
     connected: str | None = None
+    model: int | str | None = None
 
     def __post_init__(self) -> None:
+        if self.model is not None and not (
+            isinstance(self.model, str) and bool(self.model) or type(self.model) is int and 0 <= self.model <= 2**53 - 1
+        ):
+            raise ValueError("Wire model must be a nonempty type name or a nonnegative safe integer ID")
         if not self.url:
             raise ValueError("Wire url must not be empty")
         if not self.codec:
@@ -269,7 +276,7 @@ def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | Non
     return f'<script type="importmap"{n}>\n{body}\n</script>'
 
 
-def _wire_block(spec: dict, base: str, idx: int, *, managed: bool = False) -> list:
+def _wire_block(spec: dict, base: str, idx: int, *, managed: bool = False, shared: int | None = None) -> list:
     """Generate one managed transports client and connect it to the shared store."""
     url = spec["url"]
     ns = spec.get("namespace")
@@ -282,16 +289,20 @@ def _wire_block(spec: dict, base: str, idx: int, *, managed: bool = False) -> li
         extra = f", {_script_json(ns)}" if ns else ""
     else:
         extra = f", {_script_json(ns) if ns else 'undefined'}, false"
+    if spec.get("model") is not None:
+        extra = f", {_script_json(ns) if ns else 'undefined'}, {_script_json(spec.get('flatten', True))}, {_script_json(spec['model'])}"
     params = []
     if spec.get("session"):
         params.append("session=${" + _SESSION_ID + "}")  # a fresh tenant per page load
     if spec.get("batch"):
         params.append("batch=1")
     query = ("&" if "?" in url else "?") + "&".join(params) if params else ""
-    target = f"`ws://${{location.host}}{base}{url}{query}`"
+    target = f"`${{wsProtocol}}//${{location.host}}{base}{url}{query}`"
     codec = _script_json(spec.get("codec", "json"))
     lines = [
-        f"const {client} = new {'MountClient' if managed and spec.get('reconnect') else 'Client'}({codec});",
+        f"const {client} = client{shared};"
+        if shared is not None
+        else f"const {client} = new {'MountClient' if managed and spec.get('reconnect') else 'Client'}({codec});",
         f"const {link} = connectStore(store, {client}, undefined, {{ fromValue, toValue }}{extra});",
         f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client: {client}, link: {link}, store, namespace: {_script_json(ns)}, url: {_script_json(url)} }} }}));',
     ]
@@ -299,9 +310,15 @@ def _wire_block(spec: dict, base: str, idx: int, *, managed: bool = False) -> li
     if connected:
         lines += [
             f"store.set({_script_json(connected)}, false);",
-            f"{client}.onConnect(() => store.set({_script_json(connected)}, true));",
-            f"{client}.onDisconnect(() => store.set({_script_json(connected)}, false));",
+            f"const statusOpen{idx} = {client}.onConnect(() => store.set({_script_json(connected)}, true));",
+            f"const statusClose{idx} = {client}.onDisconnect(() => store.set({_script_json(connected)}, false));",
         ]
+        if managed:
+            lines.append(f"cleanups.push(statusOpen{idx}, statusClose{idx});")
+    if shared is not None:
+        if managed:
+            lines.append(f"cleanups.push(() => {link}.dispose());")
+        return lines
     if spec.get("reconnect"):
         options = _script_json({"authority": spec.get("authority", "server"), "retry": spec.get("retry", 1000)})
         lines.append(f"const connection{idx} = {client}.run({target}, {options});" if managed else f"{client}.run({target}, {options});")
@@ -412,6 +429,7 @@ def _script(
     else:
         lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{assets["runtime"]}";']
     if wired:
+        lines.append("const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';")
         lines.append(
             f'const {{ Client, fromValue, toValue, wasm }} = await import("{js}{assets["transports"]}");'
             if lifecycle
@@ -458,9 +476,9 @@ def _script(
                 "const client = new MountClient();" if lifecycle else "const client = new Client();",
                 "const link = connectStore(store, client, undefined, { fromValue, toValue });",
                 f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client, link, store, namespace: null, url: {_script_json(ws)} }} }}));',
-                f"const connection = client.run(`ws://${{location.host}}{base}{ws}`, {{ retry: 1000 }});"
+                f"const connection = client.run(`${{wsProtocol}}//${{location.host}}{base}{ws}`, {{ retry: 1000 }});"
                 if lifecycle
-                else f"client.run(`ws://${{location.host}}{base}{ws}`, {{ retry: 1000 }});",
+                else f"client.run(`${{wsProtocol}}//${{location.host}}{base}{ws}`, {{ retry: 1000 }});",
                 *(["cleanups.push(() => connection.stop(), () => client.closeSocket(), () => link.dispose());"] if lifecycle else []),
                 f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
@@ -472,17 +490,24 @@ def _script(
                 "const client = new Client();",
                 "const link = connectStore(store, client, undefined, { fromValue, toValue });",
                 f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client, link, store, namespace: null, url: {_script_json(ws)} }} }}));',
-                f"const connection = client.connect(`ws://${{location.host}}{base}{ws}`);"
+                f"const connection = client.connect(`${{wsProtocol}}//${{location.host}}{base}{ws}`);"
                 if lifecycle
-                else f"client.connect(`ws://${{location.host}}{base}{ws}`);",
+                else f"client.connect(`${{wsProtocol}}//${{location.host}}{base}{ws}`);",
                 *(["cleanups.push(() => connection.close(), () => link.dispose());"] if lifecycle else []),
                 f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
         )
     elif wires:  # several models share ONE store, each mirrored under its own namespace (see _wire_block)
         lines.extend(store_lines)
+        connections = {}
         for i, spec in enumerate(wires):
-            lines.extend(_wire_block(spec, base, i, managed=lifecycle is not None))
+            # Explicit model selection opts into sharing within this mount. Legacy wires retain
+            # independent clients, including integrations that own their client's lifecycle.
+            key = tuple(spec[name] for name in ("url", "codec", "session", "batch", "reconnect", "retry", "authority"))
+            shared = connections.get(key) if spec.get("model") is not None else None
+            lines.extend(_wire_block(spec, base, i, managed=lifecycle is not None, shared=shared))
+            if spec.get("model") is not None:
+                connections.setdefault(key, i)
         # a SendPatch fires `spaday:patch {model, field, value}`; route it into the namespaced store so the
         # matching connectStore subscriber sends the edit (an empty model writes the bare field).
         lines.append(

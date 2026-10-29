@@ -91,6 +91,7 @@ export interface ModelClient {
   onReject?(listener: (reject: RejectChange) => void): () => void;
   onAbandon?(listener: (proposals: string[]) => void): () => void;
   ids(): number[];
+  typeName?(id: number): string | undefined;
   value(id: number): unknown; // the model as a tagged core Value
   edit(id: number, value: unknown, proposal?: string): string | Uint8Array; // an encoded edit frame to send back
   editOps?(id: number, ops: PatchOp[], proposal?: string): string | Uint8Array;
@@ -108,8 +109,10 @@ export interface ValueCodec {
 }
 
 export interface StoreLink {
-  /** The first accepted model ID, once the initial snapshot arrives. */
+  /** The selected model ID, once its snapshot arrives. */
   readonly modelId: number | undefined;
+  /** Model selection failure; an ambiguous type disables this link. */
+  readonly error: string | undefined;
   /** Subscribe to model-ID discovery. Late subscribers are called immediately. */
   onModel(listener: (id: number) => void): () => void;
   /** Feed an inbound wire frame; the mirrored model's fields flow into the store (and bound props). */
@@ -619,7 +622,7 @@ function crdtFields(
  *
  * Pass a `namespace` to mirror under `${namespace}.<field>` so several models can share one `Store`
  * without their field names colliding (e.g. two `Chart` models on one page); the outbound edit still
- * carries the bare model field. Call it once per model, each with its own `client` and namespace.
+ * carries the bare model field. Call it once per model. Explicit selectors can share a client across namespaces.
  *
  * `flatten` (default true) recurses nested sub-models into dotted `parent.child` fields — what a generated
  * form binds to. Set it false when a top-level field is an **opaque map/dict** (a chart's time-keyed
@@ -637,8 +640,23 @@ export function connectStore(
   codec: ValueCodec,
   namespace?: string, // prefix every store field with `${namespace}.` — lets several models share one Store
   flatten = true, // recurse nested sub-models to dotted fields; set false to keep an opaque map/dict whole
+  model?: number | string, // exact ID or unique snapshot type; omitted retains first-model discovery
 ): StoreLink {
+  if (
+    model !== undefined &&
+    !(typeof model === "string"
+      ? model.length > 0
+      : Number.isSafeInteger(model) && model >= 0)
+  )
+    throw new TypeError(
+      "model must be a nonempty type name or a nonnegative safe integer ID",
+    );
+  if (typeof model === "string" && !client.typeName)
+    throw new TypeError(
+      "type-name selection requires a transports client with typeName",
+    );
   let id: number | undefined;
+  let selectionError: string | undefined;
   const modelListeners = new Set<(id: number) => void>();
   let inbound = false; // true while applying a received frame, so we don't echo it straight back out
   let disposed = false;
@@ -974,10 +992,40 @@ export function connectStore(
     }
   };
 
+  const select = (candidate: number | undefined): boolean => {
+    if (selectionError) return false;
+    if (typeof model === "string") {
+      const matches = client
+        .ids()
+        .filter((mid) => client.typeName!(mid) === model);
+      const changedType = id !== undefined && client.typeName!(id) !== model;
+      if (matches.length > 1 || changedType) {
+        selectionError = changedType
+          ? `Selected model ${id} no longer has type ${JSON.stringify(model)}`
+          : `Ambiguous model type ${JSON.stringify(model)}; select a numeric model ID`;
+        for (const proposal of [...pending.keys()]) discardProposal(proposal);
+        const fields = [...fieldUnsubs.keys()];
+        unwireFields();
+        id = undefined;
+        for (const field of fields) store.set(field, undefined);
+        if (typeof document !== "undefined")
+          document.dispatchEvent(
+            new CustomEvent("spaday:wire-error", {
+              detail: { namespace, model, error: selectionError },
+            }),
+          );
+        return false;
+      }
+      if (matches[0] !== candidate || candidate === undefined) return false;
+    } else if (model !== undefined && candidate !== model) return false;
+    if (id === undefined) id = candidate;
+    return id !== undefined && candidate === id;
+  };
+
   const accept = (change: ReceiveChange) => {
+    if (disposed) return;
     const discovered = id === undefined;
-    if (discovered) id = change.id;
-    if (change.id !== id) return;
+    if (!select(change.id)) return;
     if (change.t === "snapshot") {
       crdtBacked = false;
       for (const proposal of [...pending.keys()]) discardProposal(proposal);
@@ -1006,7 +1054,7 @@ export function connectStore(
   if (client.onAck)
     unsubs.push(
       client.onAck((ack) => {
-        if (id !== undefined && ack.id !== id) return;
+        if (id === undefined || ack.id !== id) return;
         const field = dropProposal(ack.proposal);
         if (field !== undefined) {
           clearError(field);
@@ -1017,7 +1065,7 @@ export function connectStore(
   if (client.onReject)
     unsubs.push(
       client.onReject((reject) => {
-        if (id !== undefined && reject.id !== id) return;
+        if (id === undefined || reject.id !== id) return;
         const fields = new Set<string>();
         if (reject.proposal) {
           const edit = pending.get(reject.proposal);
@@ -1050,7 +1098,25 @@ export function connectStore(
   if (client.onAbandon)
     unsubs.push(client.onAbandon((proposals) => abandon(proposals)));
 
+  if (model !== undefined) {
+    const existing = client
+      .ids()
+      .find((mid) =>
+        typeof model === "number"
+          ? mid === model
+          : client.typeName!(mid) === model,
+      );
+    if (existing !== undefined)
+      accept({
+        t: client.crdtSpec?.(existing) ? "crdt_snapshot" : "snapshot",
+        id: existing,
+      });
+  }
+
   return {
+    get error() {
+      return selectionError;
+    },
     get modelId() {
       return id;
     },
@@ -1076,15 +1142,22 @@ export function connectStore(
         return;
       }
       const discovered = id === undefined;
-      if (discovered) id = client.ids()[0];
-      if (id === undefined) return; // no model yet (snapshot not received)
+      const candidate =
+        typeof model === "number"
+          ? client.ids().includes(model)
+            ? model
+            : undefined
+          : typeof model === "string"
+            ? client.ids().find((mid) => client.typeName!(mid) === model)
+            : (id ?? client.ids()[0]);
+      if (!select(candidate)) return; // no matching model yet
       inbound = true;
       try {
         receiveSnapshot();
       } finally {
         inbound = false;
       }
-      if (discovered) for (const listener of [...modelListeners]) listener(id);
+      if (discovered) for (const listener of [...modelListeners]) listener(id!);
     },
     disconnect() {
       if (disposed) return;

@@ -532,3 +532,115 @@ test("replacement during mounted readies only the current root", async ({
   await page.evaluate(() => window.rootDetail.dispose());
   await expect(page.locator("section")).toHaveCount(0);
 });
+
+for (const secure of [false, true]) {
+  test(`selected wires share a socket and reconnect (${secure ? "HTTPS" : "HTTP"})`, async ({
+    page,
+  }) => {
+    let opened = 0,
+      closed = 0;
+    const sockets = [];
+    const edits = [];
+    await page.addInitScript(() => {
+      window.wireLinks = [];
+      document.addEventListener(
+        "spaday:ready",
+        (event) => (window.selectedMount = event.detail),
+      );
+      document.addEventListener("spaday:wire-client", (event) =>
+        window.wireLinks.push(event.detail),
+      );
+    });
+    await page.route("**/js/node_modules/**", async (route) => {
+      const url = new URL(route.request().url());
+      const response = await route.fetch({
+        url: `http://127.0.0.1:3000${url.pathname.replace("/js/node_modules/", "/node_modules/")}`,
+      });
+      await route.fulfill({ response });
+    });
+    if (secure)
+      await page.route("https://spaday.test/js/dist/**", async (route) => {
+        const response = await route.fetch({
+          url: `http://127.0.0.1:3000${new URL(route.request().url()).pathname.replace("/js/dist/", "/dist/")}`,
+        });
+        await route.fulfill({ response });
+      });
+    await page.routeWebSocket(/\/ws(?:\?|$)/, (socket) => {
+      expect(socket.url().startsWith(secure ? "wss:" : "ws:")).toBe(true);
+      opened++;
+      sockets.push(socket);
+      socket.onClose(() => closed++);
+      socket.onMessage((frame) => edits.push(JSON.parse(frame)));
+      // Only the first connection needs snapshots. Reconnect resumes retained model state.
+      if (opened === 1) {
+        socket.send(
+          JSON.stringify({
+            t: "snapshot",
+            id: 2,
+            type: "Orders",
+            rev: 0,
+            value: { Map: { count: { Int: 20 } } },
+          }),
+        );
+        socket.send(
+          JSON.stringify({
+            t: "snapshot",
+            id: 1,
+            type: "Counter",
+            rev: 0,
+            value: { Map: { count: { Int: 10 } } },
+          }),
+        );
+      }
+    });
+    const html = markup({
+      wire: [
+        { url: "/ws", model: 1, namespace: "a", reconnect: true, retry: 10 },
+        {
+          url: "/ws",
+          model: "Orders",
+          namespace: "b",
+          reconnect: true,
+          retry: 10,
+        },
+      ],
+    });
+    if (secure) {
+      // Use an intercepted secure origin; no TLS server or certificate is needed.
+      await page.route("https://spaday.test/app", (route) =>
+        route.fulfill({ contentType: "text/html", body: html }),
+      );
+      await page.goto("https://spaday.test/app");
+    } else await serve(page, html);
+    await page.waitForFunction(
+      () =>
+        window.wireLinks?.length === 2 &&
+        window.wireLinks.every((w) => w.link.modelId !== undefined),
+    );
+    expect(opened).toBe(1);
+    expect(
+      await page.evaluate(() => {
+        const [a, b] = window.wireLinks;
+        const values = [
+          a.client === b.client,
+          a.store.get("a.count"),
+          b.store.get("b.count"),
+        ];
+        a.store.set("a.count", 11);
+        b.store.set("b.count", 21);
+        return values;
+      }),
+    ).toEqual([true, 10, 20]);
+    await expect.poll(() => edits.map((e) => e.id)).toEqual([1, 2]);
+    sockets[0].close();
+    await expect.poll(() => opened).toBe(2);
+    await page.waitForFunction(() =>
+      window.wireLinks.every((w) => w.store.get(`${w.namespace}.connected`)),
+    );
+    // Dispose the whole mount and confirm the shared socket closes with no later retries.
+    await page.evaluate(() => window.selectedMount.dispose());
+    await expect.poll(() => closed).toBe(2);
+    await page.waitForTimeout(60);
+    expect(opened).toBe(2);
+  });
+}

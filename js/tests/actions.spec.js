@@ -1092,3 +1092,32 @@ test("set-storage and download resolve a thenable value (a call of an async meth
   expect(JSON.parse(r.blobText)).toEqual({ layout: "clean" });
   expect(r.anchor.download).toBe("layout.json");
 });
+
+test("Emit crosses shadow roots only when composed is enabled", async ({
+  page,
+}) => {
+  const seen = await page.evaluate(() => {
+    const host = document.body.appendChild(document.createElement("div"));
+    const shadow = host.attachShadow({ mode: "open" });
+    const received = [];
+    document.addEventListener("shadow-ping", (event) =>
+      received.push(event.detail),
+    );
+    for (const composed of [false, true]) {
+      const button = window.__spaday.mount(shadow, {
+        tag: "button",
+        events: {
+          click: {
+            kind: "emit",
+            event: "shadow-ping",
+            composed,
+            detail: { expr: "lit", value: composed },
+          },
+        },
+      });
+      button.click();
+    }
+    return received;
+  });
+  expect(seen).toEqual([true]);
+});

@@ -448,7 +448,7 @@ def test_mount_prefixes_supplied_routes_to_match_the_generated_wire(tmp_path):
     assert "/dash/ws" in paths  # WebSocketRoute prefixed → lines up with the generated wire URL
     assert "/dash/api/ping" in paths  # Route prefixed
     assert "/static" in paths  # Mount passes through unchanged
-    assert "ws://${location.host}/dash/ws" in TestClient(app).get("/dash/").text
+    assert "${wsProtocol}//${location.host}/dash/ws" in TestClient(app).get("/dash/").text
 
 
 def test_mount_stamps_a_csp_nonce_on_generated_tags(tmp_path):

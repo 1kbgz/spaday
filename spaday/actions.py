@@ -417,14 +417,17 @@ ActionSequence = Sequence
 
 
 class Emit(Action):
-    """Dispatch a (bubbling) custom DOM event named ``event`` with an optional ``detail`` expression."""
+    """Dispatch a bubbling custom DOM event. Set ``composed=True`` to cross shadow roots."""
 
-    def __init__(self, event: str, detail: Any = None) -> None:
-        self.event, self.detail = event, detail
+    def __init__(self, event: str, detail: Any = None, *, composed: bool = False) -> None:
+        self.event, self.detail, self.composed = event, detail, composed
 
     def to_dict(self) -> dict[str, Any]:
         detail = _expr(self.detail).to_dict() if self.detail is not None else None
-        return {"kind": "emit", "event": self.event, "detail": detail}
+        result: dict[str, Any] = {"kind": "emit", "event": self.event, "detail": detail}
+        if self.composed:
+            result["composed"] = True
+        return result
 
 
 class SendPatch(Action):
