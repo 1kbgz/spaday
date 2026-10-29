@@ -972,15 +972,14 @@ function prepareEachDeltas(
   deltas: readonly CollectionDelta[],
   itemKey: string,
   order: readonly string[],
-  instances: ReadonlyMap<string, EachInstance>,
+  hasItem: (identity: string) => boolean,
+  getItem: (identity: string) => unknown,
 ): PreparedEachDelta[] {
   let nextOrder: string[] | undefined;
   let values = new Map<string, unknown>();
   const currentOrder = (): string[] => (nextOrder ??= [...order]);
   const currentValue = (identity: string): unknown =>
-    values.has(identity)
-      ? values.get(identity)
-      : instances.get(identity)?.scope.get();
+    values.has(identity) ? values.get(identity) : getItem(identity);
   const prepared: PreparedEachDelta[] = [];
   const updates = new Map<
     string,
@@ -1012,9 +1011,7 @@ function prepareEachDeltas(
       continue;
     }
     const identity = eachKeyIdentity(delta.key, itemKey);
-    const exists = nextOrder
-      ? nextOrder.includes(identity)
-      : instances.has(identity);
+    const exists = nextOrder ? nextOrder.includes(identity) : hasItem(identity);
     if (delta.kind === "insert") {
       const sequence = currentOrder();
       collectionIndex(delta.index, sequence.length, true);
@@ -1129,6 +1126,31 @@ function wireEach(
   const template = node.slots?.[DEFAULT_SLOT] ?? [];
   const itemKey = String(untag(node.props?.itemKey!));
   const direct = Boolean(node.props?.direct && untag(node.props.direct));
+  const rowHeight = node.props?.rowHeight
+    ? Number(untag(node.props.rowHeight))
+    : undefined;
+  const viewportHeight = node.props?.viewportHeight
+    ? Number(untag(node.props.viewportHeight))
+    : 400;
+  const overscan = node.props?.overscan
+    ? Number(untag(node.props.overscan))
+    : 4;
+  const windowed = Boolean(node.props?.windowed && untag(node.props.windowed));
+  if (
+    rowHeight !== undefined &&
+    (!Number.isSafeInteger(rowHeight) ||
+      rowHeight <= 0 ||
+      !Number.isSafeInteger(viewportHeight) ||
+      viewportHeight <= 0 ||
+      !Number.isSafeInteger(overscan) ||
+      overscan < 0 ||
+      direct)
+  )
+    throw new Error(
+      "spa-each virtualization requires positive integer heights, nonnegative overscan, and direct=false",
+    );
+  if (windowed && rowHeight === undefined)
+    throw new Error("spa-each windowed requires rowHeight");
   const scopeValue = node.props?.scopeName
     ? untag(node.props.scopeName)
     : undefined;
@@ -1140,6 +1162,28 @@ function wireEach(
   let order: string[] = [];
   let frame: number | undefined;
   let pendingDeltas: CollectionDelta[] | undefined;
+  const content = rowHeight === undefined ? el : document.createElement("div");
+  let virtualItems: Array<[string, unknown]> = [];
+  let virtualIndexes = new Map<string, number>();
+  let offset = 0;
+  let total = 0;
+  let sourceDirty = true;
+  let virtualInitialized = false;
+  let requestedRange = "";
+  if (rowHeight !== undefined) {
+    Object.assign((el as HTMLElement).style, {
+      display: "block",
+      overflow: "auto",
+      height: `${viewportHeight}px`,
+      position: "relative",
+      overflowAnchor: "none",
+    });
+    Object.assign((content as HTMLElement).style, {
+      position: "relative",
+      width: "100%",
+    });
+    el.appendChild(content);
+  }
   const placeOrder = (): void => {
     const parent = direct ? (el.parentElement ?? el) : el;
     let reference: Element | null = direct && parent !== el ? el : null;
@@ -1162,12 +1206,16 @@ function wireEach(
       reference = child;
     }
   };
-  const evaluate = (): unknown[] => {
+  const evaluateValue = (): unknown => {
     const value = source?.compute
       ? evalExpr(source.compute, store, parentScope)
       : source?.field && store
         ? store.get(source.field)
         : [];
+    return value;
+  };
+  const evaluate = (): unknown[] => {
+    const value = evaluateValue();
     return Array.isArray(value) ? value : [];
   };
   const reconcileItems = (items: Array<[string, unknown]>): void => {
@@ -1186,17 +1234,17 @@ function wireEach(
         if (direct) structuralInstances.add(instance.element);
       }
       if (!direct) {
-        const current = el.children[index];
+        const current = content.children[index];
         if (current !== instance.element) {
-          const movable = el as Element & {
+          const movable = content as Element & {
             moveBefore?: (node: Element, child: Element | null) => void;
           };
           if (
-            instance.element.parentElement === el &&
+            instance.element.parentElement === content &&
             typeof movable.moveBefore === "function"
           )
             movable.moveBefore(instance.element, current ?? null);
-          else el.insertBefore(instance.element, current ?? null);
+          else content.insertBefore(instance.element, current ?? null);
         }
       }
       stale.delete(identity);
@@ -1231,7 +1279,13 @@ function wireEach(
     else el.insertBefore(instance.element, current);
   };
   const applyDeltas = (deltas: readonly CollectionDelta[]): void => {
-    const prepared = prepareEachDeltas(deltas, itemKey, order, instances);
+    const prepared = prepareEachDeltas(
+      deltas,
+      itemKey,
+      order,
+      (identity) => instances.has(identity),
+      (identity) => instances.get(identity)?.scope.get(),
+    );
     preserveEachFocus(instances.values(), () => {
       for (const delta of prepared) {
         if (delta.kind === "reset") {
@@ -1273,7 +1327,8 @@ function wireEach(
     frame = undefined;
     const deltas = pendingDeltas;
     pendingDeltas = undefined;
-    if (deltas) applyDeltas(deltas);
+    if (rowHeight !== undefined) renderVirtual(deltas);
+    else if (deltas) applyDeltas(deltas);
     else
       preserveEachFocus(instances.values(), () =>
         reconcileItems(keyedItems(evaluate(), itemKey)),
@@ -1283,16 +1338,123 @@ function wireEach(
     if (frame === undefined) frame = requestAnimationFrame(flush);
   };
   const scheduleReconcile = (): void => {
+    sourceDirty = true;
     pendingDeltas = undefined;
     schedule();
   };
   const scheduleDelta = (delta: CollectionDelta): void => {
+    sourceDirty = true;
     if (delta.kind === "reset") pendingDeltas = [delta];
     else (pendingDeltas ??= []).push(delta);
     schedule();
   };
 
-  reconcileItems(keyedItems(evaluate(), itemKey));
+  const renderVirtual = (deltas?: readonly CollectionDelta[]): void => {
+    if (rowHeight === undefined) return;
+    if (deltas && virtualInitialized && !windowed) {
+      prepareEachDeltas(
+        deltas,
+        itemKey,
+        virtualItems.map(([identity]) => identity),
+        (identity) => virtualIndexes.has(identity),
+        (identity) => virtualItems[virtualIndexes.get(identity)!]?.[1],
+      );
+    }
+    if (sourceDirty) {
+      const value = evaluateValue();
+      let items: unknown[];
+      let nextOffset = 0;
+      let nextTotal: number;
+      if (windowed) {
+        const page = value as
+          | { items?: unknown[]; offset?: number; total?: number }
+          | undefined;
+        if (
+          !page ||
+          !Array.isArray(page.items) ||
+          !Number.isSafeInteger(page.offset) ||
+          page.offset! < 0 ||
+          !Number.isSafeInteger(page.total) ||
+          page.total! < 0 ||
+          page.offset! + page.items.length > page.total!
+        ) {
+          throw new Error(
+            "spa-each window requires {items, offset, total} within bounds",
+          );
+        }
+        items = page.items;
+        nextOffset = page.offset!;
+        nextTotal = page.total!;
+      } else {
+        items = Array.isArray(value) ? value : [];
+        nextTotal = items.length;
+      }
+      const nextItems = keyedItems(items, itemKey);
+      virtualItems = nextItems;
+      virtualIndexes = new Map(
+        nextItems.map(([identity], index) => [identity, index]),
+      );
+      offset = nextOffset;
+      total = nextTotal;
+      sourceDirty = false;
+      virtualInitialized = true;
+    }
+    const host = el as HTMLElement;
+    const height = host.clientHeight || viewportHeight;
+    const top = Math.min(
+      host.scrollTop,
+      Math.max(0, total * rowHeight - height),
+    );
+    if (host.scrollTop !== top) host.scrollTop = top;
+    const start = Math.max(0, Math.floor(top / rowHeight) - overscan);
+    const stop = Math.min(
+      total,
+      Math.ceil((top + height) / rowHeight) + overscan,
+    );
+    const visible = virtualItems.slice(
+      Math.max(0, start - offset),
+      Math.max(0, stop - offset),
+    );
+    // Keep one focused row mounted while it leaves the viewport. Removed records are disposed.
+    const active = document.activeElement;
+    for (const [identity, instance] of instances) {
+      const index = virtualIndexes.get(identity);
+      if (
+        active &&
+        instance.element.contains(active) &&
+        index !== undefined &&
+        !visible.some(([key]) => key === identity)
+      ) {
+        visible.push(virtualItems[index]);
+      }
+    }
+    preserveEachFocus(instances.values(), () => reconcileItems(visible));
+    (content as HTMLElement).style.height = `${total * rowHeight}px`;
+    for (const [identity, instance] of instances) {
+      const index = offset + virtualIndexes.get(identity)!;
+      Object.assign((instance.element as HTMLElement).style, {
+        position: "absolute",
+        top: `${index * rowHeight}px`,
+        left: "0",
+        width: "100%",
+        height: `${rowHeight}px`,
+        boxSizing: "border-box",
+        margin: "0",
+      });
+    }
+    const range = `${start}:${stop}`;
+    if (windowed && range !== requestedRange) {
+      requestedRange = range;
+      el.dispatchEvent(
+        new CustomEvent("spaday:range", {
+          detail: { start, stop },
+          bubbles: true,
+        }),
+      );
+    }
+  };
+  if (rowHeight === undefined) reconcileItems(keyedItems(evaluate(), itemKey));
+  else schedule(); // Events bind before the first range request; layout is available after mounting.
   if (direct) {
     directStructuralChildren.set(el, () =>
       order.map((identity) => instances.get(identity)!.element),
@@ -1307,7 +1469,27 @@ function wireEach(
     for (const dependency of exprScopes(source.compute, parentScope))
       subs.push(dependency.subscribe(scheduleReconcile));
   } else if (source?.field && store) {
-    subs.push(store.subscribeCollection(source.field, itemKey, scheduleDelta));
+    if (rowHeight === undefined)
+      subs.push(
+        store.subscribeCollection(source.field, itemKey, scheduleDelta),
+      );
+    else if (!windowed)
+      subs.push(
+        store.subscribeCollection(source.field, itemKey, scheduleDelta),
+      );
+    else subs.push(store.subscribe(source.field, scheduleReconcile));
+  }
+  if (rowHeight !== undefined) {
+    el.addEventListener("scroll", schedule, { passive: true });
+    el.addEventListener("focusout", schedule);
+    const observer = new ResizeObserver(schedule);
+    observer.observe(el);
+    subs.push(() => {
+      observer.disconnect();
+      el.removeEventListener("scroll", schedule);
+      el.removeEventListener("focusout", schedule);
+      content.remove();
+    });
   }
   let map = bindings.get(el);
   if (!map) bindings.set(el, (map = new Map()));

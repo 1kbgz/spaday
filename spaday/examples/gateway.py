@@ -46,7 +46,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket
 
-from spaday import element
+from spaday import Component, element
 from spaday.actions import CallEndpoint, NamedJs, cond, eq, field, obj
 from spaday.backends.starlette import serve
 from spaday.components.shell import App, Body, Footer, Gutter, Main, Nav, Row, Stack
@@ -134,7 +134,7 @@ BLOTTER_LAYOUT = _layout({"title": "Orders", "sort": [["id", "desc"]]})
 SYMBOL_LAYOUT = _layout({"title": "By symbol", "group_by": ["symbol"], "columns": ["qty", "price"], "aggregates": {"qty": "sum", "price": "avg"}})
 
 
-def header() -> object:
+def header() -> Component:
     """A gateway-style top bar: a marked title + channel left, a dark/light toggle + view selector right."""
     view = WaSelect(value="blotter", size="s").bind("value", "view", mode="two-way").prop("style", "width:200px")
     for value, label in (("blotter", "Blotter"), ("symbol", "By symbol")):
@@ -151,7 +151,7 @@ def header() -> object:
     )
 
 
-def controls() -> object:
+def controls() -> Component:
     """The right settings gutter: the order form (a channel send) + the actions + a status line."""
     return (
         Stack()
@@ -181,7 +181,7 @@ def controls() -> object:
     )
 
 
-def page() -> object:
+def page() -> Component:
     """A gateway dashboard: header, a full-bleed live Perspective workspace, a right control gutter, footer."""
     blotter = (
         PerspectivePanel()

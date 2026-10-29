@@ -67,9 +67,9 @@ def test_constructor_children_and_string_text_and_generic_props():
 
 def test_component_rejects_invalid_children_and_actions_at_authoring_time():
     with pytest.raises(TypeError, match="child must be a Component, node dict, or string"):
-        element("div").child(3)
+        element("div").child(3)  # ty: ignore[invalid-argument-type]
     with pytest.raises(TypeError, match="event action must be an Action"):
-        element("button").on("click", 3)
+        element("button").on("click", 3)  # ty: ignore[invalid-argument-type]
 
 
 def test_component_keys_primitives_and_prop_validation():
@@ -212,23 +212,23 @@ def test_show_requires_a_condition():
     with pytest.raises(ValueError):
         Show()
     with pytest.raises(TypeError, match="Show when must be an Expr"):
-        Show(when=True)
+        Show(when=True)  # ty: ignore[invalid-argument-type]
 
 
 def test_show_rejects_ambiguous_or_misplaced_conditions():
     child = element("span")
     with pytest.raises(ValueError, match="exactly one"):
-        Show(field("visible"), child, field="other")
+        Show(field("visible"), child, field="other")  # ty: ignore[no-matching-overload]
     assert Show(child, field="visible", when=field("other")).to_node()["bindings"]["when"] == {
         "field": "visible",
         "mode": "one-way",
     }
     with pytest.raises(TypeError, match="must be the first"):
-        Show(child, field("visible"))
+        Show(child, field("visible"))  # ty: ignore[no-matching-overload]
     with pytest.raises(TypeError, match="must be the first"):
-        Show(field("visible"), field("other"), child)
+        Show(field("visible"), field("other"), child)  # ty: ignore[no-matching-overload]
     with pytest.raises(TypeError, match="field must be a string"):
-        Show(child, field=field("visible"))
+        Show(child, field=field("visible"))  # ty: ignore[no-matching-overload]
 
 
 def test_each_authors_a_keyed_collection_template():
@@ -256,6 +256,29 @@ def test_each_can_render_items_as_direct_children_of_its_parent():
     assert "direct" not in Each(Text(item("name")), field="rows", key="id").to_node()["props"]
 
 
+def test_each_virtualization_configuration():
+    props = Each(Text(item("name")), field="rows", key="id", row_height=24, height=240, overscan=2, window=True).to_node()["props"]
+    assert props["rowHeight"] == {"Int": 24}
+    assert props["viewportHeight"] == {"Int": 240}
+    assert props["windowed"] == {"Bool": True}
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"row_height": 0},
+        {"row_height": True},
+        {"row_height": 20, "height": 0},
+        {"row_height": 20, "overscan": -1},
+        {"row_height": 20, "direct": True},
+        {"window": True},
+    ],
+)
+def test_each_rejects_invalid_virtualization(options):
+    with pytest.raises(ValueError):
+        Each(Text(item("name")), field="rows", key="id", **options)
+
+
 def test_each_accepts_a_nested_collection_expression():
     node = Each(element("span"), items=item("records"), key="id").to_node()
     assert node["bindings"]["items"] == {
@@ -281,7 +304,7 @@ def test_each_validates_its_source_key_and_scope(kwargs, message):
 
 def test_each_requires_one_component_template():
     with pytest.raises(TypeError, match="one Component"):
-        Each("text", field="rows", key="id")
+        Each("text", field="rows", key="id")  # ty: ignore[invalid-argument-type]
 
 
 def test_toast_authors_a_spa_toast_with_both_trigger_patterns():

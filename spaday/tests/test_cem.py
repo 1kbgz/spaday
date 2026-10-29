@@ -95,7 +95,7 @@ def test_catalog_schema_validates_and_serializes_with_pydantic():
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         PropertySchema.model_validate({"name": "value", "kind": "number", "unknown": True})
     with pytest.raises(ValidationError, match="Instance is frozen"):
-        schema.tag = "changed"  # type: ignore[misc]
+        schema.tag = "changed"  # type: ignore[misc]  # ty: ignore[invalid-assignment]
 
 
 def test_generated_class_rejects_prop_kind_mismatches_at_authoring_time():

@@ -317,7 +317,9 @@ def _generic_props() -> frozenset[str]:
     from .controls import CONTROLS
 
     handled = {*PARTS, "open", "options", "value", OVERRIDES_PROP}
-    return frozenset(prop.name for control in CONTROLS.values() for prop in control.schema.props if prop.name not in handled)
+    return frozenset(
+        prop.name for control in CONTROLS.values() if control.schema is not None for prop in control.schema.props if prop.name not in handled
+    )
 
 
 def _encode_value(value: Any, codec: str | None, encode: str | None = None, scale: float | None = None) -> Any:

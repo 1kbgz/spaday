@@ -23,13 +23,13 @@ from starlette.responses import HTMLResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from spaday import element
+from spaday import Component, element
 from spaday.actions import Toggle, by_id
 from spaday.bootstrap import bootstrap, bundles_dir, tree_json
 from spaday.components.shell import Stack
 
 
-def panel() -> object:
+def panel() -> Component:
     """The spaday subtree dropped into the host page — a button carrying a client-side action."""
     return (
         Stack()

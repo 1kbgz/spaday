@@ -435,6 +435,17 @@ class Each(Component):
     unique strings or finite numbers. Reordering preserves each live root element and its local state.
     Set ``direct=True`` when the parent custom element requires repeated roots to be direct light-DOM
     children; the ``spa-each`` element remains as an empty reconciliation anchor.
+
+    Set ``row_height`` to a positive integer pixel height to render only the viewport and
+    ``overscan`` rows on either side. ``height`` sets the viewport height. Virtual rows have
+    fixed height, no margins, and absolute positioning; direct children are not supported.
+    Offscreen rows are disposed, except one focused row while its record remains available.
+    Store local edits in application state if they must survive disposal.
+
+    With ``window=True``, the source is ``{"items": [...], "offset": 0, "total": 1000}``.
+    The bubbling ``spaday:range`` event requests ``{start, stop}`` (exclusive stop), including
+    overscan. Applications fetch and replace that envelope; use a managed Request to discard
+    stale responses. Virtualization alone keeps the complete dataset in the Store.
     """
 
     tag = "spa-each"
@@ -444,10 +455,14 @@ class Each(Component):
         template: Component,
         *,
         field: str | None = None,
-        items: Any | None = None,
+        items: Any = None,
         key: str,
         scope: str | None = None,
         direct: bool = False,
+        row_height: int | None = None,
+        height: int = 400,
+        overscan: int = 4,
+        window: bool = False,
         **props: Any,
     ) -> None:
         if not isinstance(template, Component):
@@ -458,7 +473,17 @@ class Each(Component):
             raise ValueError("Each key must be a non-empty item field")
         if scope is not None and (not scope or "." in scope):
             raise ValueError("Each scope must be a non-empty name without dots")
+        if row_height is not None:
+            for name, value, minimum in (("row_height", row_height, 1), ("height", height, 1), ("overscan", overscan, 0)):
+                if type(value) is not int or value < minimum:
+                    raise ValueError(f"Each {name} must be an integer >= {minimum}")
+            if direct:
+                raise ValueError("Each virtualization cannot be combined with direct=True")
+        elif window:
+            raise ValueError("Each window=True requires row_height")
         each_props: dict[str, Any] = {"style": "display:contents", "itemKey": key, "scopeName": scope}
+        if row_height is not None:
+            each_props.update(rowHeight=row_height, viewportHeight=height, overscan=overscan, windowed=window)
         if direct:
             each_props["direct"] = True
         super().__init__(template, props=each_props, **props)
@@ -497,7 +522,7 @@ class Table(Component):
         key: str | None = None,
         **props: Any,
     ) -> None:
-        normalized_rows = None if rows is None else []
+        normalized_rows = []
         rich_cells: list[tuple[str, Component]] = []
         identities: set[tuple[str, str | float]] = set()
         for row in rows or []:
@@ -521,6 +546,6 @@ class Table(Component):
                 else:
                     normalized_row[name] = value
             normalized_rows.append(normalized_row)
-        super().__init__(key=key, props={"columns": columns, "rowKey": row_key, "rows": normalized_rows}, **props)
+        super().__init__(key=key, props={"columns": columns, "rowKey": row_key, "rows": None if rows is None else normalized_rows}, **props)
         for slot, component in rich_cells:
             self.child_in(slot, component)

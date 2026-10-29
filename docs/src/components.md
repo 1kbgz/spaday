@@ -309,6 +309,37 @@ Run the complete [keyed records example](../../spaday/examples/keyed_records.py)
 server-driven add/update/remove/reorder operations, per-record endpoint payloads, and preserved local
 input state without page-specific JavaScript.
 
+## Render a large collection
+
+Give `Each` a fixed row height to mount only visible records and overscan:
+
+```python
+from spaday import Text, item
+from spaday.components import Each
+
+Each(Text(item("label")), field="rows", key="id", row_height=32, height=384, overscan=4)
+```
+
+This limits mounted subtrees, not the dataset in the Store. Rows use absolute positioning and fixed
+pixel heights without margins. Do not combine this mode with `direct=True`. One focused row remains
+mounted outside the viewport while its record is available. Other offscreen rows are disposed;
+keep edits that must survive scrolling in application state.
+
+To limit browser-held data too, set `window=True` and bind the source to an envelope with
+`items`, `offset`, and `total`. Handle `spaday:range` to fetch the requested half-open range
+`{start, stop}`, including overscan, and replace that envelope atomically. Use
+`CallEndpoint(..., request=Request(...))` so an older response cannot replace a newer window.
+Keep authorization, sorting, filtering, and maximum request size in the server endpoint.
+
+Run the [windowed collection example](../../spaday/examples/windowed_collection.py):
+
+```sh
+python -m spaday.examples.windowed_collection
+```
+
+The example serves 100,000 logical records but sends at most 20 rows per viewport request.
+See the [collection benchmarks](benchmarks.md) for measured rendering and wire costs.
+
 ## Reach for a raw element
 
 For text or a structural tag a typed class doesn't cover, use `element`:

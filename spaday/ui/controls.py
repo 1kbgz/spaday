@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Literal
 
-from ..catalog import ComponentSchema, PropertySchema
+from ..catalog import ComponentSchema, PropertyKind, PropertySchema
 from ..component import Child, Component
 from .design import OVERRIDES_PROP
 
@@ -40,7 +40,7 @@ Appearance = Literal["filled", "outline", "plain"]
 Size = Literal["sm", "md", "lg"]
 
 
-def _prop(name: str, kind: str, description: str, choices: tuple[str, ...] = (), type_text: str | None = None) -> PropertySchema:
+def _prop(name: str, kind: PropertyKind, description: str, choices: tuple[str, ...] = (), type_text: str | None = None) -> PropertySchema:
     return PropertySchema(name=name, kind=kind, choices=choices, description=description, type_text=type_text)
 
 

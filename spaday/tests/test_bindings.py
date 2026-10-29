@@ -57,7 +57,7 @@ def test_compute_with_cond_selects_a_value_by_a_field():
 
 def test_compute_rejects_non_expression_at_authoring_time():
     with pytest.raises(TypeError, match="computed binding must use an Expr"):
-        element("span").compute("textContent", 3)
+        element("span").compute("textContent", 3)  # ty: ignore[invalid-argument-type]
 
 
 def test_native_text_binding_rejects_silent_no_op():

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -62,7 +63,8 @@ def test_controls_serialize_to_generic_nodes_with_schemas():
     node = Button(label="Save", intent="primary").to_node()
     assert node == {"tag": "ui-button", "props": {"label": {"Str": "Save"}, "intent": {"Str": "primary"}}}
     with pytest.raises(TypeError, match="expects kind 'enum'"):
-        Button(intent=3)
+        Button(intent=3)  # ty: ignore[invalid-argument-type]
+    assert TextInput.schema is not None
     input_type = next(prop for prop in TextInput.schema.props if prop.name == "type")
     assert "number" not in input_type.choices
     # validate() knows the generic vocabulary, and hints at it
@@ -454,7 +456,7 @@ def test_value_can_scale_against_another_generic_property():
 def test_string_encoding_matches_javascript_for_json_values():
     design = _design(select=ControlSpec(tag="x-select", value=Value(encode="string")))
     for value, expected in [(["a", None, True], "a,,true"), ({"a": 1}, "[object Object]"), (1e21, "1e+21")]:
-        assert _plain(resolve(Select(value=value).to_node(), design))["props"]["value"] == expected
+        assert _plain(resolve(Select(value=value).to_node(), design))["props"]["value"] == expected  # ty: ignore[invalid-argument-type]
     with pytest.raises(ValueError, match="string encoding requires a JavaScript-safe integer"):
         resolve(Select(value=2**53).to_node(), design)
     deferred = _design(select=ControlSpec(tag="x-select", value=Value(encode="string", defer=True)))
@@ -627,7 +629,7 @@ def test_bind_carries_event_and_methods_through_the_core():
     patch = spaday.diff(element("dialog").to_json(), node.to_json())
     assert json.loads(spaday.apply(element("dialog").to_json(), patch)) == node.to_node()
     with pytest.raises(ValueError, match="pair of method names"):
-        element("dialog").bind("open", "o", methods=("show",))
+        element("dialog").bind("open", "o", methods=("show",))  # ty: ignore[invalid-argument-type]
     with pytest.raises(ValueError, match="dotted property path"):
         element("dialog").bind("open", "o", state="dialog..open")
     numeric = element("input").bind("value", "count", mode="two-way", codec="number")
@@ -646,9 +648,9 @@ def test_bind_carries_event_and_methods_through_the_core():
 
 def test_select_design_follows_the_selected_packages():
     design = _design(button=ControlSpec(tag="x-button"))
-    with_design = ComponentPackage("x", ".", (), design=design)
-    other = ComponentPackage("y", ".", (), design=_design())
-    plain = ComponentPackage("z", ".", ())
+    with_design = ComponentPackage("x", Path("."), (), design=design)
+    other = ComponentPackage("y", Path("."), (), design=_design())
+    plain = ComponentPackage("z", Path("."), ())
     assert select_design(None, [plain]) is NATIVE
     assert select_design(None, [plain, with_design]) is design
     assert select_design("x", [with_design]) is design
@@ -659,7 +661,7 @@ def test_select_design_follows_the_selected_packages():
     with pytest.raises(ValueError, match="no selected package publishes the design 'q'"):
         select_design("q", [with_design])
     with pytest.raises(TypeError, match="must be a spaday.ui.Design"):
-        ComponentPackage("x", ".", (), design={"name": "x"})
+        ComponentPackage("x", Path("."), (), design={"name": "x"})  # ty: ignore[invalid-argument-type]
 
 
 def test_a_design_round_trips_as_data():
@@ -679,7 +681,7 @@ def test_a_design_round_trips_as_data():
     )
     assert Design.model_validate_json(custom.model_dump_json()) == custom
     with pytest.raises(ValueError):
-        ControlSpec(tag="x", labl=Part())  # a typo in a spec is an error, not a silently dropped mapping
+        ControlSpec(tag="x", labl=Part())  # a typo in a spec is an error, not a silently dropped mapping  # ty: ignore[unknown-argument]
     with pytest.raises(ValueError, match="at least 1 item"):
         ControlSpec(tag="x", label=())
     with pytest.raises(ValueError, match="at least 1 item"):

@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 from types import ModuleType
 
 import pytest
@@ -22,22 +23,22 @@ class EntryPoint:
 
 @pytest.fixture
 def python_path_package(monkeypatch):
-    package = ComponentPackage("fixture", ".", (("css", "fixture.css"), ("js", "fixture.js")))
+    package = ComponentPackage("fixture", Path("."), (("css", "fixture.css"), ("js", "fixture.js")))
     module = ModuleType("spaday_package_fixture")
-    module.package = package
+    module.__dict__["package"] = package
     monkeypatch.setitem(sys.modules, module.__name__, module)
     return package
 
 
 def test_resolves_a_descriptor_and_python_path(python_path_package):
-    direct = ComponentPackage("direct", ".", (("js", "index.js"),))
+    direct = ComponentPackage("direct", Path("."), (("js", "index.js"),))
     assert resolve_component_packages(direct) == (direct,)
     assert resolve_component_packages("spaday_package_fixture:package") == (python_path_package,)
 
 
 def test_resolves_and_discovers_installed_entry_points(monkeypatch):
-    first = ComponentPackage("first", ".", (("js", "first.js"),))
-    second = ComponentPackage("second", ".", (("css", "second.css"),))
+    first = ComponentPackage("first", Path("."), (("js", "first.js"),))
+    second = ComponentPackage("second", Path("."), (("css", "second.css"),))
     candidates = [EntryPoint("z-second", second), EntryPoint("a-first", first)]
     monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: candidates)
 
@@ -67,7 +68,7 @@ def test_package_exposes_component_catalog():
         def __init__(self):
             raise AssertionError("catalog discovery must not construct components")
 
-    package = ComponentPackage("demo", ".", (("js", "index.js"),), components=(Card,))
+    package = ComponentPackage("demo", Path("."), (("js", "index.js"),), components=(Card,))
 
     assert package.components == (Card,)
     assert package.catalog[0].class_name == "Card"
@@ -89,9 +90,9 @@ def test_package_rejects_components_without_matching_schema():
         schema = ComponentSchema(tag="another-tag", class_name="WrongSchema")
 
     with pytest.raises(ValueError, match="does not define catalog schema"):
-        ComponentPackage("missing", ".", (), components=(MissingSchema,))
+        ComponentPackage("missing", Path("."), (), components=(MissingSchema,))
     with pytest.raises(ValueError, match="schema tag does not match"):
-        ComponentPackage("wrong", ".", (), components=(WrongSchema,))
+        ComponentPackage("wrong", Path("."), (), components=(WrongSchema,))
 
 
 def test_bootstrap_uses_the_same_descriptor_for_package_asset_urls(python_path_package):
@@ -106,18 +107,18 @@ def test_bootstrap_uses_the_same_descriptor_for_package_asset_urls(python_path_p
 
 def test_rejects_unsafe_descriptors_and_duplicate_selection():
     with pytest.raises(ValueError, match="name"):
-        ComponentPackage("Not Safe", ".", (("js", "index.js"),))
+        ComponentPackage("Not Safe", Path("."), (("js", "index.js"),))
     with pytest.raises(ValueError, match="asset kind"):
-        ComponentPackage("safe", ".", (("image", "index.png"),))
+        ComponentPackage("safe", Path("."), (("image", "index.png"),))
     with pytest.raises(ValueError, match="relative"):
-        ComponentPackage("safe", ".", (("js", "../index.js"),))
-    package = ComponentPackage("same", ".", (("js", "index.js"),))
+        ComponentPackage("safe", Path("."), (("js", "../index.js"),))
+    package = ComponentPackage("same", Path("."), (("js", "index.js"),))
     with pytest.raises(ValueError, match="more than once"):
         resolve_component_packages((package, package))
 
 
 def test_unknown_entry_point_has_a_useful_error(monkeypatch):
-    available = ComponentPackage("available", ".", ())
+    available = ComponentPackage("available", Path("."), ())
     monkeypatch.setattr(package_registry, "entry_points", lambda **_kwargs: (EntryPoint("available", available),))
     with pytest.raises(ValueError, match="available packages: available"):
         resolve_component_packages("missing")
@@ -125,7 +126,7 @@ def test_unknown_entry_point_has_a_useful_error(monkeypatch):
 
 def test_rejects_invalid_python_paths_and_entry_points(monkeypatch, python_path_package):
     module = sys.modules["spaday_package_fixture"]
-    module.invalid = object()
+    module.__dict__["invalid"] = object()
 
     with pytest.raises(ValueError, match="expected 'module:attribute'"):
         resolve_component_packages(":package")
@@ -151,6 +152,7 @@ def test_retag_points_a_components_authoring_surface_at_another_element():
 
     Mine = TheirGrid.retag("my-grid")
     assert Mine.tag == "my-grid"
+    assert Mine.schema is not None
     assert Mine.schema.tag == "my-grid"  # ComponentPackage requires the two to agree
     assert Mine(rows=[1]).to_node()["tag"] == "my-grid"
     assert TheirGrid.tag == "their-grid"  # the original is untouched
@@ -163,7 +165,7 @@ def test_a_retagged_component_goes_into_a_package_descriptor():
         tag = "their-grid"
         schema = ComponentSchema(tag="their-grid", class_name="TheirGrid")
 
-    package = ComponentPackage(name="mine", assets_dir=".", assets=(("js", "mine.js"),), components=(TheirGrid.retag("my-grid"),))
+    package = ComponentPackage(name="mine", assets_dir=Path("."), assets=(("js", "mine.js"),), components=(TheirGrid.retag("my-grid"),))
     assert [component.tag for component in package.components] == ["my-grid"]
     assert package.catalog[0].tag == "my-grid"
 
@@ -177,7 +179,7 @@ def test_retag_requires_a_tag():
 
 
 def _vendored(name: str, imports: tuple[tuple[str, str], ...]) -> ComponentPackage:
-    return ComponentPackage(name=name, assets_dir=".", assets=(("js", "cdn/index.js"),), imports=imports)
+    return ComponentPackage(name=name, assets_dir=Path("."), assets=(("js", "cdn/index.js"),), imports=imports)
 
 
 def test_a_package_publishes_its_vendored_modules_as_an_import_map():
@@ -233,7 +235,7 @@ def test_a_subtree_specifier_must_map_to_a_subtree():
 
 
 def _serving(name: str, provides=(), requires=(), imports=()) -> ComponentPackage:
-    return ComponentPackage(name=name, assets_dir=".", assets=(("js", "cdn/index.js"),), imports=imports, provides=provides, requires=requires)
+    return ComponentPackage(name=name, assets_dir=Path("."), assets=(("js", "cdn/index.js"),), imports=imports, provides=provides, requires=requires)
 
 
 def test_a_package_records_the_libraries_it_serves_and_needs():

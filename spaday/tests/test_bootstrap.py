@@ -13,13 +13,13 @@ from spaday.packages import ComponentPackage
 def test_lifecycle_is_opt_in_and_validated():
     assert "spaday:bootstrap" not in bootstrap()
     with pytest.raises(TypeError, match="Lifecycle"):
-        bootstrap(lifecycle={})
+        bootstrap(lifecycle={})  # ty: ignore[invalid-argument-type]
     for timeout in (0, -1, True, 1.5):
         with pytest.raises(ValueError, match="timeout"):
-            Lifecycle(timeout=timeout)
+            Lifecycle(timeout=timeout)  # ty: ignore[invalid-argument-type]
     for elements in ("wa-tab", ["div"], [None]):
         with pytest.raises(ValueError, match="elements"):
-            Lifecycle(elements=elements)
+            Lifecycle(elements=elements)  # ty: ignore[invalid-argument-type]
 
 
 def test_lifecycle_assets_are_awaited_and_connections_disposed(tmp_path):
@@ -82,7 +82,7 @@ def test_inline_tree_requires_a_page_and_tree_modes_are_validated():
     with pytest.raises(ValueError, match="requires page"):
         bootstrap(tree="inline")
     with pytest.raises(ValueError, match="tree must be"):
-        bootstrap(tree="other")
+        bootstrap(tree="other")  # ty: ignore[invalid-argument-type]
 
 
 def test_reconnect_bootstrap_reopens_the_socket():
@@ -159,7 +159,7 @@ def test_installed_layout_uses_packaged_assets():
 
 def test_invalid_asset_layout_raises():
     with pytest.raises(ValueError, match="layout"):
-        bootstrap(layout="other")
+        bootstrap(layout="other")  # ty: ignore[invalid-argument-type]
 
 
 def test_bare_js_dir_is_not_mistaken_for_a_source_checkout(tmp_path, monkeypatch):

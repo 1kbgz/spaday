@@ -76,14 +76,14 @@ def mount(
     pre = re.escape(prefix)
 
     class _Index(RequestHandler):
-        def get(self):
+        def get(self):  # ty: ignore[invalid-method-override]
             self.set_header("Content-Type", "text/html")
             self.write(body)
 
     if tree == "frame":
 
         class _Tree(RequestHandler):
-            def get(self):
+            def get(self):  # ty: ignore[invalid-method-override]
                 self.set_header("Content-Type", "application/octet-stream")
                 self.write(tree_frame(page, design=page_design))
 
@@ -91,7 +91,7 @@ def mount(
     elif tree == "json":
 
         class _Tree(RequestHandler):
-            def get(self):
+            def get(self):  # ty: ignore[invalid-method-override]
                 self.set_header("Content-Type", "application/json")
                 self.write(tree_json(page, page_design))
 
