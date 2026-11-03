@@ -301,3 +301,69 @@ test("an incremental RemoveEvent patch detaches the action from a live element",
   expect(states.afterFirst).toBe(true); // listener worked before removal
   expect(states.afterRemoved).toBe(true); // unchanged ⇒ the listener was detached
 });
+
+test("explicit datalist attributes hydrate, bind, patch and remove without assigning readonly properties", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, hydrate, applyPatch, Store } = window.__spaday;
+    const host = document.createElement("div");
+    document.body.append(host);
+    host.innerHTML = '<input list="first">';
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      '<datalist id="first"></datalist><datalist id="second"></datalist>',
+    );
+    const input = host.firstElementChild;
+    const tree = {
+      tag: "input",
+      props: { "attr:list": { Str: "first" } },
+      bindings: { "attr:list": { field: "list_id", mode: "one-way" } },
+    };
+    const store = new Store({ list_id: "second" });
+    const root = hydrate(host, tree, store);
+    const bound = input.list?.id;
+    store.set("list_id", "first");
+    const updated = input.list?.id;
+    applyPatch(
+      root,
+      {
+        ops: [
+          { RemoveBinding: { path: [], name: "attr:list" } },
+          {
+            SetProp: { path: [], name: "attr:list", value: { Str: "second" } },
+          },
+        ],
+      },
+      store,
+    );
+    store.set("list_id", "missing");
+    const patched = input.list?.id;
+    applyPatch(root, {
+      ops: [{ RemoveProp: { path: [], name: "attr:list" } }],
+    });
+    const removed = input.hasAttribute("list");
+    const mounted = mount(document.createElement("div"), {
+      tag: "input",
+      props: { "attr:list": { Str: "first" }, "attr:required": { Bool: true } },
+    });
+    return {
+      same: root === input,
+      bound,
+      updated,
+      patched,
+      removed,
+      mounted: mounted.getAttribute("list"),
+      required: mounted.required,
+    };
+  });
+  expect(result).toEqual({
+    same: true,
+    bound: "second",
+    updated: "first",
+    patched: "second",
+    removed: false,
+    mounted: "first",
+    required: true,
+  });
+});

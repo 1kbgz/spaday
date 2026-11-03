@@ -52,3 +52,21 @@ def test_renders_a_shell_tree():
 
 def test_accepts_an_already_built_node():
     assert render_html(element("b").text("x").to_node()) == "<b>x</b>"
+
+
+def test_explicit_attributes_serialize_render_and_diff():
+    import json
+
+    import pytest
+
+    from spaday import diff
+
+    control = element("input").attr("list", "choices").attr("required", True).attr("readonly", False)
+    assert render_html(control) == '<input list="choices" required>'
+    assert control.to_node()["props"]["attr:list"] == {"Str": "choices"}
+    assert control.bind_attr("list", "choices_id").to_node()["bindings"]["attr:list"] == {"field": "choices_id", "mode": "one-way"}
+    assert "attr:list" in diff(json.dumps(control.to_node()), json.dumps(element("input").to_node()))
+    control.attr("list", None)
+    assert "list=" not in render_html(control)
+    with pytest.raises(ValueError):
+        element("input").attr('bad"name', "value")

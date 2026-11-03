@@ -214,6 +214,18 @@ impl Node {
         self
     }
 
+    /// Builder: set an HTML attribute, bypassing DOM property assignment.
+    /// Attribute targets use the `attr:` prefix in props and bindings so ordinary diff/apply
+    /// preserves them without a separate patch protocol.
+    pub fn attr(self, name: impl Into<Attr>, value: impl Into<Value>) -> Node {
+        self.prop(format!("attr:{}", name.into()), value)
+    }
+
+    /// Builder: bind an HTML attribute to state. Use one-way mode for attribute bindings.
+    pub fn bind_attr(self, name: impl Into<Attr>, binding: Binding) -> Node {
+        self.bind(format!("attr:{}", name.into()), binding)
+    }
+
     /// Builder: set an event handler.
     pub fn event(mut self, name: impl Into<EventName>, action: Action) -> Node {
         self.events.insert(name.into(), action);
@@ -326,5 +338,14 @@ mod node_tests {
             serde_json::from_str(&binding_schema_json().unwrap()).unwrap();
         assert_eq!(schema["oneOf"].as_array().unwrap().len(), 2);
         assert!(schema["definitions"]["Expr"].is_object());
+    }
+    #[test]
+    fn explicit_attributes_survive_diff_and_serialization() {
+        let old = Node::new("input").attr("list", "first");
+        let new = Node::new("input").attr("list", "second");
+        let mut restored: Node =
+            serde_json::from_str(&serde_json::to_string(&old).unwrap()).unwrap();
+        crate::diff::apply(&mut restored, &crate::diff::diff(&old, &new));
+        assert_eq!(restored, new);
     }
 }

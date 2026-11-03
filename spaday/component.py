@@ -46,7 +46,7 @@ _SCHEMAS_BY_TAG: dict[str, ComponentSchema] = {}
 
 #: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.
 _GLOBAL_PROPS = {"id", "class", "style", "slot", "part", "title", "role", "hidden", "tabindex", "textContent"}
-_GLOBAL_PREFIXES = ("data-", "aria-")
+_GLOBAL_PREFIXES = ("data-", "aria-", "attr:")
 #: Native elements with a writable ``text`` DOM property. Other native elements need ``textContent``.
 _TEXT_PROP_TAGS = {"a", "option", "script", "title"}
 
@@ -306,6 +306,24 @@ class Component:
             return self.compute("textContent", value)
         self._props["textContent"] = value
         return self
+
+    def attr(self, name: str, value: str | int | float | bool | None) -> Self:
+        """Set an HTML attribute explicitly. True means present; False/None remove it.
+
+        Uses the shared tree's ``attr:`` target prefix, bypassing DOM property setters.
+        """
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.:-]*", name):
+            raise ValueError(f"invalid attribute name: {name!r}")
+        if value is not None and not isinstance(value, (str, int, float, bool)):
+            raise TypeError("attribute values must be scalar or None")
+        self._props[f"attr:{name}"] = value
+        return self
+
+    def bind_attr(self, name: str, field: str) -> Self:
+        """Keep an HTML attribute synchronized with a store field (one-way)."""
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.:-]*", name):
+            raise ValueError(f"invalid attribute name: {name!r}")
+        return self.bind(f"attr:{name}", field)
 
     def prop(self, name: str, value: Any) -> Self:
         """Set an arbitrary prop (escape hatch for attributes a typed class doesn't expose)."""

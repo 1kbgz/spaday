@@ -1121,3 +1121,39 @@ test("Emit crosses shadow roots only when composed is enabled", async ({
   });
   expect(seen).toEqual([true]);
 });
+
+for (const [type, value] of [
+  ["text", "ABC"],
+  ["search", "ABC"],
+  ["checkbox", true],
+  ["radio", true],
+]) {
+  test(`event_value reads the native ${type} input state`, async ({ page }) => {
+    const actual = await page.evaluate((type) => {
+      const { mount, Store } = window.__spaday;
+      const store = new Store();
+      const input = mount(
+        document.createElement("div"),
+        {
+          tag: "input",
+          props: {
+            type: { Str: type },
+            value: { Str: "ABC" },
+            checked: { Bool: true },
+          },
+          events: {
+            change: {
+              kind: "set-field",
+              field: "result",
+              value: { expr: "event" },
+            },
+          },
+        },
+        store,
+      );
+      input.dispatchEvent(new Event("change"));
+      return store.get("result");
+    }, type);
+    expect(actual).toBe(value);
+  });
+}

@@ -43,7 +43,7 @@ def _render(node: dict, slot: str | None) -> str:
         if name == "textContent":
             text = value
             continue
-        attrs += _attr(name, value)
+        attrs += _attr(name.removeprefix("attr:"), value)
     open_close = f"<{tag}{attrs}>"
     if tag in _VOID:
         return open_close
