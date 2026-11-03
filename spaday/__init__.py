@@ -71,7 +71,7 @@ from .ui import (
 from .validate import ValidationError, validate
 from .worker import WorkerApp
 
-__version__ = "0.13.0"
+__version__ = "0.13.1"
 
 __all__ = [
     "AssetPolicy",
