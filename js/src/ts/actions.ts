@@ -44,7 +44,12 @@ function host(ctx: ActionContext) {
     setProp: (el: Element, name: string, value: unknown) =>
       setProp(el, name, value),
     eventValue: () => {
-      const target = ctx.event.target as Record<string, unknown> | null;
+      const element = ctx.event.target;
+      if (element instanceof HTMLInputElement)
+        return element.type === "checkbox" || element.type === "radio"
+          ? element.checked
+          : element.value;
+      const target = element as Record<string, unknown> | null;
       if (target && typeof target.checked === "boolean") return target.checked;
       if (target && "value" in target) return target.value;
       return (ctx.event as CustomEvent).detail;

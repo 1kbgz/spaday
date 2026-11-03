@@ -1598,6 +1598,10 @@ function build(node: Node, store?: Store, scope?: Scope): Element {
 
 /** Set a prop the way the element expects: a DOM property when it has one, else an HTML attribute. */
 export function setProp(el: Element, name: string, value: unknown): void {
+  if (name.startsWith("attr:")) {
+    setAttr(el, name.slice(5), value);
+    return;
+  }
   if (name in el) {
     (el as unknown as Record<string, unknown>)[name] = value;
     return;
@@ -1658,6 +1662,10 @@ function setAttr(el: Element, name: string, value: unknown): void {
 }
 
 function removeProp(el: Element, name: string): void {
+  if (name.startsWith("attr:")) {
+    el.removeAttribute(name.slice(5));
+    return;
+  }
   deferredProps.get(el)?.delete(name);
   if (name in el) {
     setProp(el, name, undefined);

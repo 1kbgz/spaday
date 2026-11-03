@@ -65,7 +65,9 @@ def lit(value: Any) -> Expr:
 
 
 def event_value(path: str = "") -> Expr:
-    """The triggering event's value — a control's ``checked`` (booleans) else ``value`` else ``detail``.
+    """Read native input ``value``, or ``checked`` for checkboxes/radios.
+
+    Custom controls use boolean ``checked``, then ``value``, then ``detail``.
     A dot ``path`` walks into the value: ``event_value("label")`` reads ``detail.label`` from a rich
     CustomEvent, so one field of a structured detail can land in the store or an endpoint body."""
     return _EventValue(path)

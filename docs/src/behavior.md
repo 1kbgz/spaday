@@ -370,3 +370,25 @@ are read — an array (`T[]`, `Array<T>`) and an object (`{…}`, `Record<…>`)
 `HeatmapData` is deliberately not read, because an alias can name either shape; the declared text is on
 the schema, so an author who knows their own types can assert on it. A class that sets it explicitly keeps that setting when a base class is
 toggled later, so the opt-out above survives. Only constructor keywords are checked — `.prop(name, value)` stays the explicit way to set an attribute the manifest does not describe.
+
+## Explicit HTML attributes
+
+Use `.attr(name, value)` when a value belongs to an HTML attribute rather than a DOM property:
+
+```python
+control = element("input").attr("list", "my-options")
+reactive_control = element("input").bind_attr("list", "suggestion_list_id")
+```
+
+The store field contains the datalist ID, not its suggestions. Attribute writes bypass property
+setters, so this works even though `input.list` is a readonly reference to a datalist element.
+`True` adds an empty attribute; `False` and `None` remove it. Other scalar values become strings.
+Use strings such as `"false"` for enumerated attributes that require literal text. Attribute bindings
+are one-way. Existing `.prop()` and `.bind()` behavior is unchanged.
+
+The serialized tree represents these targets as `attr:list` in `props` or `bindings`; Rust's
+`Node.attr()` and `Node.bind_attr()` use the same form. Diffing, server rendering, hydration, and
+reactive updates preserve the explicit target.
+
+`event_value()` reads the value of native text inputs, selects, and textareas. For native checkboxes
+and radios it reads `checked`; custom controls retain their checked/value/detail fallback.
