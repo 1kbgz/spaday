@@ -636,7 +636,7 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"textContent"</span><span class="p">:</span>
             <span class="n">text</span> <span class="o">=</span> <span class="n">value</span>
             <span class="k">continue</span>
-        <span class="n">attrs</span> <span class="o">+=</span> <span class="n">_attr</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">attrs</span> <span class="o">+=</span> <span class="n">_attr</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">removeprefix</span><span class="p">(</span><span class="s2">"attr:"</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span>
     <span class="n">open_close</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"&lt;</span><span class="si">{</span><span class="n">tag</span><span class="si">}{</span><span class="n">attrs</span><span class="si">}</span><span class="s2">&gt;"</span>
     <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">_VOID</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">open_close</span>

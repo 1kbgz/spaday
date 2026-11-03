@@ -205,6 +205,9 @@
   <li class="fd-toc-item" data-depth="1">
     <a href="#validate-references-before-shipping">Validate references before shipping</a>
   </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#explicit-html-attributes">Explicit HTML attributes</a>
+  </li>
 </ul>
 </div>
   </div>
@@ -545,6 +548,24 @@ are read — an array (<code class="docutils literal notranslate"><span class="p
 the schema, so an author who knows their own types can assert on it. A class that sets it explicitly keeps that setting when a base class is
 toggled later, so the opt-out above survives. Only constructor keywords are checked — <code class="docutils literal notranslate"><span class="pre">.prop(name,</span> <span class="pre">value)</span></code> stays the explicit way to set an attribute the manifest does not describe.</p>
 </section>
+<section id="explicit-html-attributes">
+<h2>Explicit HTML attributes<a class="headerlink" href="#explicit-html-attributes" title="Link to this heading">¶</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">.attr(name,</span> <span class="pre">value)</span></code> when a value belongs to an HTML attribute rather than a DOM property:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">control</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">)</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="s2">"list"</span><span class="p">,</span> <span class="s2">"my-options"</span><span class="p">)</span>
+<span class="n">reactive_control</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">)</span><span class="o">.</span><span class="n">bind_attr</span><span class="p">(</span><span class="s2">"list"</span><span class="p">,</span> <span class="s2">"suggestion_list_id"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The store field contains the datalist ID, not its suggestions. Attribute writes bypass property
+setters, so this works even though <code class="docutils literal notranslate"><span class="pre">input.list</span></code> is a readonly reference to a datalist element.
+<code class="docutils literal notranslate"><span class="pre">True</span></code> adds an empty attribute; <code class="docutils literal notranslate"><span class="pre">False</span></code> and <code class="docutils literal notranslate"><span class="pre">None</span></code> remove it. Other scalar values become strings.
+Use strings such as <code class="docutils literal notranslate"><span class="pre">&quot;false&quot;</span></code> for enumerated attributes that require literal text. Attribute bindings
+are one-way. Existing <code class="docutils literal notranslate"><span class="pre">.prop()</span></code> and <code class="docutils literal notranslate"><span class="pre">.bind()</span></code> behavior is unchanged.</p>
+<p>The serialized tree represents these targets as <code class="docutils literal notranslate"><span class="pre">attr:list</span></code> in <code class="docutils literal notranslate"><span class="pre">props</span></code> or <code class="docutils literal notranslate"><span class="pre">bindings</span></code>; Rust’s
+<code class="docutils literal notranslate"><span class="pre">Node.attr()</span></code> and <code class="docutils literal notranslate"><span class="pre">Node.bind_attr()</span></code> use the same form. Diffing, server rendering, hydration, and
+reactive updates preserve the explicit target.</p>
+<p><code class="docutils literal notranslate"><span class="pre">event_value()</span></code> reads the value of native text inputs, selects, and textareas. For native checkboxes
+and radios it reads <code class="docutils literal notranslate"><span class="pre">checked</span></code>; custom controls retain their checked/value/detail fallback.</p>
+</section>
 </section>
 
 
@@ -609,6 +630,9 @@ toggled later, so the opt-out above survives. Only constructor keywords are chec
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#validate-references-before-shipping">Validate references before shipping</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#explicit-html-attributes">Explicit HTML attributes</a>
   </li>
 </ul>
 

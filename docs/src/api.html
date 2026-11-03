@@ -203,6 +203,12 @@
     <a href="#spaday.Component.text">Component.text()</a>
   </li>
   <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.Component.attr">Component.attr()</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.Component.bind_attr">Component.bind_attr()</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.Component.prop">Component.prop()</a>
   </li>
   <li class="fd-toc-item" data-depth="3">
@@ -829,6 +835,19 @@ any other schema-carrying class.</p>
 <p>Text is set as the <code class="docutils literal notranslate"><span class="pre">textContent</span></code> DOM property by the runtime, so this is for leaf elements
 whose label <em>is</em> their text (don’t combine it with child nodes). An expression such as
 <code class="docutils literal notranslate"><span class="pre">item(&quot;name&quot;)</span></code> becomes a computed binding.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.attr">
+<span class="sig-name descname"><span class="pre">attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.attr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.attr" title="Link to this definition">¶</a></dt>
+<dd><p>Set an HTML attribute explicitly. True means present; False/None remove it.</p>
+<p>Uses the shared tree’s <code class="docutils literal notranslate"><span class="pre">attr:</span></code> target prefix, bypassing DOM property setters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.bind_attr">
+<span class="sig-name descname"><span class="pre">bind_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.bind_attr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.bind_attr" title="Link to this definition">¶</a></dt>
+<dd><p>Keep an HTML attribute synchronized with a store field (one-way).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1653,7 +1672,8 @@ and notification cleanup.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="spaday.event_value">
 <span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">event_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Expr</span></span></span><a class="reference internal" href="../../_modules/spaday/actions.html#event_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.event_value" title="Link to this definition">¶</a></dt>
-<dd><p>The triggering event’s value — a control’s <code class="docutils literal notranslate"><span class="pre">checked</span></code> (booleans) else <code class="docutils literal notranslate"><span class="pre">value</span></code> else <code class="docutils literal notranslate"><span class="pre">detail</span></code>.
+<dd><p>Read native input <code class="docutils literal notranslate"><span class="pre">value</span></code>, or <code class="docutils literal notranslate"><span class="pre">checked</span></code> for checkboxes/radios.</p>
+<p>Custom controls use boolean <code class="docutils literal notranslate"><span class="pre">checked</span></code>, then <code class="docutils literal notranslate"><span class="pre">value</span></code>, then <code class="docutils literal notranslate"><span class="pre">detail</span></code>.
 A dot <code class="docutils literal notranslate"><span class="pre">path</span></code> walks into the value: <code class="docutils literal notranslate"><span class="pre">event_value(&quot;label&quot;)</span></code> reads <code class="docutils literal notranslate"><span class="pre">detail.label</span></code> from a rich
 CustomEvent, so one field of a structured detail can land in the store or an endpoint body.</p>
 </dd></dl>
@@ -2420,6 +2440,12 @@ themes the page before the tree renders.</p>
   </li>
   <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.Component.text">Component.text()</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.Component.attr">Component.attr()</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.Component.bind_attr">Component.bind_attr()</a>
   </li>
   <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.Component.prop">Component.prop()</a>

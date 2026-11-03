@@ -660,7 +660,9 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="event_value">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.event_value">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">event_value</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Expr</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The triggering event's value — a control's ``checked`` (booleans) else ``value`` else ``detail``.</span>
+<span class="w">    </span><span class="sd">"""Read native input ``value``, or ``checked`` for checkboxes/radios.</span>
+
+<span class="sd">    Custom controls use boolean ``checked``, then ``value``, then ``detail``.</span>
 <span class="sd">    A dot ``path`` walks into the value: ``event_value("label")`` reads ``detail.label`` from a rich</span>
 <span class="sd">    CustomEvent, so one field of a structured detail can land in the store or an endpoint body."""</span>
     <span class="k">return</span> <span class="n">_EventValue</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>

@@ -636,7 +636,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="c1">#: Generic props the runtime sets on any element, so they pass the unknown-prop check everywhere.</span>
 <span class="n">_GLOBAL_PROPS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"id"</span><span class="p">,</span> <span class="s2">"class"</span><span class="p">,</span> <span class="s2">"style"</span><span class="p">,</span> <span class="s2">"slot"</span><span class="p">,</span> <span class="s2">"part"</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">,</span> <span class="s2">"hidden"</span><span class="p">,</span> <span class="s2">"tabindex"</span><span class="p">,</span> <span class="s2">"textContent"</span><span class="p">}</span>
-<span class="n">_GLOBAL_PREFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"data-"</span><span class="p">,</span> <span class="s2">"aria-"</span><span class="p">)</span>
+<span class="n">_GLOBAL_PREFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"data-"</span><span class="p">,</span> <span class="s2">"aria-"</span><span class="p">,</span> <span class="s2">"attr:"</span><span class="p">)</span>
 <span class="c1">#: Native elements with a writable ``text`` DOM property. Other native elements need ``textContent``.</span>
 <span class="n">_TEXT_PROP_TAGS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"option"</span><span class="p">,</span> <span class="s2">"script"</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">}</span>
 
@@ -915,6 +915,30 @@ window.runMermaid = runMermaid;</script>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"textContent"</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="p">[</span><span class="s2">"textContent"</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
         <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Component.attr">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.attr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Set an HTML attribute explicitly. True means present; False/None remove it.</span>
+
+<span class="sd">        Uses the shared tree's ``attr:`` target prefix, bypassing DOM property setters.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z_][A-Za-z0-9_.:-]*"</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid attribute name: </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"attribute values must be scalar or None"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="p">[</span><span class="sa">f</span><span class="s2">"attr:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Component.bind_attr">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.bind_attr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Keep an HTML attribute synchronized with a store field (one-way)."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z_][A-Za-z0-9_.:-]*"</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid attribute name: </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="sa">f</span><span class="s2">"attr:</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Component.prop">
