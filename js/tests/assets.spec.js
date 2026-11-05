@@ -23,6 +23,16 @@ for (const layout of ["source", "installed"]) {
           })
           .toMatch(/^http:/);
         const url = output.trim();
+        await expect
+          .poll(async () => {
+            if (child.exitCode !== null) throw new Error(error);
+            try {
+              return (await fetch(url)).status;
+            } catch {
+              return 0;
+            }
+          })
+          .toBe(200);
         const errors = [];
         const assets = [];
         page.on("pageerror", (err) => errors.push(err.message));
