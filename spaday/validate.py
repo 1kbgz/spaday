@@ -64,6 +64,8 @@ def _action_refs(action: Any) -> Iterator[str]:
 
 
 def _collect_refs(node: dict, refs: list[str]) -> None:
+    for effect in (node.get("effects") or {}).values():
+        refs.extend(_action_refs(effect.get("action")))
     for action in (node.get("events") or {}).values():
         refs.extend(_action_refs(action))
     for children in (node.get("slots") or {}).values():

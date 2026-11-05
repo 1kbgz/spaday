@@ -2,6 +2,7 @@ from . import actions
 from .actions import (
     ActionSequence,
     CallEndpoint,
+    CopyToClipboard,
     Download,
     Emit,
     If,
@@ -49,7 +50,7 @@ from .component import Component, Paragraph, Strong, Text, element
 from .conformance import check_script
 from .packages import ComponentPackage, discover_component_package_names, discover_component_packages, resolve_component_packages
 from .render import render_html
-from .schema import action_schema, binding_schema, expr_schema, validate_action, validate_binding, validate_expr
+from .schema import action_schema, binding_schema, expr_schema, validate_action, validate_binding, validate_effect, validate_expr, validate_readiness
 from .spaday import apply, decode_frame, diff, encode_frame, parse_cem  # compiled Rust extension (rust/python)
 from .theme import SHELL_TOKENS, Token
 from .ui import (
@@ -81,6 +82,7 @@ __all__ = [
     "SHELL_TOKENS",
     "Token",
     "CallEndpoint",
+    "CopyToClipboard",
     "Download",
     "Component",
     # external component-package assets (direct descriptor, Python path, or entry point)
@@ -177,6 +179,8 @@ __all__ = [
     "validate_action",
     "validate_binding",
     "validate_expr",
+    "validate_effect",
+    "validate_readiness",
 ]
 
 

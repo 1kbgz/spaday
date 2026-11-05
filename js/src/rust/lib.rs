@@ -9,6 +9,10 @@ extern "C" {
     /// The DOM primitives the browser supplies so the (DOM-free) core interpreter can run. The
     /// interpreter decides *what* to do; this thin host does the actual DOM poking.
     pub type Host;
+    #[wasm_bindgen(method)]
+    fn cancelled(this: &Host) -> bool;
+    #[wasm_bindgen(method, js_name = copyToClipboard)]
+    fn copy_to_clipboard(this: &Host, value: JsValue, result: Option<&str>) -> JsValue;
     #[wasm_bindgen(method, js_name = currentTarget)]
     fn current_target(this: &Host) -> JsValue;
     #[wasm_bindgen(method, js_name = queryId)]
@@ -119,10 +123,21 @@ fn run<'a>(action: &'a spaday::Action, host: &'a Host) -> Pin<Box<dyn Future<Out
 
 async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
     use spaday::Action::{
-        CallEndpoint, Download, Emit, If, Invoke, NamedJs, Refresh, SendPatch, Sequence, SetField,
-        SetProp, SetStorage, Toggle, ToggleField,
+        CallEndpoint, CopyToClipboard, Download, Emit, If, Invoke, NamedJs, Refresh, SendPatch,
+        Sequence, SetField, SetProp, SetStorage, Toggle, ToggleField,
     };
+    if host.cancelled() {
+        return false;
+    }
     match action {
+        CopyToClipboard { value, result } => {
+            let outcome =
+                resolve_thenable(host.copy_to_clipboard(eval(value, host), result.as_deref()))
+                    .await;
+            if outcome.as_bool() == Some(false) {
+                return false;
+            }
+        }
         SetProp {
             target,
             prop,
@@ -194,7 +209,7 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             let done = host.call_endpoint(method, u, b, result.as_deref(), options);
             // await the round-trip so a `seq` continues after the response (and `result`) landed
             let outcome = resolve_thenable(done).await;
-            if request.is_some() && outcome.as_bool() == Some(false) {
+            if outcome.as_bool() == Some(false) {
                 return false;
             }
         }
@@ -212,6 +227,9 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
                 // await a returned promise so a `seq` continues only after the method settles;
                 // rejections were already marked handled (and logged) by the host
                 let resolved = resolve_thenable(value).await;
+                if host.cancelled() {
+                    return false;
+                }
                 if let Some(field) = result {
                     host.set_field(field, resolved);
                 }
@@ -220,6 +238,9 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
         SetStorage { key, value } => {
             // resolve a thenable value (e.g. a `call` of an async method) before persisting
             let resolved = resolve_thenable(eval(value, host)).await;
+            if host.cancelled() {
+                return false;
+            }
             host.set_storage(key, resolved);
         }
         Download {
@@ -228,6 +249,9 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             content_type,
         } => {
             let resolved = resolve_thenable(eval(value, host)).await;
+            if host.cancelled() {
+                return false;
+            }
             host.download(eval(filename, host), resolved, content_type.as_deref());
         }
         NamedJs { handler } => host.call_named(handler),
@@ -431,4 +455,14 @@ pub fn encode_frame(
 #[wasm_bindgen]
 pub fn decode_frame(frame: &[u8]) -> Result<String, JsError> {
     spaday::decode_frame(frame).map_err(|e| JsError::new(&e))
+}
+
+#[wasm_bindgen]
+pub fn normalize_effect(value: &str) -> Result<String, JsError> {
+    spaday::normalize_effect(value).map_err(|error| JsError::new(&error))
+}
+
+#[wasm_bindgen]
+pub fn normalize_readiness(value: &str) -> Result<String, JsError> {
+    spaday::normalize_readiness(value).map_err(|error| JsError::new(&error))
 }

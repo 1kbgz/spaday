@@ -56,6 +56,7 @@ event names and their options together. `passive=True` also disables Spaday's au
 .. autoclass:: spaday.Emit
 .. autoclass:: spaday.SendPatch
 .. autoclass:: spaday.If
+.. autoclass:: spaday.CopyToClipboard
 .. autoclass:: spaday.CallEndpoint
 .. autoclass:: spaday.Request
 .. autoclass:: spaday.NamedJs

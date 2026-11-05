@@ -18,6 +18,7 @@ export function manageRequest(
   root: Element,
   store: Store | undefined,
   options: RequestOptions,
+  signal?: AbortSignal,
 ) {
   const owner = store ?? root;
   let active = requests.get(owner);
@@ -55,6 +56,11 @@ export function manageRequest(
   release = attachController(root, controller, () => cancel);
   for (const field of options.watch ?? [])
     if (store) unsubscribes.push(store.subscribe(field, cancel));
+  if (signal) {
+    signal.addEventListener("abort", cancel, { once: true });
+    unsubscribes.push(() => signal.removeEventListener("abort", cancel));
+    if (signal.aborted) cancel();
+  }
   previous?.cancel();
   if (!finished && options.pending) store?.set(options.pending, true);
   return { signal: controller.signal, finish };

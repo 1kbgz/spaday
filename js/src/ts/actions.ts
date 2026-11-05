@@ -19,6 +19,7 @@ export interface ActionContext {
   currentTarget: Element;
   store?: Store;
   scope?: Scope;
+  signal?: AbortSignal;
 }
 
 /** Run one action (the core's plain DSL wire form) against the DOM in the given event context. */
@@ -35,6 +36,8 @@ function readProp(el: Element, name: string): unknown {
 // The DOM primitives the wasm interpreter calls back into (mirrors the `Host` extern in the js crate).
 function host(ctx: ActionContext) {
   return {
+    cancelled: () =>
+      !!ctx.signal && (ctx.signal.aborted || !ctx.currentTarget.isConnected),
     currentTarget: () => ctx.currentTarget,
     queryId: (id: string) =>
       (ctx.currentTarget.getRootNode() as ParentNode).querySelector(
@@ -74,7 +77,7 @@ function host(ctx: ActionContext) {
       return result;
     },
     // `refresh` action: re-fetch the mounted tree (or an explicit url) and diff it in place
-    refreshTree: (url?: string) => refreshRoots(url ?? undefined),
+    refreshTree: (url?: string) => refreshRoots(url ?? undefined, ctx.signal),
     // `set-storage` action: strings verbatim, other values JSON-encoded
     setStorage: (key: string, value: unknown) =>
       window.localStorage.setItem(
@@ -94,6 +97,20 @@ function host(ctx: ActionContext) {
       anchor.download = String(filename);
       anchor.click();
       URL.revokeObjectURL(url);
+    },
+    copyToClipboard: async (value: unknown, result?: string) => {
+      let outcome: { ok: boolean; error: string | null };
+      try {
+        await navigator.clipboard.writeText(
+          typeof value === "string" ? value : JSON.stringify(value),
+        );
+        outcome = { ok: true, error: null };
+      } catch (error) {
+        outcome = { ok: false, error: String(error) };
+      }
+      if (ctx.signal?.aborted) return false;
+      if (result) ctx.store?.set(result, outcome);
+      return true;
     },
     // the closest ancestor of the event target matching a selector, for `event-closest`
     eventClosest: (selector: string) =>
@@ -130,12 +147,12 @@ function host(ctx: ActionContext) {
       // returns the settled round-trip so the interpreter can await it: a `seq` continues
       // only after the response landed (and `result`, when set, is already written)
       const managed = options
-        ? manageRequest(ctx.currentTarget, ctx.store, options)
+        ? manageRequest(ctx.currentTarget, ctx.store, options, ctx.signal)
         : undefined;
       let request: Promise<Response>;
       try {
         request = fetch(String(url), {
-          signal: managed?.signal,
+          signal: managed?.signal ?? ctx.signal,
           method,
           headers:
             body === undefined
@@ -161,10 +178,10 @@ function host(ctx: ActionContext) {
         })
         .catch((err) => ({ status: 0, ok: false, body: String(err) })) // network failure
         .then((outcome) => {
-          if (managed?.signal.aborted) return false;
+          if (managed?.signal.aborted || ctx.signal?.aborted) return false;
           if (result && store) store.set(result, outcome);
           managed?.finish();
-          return !managed?.signal.aborted;
+          return !managed?.signal.aborted && !ctx.signal?.aborted;
         })
         .finally(() => managed?.finish());
     },

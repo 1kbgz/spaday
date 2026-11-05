@@ -21,7 +21,7 @@ from typing_extensions import Self
 
 from .actions import Action, Expr
 from .catalog import ComponentSchema, PropertySchema
-from .schema import validate_action, validate_binding
+from .schema import validate_action, validate_binding, validate_effect, validate_readiness
 
 #: The conventional name of a component's unnamed (default) slot (matches the Rust core).
 DEFAULT_SLOT = "default"
@@ -195,6 +195,8 @@ class Component:
         self._events: dict[str, dict] = {}
         self._event_options: dict[str, dict[str, bool]] = {}
         self._bindings: dict[str, dict] = {}
+        self._effects: dict[str, dict] = {}
+        self._readiness: dict | None = None
         self._style: dict[str, str] = {}  # inline CSS declarations + custom properties (theming)
         self._classes: list[str] = []  # CSS classes (variants / states)
         self.child(*children)
@@ -326,7 +328,13 @@ class Component:
         return self.bind(f"attr:{name}", field)
 
     def prop(self, name: str, value: Any) -> Self:
-        """Set an arbitrary prop (escape hatch for attributes a typed class doesn't expose)."""
+        """Set a literal prop or compute it reactively from an expression.
+
+        Expressions use the same one-way binding as :meth:`compute`. Literal values retain
+        their existing behavior, including leaving the prop unchanged when passed ``None``.
+        """
+        if isinstance(value, Expr):
+            return self.compute(name, value)
         if value is not None:
             self._props[name] = value
         return self
@@ -353,6 +361,53 @@ class Component:
     def classes(self, *names: str) -> Self:
         """Add CSS classes (component variants / theme states), e.g. ``.classes("wa-dark")``."""
         self._classes.extend(n for n in names if n)
+        return self
+
+    def effect(self, name: str, action: Action | dict, *, watch: list[str] | tuple[str, ...], initial: bool = False) -> Self:
+        """Run an action when watched store fields change; cancel its previous invocation.
+
+        ``initial=True`` also runs after mounting. Effects are disposed with this component.
+        Updates in one synchronous turn coalesce into one invocation with the latest values.
+        """
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("effect name must be a nonempty string")
+        self._effects[name] = validate_effect(
+            {
+                "watch": watch,
+                "initial": initial,
+                "action": action.to_dict() if isinstance(action, Action) else action,
+            }
+        )
+        return self
+
+    def ready(
+        self,
+        when: Expr | bool,
+        *,
+        result: str | None = None,
+        active: Expr | bool = True,
+        error: Expr | str | None = None,
+        elements: list[str] | tuple[str, ...] = (),
+        timeout: int = 10000,
+    ) -> Self:
+        """Track this view's readiness; optionally publish ``{status, error}`` to ``result``.
+
+        Always emits ``spaday:readiness`` events, including without a store or result field.
+        Status is loading, ready, error, or idle when inactive. Timeout errors recover when
+        data and components become ready. This does not block or dispose other views.
+        """
+        from .actions import lit
+
+        self._readiness = validate_readiness(
+            {
+                "when": (when if isinstance(when, Expr) else lit(when)).to_dict(),
+                "active": (active if isinstance(active, Expr) else lit(active)).to_dict(),
+                "error": (error if isinstance(error, Expr) else lit(error)).to_dict(),
+                "result": result,
+                "elements": elements,
+                "timeout": timeout,
+            }
+        )
         return self
 
     def on(self, event: str, action: Action, *, capture: bool | None = None, once: bool | None = None, passive: bool | None = None) -> Self:
@@ -531,6 +586,10 @@ class Component:
             node["event_options"] = {name: dict(options) for name, options in self._event_options.items()}
         if self._bindings:
             node["bindings"] = dict(self._bindings)
+        if self._effects:
+            node["effects"] = dict(self._effects)
+        if self._readiness is not None:
+            node["readiness"] = dict(self._readiness)
         return node
 
     def to_json(self) -> str:

@@ -690,3 +690,21 @@ def bind(source: Any, target: Ref, target_prop: str, *, transform: Any = None) -
     value = transform(event_value()) if transform else event_value()
     source.on("change", SetProp(target, target_prop, value))
     return source
+
+
+@dataclass
+class CopyToClipboard(Action):
+    """Copy an expression's value; optionally store ``{ok, error}`` for UI feedback.
+
+    Strings are copied verbatim, other values as JSON. Clipboard failures do not stop a
+    Sequence. Browser permissions and user-activation restrictions still apply.
+    """
+
+    value: Any
+    result: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        action = {"kind": "clipboard", "value": _expr(self.value).to_dict()}
+        if self.result is not None:
+            action["result"] = self.result
+        return action

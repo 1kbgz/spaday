@@ -7,6 +7,12 @@
 // handlers, rebinding/detaching them as incremental `SetEvent`/`RemoveEvent` patches arrive.
 
 import { interpret } from "./actions";
+import {
+  wireEffect,
+  wireReadiness,
+  type Effect,
+  type Readiness,
+} from "./behaviors";
 import { disposeControllers } from "./lifecycle";
 import {
   type CollectionDelta,
@@ -67,6 +73,8 @@ export interface Node {
   events?: Record<string, unknown>;
   event_options?: Record<string, EventOptions>;
   bindings?: Record<string, Binding>;
+  effects?: Record<string, Effect>;
+  readiness?: Readiness;
 }
 
 function canWireBinding(spec: Binding, store?: Store, scope?: Scope): boolean {
@@ -152,29 +160,36 @@ export function unmount(root: Element): void {
   root.remove();
 }
 
-export async function refreshRoots(url?: string): Promise<void> {
+export async function refreshRoots(
+  url?: string,
+  signal?: AbortSignal,
+): Promise<void> {
   const { diff } = await import("../../dist/pkg/spaday");
+  if (signal?.aborted) return;
   lazyCache.clear(); // server state changed: cached lazy bodies are stale
   for (const tracked of [...trackedRoots]) {
     const source = url ?? tracked.src;
     if (!source) continue;
-    const response = await fetch(source);
+    if (signal?.aborted) return;
+    const response = await fetch(source, { signal });
     if (!response.ok)
       throw new Error(`refresh: ${source} responded ${response.status}`);
     const next = (await response.json()) as Node;
+    if (signal?.aborted) return;
     if (!trackedRoots.includes(tracked)) continue;
     const patch = JSON.parse(
       diff(JSON.stringify(tracked.node), JSON.stringify(next)),
     ) as { ops: Op[] };
     tracked.root = applyPatch(tracked.root, patch, tracked.store);
     tracked.node = next;
+    if (signal?.aborted) return;
     if (!trackedRoots.includes(tracked)) continue;
     // mounted lazy bodies live at their own URLs, which the tree diff can't see — refetch
     // them (the reloader swaps the body only if the payload actually changed)
     for (const el of tracked.root.querySelectorAll("spa-lazy"))
-      lazyReloaders.get(el)?.();
+      lazyReloaders.get(el)?.(signal);
     if (tracked.root.tagName.toLowerCase() === "spa-lazy")
-      lazyReloaders.get(tracked.root)?.();
+      lazyReloaders.get(tracked.root)?.(signal);
   }
 }
 
@@ -258,6 +273,9 @@ function hydrateNode(
     if (canWireBinding(spec, store, scope))
       wireBinding(el, prop, spec, store, scope);
   }
+  for (const [name, effect] of Object.entries(node.effects ?? {}))
+    wireEffect(el, name, effect, store, scope);
+  if (node.readiness) wireReadiness(el, node.readiness, store, scope);
 }
 
 // Live action listeners per element, so an incremental patch can update them: the diff engine emits
@@ -378,7 +396,7 @@ function untrackConnection(ref: WeakRef<ConnectionCheck>): void {
 }
 // `refreshRoots` re-fetches lazy bodies too (server state changed): each spa-lazy registers a
 // reloader that refetches its src and swaps the mounted body only when the payload changed.
-const lazyReloaders = new WeakMap<Element, () => void>();
+const lazyReloaders = new WeakMap<Element, (signal?: AbortSignal) => void>();
 const VALUE_EVENTS = ["change", "input", "wa-tab-show"]; // a control writes its bound field on these (wa-tab-show: a wa-tab-group's active tab changed)
 
 function readProp(el: Element, name: string): unknown {
@@ -820,21 +838,23 @@ function wireLazy(el: Element, node: Node, store?: Store, scope?: Scope): void {
     el.appendChild(built);
     mounted.push(built);
   }
-  const activate = (): void => {
-    if (loaded || !src) return;
+  let generation = 0;
+  const activate = (signal?: AbortSignal): void => {
+    if (loaded || !src || signal?.aborted) return;
+    const current = ++generation;
     loaded = true;
-    let promise = lazyCache.get(src);
+    let promise = signal ? undefined : lazyCache.get(src);
     if (!promise) {
-      promise = fetch(src).then((response) => {
+      promise = fetch(src, { signal }).then((response) => {
         if (!response.ok)
           throw new Error(`spa-lazy: ${src} responded ${response.status}`);
         return response.json() as Promise<Node>;
       });
-      lazyCache.set(src, promise);
+      if (!signal) lazyCache.set(src, promise);
     }
     promise
       .then((body) => {
-        if (disposed) return;
+        if (disposed || signal?.aborted || current !== generation) return;
         const json = JSON.stringify(body);
         if (json === lastBodyJson) return; // a reload with an unchanged payload is a no-op
         lastBodyJson = json;
@@ -844,16 +864,17 @@ function wireLazy(el: Element, node: Node, store?: Store, scope?: Scope): void {
         mounted.push(built);
       })
       .catch((error) => {
+        if (disposed || signal?.aborted || current !== generation) return;
         lazyCache.delete(src); // a failed fetch may be retried by a later activation
         loaded = false;
         console.error("spa-lazy: failed to load", src, error);
       });
   };
   // `refreshRoots` refetches an already-loaded body (its cache entry was just invalidated)
-  lazyReloaders.set(el, () => {
-    if (disposed || !loaded) return;
+  lazyReloaders.set(el, (signal) => {
+    if (disposed || !loaded || signal?.aborted) return;
     loaded = false;
-    activate();
+    activate(signal);
   });
   const subs: (() => void)[] = [];
   if (!cond) {
@@ -1593,6 +1614,9 @@ function build(node: Node, store?: Store, scope?: Scope): Element {
     if (canWireBinding(spec, store, scope))
       wireBinding(el, prop, spec, store, scope);
   }
+  for (const [name, effect] of Object.entries(node.effects ?? {}))
+    wireEffect(el, name, effect, store, scope);
+  if (node.readiness) wireReadiness(el, node.readiness, store, scope);
   return el;
 }
 
@@ -1737,6 +1761,8 @@ type Op =
     }
   | { SetBinding: { path: Path; name: string; binding: Binding } }
   | { RemoveBinding: { path: Path; name: string } }
+  | { SetEffect: { path: Path; name: string; effect: Effect | null } }
+  | { SetReadiness: { path: Path; readiness: Readiness | null } }
   | { SetKey: { path: Path; key: string | null } }
   | { InsertChild: { path: Path; slot: string; index: number; node: Node } }
   | { RemoveChild: { path: Path; slot: string; index: number } }
@@ -1815,7 +1841,14 @@ function applyOpToDefinition(node: Node, rest: Path, op: Op): void {
   } else if ("SetBinding" in op)
     (node.bindings ??= {})[op.SetBinding.name] = op.SetBinding.binding;
   else if ("RemoveBinding" in op) delete node.bindings?.[op.RemoveBinding.name];
-  else if ("SetKey" in op) {
+  else if ("SetEffect" in op) {
+    const { name, effect } = op.SetEffect;
+    if (effect) (node.effects ??= {})[name] = effect;
+    else delete node.effects?.[name];
+  } else if ("SetReadiness" in op) {
+    if (op.SetReadiness.readiness) node.readiness = op.SetReadiness.readiness;
+    else delete node.readiness;
+  } else if ("SetKey" in op) {
     if (op.SetKey.key === null) delete node.key;
     else node.key = op.SetKey.key;
   } else if ("InsertChild" in op)
@@ -1896,6 +1929,12 @@ function applyOp(
     const el = resolve(root, path);
     if (!rewireStructuralBinding(el, name, undefined, store, scope))
       unwireBinding(el, name);
+  } else if ("SetEffect" in op) {
+    const { path, name, effect } = op.SetEffect;
+    wireEffect(resolve(root, path), name, effect, store, scope);
+  } else if ("SetReadiness" in op) {
+    const { path, readiness } = op.SetReadiness;
+    wireReadiness(resolve(root, path), readiness, store, scope);
   } else if ("InsertChild" in op) {
     const { path, slot, index, node } = op.InsertChild;
     insertInSlot(resolve(root, path), slot, index, build(node, store, scope));

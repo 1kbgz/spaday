@@ -12,7 +12,9 @@ from .spaday import (
     expr_schema as _expr_schema,
     normalize_action as _normalize_action,
     normalize_binding as _normalize_binding,
+    normalize_effect as _normalize_effect,
     normalize_expr as _normalize_expr,
+    normalize_readiness as _normalize_readiness,
 )
 
 
@@ -29,6 +31,16 @@ def validate_expr(value: object) -> dict[str, Any]:
 def validate_binding(value: object) -> dict[str, Any]:
     """Validate a binding against the Rust-owned wire model and return its canonical form."""
     return _normalize(value, _normalize_binding)
+
+
+def validate_effect(value: object) -> dict[str, Any]:
+    """Validate a store effect against the shared model."""
+    return _normalize(value, _normalize_effect)
+
+
+def validate_readiness(value: object) -> dict[str, Any]:
+    """Validate scoped readiness against the shared model."""
+    return _normalize(value, _normalize_readiness)
 
 
 def action_schema() -> dict[str, Any]:
@@ -61,4 +73,6 @@ __all__ = [
     "validate_action",
     "validate_binding",
     "validate_expr",
+    "validate_effect",
+    "validate_readiness",
 ]

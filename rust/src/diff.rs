@@ -71,6 +71,15 @@ pub enum Op {
         path: Path,
         name: Attr,
     },
+    SetEffect {
+        path: Path,
+        name: String,
+        effect: Option<crate::Effect>,
+    },
+    SetReadiness {
+        path: Path,
+        readiness: Option<crate::Readiness>,
+    },
     SetKey {
         path: Path,
         key: Option<Key>,
@@ -109,6 +118,8 @@ impl Op {
             | Op::SetEventOptions { path, .. }
             | Op::SetBinding { path, .. }
             | Op::RemoveBinding { path, .. }
+            | Op::SetEffect { path, .. }
+            | Op::SetReadiness { path, .. }
             | Op::SetKey { path, .. }
             | Op::InsertChild { path, .. }
             | Op::RemoveChild { path, .. }
@@ -240,6 +251,26 @@ fn diff_node(path: &Path, old: &Node, new: &Node, ops: &mut Vec<Op>) {
         }
     }
 
+    for name in old
+        .effects
+        .keys()
+        .chain(new.effects.keys())
+        .collect::<BTreeSet<_>>()
+    {
+        if old.effects.get(name) != new.effects.get(name) {
+            ops.push(Op::SetEffect {
+                path: path.to_vec(),
+                name: name.clone(),
+                effect: new.effects.get(name).cloned(),
+            });
+        }
+    }
+    if old.readiness != new.readiness {
+        ops.push(Op::SetReadiness {
+            path: path.to_vec(),
+            readiness: new.readiness.clone(),
+        });
+    }
     // Bindings.
     for (name, nb) in &new.bindings {
         if old.bindings.get(name) != Some(nb) {
@@ -439,6 +470,16 @@ fn apply_op(root: &mut Node, op: &Op) {
                 let item = v.remove(*from);
                 v.insert(*to, item);
             }
+        }
+        Op::SetEffect { name, effect, .. } => {
+            if let Some(effect) = effect {
+                target.effects.insert(name.clone(), effect.clone());
+            } else {
+                target.effects.remove(name);
+            }
+        }
+        Op::SetReadiness { readiness, .. } => {
+            target.readiness = readiness.clone();
         }
         Op::Replace { node, .. } => {
             *target = node.clone();

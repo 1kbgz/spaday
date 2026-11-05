@@ -161,6 +161,13 @@ impl From<String> for EndpointUrl {
 #[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum Action {
+    /// Copy a value to the browser clipboard; optionally store {ok, error}.
+    #[serde(rename = "clipboard")]
+    CopyToClipboard {
+        value: Expr,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        result: Option<String>,
+    },
     /// Set `prop` on `target` to `value`.
     #[serde(rename = "set")]
     SetProp {

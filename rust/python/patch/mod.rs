@@ -70,3 +70,13 @@ pub fn encode_frame(
 pub fn decode_frame(frame: &[u8]) -> PyResult<String> {
     spaday::decode_frame(frame).map_err(PyValueError::new_err)
 }
+
+#[pyfunction]
+pub fn normalize_effect(value: &str) -> PyResult<String> {
+    spaday::normalize_effect(value).map_err(PyValueError::new_err)
+}
+
+#[pyfunction]
+pub fn normalize_readiness(value: &str) -> PyResult<String> {
+    spaday::normalize_readiness(value).map_err(PyValueError::new_err)
+}

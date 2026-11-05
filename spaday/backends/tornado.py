@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from collections.abc import Awaitable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -80,26 +80,32 @@ def mount(
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))
     pre = re.escape(prefix)
 
-    # Tornado declares handlers as callable attributes; ty versions classify the overrides differently.
     class _Index(RequestHandler):
-        def get(self):  # ty: ignore
+        def _get(self, *args: str, **kwargs: str) -> None:
             self.set_header("Content-Type", "text/html")
             self.write(body)
+
+        # Match Tornado's mutable callable attribute rather than narrowing it to a method.
+        get: Callable[..., Awaitable[None] | None] = _get
 
     if tree == "frame":
 
         class _Tree(RequestHandler):
-            def get(self):  # ty: ignore
+            def _get(self, *args: str, **kwargs: str) -> None:
                 self.set_header("Content-Type", "application/octet-stream")
                 self.write(tree_frame(page, design=page_design))
+
+            get: Callable[..., Awaitable[None] | None] = _get
 
         tree_rules = [(rf"{pre}/tree", _Tree)]
     elif tree == "json":
 
         class _Tree(RequestHandler):
-            def get(self):  # ty: ignore
+            def _get(self, *args: str, **kwargs: str) -> None:
                 self.set_header("Content-Type", "application/json")
                 self.write(tree_json(page, page_design))
+
+            get: Callable[..., Awaitable[None] | None] = _get
 
         tree_rules = [(rf"{pre}/tree\.json", _Tree)]
     else:
@@ -108,18 +114,21 @@ def mount(
     if assets is not None:
 
         class _Asset(RequestHandler):
-            def initialize(self, **kwargs):  # ty: ignore
+            def initialize(self, **kwargs) -> None:
                 self.bundle = kwargs["bundle"]
 
-            async def get(self, path):  # ty: ignore
+            async def _get(self, path: str) -> None:
                 result = await asyncio.to_thread(self.bundle.response, path, self.request.headers, self.request.method)
                 self.set_status(result.status)
                 for name, value in result.headers.items():
                     self.set_header(name, value)
                 self.finish(result.body if result.body else None)
 
-            async def head(self, path):  # ty: ignore
-                await self.get(path)
+            async def _head(self, path: str) -> None:
+                await self._get(path)
+
+            get: Callable[..., Awaitable[None] | None] = _get
+            head: Callable[..., Awaitable[None] | None] = _head
 
         handlers = [(rf"{pre}/", _Index), *tree_rules, *routes, *((rf"{re.escape(b.prefix)}/(.*)", _Asset, {"bundle": b}) for b in bundles)]
     else:

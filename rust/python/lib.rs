@@ -19,6 +19,8 @@ fn spaday(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(patch::normalize_action, m)?)?;
     m.add_function(wrap_pyfunction!(patch::normalize_expr, m)?)?;
     m.add_function(wrap_pyfunction!(patch::normalize_binding, m)?)?;
+    m.add_function(wrap_pyfunction!(patch::normalize_effect, m)?)?;
+    m.add_function(wrap_pyfunction!(patch::normalize_readiness, m)?)?;
     m.add_function(wrap_pyfunction!(patch::action_schema, m)?)?;
     m.add_function(wrap_pyfunction!(patch::expr_schema, m)?)?;
     m.add_function(wrap_pyfunction!(patch::binding_schema, m)?)?;
