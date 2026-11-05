@@ -328,7 +328,13 @@ class Component:
         return self.bind(f"attr:{name}", field)
 
     def prop(self, name: str, value: Any) -> Self:
-        """Set an arbitrary prop (escape hatch for attributes a typed class doesn't expose)."""
+        """Set a literal prop or compute it reactively from an expression.
+
+        Expressions use the same one-way binding as :meth:`compute`. Literal values retain
+        their existing behavior, including leaving the prop unchanged when passed ``None``.
+        """
+        if isinstance(value, Expr):
+            return self.compute(name, value)
         if value is not None:
             self._props[name] = value
         return self
@@ -374,18 +380,19 @@ class Component:
         )
         return self
 
-    def ready_when(
+    def ready(
         self,
         when: Expr | bool,
         *,
-        state: str,
+        result: str | None = None,
         active: Expr | bool = True,
         error: Expr | str | None = None,
         elements: list[str] | tuple[str, ...] = (),
         timeout: int = 10000,
     ) -> Self:
-        """Publish this view's readiness as ``{status, error}`` in a store field.
+        """Track this view's readiness; optionally publish ``{status, error}`` to ``result``.
 
+        Always emits ``spaday:readiness`` events, including without a store or result field.
         Status is loading, ready, error, or idle when inactive. Timeout errors recover when
         data and components become ready. This does not block or dispose other views.
         """
@@ -396,7 +403,7 @@ class Component:
                 "when": (when if isinstance(when, Expr) else lit(when)).to_dict(),
                 "active": (active if isinstance(active, Expr) else lit(active)).to_dict(),
                 "error": (error if isinstance(error, Expr) else lit(error)).to_dict(),
-                "state": state,
+                "result": result,
                 "elements": elements,
                 "timeout": timeout,
             }

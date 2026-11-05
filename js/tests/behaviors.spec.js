@@ -258,7 +258,7 @@ test("inactive readiness does not block logs and recovers after data or componen
       when: field("data"),
       active: field("workspace"),
       error: field("error"),
-      state: "view",
+      result: "view",
       elements: ["workspace-view"],
       timeout: 40,
     },
@@ -339,7 +339,7 @@ test("readiness patch replacement and removal dispose subscriptions and timers",
       when: field("ready"),
       active: lit(true),
       error: lit(null),
-      state: "old",
+      result: "old",
       elements: [],
       timeout: 100,
     },
@@ -358,7 +358,7 @@ test("readiness patch replacement and removal dispose subscriptions and timers",
       when: field("ready"),
       active: lit(true),
       error: lit(null),
-      state: "new",
+      result: "new",
       elements: [],
       timeout: 30,
     },
@@ -682,4 +682,84 @@ test("obsolete effect refreshes cannot replace a tree with stale server state", 
     ),
   );
   await expect(page.locator("section")).toHaveAttribute("title", "current");
+});
+
+test("minimal JavaScript readiness shares Python defaults and works without a store", async ({
+  page,
+}) => {
+  const expected = JSON.parse(
+    execFileSync(
+      process.env.PYTHON || "python",
+      [
+        "-c",
+        `
+import json
+from spaday import element
+print(json.dumps(element("section").ready(True).to_node()["readiness"]))
+`,
+      ],
+      { cwd: "..", encoding: "utf8" },
+    ),
+  );
+  const normalized = await page.evaluate(async () => {
+    const { validateReadiness } = await import("/dist/esm/index.js");
+    const readiness = { when: { expr: "lit", value: true } };
+    window.states = [];
+    document.addEventListener("spaday:readiness", (event) =>
+      window.states.push(event.detail),
+    );
+    window.__spaday.mount(document.body, { tag: "section", readiness });
+    return validateReadiness(readiness);
+  });
+  expect(normalized).toEqual(expected);
+  await expect
+    .poll(() => page.evaluate(() => window.states))
+    .toEqual([
+      { status: "loading", error: null },
+      { status: "ready", error: null },
+    ]);
+});
+
+test("Python ready and prop expressions react with optional readiness results", async ({
+  page,
+}) => {
+  const tree = JSON.parse(
+    execFileSync(
+      process.env.PYTHON || "python",
+      [
+        "-c",
+        `
+from spaday import Button, element, field, not_
+from spaday.ui import resolve, NATIVE
+import json
+view = element("section", Button(label="Save").prop("disabled", not_(field("loaded")))).ready(field("loaded"))
+print(json.dumps(resolve(view.to_node(), NATIVE)))
+`,
+      ],
+      { cwd: "..", encoding: "utf8" },
+    ),
+  );
+  await page.evaluate((tree) => {
+    const { mount, Store } = window.__spaday;
+    window.store = new Store({ loaded: false });
+    window.states = [];
+    document.addEventListener("spaday:readiness", (event) =>
+      window.states.push(event.detail),
+    );
+    window.root = mount(document.body, tree, window.store);
+  }, tree);
+  await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+  await expect
+    .poll(() => page.evaluate(() => window.states.at(-1).status))
+    .toBe("loading");
+  await page.evaluate(() => window.store.set("loaded", true));
+  await expect(page.getByRole("button", { name: "Save" })).toBeEnabled();
+  await expect
+    .poll(() => page.evaluate(() => window.states.at(-1).status))
+    .toBe("ready");
+  await page.evaluate(() => window.store.set("loaded", false));
+  await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+  await expect
+    .poll(() => page.evaluate(() => window.states.at(-1).status))
+    .toBe("loading");
 });

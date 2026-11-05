@@ -1,3 +1,4 @@
+import { normalize_readiness } from "../../dist/pkg/spaday";
 import { interpret } from "./actions";
 import { attachController, componentsReady } from "./lifecycle";
 import {
@@ -16,12 +17,15 @@ export interface Effect {
 
 export interface Readiness {
   when: unknown;
-  active: unknown;
-  error: unknown;
-  state: string;
-  elements: string[];
-  timeout: number;
+  active?: unknown;
+  error?: unknown;
+  result?: string | null;
+  elements?: string[];
+  timeout?: number;
 }
+
+type ResolvedReadiness = Required<Omit<Readiness, "result">> &
+  Pick<Readiness, "result">;
 
 type Cleanup = () => void;
 type Behavior = { start: Cleanup; stop: Cleanup };
@@ -154,14 +158,17 @@ export function wireEffect(
 
 export function wireReadiness(
   el: Element,
-  spec: Readiness | null,
+  input: Readiness | null,
   store?: Store,
   scope?: Scope,
 ): void {
+  const spec: ResolvedReadiness | null = input
+    ? JSON.parse(normalize_readiness(JSON.stringify(input)))
+    : null;
   replace(
     el,
     "readiness",
-    spec && store
+    spec
       ? () => {
           let disposed = false;
           let active = false;
@@ -181,7 +188,7 @@ export function wireReadiness(
             status = next;
             lastError = error;
             const detail = { status, error };
-            store.set(spec.state, detail);
+            if (spec.result) store?.set(spec.result, detail);
             if (
               !disposed &&
               status === detail.status &&
@@ -258,7 +265,9 @@ export function wireReadiness(
             expressions.flatMap((expr) => [...exprScopes(expr, scope)]),
           );
           const unsubscribes = [
-            ...[...fields].map((field) => store.subscribe(field, update)),
+            ...(store
+              ? [...fields].map((field) => store.subscribe(field, update))
+              : []),
             ...[...scopes].map((scope) => scope.subscribe(update)),
           ];
           return {

@@ -99,6 +99,15 @@ WaCallout().compute("hidden", not_(eq(field("mode"), "advanced")))
 WaButton().compute("disabled", not_(all_(field("a"), field("b"))))
 ```
 
+Use `.prop(name, expression)` for the same computed binding when mixing literal and reactive props:
+
+```python
+WaButton().prop("title", "Save changes").prop("disabled", not_(field("enabled")))
+```
+
+Literal props keep their existing behavior. An expression creates a one-way binding, just like
+`.compute(name, expression)`, which remains supported.
+
 The field-expression helpers: `field(name)`, `lit(value)`, `not_(e)`, `eq(a, b)`, `all_(*es)` (AND),
 `any_(*es)` (OR), `cond(test, then, else)` (a ternary — `compute("theme", cond(field("dark"), "dark", "light"))`), `obj({name: expr})` (compose an object from sub-expressions), and `arr(*exprs)`
 (compose a list — `arr(field("path"))` wraps a dynamic value in a list, e.g. for a tree's
@@ -433,8 +442,8 @@ or `NamedJs` handler. Keep those operations idempotent where necessary.
 
 ## Show readiness for one view
 
-Use `ready_when` for application data that arrives after the component tree mounts. Attach it to
-a view and give it a store field for status:
+Use `ready` for application data that arrives after the component tree mounts. Attach it to
+a view and optionally give it a result field for status:
 
 ```python
 from spaday import element, eq, field
@@ -447,9 +456,9 @@ workspace = element(
         eq(field("workspace_status.status"), "error"),
         element("p").text(field("workspace_status.error")),
     ),
-).ready_when(
+).ready(
     field("workspace_loaded"),
-    state="workspace_status",
+    result="workspace_status",
     active=eq(field("main_tab"), "workspace"),
     error=field("workspace_error"),
     elements=["perspective-viewer"],
@@ -475,7 +484,15 @@ handle initial component startup independently. Avoid making readiness condition
 own output field.
 
 Each status change also dispatches `spaday:readiness` on the view, with `{status, error}` as its
-detail. Use the store field for declarative bindings.
+detail. Use `result=` for declarative store bindings, or omit it to consume events only:
+
+```python
+view = element("section").ready(field("loaded"))
+```
+
+With no store dependencies, `.ready(True, elements=["perspective-viewer"])` also works without a
+store. Python and JavaScript share defaults: active, no explicit error, no component dependencies,
+and a 10000 ms timeout. A minimal JavaScript readiness specification is `{when: {expr: "lit", value: true}}`.
 
 ## Copy a saved link in the same action sequence
 

@@ -11,7 +11,7 @@ def test_behaviors_diff_round_trip_and_removal():
     configured = (
         element("div")
         .effect("load", SetField("result", field("path")), watch=["path"], initial=True)
-        .ready_when(field("loaded"), state="workspace", active=field("active"), elements=["test-view"])
+        .ready(field("loaded"), result="workspace", active=field("active"), elements=["test-view"])
         .to_json()
     )
     patch = diff(original, configured)
@@ -33,7 +33,7 @@ def test_invalid_effect_options(kwargs):
         {"timeout": -1},
         {"timeout": True},
         {"timeout": 2147483648},
-        {"state": ""},
+        {"result": ""},
         {"elements": ["div"]},
         {"when": field("status")},
         {"when": field("status.error")},
@@ -41,12 +41,12 @@ def test_invalid_effect_options(kwargs):
 )
 def test_invalid_readiness_options(kwargs):
     with pytest.raises((TypeError, ValueError)):
-        element("div").ready_when(**{"when": field("ready"), "state": "status", **kwargs})  # ty: ignore[invalid-argument-type]
+        element("div").ready(**{"when": field("ready"), "result": "status", **kwargs})  # ty: ignore[invalid-argument-type]
 
 
 def test_generic_controls_keep_behaviors_and_validate_effect_targets():
     component = TextInput().effect("open", Invoke(by_id("missing"), "open"), watch=["panel"])
-    component.ready_when(field("ready"), state="status")
+    component.ready(field("ready"), result="status")
     node = component.to_node()
     resolved = resolve(node, NATIVE)
 
@@ -71,3 +71,34 @@ def test_generic_controls_keep_behaviors_and_validate_effect_targets():
 def test_clipboard_action_validated_by_shared_core():
     node = element("button").on("click", CopyToClipboard(field("url"), result="copied")).to_node()
     assert node["events"]["click"] == {"kind": "clipboard", "value": {"expr": "field", "name": "url"}, "result": "copied"}
+
+
+def test_ready_defaults_match_the_shared_wire_defaults():
+    from spaday import validate_readiness
+
+    minimal = {"when": {"expr": "lit", "value": True}}
+    expected = {
+        **minimal,
+        "active": {"expr": "lit", "value": True},
+        "error": {"expr": "lit", "value": None},
+        "elements": [],
+        "timeout": 10000,
+    }
+    assert element("section").ready(True).to_node()["readiness"] == expected
+    assert validate_readiness(minimal) == expected
+    assert validate_readiness({**minimal, "result": None}) == expected
+    assert element("section").ready(True, result="view").to_node()["readiness"] == {**expected, "result": "view"}
+
+
+def test_prop_expressions_use_existing_computed_bindings():
+    from spaday import Button, not_
+
+    expression = not_(field("enabled"))
+    compact = Button().prop("disabled", expression)
+    explicit = Button().compute("disabled", expression)
+    assert compact.to_node() == explicit.to_node()
+    assert resolve(compact.to_node(), NATIVE) == resolve(explicit.to_node(), NATIVE)
+    literal = element("button").prop("disabled", False).prop("title", "enabled").prop("title", None)
+    assert literal.to_node()["props"] == {"disabled": {"Bool": False}, "title": {"Str": "enabled"}}
+    # A literal prop can still provide an initial value alongside a separately authored binding.
+    assert literal.bind("disabled", "disabled").prop("disabled", True).to_node()["bindings"]["disabled"]["field"] == "disabled"

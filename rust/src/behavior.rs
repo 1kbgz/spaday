@@ -16,11 +16,32 @@ pub struct Effect {
 #[serde(deny_unknown_fields)]
 pub struct Readiness {
     pub when: Expr,
+    #[serde(default = "default_active")]
     pub active: Expr,
+    #[serde(default = "default_error")]
     pub error: Expr,
-    pub state: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<String>,
+    #[serde(default)]
     pub elements: Vec<String>,
+    #[serde(default = "default_timeout")]
     pub timeout: u32,
+}
+
+fn default_active() -> Expr {
+    Expr::Lit {
+        value: serde_json::json!(true),
+    }
+}
+
+fn default_error() -> Expr {
+    Expr::Lit {
+        value: serde_json::Value::Null,
+    }
+}
+
+fn default_timeout() -> u32 {
+    10000
 }
 
 pub fn normalize_effect(json: &str) -> Result<String, String> {
@@ -33,12 +54,15 @@ pub fn normalize_effect(json: &str) -> Result<String, String> {
 
 pub fn normalize_readiness(json: &str) -> Result<String, String> {
     let readiness: Readiness = serde_json::from_str(json).map_err(|e| e.to_string())?;
-    if readiness.state.trim().is_empty()
+    if readiness
+        .result
+        .as_ref()
+        .is_some_and(|result| result.trim().is_empty())
         || readiness.timeout == 0
         || readiness.timeout > i32::MAX as u32
     {
         return Err(
-            "readiness requires a nonempty state field and timeout from 1 to 2147483647 ms".into(),
+            "readiness result must be nonempty when supplied; timeout must be from 1 to 2147483647 ms".into(),
         );
     }
     if readiness
@@ -49,19 +73,21 @@ pub fn normalize_readiness(json: &str) -> Result<String, String> {
         return Err("readiness elements must be custom-element names".into());
     }
     for expr in [&readiness.when, &readiness.active, &readiness.error] {
-        validate_condition(expr, &readiness.state)?;
+        validate_condition(expr, readiness.result.as_deref())?;
     }
     serde_json::to_string(&readiness).map_err(|e| e.to_string())
 }
 
-fn validate_condition(expr: &Expr, output: &str) -> Result<(), String> {
+fn validate_condition(expr: &Expr, output: Option<&str>) -> Result<(), String> {
     match expr {
         Expr::Field { name } => {
-            if name == output
-                || name.starts_with(&format!("{output}."))
-                || output.starts_with(&format!("{name}."))
-            {
-                return Err("readiness cannot depend on its own state field".into());
+            if let Some(output) = output {
+                if name == output
+                    || name.starts_with(&format!("{output}."))
+                    || output.starts_with(&format!("{name}."))
+                {
+                    return Err("readiness cannot depend on its own result field".into());
+                }
             }
         }
         Expr::Lit { .. } | Expr::Item { .. } | Expr::Scope { .. } => (),
@@ -110,6 +136,24 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn readiness_defaults_and_optional_result_are_shared() {
+        let minimal = json!({"when": {"expr": "lit", "value": true}});
+        let normalized = normalize_readiness(&minimal.to_string()).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&normalized).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "when": {"expr": "lit", "value": true},
+                "active": {"expr": "lit", "value": true},
+                "error": {"expr": "lit", "value": null},
+                "elements": [], "timeout": 10000
+            })
+        );
+        let readiness: Readiness = serde_json::from_value(minimal).unwrap();
+        assert_eq!(serde_json::to_value(readiness).unwrap(), value);
+    }
+
+    #[test]
     fn behavior_changes_round_trip_without_replacing_nodes() {
         let old = Node::new("div");
         let mut new = old.clone();
@@ -118,7 +162,7 @@ mod tests {
             "copy".into(),
             serde_json::from_str(&normalize_effect(&effect.to_string()).unwrap()).unwrap(),
         );
-        let readiness = json!({"when": {"expr": "field", "name": "loaded"}, "active": {"expr": "lit", "value": true}, "error": {"expr": "lit", "value": null}, "state": "view", "elements": [], "timeout": 1000});
+        let readiness = json!({"when": {"expr": "field", "name": "loaded"}, "active": {"expr": "lit", "value": true}, "error": {"expr": "lit", "value": null}, "result": "view", "elements": [], "timeout": 1000});
         new.readiness = Some(
             serde_json::from_str(&normalize_readiness(&readiness.to_string()).unwrap()).unwrap(),
         );
@@ -134,13 +178,13 @@ mod tests {
 
     #[test]
     fn readiness_rejects_event_expressions_and_feedback_loops() {
-        let mut spec = json!({"when": {"expr": "event"}, "active": {"expr": "lit", "value": true}, "error": {"expr": "lit", "value": null}, "state": "view", "elements": [], "timeout": 1000});
+        let mut spec = json!({"when": {"expr": "event"}, "active": {"expr": "lit", "value": true}, "error": {"expr": "lit", "value": null}, "result": "view", "elements": [], "timeout": 1000});
         assert!(normalize_readiness(&spec.to_string())
             .unwrap_err()
             .contains("reactive"));
         spec["when"] = json!({"expr": "not", "of": {"expr": "field", "name": "view.error"}});
         assert!(normalize_readiness(&spec.to_string())
             .unwrap_err()
-            .contains("own state"));
+            .contains("own result"));
     }
 }
