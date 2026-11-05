@@ -70,6 +70,18 @@ export const encodeFrame = (
 export const decodeFrame = (frame: Uint8Array): string =>
   wasm.decode_frame(frame);
 
+export const validateEffect = (value: unknown) =>
+  JSON.parse(wasm.normalize_effect(JSON.stringify(value))) as Record<
+    string,
+    unknown
+  >;
+export const validateReadiness = (value: unknown) =>
+  JSON.parse(wasm.normalize_readiness(JSON.stringify(value))) as Record<
+    string,
+    unknown
+  >;
+export type { Effect, Readiness } from "./behaviors";
+
 // Custom Elements Manifest binding: parse a manifest into component schemas / a runtime registry.
 export { parseCem, registry } from "./cem";
 export type { ComponentSchema, PropSchema, PropType } from "./cem";

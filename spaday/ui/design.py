@@ -696,6 +696,9 @@ class _Resolver:
             control["event_options"] = {spec.events.get(event, event): options for event, options in node["event_options"].items()}
         if bindings:
             control["bindings"] = bindings
+        for behavior in ("effects", "readiness"):
+            if behavior in node:
+                control[behavior] = deepcopy(node[behavior])
 
         if spec.wrap is None:
             outer = control

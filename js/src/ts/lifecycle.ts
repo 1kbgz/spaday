@@ -34,7 +34,7 @@ export function disposeControllers(root: Element): void {
   controllers.delete(root);
 }
 
-async function componentsReady(
+export async function componentsReady(
   reference: WeakRef<Element>,
   elements: readonly string[],
 ): Promise<void> {

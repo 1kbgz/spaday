@@ -186,6 +186,10 @@ pub struct Node {
     /// Reactive prop bindings: a prop name → the state field it tracks (see the runtime signal store).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub bindings: BTreeMap<Attr, Binding>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub effects: BTreeMap<String, crate::Effect>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub readiness: Option<crate::Readiness>,
 }
 
 impl Node {
@@ -199,6 +203,8 @@ impl Node {
             events: BTreeMap::new(),
             event_options: BTreeMap::new(),
             bindings: BTreeMap::new(),
+            effects: BTreeMap::new(),
+            readiness: None,
         }
     }
 
