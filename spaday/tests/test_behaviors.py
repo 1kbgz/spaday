@@ -51,26 +51,22 @@ def test_generic_controls_keep_behaviors_and_validate_effect_targets():
     resolved = resolve(node, NATIVE)
 
     # Native input is wrapped by a label; behaviors target the actual control, as events do.
-    def find(node):
-        if node["tag"] == "input":
-            return node
-        for children in node.get("slots", {}).values():
-            for child in children:
-                if found := find(child):
-                    return found
-        return None
-
-    control = find(resolved)
-    assert control is not None
+    assert resolved["tag"] == "label"
+    control = resolved["slots"]["default"][0]
+    assert control["tag"] == "input"
     assert control["effects"] == node["effects"]
     assert control["readiness"] == node["readiness"]
     with pytest.raises(ValidationError, match="missing"):
         validate(component)
 
 
-def test_clipboard_action_validated_by_shared_core():
-    node = element("button").on("click", CopyToClipboard(field("url"), result="copied")).to_node()
-    assert node["events"]["click"] == {"kind": "clipboard", "value": {"expr": "field", "name": "url"}, "result": "copied"}
+@pytest.mark.parametrize("result", [None, "copied"])
+def test_clipboard_action_validated_by_shared_core(result):
+    node = element("button").on("click", CopyToClipboard(field("url"), result=result)).to_node()
+    expected = {"kind": "clipboard", "value": {"expr": "field", "name": "url"}}
+    if result is not None:
+        expected["result"] = result
+    assert node["events"]["click"] == expected
 
 
 def test_ready_defaults_match_the_shared_wire_defaults():
@@ -102,3 +98,18 @@ def test_prop_expressions_use_existing_computed_bindings():
     assert literal.to_node()["props"] == {"disabled": {"Bool": False}, "title": {"Str": "enabled"}}
     # A literal prop can still provide an initial value alongside a separately authored binding.
     assert literal.bind("disabled", "disabled").prop("disabled", True).to_node()["bindings"]["disabled"]["field"] == "disabled"
+
+
+@pytest.mark.parametrize("name", ["", " ", None, 12])
+def test_effect_rejects_empty_or_non_string_names(name):
+    with pytest.raises(ValueError, match="effect name must be a nonempty string"):
+        element("div").effect(name, SetField("result", True), watch=["path"])
+
+
+def test_effect_accepts_and_validates_serialized_action_data():
+    action = SetField("result", field("path"))
+    typed = element("div").effect("load", action, watch=["path"])
+    serialized = element("div").effect("load", action.to_dict(), watch=["path"])
+    assert serialized.to_node() == typed.to_node()
+    with pytest.raises(ValueError):
+        element("div").effect("load", {"kind": "invalid"}, watch=["path"])
