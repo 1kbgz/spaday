@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=8486d09b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=ead03eb6" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
@@ -21,7 +21,7 @@
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
-    <script type="module" src="../../_static/benched/benched.js?v=287d4e6a"></script>
+    <script type="module" src="../../_static/benched/benched.js?v=8a4d8cf8"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=a5320898"></script>
     <script defer="defer" src="../../_static/fuma.js?v=9c325f6c"></script>
@@ -611,7 +611,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Action</span><span class="p">,</span> <span class="n">Expr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.catalog</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentSchema</span><span class="p">,</span> <span class="n">PropertySchema</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_action</span><span class="p">,</span> <span class="n">validate_binding</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_action</span><span class="p">,</span> <span class="n">validate_binding</span><span class="p">,</span> <span class="n">validate_effect</span><span class="p">,</span> <span class="n">validate_readiness</span>
 
 <span class="c1">#: The conventional name of a component's unnamed (default) slot (matches the Rust core).</span>
 <span class="n">DEFAULT_SLOT</span> <span class="o">=</span> <span class="s2">"default"</span>
@@ -787,6 +787,8 @@ window.runMermaid = runMermaid;</script>
         <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_event_options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_effects</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_readiness</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_style</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># inline CSS declarations + custom properties (theming)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_classes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># CSS classes (variants / states)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="o">*</span><span class="n">children</span><span class="p">)</span>
@@ -944,7 +946,13 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="Component.prop">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.prop">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">prop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Set an arbitrary prop (escape hatch for attributes a typed class doesn't expose)."""</span>
+<span class="w">        </span><span class="sd">"""Set a literal prop or compute it reactively from an expression.</span>
+
+<span class="sd">        Expressions use the same one-way binding as :meth:`compute`. Literal values retain</span>
+<span class="sd">        their existing behavior, including leaving the prop unchanged when passed ``None``.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Expr</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_props</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
         <span class="k">return</span> <span class="bp">self</span></div>
@@ -980,6 +988,59 @@ window.runMermaid = runMermaid;</script>
     <span class="k">def</span><span class="w"> </span><span class="nf">classes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Add CSS classes (component variants / theme states), e.g. ``.classes("wa-dark")``."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_classes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="n">n</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Component.effect">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.effect">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">effect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">Action</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">watch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">initial</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Run an action when watched store fields change; cancel its previous invocation.</span>
+
+<span class="sd">        ``initial=True`` also runs after mounting. Effects are disposed with this component.</span>
+<span class="sd">        Updates in one synchronous turn coalesce into one invocation with the latest values.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"effect name must be a nonempty string"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_effects</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">validate_effect</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"watch"</span><span class="p">:</span> <span class="n">watch</span><span class="p">,</span>
+                <span class="s2">"initial"</span><span class="p">:</span> <span class="n">initial</span><span class="p">,</span>
+                <span class="s2">"action"</span><span class="p">:</span> <span class="n">action</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">Action</span><span class="p">)</span> <span class="k">else</span> <span class="n">action</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Component.ready">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.Component.ready">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ready</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">when</span><span class="p">:</span> <span class="n">Expr</span> <span class="o">|</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">active</span><span class="p">:</span> <span class="n">Expr</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">error</span><span class="p">:</span> <span class="n">Expr</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">elements</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Track this view's readiness; optionally publish ``{status, error}`` to ``result``.</span>
+
+<span class="sd">        Always emits ``spaday:readiness`` events, including without a store or result field.</span>
+<span class="sd">        Status is loading, ready, error, or idle when inactive. Timeout errors recover when</span>
+<span class="sd">        data and components become ready. This does not block or dispose other views.</span>
+<span class="sd">        """</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">lit</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_readiness</span> <span class="o">=</span> <span class="n">validate_readiness</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"when"</span><span class="p">:</span> <span class="p">(</span><span class="n">when</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">when</span><span class="p">,</span> <span class="n">Expr</span><span class="p">)</span> <span class="k">else</span> <span class="n">lit</span><span class="p">(</span><span class="n">when</span><span class="p">))</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+                <span class="s2">"active"</span><span class="p">:</span> <span class="p">(</span><span class="n">active</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">active</span><span class="p">,</span> <span class="n">Expr</span><span class="p">)</span> <span class="k">else</span> <span class="n">lit</span><span class="p">(</span><span class="n">active</span><span class="p">))</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+                <span class="s2">"error"</span><span class="p">:</span> <span class="p">(</span><span class="n">error</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">Expr</span><span class="p">)</span> <span class="k">else</span> <span class="n">lit</span><span class="p">(</span><span class="n">error</span><span class="p">))</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+                <span class="s2">"result"</span><span class="p">:</span> <span class="n">result</span><span class="p">,</span>
+                <span class="s2">"elements"</span><span class="p">:</span> <span class="n">elements</span><span class="p">,</span>
+                <span class="s2">"timeout"</span><span class="p">:</span> <span class="n">timeout</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
@@ -1182,6 +1243,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">node</span><span class="p">[</span><span class="s2">"event_options"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">options</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">options</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event_options</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">:</span>
             <span class="n">node</span><span class="p">[</span><span class="s2">"bindings"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effects</span><span class="p">:</span>
+            <span class="n">node</span><span class="p">[</span><span class="s2">"effects"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_effects</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_readiness</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">node</span><span class="p">[</span><span class="s2">"readiness"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_readiness</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">node</span></div>
 
 

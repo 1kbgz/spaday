@@ -99,6 +99,15 @@ WaCallout().compute("hidden", not_(eq(field("mode"), "advanced")))
 WaButton().compute("disabled", not_(all_(field("a"), field("b"))))
 ```
 
+Use `.prop(name, expression)` for the same computed binding when mixing literal and reactive props:
+
+```python
+WaButton().prop("title", "Save changes").prop("disabled", not_(field("enabled")))
+```
+
+Literal props keep their existing behavior. An expression creates a one-way binding, just like
+`.compute(name, expression)`, which remains supported.
+
 The field-expression helpers: `field(name)`, `lit(value)`, `not_(e)`, `eq(a, b)`, `all_(*es)` (AND),
 `any_(*es)` (OR), `cond(test, then, else)` (a ternary — `compute("theme", cond(field("dark"), "dark", "light"))`), `obj({name: expr})` (compose an object from sub-expressions), and `arr(*exprs)`
 (compose a list — `arr(field("path"))` wraps a dynamic value in a list, e.g. for a tree's
@@ -392,3 +401,123 @@ reactive updates preserve the explicit target.
 
 `event_value()` reads the value of native text inputs, selects, and textareas. For native checkboxes
 and radios it reads `checked`; custom controls retain their checked/value/detail fallback.
+
+## Run an action when store fields change
+
+Attach a named effect to the component that owns the work. For example, load the selected log
+whenever its URL-bound store field changes:
+
+```python
+from spaday import CallEndpoint, Request, element, field
+
+logs = element("section").effect(
+    "load-log",
+    CallEndpoint(
+        "POST", "/api/logs/read", body=field("log_path"), result="log_response",
+        request=Request(key="logs", pending="log_loading"),
+    ),
+    watch=["log_path"],
+    initial=True,
+)
+```
+
+Mount with a store containing `log_path`. An effect observes the store regardless of whether the
+change came from a control, a URL binding, or a server update. `initial=True` also runs it after
+insertion. Without that option, it waits for a change. Multiple changes in one synchronous turn
+produce one invocation using the latest values.
+
+An invocation cancels the previous invocation of the same named effect on that component.
+`CallEndpoint` and `RefreshTree` requests abort, stale responses and `Invoke` results cannot overwrite the store,
+and the remaining actions in a cancelled sequence stop. `Request` is optional here; use it for
+pending feedback or to share a request group with other actions. Avoid writing to an effect's
+own watched fields unless another invocation is intended.
+
+Removing the component releases its subscriptions and cancels its work. Keyed moves preserve it.
+Changing an effect through a tree patch replaces its subscription. An effect needs a mounted
+store. Actions run in the component's item scope, but only the explicit store fields in `watch`
+trigger another invocation.
+
+Cancellation cannot undo server work or side effects inside an already-called component method
+or `NamedJs` handler. Keep those operations idempotent where necessary.
+
+## Show readiness for one view
+
+Use `ready` for application data that arrives after the component tree mounts. Attach it to
+a view and optionally give it a result field for status:
+
+```python
+from spaday import element, eq, field
+from spaday.components.shell import Show
+
+workspace = element(
+    "section",
+    Show(eq(field("workspace_status.status"), "loading"), "Loading workspace"),
+    Show(
+        eq(field("workspace_status.status"), "error"),
+        element("p").text(field("workspace_status.error")),
+    ),
+).ready(
+    field("workspace_loaded"),
+    result="workspace_status",
+    active=eq(field("main_tab"), "workspace"),
+    error=field("workspace_error"),
+    elements=["perspective-viewer"],
+    timeout=10000,
+)
+```
+
+Set `workspace_loaded` after the application's data-loading operation succeeds. Supply the actual
+workspace children and load their peer package as usual. `elements` waits for the listed custom
+elements to register and for their `updateComplete` promises, when present. Omit it if the view
+has no component dependencies.
+
+Bind a loader or message to `workspace_status.status` and `workspace_status.error`. Status starts as
+`loading`, becomes `ready` when both conditions hold, or becomes `error` on failure or timeout.
+A truthy `error` expression supplies the message. The timeout is in milliseconds and covers both
+component and data readiness. It leaves subscriptions active: later success clears the timeout
+error without remounting the view. Data becoming unready again starts a new timeout.
+
+When `active` is false, status is `idle` and the timer stops. Returning to the view starts a new
+readiness check. The logs panel can remain usable while the workspace loads. This API does not set
+`inert`, hide content, or dispose the application. Existing bootstrap `Lifecycle` continues to
+handle initial component startup independently. Avoid making readiness conditions depend on their
+own output field.
+
+Each status change also dispatches `spaday:readiness` on the view, with `{status, error}` as its
+detail. Use `result=` for declarative store bindings, or omit it to consume events only:
+
+```python
+view = element("section").ready(field("loaded"))
+```
+
+With no store dependencies, `.ready(True, elements=["perspective-viewer"])` also works without a
+store. Python and JavaScript share defaults: active, no explicit error, no component dependencies,
+and a 10000 ms timeout. A minimal JavaScript readiness specification is `{when: {expr: "lit", value: true}}`.
+
+## Copy a saved link in the same action sequence
+
+Place `CopyToClipboard` after the save request and check the request's outcome:
+
+```python
+from spaday import Button, CallEndpoint, CopyToClipboard, If, Sequence, field
+
+share = Button(label="Share").on(
+    "click",
+    Sequence(
+        CallEndpoint("POST", "/api/layout/share", result="saved"),
+        If(
+            field("saved.ok"),
+            CopyToClipboard(field("saved.body.url"), result="copy_result"),
+        ),
+    ),
+)
+```
+
+Show feedback from `copy_result.ok` and `copy_result.error`. The action awaits the clipboard write
+before continuing the sequence. Strings are copied verbatim; other values are JSON-encoded.
+A failed write sets `{ok: false, error: "…"}` and lets the sequence continue. A successful write
+sets `{ok: true, error: null}`. Omit `result` when feedback is unnecessary.
+
+Clipboard access still requires browser permission and a secure context. Some browsers reject a
+write after an asynchronous save because the original user activation has expired. In that case,
+show a separate copy button using the saved URL; the action does not bypass browser restrictions.

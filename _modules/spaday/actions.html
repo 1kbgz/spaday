@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=8486d09b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=ead03eb6" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
@@ -21,7 +21,7 @@
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
-    <script type="module" src="../../_static/benched/benched.js?v=287d4e6a"></script>
+    <script type="module" src="../../_static/benched/benched.js?v=8a4d8cf8"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=a5320898"></script>
     <script defer="defer" src="../../_static/fuma.js?v=9c325f6c"></script>
@@ -1351,6 +1351,27 @@ window.runMermaid = runMermaid;</script>
     <span class="n">value</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">event_value</span><span class="p">())</span> <span class="k">if</span> <span class="n">transform</span> <span class="k">else</span> <span class="n">event_value</span><span class="p">()</span>
     <span class="n">source</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="n">SetProp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">target_prop</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">source</span></div>
+
+
+
+<div class="viewcode-block" id="CopyToClipboard">
+<a class="viewcode-back" href="../../docs/src/api.html#spaday.CopyToClipboard">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CopyToClipboard</span><span class="p">(</span><span class="n">Action</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Copy an expression's value; optionally store ``{ok, error}`` for UI feedback.</span>
+
+<span class="sd">    Strings are copied verbatim, other values as JSON. Clipboard failures do not stop a</span>
+<span class="sd">    Sequence. Browser permissions and user-activation restrictions still apply.</span>
+<span class="sd">    """</span>
+
+    <span class="n">value</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="n">result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="s2">"clipboard"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="n">_expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">action</span><span class="p">[</span><span class="s2">"result"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span>
+        <span class="k">return</span> <span class="n">action</span></div>
 
 </pre></div>
 

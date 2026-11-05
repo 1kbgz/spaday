@@ -13,7 +13,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=8486d09b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=ead03eb6" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
@@ -22,7 +22,7 @@
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
-    <script type="module" src="../../_static/benched/benched.js?v=287d4e6a"></script>
+    <script type="module" src="../../_static/benched/benched.js?v=8a4d8cf8"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=a5320898"></script>
     <script defer="defer" src="../../_static/fuma.js?v=9c325f6c"></script>
@@ -208,6 +208,15 @@
   <li class="fd-toc-item" data-depth="1">
     <a href="#explicit-html-attributes">Explicit HTML attributes</a>
   </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#run-an-action-when-store-fields-change">Run an action when store fields change</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#show-readiness-for-one-view">Show readiness for one view</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#copy-a-saved-link-in-the-same-action-sequence">Copy a saved link in the same action sequence</a>
+  </li>
 </ul>
 </div>
   </div>
@@ -309,6 +318,12 @@ expression. It recomputes whenever any field it reads changes (one-way by nature
 <span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="s2">"disabled"</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">all_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"a"</span><span class="p">),</span> <span class="n">field</span><span class="p">(</span><span class="s2">"b"</span><span class="p">))))</span>
 </pre></div>
 </div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">.prop(name,</span> <span class="pre">expression)</span></code> for the same computed binding when mixing literal and reactive props:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WaButton</span><span class="p">()</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"Save changes"</span><span class="p">)</span><span class="o">.</span><span class="n">prop</span><span class="p">(</span><span class="s2">"disabled"</span><span class="p">,</span> <span class="n">not_</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"enabled"</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>Literal props keep their existing behavior. An expression creates a one-way binding, just like
+<code class="docutils literal notranslate"><span class="pre">.compute(name,</span> <span class="pre">expression)</span></code>, which remains supported.</p>
 <p>The field-expression helpers: <code class="docutils literal notranslate"><span class="pre">field(name)</span></code>, <code class="docutils literal notranslate"><span class="pre">lit(value)</span></code>, <code class="docutils literal notranslate"><span class="pre">not_(e)</span></code>, <code class="docutils literal notranslate"><span class="pre">eq(a,</span> <span class="pre">b)</span></code>, <code class="docutils literal notranslate"><span class="pre">all_(*es)</span></code> (AND),
 <code class="docutils literal notranslate"><span class="pre">any_(*es)</span></code> (OR), <code class="docutils literal notranslate"><span class="pre">cond(test,</span> <span class="pre">then,</span> <span class="pre">else)</span></code> (a ternary — <code class="docutils literal notranslate"><span class="pre">compute(&quot;theme&quot;,</span> <span class="pre">cond(field(&quot;dark&quot;),</span> <span class="pre">&quot;dark&quot;,</span> <span class="pre">&quot;light&quot;))</span></code>), <code class="docutils literal notranslate"><span class="pre">obj({name:</span> <span class="pre">expr})</span></code> (compose an object from sub-expressions), and <code class="docutils literal notranslate"><span class="pre">arr(*exprs)</span></code>
 (compose a list — <code class="docutils literal notranslate"><span class="pre">arr(field(&quot;path&quot;))</span></code> wraps a dynamic value in a list, e.g. for a tree’s
@@ -566,6 +581,111 @@ reactive updates preserve the explicit target.</p>
 <p><code class="docutils literal notranslate"><span class="pre">event_value()</span></code> reads the value of native text inputs, selects, and textareas. For native checkboxes
 and radios it reads <code class="docutils literal notranslate"><span class="pre">checked</span></code>; custom controls retain their checked/value/detail fallback.</p>
 </section>
+<section id="run-an-action-when-store-fields-change">
+<h2>Run an action when store fields change<a class="headerlink" href="#run-an-action-when-store-fields-change" title="Link to this heading">¶</a></h2>
+<p>Attach a named effect to the component that owns the work. For example, load the selected log
+whenever its URL-bound store field changes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallEndpoint</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">element</span><span class="p">,</span> <span class="n">field</span>
+
+<span class="n">logs</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">)</span><span class="o">.</span><span class="n">effect</span><span class="p">(</span>
+    <span class="s2">"load-log"</span><span class="p">,</span>
+    <span class="n">CallEndpoint</span><span class="p">(</span>
+        <span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/api/logs/read"</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">field</span><span class="p">(</span><span class="s2">"log_path"</span><span class="p">),</span> <span class="n">result</span><span class="o">=</span><span class="s2">"log_response"</span><span class="p">,</span>
+        <span class="n">request</span><span class="o">=</span><span class="n">Request</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s2">"logs"</span><span class="p">,</span> <span class="n">pending</span><span class="o">=</span><span class="s2">"log_loading"</span><span class="p">),</span>
+    <span class="p">),</span>
+    <span class="n">watch</span><span class="o">=</span><span class="p">[</span><span class="s2">"log_path"</span><span class="p">],</span>
+    <span class="n">initial</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Mount with a store containing <code class="docutils literal notranslate"><span class="pre">log_path</span></code>. An effect observes the store regardless of whether the
+change came from a control, a URL binding, or a server update. <code class="docutils literal notranslate"><span class="pre">initial=True</span></code> also runs it after
+insertion. Without that option, it waits for a change. Multiple changes in one synchronous turn
+produce one invocation using the latest values.</p>
+<p>An invocation cancels the previous invocation of the same named effect on that component.
+<code class="docutils literal notranslate"><span class="pre">CallEndpoint</span></code> and <code class="docutils literal notranslate"><span class="pre">RefreshTree</span></code> requests abort, stale responses and <code class="docutils literal notranslate"><span class="pre">Invoke</span></code> results cannot overwrite the store,
+and the remaining actions in a cancelled sequence stop. <code class="docutils literal notranslate"><span class="pre">Request</span></code> is optional here; use it for
+pending feedback or to share a request group with other actions. Avoid writing to an effect’s
+own watched fields unless another invocation is intended.</p>
+<p>Removing the component releases its subscriptions and cancels its work. Keyed moves preserve it.
+Changing an effect through a tree patch replaces its subscription. An effect needs a mounted
+store. Actions run in the component’s item scope, but only the explicit store fields in <code class="docutils literal notranslate"><span class="pre">watch</span></code>
+trigger another invocation.</p>
+<p>Cancellation cannot undo server work or side effects inside an already-called component method
+or <code class="docutils literal notranslate"><span class="pre">NamedJs</span></code> handler. Keep those operations idempotent where necessary.</p>
+</section>
+<section id="show-readiness-for-one-view">
+<h2>Show readiness for one view<a class="headerlink" href="#show-readiness-for-one-view" title="Link to this heading">¶</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">ready</span></code> for application data that arrives after the component tree mounts. Attach it to
+a view and optionally give it a result field for status:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">element</span><span class="p">,</span> <span class="n">eq</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components.shell</span><span class="w"> </span><span class="kn">import</span> <span class="n">Show</span>
+
+<span class="n">workspace</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span>
+    <span class="s2">"section"</span><span class="p">,</span>
+    <span class="n">Show</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"workspace_status.status"</span><span class="p">),</span> <span class="s2">"loading"</span><span class="p">),</span> <span class="s2">"Loading workspace"</span><span class="p">),</span>
+    <span class="n">Show</span><span class="p">(</span>
+        <span class="n">eq</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"workspace_status.status"</span><span class="p">),</span> <span class="s2">"error"</span><span class="p">),</span>
+        <span class="n">element</span><span class="p">(</span><span class="s2">"p"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"workspace_status.error"</span><span class="p">)),</span>
+    <span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">ready</span><span class="p">(</span>
+    <span class="n">field</span><span class="p">(</span><span class="s2">"workspace_loaded"</span><span class="p">),</span>
+    <span class="n">result</span><span class="o">=</span><span class="s2">"workspace_status"</span><span class="p">,</span>
+    <span class="n">active</span><span class="o">=</span><span class="n">eq</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"main_tab"</span><span class="p">),</span> <span class="s2">"workspace"</span><span class="p">),</span>
+    <span class="n">error</span><span class="o">=</span><span class="n">field</span><span class="p">(</span><span class="s2">"workspace_error"</span><span class="p">),</span>
+    <span class="n">elements</span><span class="o">=</span><span class="p">[</span><span class="s2">"perspective-viewer"</span><span class="p">],</span>
+    <span class="n">timeout</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Set <code class="docutils literal notranslate"><span class="pre">workspace_loaded</span></code> after the application’s data-loading operation succeeds. Supply the actual
+workspace children and load their peer package as usual. <code class="docutils literal notranslate"><span class="pre">elements</span></code> waits for the listed custom
+elements to register and for their <code class="docutils literal notranslate"><span class="pre">updateComplete</span></code> promises, when present. Omit it if the view
+has no component dependencies.</p>
+<p>Bind a loader or message to <code class="docutils literal notranslate"><span class="pre">workspace_status.status</span></code> and <code class="docutils literal notranslate"><span class="pre">workspace_status.error</span></code>. Status starts as
+<code class="docutils literal notranslate"><span class="pre">loading</span></code>, becomes <code class="docutils literal notranslate"><span class="pre">ready</span></code> when both conditions hold, or becomes <code class="docutils literal notranslate"><span class="pre">error</span></code> on failure or timeout.
+A truthy <code class="docutils literal notranslate"><span class="pre">error</span></code> expression supplies the message. The timeout is in milliseconds and covers both
+component and data readiness. It leaves subscriptions active: later success clears the timeout
+error without remounting the view. Data becoming unready again starts a new timeout.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">active</span></code> is false, status is <code class="docutils literal notranslate"><span class="pre">idle</span></code> and the timer stops. Returning to the view starts a new
+readiness check. The logs panel can remain usable while the workspace loads. This API does not set
+<code class="docutils literal notranslate"><span class="pre">inert</span></code>, hide content, or dispose the application. Existing bootstrap <code class="docutils literal notranslate"><span class="pre">Lifecycle</span></code> continues to
+handle initial component startup independently. Avoid making readiness conditions depend on their
+own output field.</p>
+<p>Each status change also dispatches <code class="docutils literal notranslate"><span class="pre">spaday:readiness</span></code> on the view, with <code class="docutils literal notranslate"><span class="pre">{status,</span> <span class="pre">error}</span></code> as its
+detail. Use <code class="docutils literal notranslate"><span class="pre">result=</span></code> for declarative store bindings, or omit it to consume events only:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">view</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">)</span><span class="o">.</span><span class="n">ready</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"loaded"</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>With no store dependencies, <code class="docutils literal notranslate"><span class="pre">.ready(True,</span> <span class="pre">elements=[&quot;perspective-viewer&quot;])</span></code> also works without a
+store. Python and JavaScript share defaults: active, no explicit error, no component dependencies,
+and a 10000 ms timeout. A minimal JavaScript readiness specification is <code class="docutils literal notranslate"><span class="pre">{when:</span> <span class="pre">{expr:</span> <span class="pre">&quot;lit&quot;,</span> <span class="pre">value:</span> <span class="pre">true}}</span></code>.</p>
+</section>
+<section id="copy-a-saved-link-in-the-same-action-sequence">
+<h2>Copy a saved link in the same action sequence<a class="headerlink" href="#copy-a-saved-link-in-the-same-action-sequence" title="Link to this heading">¶</a></h2>
+<p>Place <code class="docutils literal notranslate"><span class="pre">CopyToClipboard</span></code> after the save request and check the request’s outcome:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span><span class="p">,</span> <span class="n">CallEndpoint</span><span class="p">,</span> <span class="n">CopyToClipboard</span><span class="p">,</span> <span class="n">If</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">field</span>
+
+<span class="n">share</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Share"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span>
+    <span class="s2">"click"</span><span class="p">,</span>
+    <span class="n">Sequence</span><span class="p">(</span>
+        <span class="n">CallEndpoint</span><span class="p">(</span><span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"/api/layout/share"</span><span class="p">,</span> <span class="n">result</span><span class="o">=</span><span class="s2">"saved"</span><span class="p">),</span>
+        <span class="n">If</span><span class="p">(</span>
+            <span class="n">field</span><span class="p">(</span><span class="s2">"saved.ok"</span><span class="p">),</span>
+            <span class="n">CopyToClipboard</span><span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s2">"saved.body.url"</span><span class="p">),</span> <span class="n">result</span><span class="o">=</span><span class="s2">"copy_result"</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Show feedback from <code class="docutils literal notranslate"><span class="pre">copy_result.ok</span></code> and <code class="docutils literal notranslate"><span class="pre">copy_result.error</span></code>. The action awaits the clipboard write
+before continuing the sequence. Strings are copied verbatim; other values are JSON-encoded.
+A failed write sets <code class="docutils literal notranslate"><span class="pre">{ok:</span> <span class="pre">false,</span> <span class="pre">error:</span> <span class="pre">&quot;…&quot;}</span></code> and lets the sequence continue. A successful write
+sets <code class="docutils literal notranslate"><span class="pre">{ok:</span> <span class="pre">true,</span> <span class="pre">error:</span> <span class="pre">null}</span></code>. Omit <code class="docutils literal notranslate"><span class="pre">result</span></code> when feedback is unnecessary.</p>
+<p>Clipboard access still requires browser permission and a secure context. Some browsers reject a
+write after an asynchronous save because the original user activation has expired. In that case,
+show a separate copy button using the saved URL; the action does not bypass browser restrictions.</p>
+</section>
 </section>
 
 
@@ -633,6 +753,15 @@ and radios it reads <code class="docutils literal notranslate"><span class="pre"
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#explicit-html-attributes">Explicit HTML attributes</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#run-an-action-when-store-fields-change">Run an action when store fields change</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#show-readiness-for-one-view">Show readiness for one view</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#copy-a-saved-link-in-the-same-action-sequence">Copy a saved link in the same action sequence</a>
   </li>
 </ul>
 

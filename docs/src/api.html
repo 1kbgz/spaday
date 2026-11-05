@@ -13,7 +13,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=8486d09b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=ead03eb6" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
@@ -22,7 +22,7 @@
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
-    <script type="module" src="../../_static/benched/benched.js?v=287d4e6a"></script>
+    <script type="module" src="../../_static/benched/benched.js?v=8a4d8cf8"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=a5320898"></script>
     <script defer="defer" src="../../_static/fuma.js?v=9c325f6c"></script>
@@ -219,6 +219,12 @@
   </li>
   <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.Component.classes">Component.classes()</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.Component.effect">Component.effect()</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.Component.ready">Component.ready()</a>
   </li>
   <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.Component.on">Component.on()</a>
@@ -510,6 +516,9 @@
   </li>
   <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.If">If</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.CopyToClipboard">CopyToClipboard</a>
   </li>
   <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.CallEndpoint">CallEndpoint</a>
@@ -853,7 +862,9 @@ whose label <em>is</em> their text (don’t combine it with child nodes). An exp
 <dl class="py method">
 <dt class="sig sig-object py" id="spaday.Component.prop">
 <span class="sig-name descname"><span class="pre">prop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.prop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.prop" title="Link to this definition">¶</a></dt>
-<dd><p>Set an arbitrary prop (escape hatch for attributes a typed class doesn’t expose).</p>
+<dd><p>Set a literal prop or compute it reactively from an expression.</p>
+<p>Expressions use the same one-way binding as <a class="reference internal" href="#spaday.Component.compute" title="spaday.Component.compute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compute()</span></code></a>. Literal values retain
+their existing behavior, including leaving the prop unchanged when passed <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -878,6 +889,23 @@ own custom-property tokens are set the same way. See <code class="xref py py-mod
 <dt class="sig sig-object py" id="spaday.Component.classes">
 <span class="sig-name descname"><span class="pre">classes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.classes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.classes" title="Link to this definition">¶</a></dt>
 <dd><p>Add CSS classes (component variants / theme states), e.g. <code class="docutils literal notranslate"><span class="pre">.classes(&quot;wa-dark&quot;)</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.effect">
+<span class="sig-name descname"><span class="pre">effect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Action</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">watch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.effect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.effect" title="Link to this definition">¶</a></dt>
+<dd><p>Run an action when watched store fields change; cancel its previous invocation.</p>
+<p><code class="docutils literal notranslate"><span class="pre">initial=True</span></code> also runs after mounting. Effects are disposed with this component.
+Updates in one synchronous turn coalesce into one invocation with the latest values.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="spaday.Component.ready">
+<span class="sig-name descname"><span class="pre">ready</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">when</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">active</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Expr</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elements</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="reference internal" href="../../_modules/spaday/component.html#Component.ready"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.Component.ready" title="Link to this definition">¶</a></dt>
+<dd><p>Track this view’s readiness; optionally publish <code class="docutils literal notranslate"><span class="pre">{status,</span> <span class="pre">error}</span></code> to <code class="docutils literal notranslate"><span class="pre">result</span></code>.</p>
+<p>Always emits <code class="docutils literal notranslate"><span class="pre">spaday:readiness</span></code> events, including without a store or result field.
+Status is loading, ready, error, or idle when inactive. Timeout errors recover when
+data and components become ready. This does not block or dispose other views.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1593,6 +1621,15 @@ authored declaratively instead of with a hand-written transports listener.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
 <p>Run <code class="docutils literal notranslate"><span class="pre">then</span></code> if <code class="docutils literal notranslate"><span class="pre">cond</span></code> is truthy, else <code class="docutils literal notranslate"><span class="pre">els</span></code> (if given) — branch on live state, e.g.
 <code class="docutils literal notranslate"><span class="pre">If(prop(by_id(&quot;sw&quot;),</span> <span class="pre">&quot;checked&quot;),</span> <span class="pre">SetProp(...),</span> <span class="pre">SetProp(...))</span></code>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="spaday.CopyToClipboard">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">spaday.</span></span><span class="sig-name descname"><span class="pre">CopyToClipboard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/spaday/actions.html#CopyToClipboard"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#spaday.CopyToClipboard" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Action</span></code></p>
+<p>Copy an expression’s value; optionally store <code class="docutils literal notranslate"><span class="pre">{ok,</span> <span class="pre">error}</span></code> for UI feedback.</p>
+<p>Strings are copied verbatim, other values as JSON. Clipboard failures do not stop a
+Sequence. Browser permissions and user-activation restrictions still apply.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -2460,6 +2497,12 @@ themes the page before the tree renders.</p>
     <a href="#spaday.Component.classes">Component.classes()</a>
   </li>
   <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.Component.effect">Component.effect()</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.Component.ready">Component.ready()</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.Component.on">Component.on()</a>
   </li>
   <li class="fd-toc-item" data-depth="3">
@@ -2749,6 +2792,9 @@ themes the page before the tree renders.</p>
   </li>
   <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.If">If</a>
+  </li>
+  <li class="fd-toc-item" data-depth="3">
+    <a href="#spaday.CopyToClipboard">CopyToClipboard</a>
   </li>
   <li class="fd-toc-item" data-depth="3">
     <a href="#spaday.CallEndpoint">CallEndpoint</a>
