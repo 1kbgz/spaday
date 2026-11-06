@@ -94,6 +94,7 @@ export interface ModelClient {
   typeName?(id: number): string | undefined;
   value(id: number): unknown; // the model as a tagged core Value
   edit(id: number, value: unknown, proposal?: string): string | Uint8Array; // an encoded edit frame to send back
+  owns?(id: number, field: string): boolean;
   editOps?(id: number, ops: PatchOp[], proposal?: string): string | Uint8Array;
   proposeOps?(id: number, ops: PatchOp[], proposal?: string): boolean;
   editCrdt?(id: number, mutations: CrdtMutation[]): string | Uint8Array;
@@ -126,7 +127,11 @@ export interface StoreLink {
 let nextStoreProposal = 1;
 
 const isObj = (v: unknown): v is Record<string, unknown> =>
-  v != null && typeof v === "object" && !Array.isArray(v);
+  v != null &&
+  typeof v === "object" &&
+  !Array.isArray(v) &&
+  !ArrayBuffer.isView(v) &&
+  !(v instanceof ArrayBuffer);
 
 /** Flatten a model to [dotted-path, leaf] pairs — recursing plain objects (sub-models), not arrays. */
 function* leaves(
@@ -667,6 +672,8 @@ export function connectStore(
   const unsubs: Array<() => void> = [];
   const pending = new Map<string, { field: string; value: unknown }>();
   const latest = new Map<string, string>();
+  // A recovery snapshot precedes its reject; retain field names without retaining optimistic values.
+  const recovered = new Map<string, string>();
   const proposalAware =
     client.editOps !== undefined &&
     client.onAck !== undefined &&
@@ -771,6 +778,8 @@ export function connectStore(
           : effectiveKey;
         const value = store.get(effectiveKey);
         clearError(changedField);
+        for (const [proposal, field] of recovered)
+          if (field === changedField) recovered.delete(proposal);
         if (disconnected) {
           queueReconcile(changedField);
           return;
@@ -793,6 +802,30 @@ export function connectStore(
           if (send === undefined && client.proposeCrdt)
             client.proposeCrdt(id, mutations);
           else send?.(client.editCrdt(id, mutations));
+          return;
+        }
+        const ownerField = changedField.split(".")[0];
+        if (client.owns?.(id, ownerField) && client.editOps) {
+          // Ownership is whole-field; nested bindings replace that field without a proposal.
+          const next = setPath(current, changedField.split("."), value);
+          const ops: PatchOp[] = [
+            {
+              Set: {
+                path: [{ Key: ownerField }],
+                value: codec.toValue(next[ownerField]),
+              },
+            },
+          ];
+          try {
+            const sent =
+              send === undefined && client.proposeOps
+                ? client.proposeOps(id, ops)
+                : send?.(client.editOps(id, ops));
+            if (sent === false) queueReconcile(changedField);
+          } catch (error) {
+            queueReconcile(changedField);
+            throw error;
+          }
           return;
         }
         if (!proposalAware) {
@@ -1028,6 +1061,8 @@ export function connectStore(
     if (!select(change.id)) return;
     if (change.t === "snapshot") {
       crdtBacked = false;
+      recovered.clear();
+      for (const [field, proposal] of latest) recovered.set(proposal, field);
       for (const proposal of [...pending.keys()]) discardProposal(proposal);
     } else if (change.t === "crdt_snapshot") {
       crdtBacked = true;
@@ -1055,6 +1090,7 @@ export function connectStore(
     unsubs.push(
       client.onAck((ack) => {
         if (id === undefined || ack.id !== id) return;
+        recovered.delete(ack.proposal);
         const field = dropProposal(ack.proposal);
         if (field !== undefined) {
           clearError(field);
@@ -1069,13 +1105,17 @@ export function connectStore(
         const fields = new Set<string>();
         if (reject.proposal) {
           const edit = pending.get(reject.proposal);
+          const field = edit?.field ?? recovered.get(reject.proposal);
           const latestRejected =
-            edit !== undefined && latest.get(edit.field) === reject.proposal;
+            edit !== undefined
+              ? latest.get(edit.field) === reject.proposal
+              : field !== undefined && !latest.has(field);
           discardProposal(reject.proposal);
-          if (edit) fields.add(edit.field);
-          if (edit && latestRejected)
-            store.set(errorField(edit.field), reject.error);
-          publishReject(reject, edit?.field);
+          recovered.delete(reject.proposal);
+          if (field !== undefined) fields.add(field);
+          if (field !== undefined && latestRejected)
+            store.set(errorField(field), reject.error);
+          publishReject(reject, field);
         } else {
           const pendingFields = [...new Set(latest.keys())];
           for (const field of pendingFields) fields.add(field);
@@ -1089,6 +1129,7 @@ export function connectStore(
     );
   const abandon = (proposals: Iterable<string>) => {
     const fields = new Set<string>();
+    recovered.clear();
     for (const proposal of proposals) {
       const field = dropProposal(proposal);
       if (field !== undefined) fields.add(field);
@@ -1168,6 +1209,7 @@ export function connectStore(
     },
     dispose() {
       disposed = true;
+      recovered.clear();
       for (const proposal of [...pending.keys()]) discardProposal(proposal);
       unwireFields();
       for (const unsub of unsubs) unsub();

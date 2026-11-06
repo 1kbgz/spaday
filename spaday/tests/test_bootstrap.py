@@ -464,3 +464,30 @@ def test_wire_rejects_invalid_model_selectors(model):
 
     with pytest.raises(ValueError, match="Wire model"):
         Wire("/ws", model=model)
+
+
+def test_wire_owner_options_validate_and_prevent_incompatible_connection_sharing():
+    from spaday import Wire
+
+    html = bootstrap(wire=[Wire("/ws", model=1, ownership=False), Wire("/ws", model=2, update_interval=0.1)])
+    assert 'new Client("json", {"ownership": false})' in html
+    assert 'new Client("json", {"updateInterval": 0.1})' in html
+    assert "const client1 = client0" not in html
+    for interval in (-1, float("inf"), float("nan"), True):
+        with pytest.raises(ValueError, match="update_interval"):
+            Wire("/ws", update_interval=interval)
+    with pytest.raises(ValueError, match="ownership"):
+        Wire("/ws", ownership="yes")  # ty: ignore[invalid-argument-type]
+
+
+def test_binary_props_round_trip_through_native_tree_frames_and_ssr():
+    from spaday.component import _tag
+    from spaday.render import _untag, render_html
+
+    raw = bytes([0, 255, 128, 1])
+    for value in (raw, bytearray(raw), memoryview(raw)):
+        assert _untag(_tag(value)) == raw
+    node = element("sample-waveform", data=raw)
+    assert ' data="' not in render_html(node)
+    payload = json.loads(decode_frame(tree_frame(node)))
+    assert payload["payload"]["props"]["data"] == {"Bytes": "AP+AAQ=="}

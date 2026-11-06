@@ -35,6 +35,7 @@ What an app would otherwise hand-write in HTML is declared in Python:
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -71,6 +72,8 @@ class Wire:
     - ``reconnect`` — keep reconnecting with transports' managed ``Client.run``. This is opt-in for
       each wire; ``retry`` is the delay in milliseconds and ``authority`` selects server- or
       client-authoritative recovery.
+    - ``ownership`` — allow this client to own schema-declared client fields; set False for a passive observer.
+    - ``update_interval`` — coalesce client-owned status for this many seconds (default 0.25).
     - ``connected`` — publish a connection-ready boolean to this exact store field. Namespaced wires
       default to ``<namespace>.connected``; bare wires publish no status unless this is set. The field
       becomes true when the managed WebSocket opens, including a reconnect that replays no model frame.
@@ -90,6 +93,8 @@ class Wire:
     authority: Literal["server", "client"] = "server"
     connected: str | None = None
     model: int | str | None = None
+    ownership: bool = True
+    update_interval: float = 0.25
 
     def __post_init__(self) -> None:
         if self.model is not None and not (
@@ -104,6 +109,15 @@ class Wire:
             raise ValueError("Wire retry must be a positive integer number of milliseconds")
         if self.authority not in ("server", "client"):
             raise ValueError("Wire authority must be 'server' or 'client'")
+        if not isinstance(self.ownership, bool):
+            raise ValueError("Wire ownership must be a boolean")
+        if (
+            isinstance(self.update_interval, bool)
+            or not isinstance(self.update_interval, (int, float))
+            or not math.isfinite(self.update_interval)
+            or self.update_interval < 0
+        ):
+            raise ValueError("Wire update_interval must be a finite nonnegative number of seconds")
         if self.connected == "":
             raise ValueError("Wire connected field must not be empty")
 
@@ -301,10 +315,16 @@ def _wire_block(spec: dict, base: str, idx: int, *, managed: bool = False, share
     query = ("&" if "?" in url else "?") + "&".join(params) if params else ""
     target = f"`${{wsProtocol}}//${{location.host}}{base}{url}{query}`"
     codec = _script_json(spec.get("codec", "json"))
+    options = {}
+    if spec.get("ownership", True) is not True:
+        options["ownership"] = spec["ownership"]
+    if spec.get("update_interval", 0.25) != 0.25:
+        options["updateInterval"] = spec["update_interval"]
+    arguments = codec + (f", {_script_json(options)}" if options else "")
     lines = [
         f"const {client} = client{shared};"
         if shared is not None
-        else f"const {client} = new {'MountClient' if managed and spec.get('reconnect') else 'Client'}({codec});",
+        else f"const {client} = new {'MountClient' if managed and spec.get('reconnect') else 'Client'}({arguments});",
         f"const {link} = connectStore(store, {client}, undefined, {{ fromValue, toValue }}{extra});",
         f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client: {client}, link: {link}, store, namespace: {_script_json(ns)}, url: {_script_json(url)} }} }}));',
     ]
@@ -506,7 +526,9 @@ def _script(
         for i, spec in enumerate(wires):
             # Explicit model selection opts into sharing within this mount. Legacy wires retain
             # independent clients, including integrations that own their client's lifecycle.
-            key = tuple(spec[name] for name in ("url", "codec", "session", "batch", "reconnect", "retry", "authority"))
+            key = tuple(
+                spec[name] for name in ("url", "codec", "session", "batch", "reconnect", "retry", "authority", "ownership", "update_interval")
+            )
             shared = connections.get(key) if spec.get("model") is not None else None
             lines.extend(_wire_block(spec, base, i, managed=lifecycle is not None, shared=shared))
             if spec.get("model") is not None:

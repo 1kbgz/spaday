@@ -12,6 +12,7 @@ the runtime interprets the action in the browser on the DOM event, with no round
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 from functools import lru_cache
@@ -101,6 +102,8 @@ def _tag(value: Any) -> Any:
         return {"Float": value}
     if isinstance(value, str):
         return {"Str": value}
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return {"Bytes": base64.b64encode(bytes(value)).decode("ascii")}
     if isinstance(value, (list, tuple)):
         return {"List": [_tag(v) for v in value]}
     if isinstance(value, dict):

@@ -29,6 +29,51 @@ test("mounts a tree to the DOM", async ({ page }) => {
   expect(html).toBe('<div id="root"><span>hi</span></div>');
 });
 
+test("binary props reach DOM properties and preserve view boundaries", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, applyPatch, tag } = window.__spaday;
+    customElements.define(
+      "binary-sample",
+      class extends HTMLElement {
+        data = null;
+      },
+    );
+    const bytes = new Uint8Array([99, 0, 128, 255, 99]);
+    const value = tag(new DataView(bytes.buffer, 1, 3));
+    const root = mount(document.createElement("div"), {
+      tag: "binary-sample",
+      props: { data: value },
+    });
+    const initial = [...root.data];
+    const typed = root.data instanceof Uint8Array;
+    applyPatch(root, {
+      ops: [
+        {
+          SetProp: {
+            path: [],
+            name: "data",
+            value: tag(new Uint8Array([1, 2]).buffer),
+          },
+        },
+      ],
+    });
+    return {
+      initial,
+      typed,
+      updated: [...root.data],
+      attribute: root.getAttribute("data"),
+    };
+  });
+  expect(result).toEqual({
+    initial: [0, 128, 255],
+    typed: true,
+    updated: [1, 2],
+    attribute: null,
+  });
+});
+
 test("SetProp updates a live element via its DOM property", async ({
   page,
 }) => {

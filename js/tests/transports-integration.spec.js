@@ -642,3 +642,114 @@ test("selected links share a client, route edits, and reject ambiguous types", a
   expect(result.missing).toBe(true);
   expect(result.a).toBe(12);
 });
+
+test("owner bindings are immediate, coalesced, and never leave optimistic proposals", async ({
+  page,
+}) => {
+  await page.goto("/tests/transports.html");
+  await page.waitForFunction(() => window.__integration);
+  const result = await page.evaluate(async () => {
+    const { Client, Store, connectStore, toValue, fromValue } =
+      window.__integration;
+    const client = new Client("json", { updateInterval: 0.01 });
+    const store = new Store();
+    const sent = [];
+    client.attach((frame) => sent.push(JSON.parse(frame)));
+    const link = connectStore(store, client, undefined, { fromValue, toValue });
+    client.recv(
+      JSON.stringify({
+        t: "snapshot",
+        id: 1,
+        type: "Playback",
+        rev: 0,
+        value: toValue({
+          playing: false,
+          clock: { beat: 0 },
+          sample: null,
+          bpm: 120,
+        }),
+      }),
+    );
+    client.recv(
+      JSON.stringify({
+        t: "ownership",
+        id: 1,
+        fields: ["playing", "clock"],
+        owned: true,
+        epoch: 1,
+      }),
+    );
+    store.set("playing", true);
+    store.set("clock.beat", 7);
+    const immediate = fromValue(client.value(1));
+    const beforeSend = sent.length;
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const outbound = sent.slice();
+    client.recv(
+      JSON.stringify({ t: "owned_ack", id: 1, epoch: 1, sequence: 2, rev: 1 }),
+    );
+    client.recv(
+      JSON.stringify({
+        t: "ownership",
+        id: 1,
+        fields: ["playing", "clock"],
+        owned: false,
+        epoch: 2,
+      }),
+    );
+    client.recv(
+      JSON.stringify({
+        t: "patch",
+        id: 1,
+        patch: {
+          rev: 2,
+          ops: [
+            { Set: { path: [{ Key: "playing" }], value: { Bool: false } } },
+          ],
+        },
+      }),
+    );
+    const afterHandover = store.get("playing");
+    const pending = client.pendingProposals();
+    link.dispose();
+    return { immediate, beforeSend, outbound, afterHandover, pending };
+  });
+  expect(result.immediate.playing).toBe(true);
+  expect(result.immediate.clock.beat).toBe(7);
+  expect(result.beforeSend).toBe(0);
+  expect(result.outbound).toHaveLength(1);
+  expect(result.outbound[0].t).toBe("owned");
+  expect(result.outbound[0].patch.ops).toHaveLength(2);
+  expect(result.afterHandover).toBe(false);
+  expect(result.pending).toEqual([]);
+});
+
+test("binary fields stay atomic when flattening a model", async ({ page }) => {
+  await page.goto("/tests/transports.html");
+  await page.waitForFunction(() => window.__integration);
+  const result = await page.evaluate(() => {
+    const { Client, Store, connectStore, toValue, fromValue, encodeMessage } =
+      window.__integration;
+    const client = new Client("msgpack");
+    const store = new Store();
+    const link = connectStore(store, client, () => {}, { fromValue, toValue });
+    const message = JSON.stringify({
+      t: "snapshot",
+      id: 1,
+      type: "Sample",
+      rev: 0,
+      value: { Map: { sample: { Bytes: "AP8=" } } },
+    });
+    link.receive(encodeMessage(message, "msgpack"));
+    const bytes = store.get("sample");
+    const result = {
+      typed: bytes instanceof Uint8Array,
+      bytes: Array.from(bytes),
+      dotted: store.has("sample.0"),
+    };
+    link.dispose();
+    return result;
+  });
+  expect(result.typed).toBe(true);
+  expect(result.bytes).toEqual([0, 255]);
+});

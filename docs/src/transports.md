@@ -14,6 +14,50 @@ no hand-written browser glue.
 pip install "spaday[examples]"   # spaday + transports + starlette + uvicorn
 ```
 
+## Keep browser-owned state and binary data in sync
+
+Use transports 0.12. Declare browser-owned fields in the Python model and
+bind controls normally:
+
+```python
+from pydantic import BaseModel, Field
+from spaday import Wire
+
+class Playback(BaseModel):
+    playing: bool = Field(False, json_schema_extra={"owner": "client"})
+    bpm: int = Field(120, ge=30, le=240)
+    sample: bytes = b""
+
+wire = Wire("/ws", codec="msgpack", reconnect=True, update_interval=0.25)
+```
+
+Owner edits update the browser immediately and coalesce before reaching Python. Server-owned edits
+still validate and echo through the server. Use `Wire(..., ownership=False)` for a passive view that
+must never become the owner. The first eligible view owns the model's client fields; another eligible
+view takes over after disconnect.
+
+Send Python instructions with `session.command(model_id, "playing", True)`. In an application script,
+use the client exposed by `spaday:wire-client` to handle `onCommand`, apply the result through the
+Spaday store, and call `ackCommand`. Use `onOwnership` and `onDisconnect` to start and stop any local
+clock or other ongoing work. Command payloads are application-defined; Spaday does not interpret them.
+
+Use Python `bytes` for sample data. A browser binding receives a `Uint8Array`, including with default
+model flattening. Set a new array to replace the sample; mutating an existing array in place does not
+notify the store. MessagePack and CBOR carry native bytes; JSON uses the transports base64 form.
+Static binary component props are also supported and are applied as DOM properties during mount or
+hydration, rather than emitted as HTML attributes. Use a component with a binary property setter.
+
+Run the complete example:
+
+```bash
+python -m spaday.examples.playback
+```
+
+Open `http://127.0.0.1:8001` in two tabs. Toggle playback locally, send commands through Python, invert
+the sample in the browser, and replace it from Python. Reload or close the owner tab to exercise
+reconnection and handover. This example displays a waveform and playhead; it does not produce sound.
+Its Python model, WebSocket, and browser store use the normal transports and Spaday APIs.
+
 ## Host a model and wire the page
 
 Host a model in a transports `Session`, author a tree whose controls **two-way bind** to its fields, and
@@ -157,6 +201,10 @@ The tree then binds against namespaced fields — `bind("value", "global.type")`
   layout) so it's mirrored whole instead of one store field per key.
 - **`codec`** — select JSON, MessagePack, CBOR, or a registered transports codec.
 - **`batch`** — request batched server messages for this connection.
+- **`ownership`** — allow this connection to own client-owned fields (default `True`). Set `False`
+  for an observer that must never take ownership.
+- **`update_interval`** — coalesce client-owned updates over this many seconds (default `0.25`).
+  Local bindings update immediately; `0` sends every update.
 - **`reconnect`** — use the managed reconnect loop. It is off by default for each `Wire`.
 - **`retry`** and **`authority`** — set the reconnect delay in milliseconds and choose `"server"` or
   `"client"` state as authoritative after reconnect.

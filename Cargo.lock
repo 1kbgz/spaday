@@ -9,6 +9,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
+name = "base64"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -489,10 +495,11 @@ dependencies = [
 
 [[package]]
 name = "transports"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd8f807718672e672707f3092b7eb807a0433654632c00d808b10ad44129d21c"
+checksum = "ba494d1dc4e2a331d3eafba556091be4e1721fda4a984d3c4b893b831d225f3e"
 dependencies = [
+ "base64",
  "ciborium",
  "rmp-serde",
  "serde",
