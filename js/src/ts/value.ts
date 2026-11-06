@@ -8,6 +8,7 @@ export type Value =
   | { Int: number }
   | { Float: number }
   | { Str: string }
+  | { Bytes: string | Uint8Array }
   | { List: Value[] }
   | { Map: Record<string, Value> };
 
@@ -18,6 +19,10 @@ export function untag(value: Value): unknown {
   if ("Int" in value) return value.Int;
   if ("Float" in value) return value.Float;
   if ("Str" in value) return value.Str;
+  if ("Bytes" in value)
+    return typeof value.Bytes === "string"
+      ? Uint8Array.from(atob(value.Bytes), (char) => char.charCodeAt(0))
+      : value.Bytes;
   if ("List" in value) return value.List.map(untag);
   if ("Map" in value)
     return Object.fromEntries(
@@ -33,6 +38,15 @@ export function tag(value: unknown): Value {
   if (typeof value === "number")
     return Number.isInteger(value) ? { Int: value } : { Float: value };
   if (typeof value === "string") return { Str: value };
+  if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) {
+    const bytes =
+      value instanceof ArrayBuffer
+        ? new Uint8Array(value)
+        : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return { Bytes: btoa(binary) };
+  }
   if (Array.isArray(value)) return { List: value.map(tag) };
   if (typeof value === "object")
     return {

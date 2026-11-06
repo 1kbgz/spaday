@@ -17,6 +17,7 @@ What is intentionally *not* rendered here:
   empty and their subtrees are mounted during hydrate.
 """
 
+import base64
 import html
 from typing import Any
 
@@ -59,7 +60,7 @@ def _render(node: dict, slot: str | None) -> str:
 
 def _attr(name: str, value: Any) -> str:
     """One prop → its HTML attribute string (``""`` to omit). Complex values are set client-side."""
-    if value is None or isinstance(value, (list, dict)):
+    if value is None or isinstance(value, (list, dict, bytes, bytearray, memoryview)):
         return ""
     if value is True:
         return f" {name}"  # boolean attribute present
@@ -76,6 +77,8 @@ def _untag(tagged: Any) -> Any:
         for key in ("Bool", "Int", "Float", "Str"):
             if key in tagged:
                 return tagged[key]
+        if "Bytes" in tagged:
+            return base64.b64decode(tagged["Bytes"], validate=True)
         if "List" in tagged:
             return [_untag(v) for v in tagged["List"]]
         if "Map" in tagged:

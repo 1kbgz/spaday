@@ -18,6 +18,7 @@ const EXAMPLES = [
   { name: "fragment", selector: "#spaday-root wa-button" },
   { name: "gateway", selector: "perspective-panel" },
   { name: "keyed_records", selector: "spa-each .record" },
+  { name: "playback", selector: "spa-main" },
   { name: "reactive", selector: "spa-main" },
   { name: "ssr", selector: "spa-app" },
   { name: "tabbed_form", selector: "wa-tab-group" },

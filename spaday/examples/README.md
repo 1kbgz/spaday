@@ -87,6 +87,7 @@ The five `webawesome_*` modules collectively instantiate every generated compone
 | Goal                                          | Module                                   | Extra         | Run                                                           |
 | --------------------------------------------- | ---------------------------------------- | ------------- | ------------------------------------------------------------- |
 | Bind controls to a server-authoritative model | [`reactive.py`](./reactive.py)           | `examples`    | `python -m spaday.examples.reactive`                          |
+| Synchronize browser-owned state and binary data | [`playback.py`](./playback.py) | `examples` | `python -m spaday.examples.playback` |
 | Generate a bound form from a Pydantic model   | [`form.py`](./form.py)                   | `examples`    | `python -m spaday.examples.form`                              |
 | Share one live chart across multiple workers  | [`cluster.py`](./cluster.py)             | `cluster`     | `uvicorn spaday.examples.cluster:app --workers 4 --port 8003` |
 | Server-render and hydrate a themed tree       | [`ssr.py`](./ssr.py)                     | `examples`    | `python -m spaday.examples.ssr`                               |
@@ -98,6 +99,7 @@ The applications listen on:
 | Module             | URL                     | Key behavior to verify                                                |
 | ------------------ | ----------------------- | --------------------------------------------------------------------- |
 | `reactive.py`      | <http://127.0.0.1:8001> | edits synchronize between two tabs through `connectStore`             |
+| `playback.py` | <http://127.0.0.1:8001> | binary samples, Python commands, and browser ownership handover |
 | `form.py`          | <http://127.0.0.1:8002> | generated controls edit the hosted Pydantic model                     |
 | `cluster.py`       | <http://127.0.0.1:8003> | clients connected to different workers receive the same bounded chart |
 | `ssr.py`           | <http://127.0.0.1:8005> | page source contains rendered elements that the browser hydrates      |
