@@ -176,6 +176,9 @@
     </button>
     <div id="fd-toc-mobile" hidden><ul class="fd-toc-list">
   <li class="fd-toc-item" data-depth="1">
+    <a href="#keep-browser-owned-state-and-binary-data-in-sync">Keep browser-owned state and binary data in sync</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
     <a href="#host-a-model-and-wire-the-page">Host a model and wire the page</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
@@ -210,6 +213,43 @@ no hand-written browser glue.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"spaday[examples]"</span><span class="w">   </span><span class="c1"># spaday + transports + starlette + uvicorn</span>
 </pre></div>
 </div>
+<section id="keep-browser-owned-state-and-binary-data-in-sync">
+<h2>Keep browser-owned state and binary data in sync<a class="headerlink" href="#keep-browser-owned-state-and-binary-data-in-sync" title="Link to this heading">¶</a></h2>
+<p>Use transports 0.12. Declare browser-owned fields in the Python model and
+bind controls normally:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Wire</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Playback</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">playing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">json_schema_extra</span><span class="o">=</span><span class="p">{</span><span class="s2">"owner"</span><span class="p">:</span> <span class="s2">"client"</span><span class="p">})</span>
+    <span class="n">bpm</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mi">120</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">240</span><span class="p">)</span>
+    <span class="n">sample</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">""</span>
+
+<span class="n">wire</span> <span class="o">=</span> <span class="n">Wire</span><span class="p">(</span><span class="s2">"/ws"</span><span class="p">,</span> <span class="n">codec</span><span class="o">=</span><span class="s2">"msgpack"</span><span class="p">,</span> <span class="n">reconnect</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update_interval</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Owner edits update the browser immediately and coalesce before reaching Python. Server-owned edits
+still validate and echo through the server. Use <code class="docutils literal notranslate"><span class="pre">Wire(...,</span> <span class="pre">ownership=False)</span></code> for a passive view that
+must never become the owner. The first eligible view owns the model’s client fields; another eligible
+view takes over after disconnect.</p>
+<p>Send Python instructions with <code class="docutils literal notranslate"><span class="pre">session.command(model_id,</span> <span class="pre">&quot;playing&quot;,</span> <span class="pre">True)</span></code>. In an application script,
+use the client exposed by <code class="docutils literal notranslate"><span class="pre">spaday:wire-client</span></code> to handle <code class="docutils literal notranslate"><span class="pre">onCommand</span></code>, apply the result through the
+Spaday store, and call <code class="docutils literal notranslate"><span class="pre">ackCommand</span></code>. Use <code class="docutils literal notranslate"><span class="pre">onOwnership</span></code> and <code class="docutils literal notranslate"><span class="pre">onDisconnect</span></code> to start and stop any local
+clock or other ongoing work. Command payloads are application-defined; Spaday does not interpret them.</p>
+<p>Use Python <code class="docutils literal notranslate"><span class="pre">bytes</span></code> for sample data. A browser binding receives a <code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code>, including with default
+model flattening. Set a new array to replace the sample; mutating an existing array in place does not
+notify the store. MessagePack and CBOR carry native bytes; JSON uses the transports base64 form.
+Static binary component props are also supported and are applied as DOM properties during mount or
+hydration, rather than emitted as HTML attributes. Use a component with a binary property setter.</p>
+<p>Run the complete example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>spaday.examples.playback
+</pre></div>
+</div>
+<p>Open <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8001</span></code> in two tabs. Toggle playback locally, send commands through Python, invert
+the sample in the browser, and replace it from Python. Reload or close the owner tab to exercise
+reconnection and handover. This example displays a waveform and playhead; it does not produce sound.
+Its Python model, WebSocket, and browser store use the normal transports and Spaday APIs.</p>
+</section>
 <section id="host-a-model-and-wire-the-page">
 <h2>Host a model and wire the page<a class="headerlink" href="#host-a-model-and-wire-the-page" title="Link to this heading">¶</a></h2>
 <p>Host a model in a transports <code class="docutils literal notranslate"><span class="pre">Session</span></code>, author a tree whose controls <strong>two-way bind</strong> to its fields, and
@@ -341,6 +381,10 @@ binds); set <code class="docutils literal notranslate"><span class="pre">False</
 layout) so it’s mirrored whole instead of one store field per key.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">codec</span></code></strong> — select JSON, MessagePack, CBOR, or a registered transports codec.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">batch</span></code></strong> — request batched server messages for this connection.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">ownership</span></code></strong> — allow this connection to own client-owned fields (default <code class="docutils literal notranslate"><span class="pre">True</span></code>). Set <code class="docutils literal notranslate"><span class="pre">False</span></code>
+for an observer that must never take ownership.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">update_interval</span></code></strong> — coalesce client-owned updates over this many seconds (default <code class="docutils literal notranslate"><span class="pre">0.25</span></code>).
+Local bindings update immediately; <code class="docutils literal notranslate"><span class="pre">0</span></code> sends every update.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">reconnect</span></code></strong> — use the managed reconnect loop. It is off by default for each <code class="docutils literal notranslate"><span class="pre">Wire</span></code>.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">retry</span></code></strong> and <strong><code class="docutils literal notranslate"><span class="pre">authority</span></code></strong> — set the reconnect delay in milliseconds and choose <code class="docutils literal notranslate"><span class="pre">&quot;server&quot;</span></code> or
 <code class="docutils literal notranslate"><span class="pre">&quot;client&quot;</span></code> state as authoritative after reconnect.</p></li>
@@ -452,6 +496,9 @@ full pattern.</p>
       <path class="fd-toc-track" fill="none" />
       <path class="fd-toc-thumb" fill="none" />
     </svg><ul class="fd-toc-list">
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#keep-browser-owned-state-and-binary-data-in-sync">Keep browser-owned state and binary data in sync</a>
+  </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#host-a-model-and-wire-the-page">Host a model and wire the page</a>
   </li>
