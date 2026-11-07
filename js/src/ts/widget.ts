@@ -12,6 +12,8 @@
 
 import { applyPatch, diff, init, mount, Node, Store, unmount } from "./index";
 import { connectWidget, type AnyModel } from "./widget-transport";
+import { loadWidgetPackages } from "./widget-packages";
+import { provideWires } from "./wire-context";
 
 // the spaday wasm core, inlined into this bundle as bytes (esbuild `binary` loader; see build.mjs),
 // so the widget is one self-contained ESM with no separately-synced `_wasm`.
@@ -85,6 +87,8 @@ export default {
   }): Promise<() => void> {
     await ensureWasm();
 
+    await loadWidgetPackages(model);
+
     // State mode seeds bindings before mount; session mode receives snapshots after mounting.
     const store = new Store();
     const session = (model.get("_wires") as unknown[] | undefined)?.length
@@ -93,6 +97,7 @@ export default {
     const stateLink = session
       ? () => session.dispose()
       : connectState(store, model);
+    const stopRequests = session ? () => {} : provideWires(el, []);
 
     let tree = model.get("_tree") as Node;
     let root: Element | undefined;
@@ -102,6 +107,7 @@ export default {
     } catch (error) {
       if (root) unmount(root);
       stateLink();
+      stopRequests();
       throw error;
     }
 
@@ -128,6 +134,7 @@ export default {
 
     return () => {
       stateLink();
+      stopRequests();
       model.off("change:_tree", onTree);
       for (const name of INTENTS) el.removeEventListener(name, forward);
       unmount(root!);

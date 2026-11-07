@@ -1,47 +1,13 @@
 import { test, expect } from "@playwright/test";
-import { spawn } from "node:child_process";
-import { createInterface } from "node:readline";
-
-async function kernel(codec) {
-  const child = spawn(process.env.SPADAY_TEST_PYTHON ?? "python", [
-    "../spaday/tests/widget_bridge.py",
-    codec,
-  ]);
-  const pending = [];
-  let errors = "";
-  child.stderr.on("data", (chunk) => {
-    errors += chunk;
-  });
-  createInterface({ input: child.stdout }).on("line", (line) => {
-    const next = pending.shift();
-    try {
-      next?.resolve(JSON.parse(line));
-    } catch (e) {
-      next?.reject(e);
-    }
-  });
-  child.on("exit", () => {
-    for (const call of pending.splice(0))
-      call.reject(new Error(errors || "Kernel exited"));
-  });
-  return {
-    call(request) {
-      return new Promise((resolve, reject) => {
-        pending.push({ resolve, reject });
-        child.stdin.write(JSON.stringify(request) + "\n");
-      });
-    },
-    close() {
-      child.stdin.end();
-    },
-  };
-}
+import { widgetKernel } from "./widget-kernel";
 
 for (const codec of ["json", "msgpack", "cbor"]) {
   test(`notebook views round-trip models, buffers, validation, and ownership with ${codec}`, async ({
     page,
   }) => {
-    const server = await kernel(codec);
+    const server = await widgetKernel("../spaday/tests/widget_bridge.py", [
+      codec,
+    ]);
     try {
       const { result: description } = await server.call({ op: "describe" });
       await page.exposeFunction("kernelMessage", (request) =>
@@ -54,6 +20,29 @@ for (const codec of ["json", "msgpack", "cbor"]) {
           "test-sample",
           class extends HTMLElement {
             data = null;
+            connectedCallback() {
+              const detail = { namespace: "status" };
+              this.dispatchEvent(
+                new CustomEvent("spaday:wire-request", {
+                  detail,
+                  bubbles: true,
+                  composed: true,
+                }),
+              );
+              this.wire = detail.wire;
+              const update = () =>
+                (this.dataset.owned = String(
+                  Boolean(this.wire.store.get("$owned.status.playing")),
+                ));
+              this.stop = this.wire.store.subscribe(
+                "$owned.status.playing",
+                update,
+              );
+              update();
+            }
+            disconnectedCallback() {
+              this.stop?.();
+            }
           },
         );
         const { widget, fakeModel } = window.__widget;
@@ -116,6 +105,39 @@ for (const codec of ["json", "msgpack", "cbor"]) {
           ),
         ),
       ).toEqual([true, false]);
+      await expect(page.locator("#owner test-sample")).toHaveAttribute(
+        "data-owned",
+        "true",
+      );
+      await expect(page.locator("#observer test-sample")).toHaveAttribute(
+        "data-owned",
+        "false",
+      );
+      expect(
+        await page.evaluate(async () => {
+          const owner = notebook.views[0];
+          const sample = owner.el.querySelector("test-sample");
+          const nested = document.createElement("div");
+          owner.el.append(nested);
+          const dispose = await __widget.widget.render({
+            model: __widget.fakeModel({ _tree: { tag: "span" } }),
+            el: nested,
+          });
+          const detail = { namespace: "status" };
+          nested.firstElementChild.dispatchEvent(
+            new CustomEvent("spaday:wire-request", {
+              detail,
+              bubbles: true,
+              composed: true,
+            }),
+          );
+          const isolated =
+            sample.wire.client === owner.client && detail.wire === undefined;
+          dispose();
+          nested.remove();
+          return isolated;
+        }),
+      ).toBe(true);
       expect(
         await page.evaluate(() => [
           ...document.querySelector("#owner test-sample").data,
@@ -182,10 +204,51 @@ for (const codec of ["json", "msgpack", "cbor"]) {
       ).toEqual([false, true]);
       await page.evaluate(() => {
         const view = notebook.views[1];
-        view.store.set("status.playing", true);
-        view.client.ackCommand(view.commands[0]);
+        customElements.define(
+          "late-player",
+          class extends HTMLElement {
+            connectedCallback() {
+              const detail = { namespace: "status" };
+              this.dispatchEvent(
+                new CustomEvent("spaday:wire-request", {
+                  detail,
+                  bubbles: true,
+                  composed: true,
+                }),
+              );
+              const wire = detail.wire;
+              this.stop = wire.client.onCommand((command) => {
+                if (command.id !== wire.link.modelId) return;
+                wire.store.set("status.playing", command.value.Bool);
+                wire.client.ackCommand(command);
+                this.dataset.applied = "true";
+              });
+            }
+            disconnectedCallback() {
+              this.stop?.();
+            }
+          },
+        );
+        const shadowHost = document.createElement("div");
+        view.el.append(shadowHost);
+        shadowHost
+          .attachShadow({ mode: "open" })
+          .append(document.createElement("late-player"));
       });
+      await expect(page.locator("#observer late-player")).toHaveAttribute(
+        "data-applied",
+        "true",
+      );
+      await expect(page.locator("#observer test-sample")).toHaveAttribute(
+        "data-owned",
+        "true",
+      );
       await page.evaluate(() => notebook.views[1].dispose());
+      expect(
+        await page.evaluate(() =>
+          notebook.views.map((view) => view.store.get("$owned.status.playing")),
+        ),
+      ).toEqual([false, false]);
     } finally {
       await server.call({ op: "close" });
       server.close();
