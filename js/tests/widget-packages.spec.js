@@ -223,3 +223,170 @@ test("rejects changed packages and conflicting versions before registering eleme
   expect(errors[1]).toContain("changed after loading");
   expect(errors[2]).toContain("conflicting versions");
 });
+
+async function packageHarness(page) {
+  await page.goto("/tests/widget.html");
+  await page.waitForFunction(() => window.__widget);
+  await page.context().setOffline(true);
+  await page.evaluate(() => {
+    window.packageModel = (spec, sources) => {
+      const files = [];
+      const chunks = [];
+      for (const [path, source] of Object.entries(sources)) {
+        const bytes = new TextEncoder().encode(source);
+        files.push({
+          path,
+          offset: chunks.length,
+          length: bytes.length,
+          type: path.endsWith(".js")
+            ? "text/javascript"
+            : path.endsWith(".css")
+              ? "text/css"
+              : "image/svg+xml",
+        });
+        chunks.push(...bytes);
+      }
+      const model = __widget.fakeModel({
+        _tree: { tag: "div" },
+        _packages: [{ tags: [], imports: [], provides: [], ...spec }],
+      });
+      model.send = (content) =>
+        queueMicrotask(() =>
+          model._emit(
+            "msg:custom",
+            {
+              type: "spaday:assets",
+              request: content.request,
+              files,
+            },
+            [new Uint8Array(chunks)],
+          ),
+        );
+      return model;
+    };
+    window.loadPackage = (model) =>
+      __widget.widget.render({ model, el: document.createElement("div") });
+  });
+}
+
+test("resolves CSS asset queries and preserves SVG fragments", async ({
+  page,
+}) => {
+  await packageHarness(page);
+  const result = await page.evaluate(async () => {
+    const model = packageModel(
+      { name: "css-suffix", id: "css-suffix", assets: [["css", "style.css"]] },
+      {
+        "style.css":
+          '@import "./nested.css?v=2"; .icon { filter: url("./icons.svg#glow"); background-image: url("./icons.svg?v=2"); } @font-face {font-family: test; src: url("./font.woff2?v=2")}',
+        "nested.css": ".icon { color: red; }",
+        "icons.svg":
+          '<svg xmlns="http://www.w3.org/2000/svg"><filter id="glow"/></svg>',
+        "font.woff2": "font",
+      },
+    );
+    const dispose = await loadPackage(model);
+    const link = document.querySelector(
+      'link[data-spaday-package="css-suffix"]',
+    );
+    const css = await (await fetch(link.href)).text();
+    const urls = [...css.matchAll(/url\(([^)]+)\)/g)].map((match) =>
+      match[1].replaceAll('"', ""),
+    );
+    const bodies = await Promise.all(
+      urls.map(async (url) => (await fetch(url)).text()),
+    );
+    dispose();
+    return { css, urls, bodies };
+  });
+  expect(result.urls).toHaveLength(3);
+  expect(result.urls[0]).toMatch(/^blob:.*#glow$/);
+  expect(result.bodies[0]).toContain('<filter id="glow"');
+  expect(result.bodies[1]).toContain("<svg");
+  expect(result.bodies[2]).toBe("font");
+  expect(result.css).not.toContain("?v=2");
+});
+
+test("prepares only reachable modules and defers optional dependencies until imported", async ({
+  page,
+}) => {
+  await packageHarness(page);
+  await page.evaluate(async () => {
+    const model = packageModel(
+      { name: "lazy", id: "lazy", assets: [["js", "index.js"]] },
+      {
+        "index.js":
+          "globalThis.loadOptional = path => import(path); globalThis.metaResolve = path => import.meta.resolve(path);",
+        "optional.js": 'import "missing-library";',
+        "unused.css":
+          '.unused { background: url("https://example.com/missing.png") }',
+        "child.js":
+          'import { value } from "./cycle.js"; export const answer = value; export function read() { return value; }',
+        "cycle.js":
+          'import { read } from "./child.js"; export const value = 42; export const check = () => read();',
+      },
+    );
+    window.disposeLazy = await loadPackage(model);
+  });
+  expect(
+    await page.evaluate(
+      async () =>
+        (await loadOptional(new URL(metaResolve("./child.js")))).answer,
+    ),
+  ).toBe(42);
+  expect(
+    await page.evaluate(() =>
+      loadOptional("./optional.js").catch((error) => error.message),
+    ),
+  ).toContain("no import mapping for missing-library");
+  // A failed optional graph must not invalidate a graph already loaded successfully.
+  expect(
+    await page.evaluate(async () => (await loadOptional("./child.js")).answer),
+  ).toBe(42);
+  await page.evaluate(() => disposeLazy());
+});
+
+for (const firstVersion of [undefined, "2.0.0"]) {
+  test(`requires both import owners to declare matching versions (${firstVersion ?? "unversioned"})`, async ({
+    page,
+  }) => {
+    await packageHarness(page);
+    const result = await page.evaluate(async (firstVersion) => {
+      const first = packageModel(
+        {
+          name: "first",
+          id: "first",
+          imports: [["shared", "lib.js"]],
+          provides: firstVersion ? [["shared", firstVersion]] : [],
+          assets: [],
+        },
+        {
+          "lib.js": `export const version = ${JSON.stringify(firstVersion ?? "1.0.0")};`,
+        },
+      );
+      await loadPackage(first);
+      const second = packageModel(
+        {
+          name: "second",
+          id: "second",
+          imports: [["shared", "lib.js"]],
+          provides: [["shared", "2.0.0"]],
+          assets: [["js", "index.js"]],
+        },
+        {
+          "lib.js": 'export const version = "2.0.0";',
+          "index.js":
+            'import {version} from "shared"; globalThis.selectedVersion = version;',
+        },
+      );
+      try {
+        await loadPackage(second);
+        return { version: selectedVersion };
+      } catch (error) {
+        return { error: error.message };
+      }
+    }, firstVersion);
+    if (firstVersion) expect(result).toEqual({ version: "2.0.0" });
+    else expect(result.error).toContain("conflicting imports for shared");
+  });
+}

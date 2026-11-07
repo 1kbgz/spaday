@@ -101,11 +101,16 @@ export async function connectWidget(
       for (const field of grant.fields) fields.add(field);
       publish();
     });
+    // connectStore handles this change first and may invalidate a type-name selection.
+    const stopSelection = client.onChange(() => {
+      if (link.error) clear();
+    });
     const stopDisconnect = client.onDisconnect(clear);
     return () => {
       clear();
       stopModel();
       stopOwnership();
+      stopSelection();
       stopDisconnect();
     };
   });

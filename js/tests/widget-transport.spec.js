@@ -255,3 +255,74 @@ for (const codec of ["json", "msgpack", "cbor"]) {
     }
   });
 }
+
+for (const invalidation of ["ambiguous", "changed-type"]) {
+  test(`clears ownership when model selection becomes ${invalidation}`, async ({
+    page,
+  }) => {
+    await page.goto("/tests/widget.html");
+    await page.waitForFunction(() => window.__widget);
+    const result = await page.evaluate(async (invalidation) => {
+      const model = __widget.fakeModel({
+        _tree: { tag: "div" },
+        _wires: [
+          {
+            model: "Status",
+            namespace: "status",
+            codec: "json",
+            flatten: true,
+            ownership: true,
+            update_interval: 0.05,
+          },
+        ],
+      });
+      let view;
+      model.send = (content) => {
+        if (content.ready) view = content.view;
+      };
+      const el = document.createElement("div");
+      document.body.append(el);
+      let wire;
+      el.addEventListener(
+        "spaday:wire-client",
+        (event) => (wire = event.detail),
+      );
+      const dispose = await __widget.widget.render({ model, el });
+      const receive = (frame) =>
+        model._emit("msg:custom", { view, wire: JSON.stringify(frame) });
+      receive({
+        t: "snapshot",
+        id: 1,
+        type: "Status",
+        rev: 0,
+        value: { Map: { playing: { Bool: false } } },
+      });
+      receive({
+        t: "ownership",
+        id: 1,
+        fields: ["playing"],
+        owned: true,
+        epoch: 1,
+      });
+      const before = wire.store.get("$owned.status.playing");
+      receive({
+        t: "snapshot",
+        id: invalidation === "ambiguous" ? 2 : 1,
+        type: invalidation === "ambiguous" ? "Status" : "Other",
+        rev: 1,
+        value: { Map: { playing: { Bool: false } } },
+      });
+      const after = {
+        owned: wire.store.get("$owned.status.playing"),
+        selected: wire.link.modelId,
+        error: wire.link.error,
+      };
+      dispose();
+      return { before, after };
+    }, invalidation);
+    expect(result.before).toBe(true);
+    expect(result.after.selected).toBeUndefined();
+    expect(result.after.error).toBeTruthy();
+    expect(result.after.owned).toBe(false);
+  });
+}

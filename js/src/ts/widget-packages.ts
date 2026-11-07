@@ -16,13 +16,17 @@ interface AssetFile {
   length: number;
   type: string;
 }
+type Sources = Map<string, { data: Uint8Array; type: string }>;
+
 interface Registry {
   queue: Promise<void>;
   packages: Map<string, { id: string; loaded: Promise<void> }>;
   libraries: Map<string, string>;
   imports: Map<string, string>;
   urls: Map<string, string>;
-  resolve(specifier: string, parent: string): string;
+  sources: Sources;
+  importVersions: Map<string, string | undefined>;
+  resolve(specifier: unknown, parent: string): string;
 }
 const key = Symbol.for("spaday.notebook.packages");
 const globals = globalThis as typeof globalThis & { [key: symbol]: Registry };
@@ -32,14 +36,15 @@ const registry = (globals[key] ??= {
   libraries: new Map(),
   imports: new Map(),
   urls: new Map(),
-  resolve(specifier, parent) {
+  sources: new Map(),
+  importVersions: new Map(),
+  resolve(value, parent) {
+    const specifier = String(value);
     if ([...this.urls.values()].includes(specifier)) return specifier;
-    const url = this.urls.get(resolvePath(specifier, parent, this.imports));
-    if (!url)
-      throw new Error(
-        `Notebook package does not contain ${specifier} (from ${parent})`,
-      );
-    return url;
+    const target = resolvePath(specifier, parent, this.imports);
+    const urls = prepareAssets([target], this.sources, this.imports);
+    registerUrls(urls);
+    return urls.get(target)!;
   },
 });
 const base = (spec: PackageSpec) =>
@@ -119,52 +124,12 @@ function requestAssets(
   });
 }
 
-async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
-  const fresh = specs.filter((spec) => {
-    const existing = registry.packages.get(spec.name);
-    if (existing && existing.id !== spec.id)
-      throw new Error(
-        `Notebook package ${spec.name} changed after loading; reload the document to use its new assets`,
-      );
-    return !existing;
-  });
-  const libraries = new Map(registry.libraries);
-  const imports = new Map(registry.imports);
-  for (const spec of fresh) {
-    for (const [library, version] of spec.provides) {
-      if (libraries.has(library) && libraries.get(library) !== version)
-        throw new Error(
-          `Notebook packages provide conflicting versions of ${library}: ${libraries.get(library)} and ${version}`,
-        );
-      libraries.set(library, version);
-    }
-    for (const [name, path] of spec.imports) {
-      const target = new URL(path, base(spec)).href;
-      if (imports.has(name) && imports.get(name) !== target) {
-        const library = name.startsWith("@")
-          ? name.split("/").slice(0, 2).join("/")
-          : name.split("/")[0];
-        if (!spec.provides.some(([provided]) => provided === library))
-          throw new Error(
-            `Notebook packages provide conflicting imports for ${name}`,
-          );
-      } else imports.set(name, target);
-    }
-    const collision = spec.tags.find((tag) => customElements.get(tag));
-    if (collision)
-      throw new Error(
-        `Notebook package ${spec.name} conflicts with an existing ${collision} element; reload without the other copy`,
-      );
-  }
-  const sources = new Map<string, { data: Uint8Array; type: string }>();
-  for (const spec of fresh) {
-    const { files, data } = await requestAssets(model, spec);
-    for (const file of files)
-      sources.set(new URL(file.path, base(spec)).href, {
-        data: data.slice(file.offset, file.offset + file.length),
-        type: file.type,
-      });
-  }
+/** Prepare reachable graphs atomically; dynamic imports use the same path when requested. */
+function prepareAssets(
+  entries: string[],
+  sources: Sources,
+  imports: Map<string, string>,
+): Map<string, string> {
   const urls = new Map(registry.urls);
   const visiting = new Set<string>();
   const decoder = new TextDecoder();
@@ -178,10 +143,16 @@ async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
   const asset = (url: string): string => {
     const existing = urls.get(url);
     if (existing) return existing;
-    const file = sources.get(url);
+    const path = new URL(url);
+    const fragment = path.hash;
+    path.search = "";
+    path.hash = "";
+    const file = sources.get(path.href);
     if (!file) throw new Error(`Notebook package is missing ${url}`);
-    if (visiting.has(url))
+    if (visiting.has(url)) {
+      if (file.type === "text/javascript") return url;
       throw new Error(`Circular CSS import in notebook package: ${url}`);
+    }
     visiting.add(url);
     let result: string;
     if (file.type === "text/css") {
@@ -204,17 +175,7 @@ async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
         }
       });
       result = blob(css.generate(tree), file.type);
-    } else result = blob(file.data, file.type);
-    visiting.delete(url);
-    urls.set(url, result);
-    return result;
-  };
-  try {
-    for (const [url, file] of sources) {
-      if (file.type !== "text/javascript") {
-        asset(url);
-        continue;
-      }
+    } else if (file.type === "text/javascript") {
       let source = decoder.decode(file.data);
       const edits: [number, number, string][] = [];
       for (const entry of parse(source)[0]) {
@@ -228,35 +189,109 @@ async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
           edits.push([
             entry.ss,
             entry.d,
-            `((s,o)=>import(${helper}.resolve(s,${JSON.stringify(url)}),o))`,
+            `(async(s,o)=>import(${helper}.resolve(s,${JSON.stringify(url)}),o))`,
           ]);
         } else {
           const target = resolvePath(entry.n!, url, imports);
-          if (!sources.has(target) && !urls.has(target))
-            throw new Error(
-              `Notebook package is missing imported module ${target}`,
-            );
+          asset(target);
           edits.push([entry.s - 1, entry.e + 1, JSON.stringify(target)]);
         }
       }
       for (const [start, end, replacement] of edits.sort((a, b) => b[0] - a[0]))
         source = source.slice(0, start) + replacement + source.slice(end);
-      urls.set(url, blob(source, file.type));
-    }
+      result = blob(source, file.type);
+    } else result = blob(file.data, file.type);
+    if (fragment) result += fragment;
+    visiting.delete(url);
+    urls.set(url, result);
+    return result;
+  };
+  try {
+    for (const url of entries) asset(url);
+    return urls;
   } catch (error) {
     for (const [url, objectUrl] of urls)
-      if (!registry.urls.has(url)) URL.revokeObjectURL(objectUrl);
+      if (!registry.urls.has(url)) URL.revokeObjectURL(objectUrl.split("#")[0]);
     throw error;
   }
-  registry.urls = urls;
-  registry.imports = imports;
-  registry.libraries = libraries;
-  if (fresh.length) {
+}
+
+function registerUrls(urls: Map<string, string>): void {
+  const added = [...urls].filter(([url]) => !registry.urls.has(url));
+  if (added.length) {
     const map = document.createElement("script");
     map.type = "importmap";
-    map.textContent = JSON.stringify({ imports: Object.fromEntries(urls) });
+    map.textContent = JSON.stringify({ imports: Object.fromEntries(added) });
     document.head.appendChild(map);
   }
+  registry.urls = urls;
+}
+
+async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
+  const fresh = specs.filter((spec) => {
+    const existing = registry.packages.get(spec.name);
+    if (existing && existing.id !== spec.id)
+      throw new Error(
+        `Notebook package ${spec.name} changed after loading; reload the document to use its new assets`,
+      );
+    return !existing;
+  });
+  const libraries = new Map(registry.libraries);
+  const imports = new Map(registry.imports);
+  const importVersions = new Map(registry.importVersions);
+  for (const spec of fresh) {
+    for (const [library, version] of spec.provides) {
+      if (libraries.has(library) && libraries.get(library) !== version)
+        throw new Error(
+          `Notebook packages provide conflicting versions of ${library}: ${libraries.get(library)} and ${version}`,
+        );
+      libraries.set(library, version);
+    }
+    for (const [name, path] of spec.imports) {
+      const target = new URL(path, base(spec)).href;
+      const library = name.startsWith("@")
+        ? name.split("/").slice(0, 2).join("/")
+        : name.split("/")[0];
+      const version = spec.provides.find(
+        ([provided]) => provided === library,
+      )?.[1];
+      if (imports.has(name) && imports.get(name) !== target) {
+        if (version === undefined || importVersions.get(name) !== version)
+          throw new Error(
+            `Notebook packages provide conflicting imports for ${name}`,
+          );
+      } else {
+        imports.set(name, target);
+        importVersions.set(name, version);
+      }
+    }
+    const collision = spec.tags.find((tag) => customElements.get(tag));
+    if (collision)
+      throw new Error(
+        `Notebook package ${spec.name} conflicts with an existing ${collision} element; reload without the other copy`,
+      );
+  }
+  const sources = new Map(registry.sources);
+  for (const spec of fresh) {
+    const { files, data } = await requestAssets(model, spec);
+    for (const file of files)
+      sources.set(new URL(file.path, base(spec)).href, {
+        data: data.slice(file.offset, file.offset + file.length),
+        type: file.type,
+      });
+  }
+  const urls = prepareAssets(
+    fresh.flatMap((spec) =>
+      spec.assets.map(([, path]) => new URL(path, base(spec)).href),
+    ),
+    sources,
+    imports,
+  );
+  registry.sources = sources;
+  registry.imports = imports;
+  registry.importVersions = importVersions;
+  registry.libraries = libraries;
+  registerUrls(urls);
   for (const spec of fresh) {
     const loaded = (async () => {
       for (const [kind, path] of spec.assets) {
