@@ -111,3 +111,87 @@ test("standalone gallery runs core examples in Pyodide", async ({ page }) => {
     }
   }
 });
+
+test("JupyterLite notebook views use transports ownership and binary comm buffers", async ({
+  page,
+}) => {
+  test.skip(!built, "run `make jupyterlite` first");
+  test.setTimeout(300_000);
+  await page.addInitScript(() => {
+    customElements.define(
+      "notebook-probe",
+      class extends HTMLElement {
+        set data(value) {
+          this.dataset.bytes = value ? Array.from(value).join(",") : "";
+        }
+        connectedCallback() {
+          const host = this.parentElement.parentElement;
+          host.addEventListener("spaday:wire-client", ({ detail }) => {
+            if (detail.namespace !== "status") return;
+            const update = () => {
+              this.dataset.owned = String(
+                detail.link.modelId !== undefined &&
+                  detail.client.owns(detail.link.modelId, "playing"),
+              );
+            };
+            detail.link.onModel(update);
+            detail.client.onOwnership(update);
+            detail.client.onDisconnect(update);
+            detail.client.onCommand(() => {
+              this.dataset.commands = String(
+                Number(this.dataset.commands || 0) + 1,
+              );
+            });
+          });
+        }
+      },
+    );
+  });
+  const url = new URL("/dist/lite/repl/index.html", "http://127.0.0.1:3000");
+  url.searchParams.set("kernel", "python");
+  url.searchParams.append(
+    "code",
+    "%pip install -q spaday anywidget transports==0.12.1",
+  );
+  url.searchParams.append(
+    "code",
+    [
+      "from pydantic import BaseModel, Field",
+      "from transports import Session",
+      "from spaday import Widget, Wire, SetField, element",
+      "from IPython.display import display",
+      "class Config(BaseModel):",
+      "    bpm: int = Field(120, ge=1)",
+      "    sample: bytes = b'pcm'",
+      "class Status(BaseModel):",
+      "    playing: bool = Field(False, json_schema_extra={'owner': 'client'})",
+      "config, status, session = Config(), Status(), Session()",
+      "cid, sid = session.host(config), session.host(status)",
+      "session.command(sid, 'playing', True)",
+      "tree = element('section', element('input', type='number').bind('value', 'config.bpm', mode='two-way'), element('button').text('Play session').on('click', SetField('status.playing', True)), element('output').bind('textContent', 'status.playing'), element('notebook-probe').bind('data', 'config.sample'))",
+      "w = Widget(tree, session=session, wires=[Wire(model=cid, namespace='config'), Wire(model=sid, namespace='status')])",
+      "display(w)",
+      "display(w)",
+    ].join("\n"),
+  );
+  await page.goto(url.toString());
+  const probes = page.locator("notebook-probe");
+  await expect(probes).toHaveCount(2, { timeout: 240_000 });
+  await expect(probes.nth(0)).toHaveAttribute("data-owned", "true");
+  await expect(probes.nth(1)).toHaveAttribute("data-owned", "false");
+  await expect(probes.nth(0)).toHaveAttribute("data-commands", "1");
+  await expect(probes.nth(1)).not.toHaveAttribute("data-commands");
+  await expect(probes.nth(0)).toHaveAttribute("data-bytes", "112,99,109");
+  const inputs = page.locator("section input[type=number]");
+  await inputs.nth(0).fill("145");
+  await inputs.nth(0).dispatchEvent("change");
+  await expect(inputs.nth(1)).toHaveValue("145");
+  await inputs.nth(0).fill("-1");
+  await inputs.nth(0).dispatchEvent("change");
+  await expect(inputs.nth(0)).toHaveValue("145");
+  await page
+    .getByRole("button", { name: "Play session", exact: true })
+    .first()
+    .click();
+  await expect(page.locator("section output").nth(1)).toHaveText("true");
+});
