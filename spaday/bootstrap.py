@@ -58,6 +58,7 @@ class Wire:
     in ``serve``/``bootstrap`` ``wire=[…]`` (both forms are accepted, mix freely):
 
     - ``url`` — the websocket endpoint the model is mirrored over (matches a backend ``routes=`` entry).
+      Omit only for a notebook ``Widget(session=..., wires=[Wire(...)])`` using its comm.
     - ``model`` — select a numeric model ID or unique snapshot type name. Selected wires with the
       same connection settings share one client within this page. Omit to mirror the first model.
     - ``namespace`` — mirror the model's fields under ``<namespace>.`` so several models share one signal
@@ -82,7 +83,7 @@ class Wire:
     editor help; it serializes to exactly that dict.
     """
 
-    url: str
+    url: str | None = None
     namespace: str | None = None
     session: bool = False
     flatten: bool = True
@@ -101,7 +102,7 @@ class Wire:
             isinstance(self.model, str) and bool(self.model) or type(self.model) is int and 0 <= self.model <= 2**53 - 1
         ):
             raise ValueError("Wire model must be a nonempty type name or a nonnegative safe integer ID")
-        if not self.url:
+        if self.url is not None and not self.url:
             raise ValueError("Wire url must not be empty")
         if not self.codec:
             raise ValueError("Wire codec must not be empty")
@@ -395,6 +396,8 @@ def _script(
         wires = [asdict(w if isinstance(w, Wire) else Wire(**w)) for w in wire]
     else:
         wires = None
+    if wires and any(not spec["url"] for spec in wires):
+        raise ValueError("Served-page Wire requires a url; omit url only with Widget(session=...)")
     wired = transports or bool(wires)  # any transports wiring — a single string model or a list of specs
     frame = tree == "frame"
     inline = tree == "inline"

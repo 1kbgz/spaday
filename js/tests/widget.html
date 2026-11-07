@@ -14,6 +14,8 @@
         const sent = [];
         return {
           _sent: sent,
+          _emit: (event, ...args) =>
+            (listeners[event] || []).forEach((cb) => cb(...args)),
           get: (k) => state[k],
           set: (k, v) => {
             state[k] = v;

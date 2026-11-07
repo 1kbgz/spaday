@@ -31,7 +31,10 @@ type PatchOp =
 type CrdtPathSeg =
   | { kind: "key"; key: string }
   | { kind: "member"; key: string }
-  | { kind: "element"; id: unknown };
+  | {
+      kind: "element";
+      id: { dot: { counter: number; replica: string }; index: number };
+    };
 type CrdtMutation =
   | { kind: "register_set"; path: CrdtPathSeg[]; value: unknown }
   | {
@@ -71,7 +74,7 @@ type ReceiveChange =
     }
   | { t: "crdt"; id: number; rev: number; ops: CrdtOp[] };
 type AckChange =
-  | (Extract<ReceiveChange, { t: "patch" }> & { proposal: string })
+  | (Extract<ReceiveChange, { t: "patch" | "crdt" }> & { proposal?: string })
   | { t: "ack"; id: number; rev: number; proposal: string };
 type RejectChange = {
   t: "reject";
@@ -1089,7 +1092,8 @@ export function connectStore(
   if (client.onAck)
     unsubs.push(
       client.onAck((ack) => {
-        if (id === undefined || ack.id !== id) return;
+        if (id === undefined || ack.id !== id || ack.proposal === undefined)
+          return;
         recovered.delete(ack.proposal);
         const field = dropProposal(ack.proposal);
         if (field !== undefined) {

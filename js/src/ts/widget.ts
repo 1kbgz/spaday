@@ -1,9 +1,9 @@
 // spaday as an anywidget: render a spaday component tree inside any anywidget host — Jupyter
 // (Lab/Notebook/Colab/VS Code), Marimo, Shiny-for-Python, Solara, Panel — over the widget's model.
 //
-// The model carries the serialized component tree (`_tree`) and a reactive data model (`_state`) the
-// tree's bindings read/write; the wasm core (the action interpreter) is inlined into this bundle, so
-// the only things that sync over the comm are those two. The spaday runtime
+// The model carries the serialized component tree (`_tree`); bindings use either the `_state` trait
+// or transports models over custom comm messages. Both wasm cores are inlined into this bundle.
+// The spaday runtime
 // mounts the tree and keeps it live by diffing successive trees with the same core `diff`/`applyPatch`
 // it uses over a transports wire — so a Python-side
 // `widget.update(tree)` produces a minimal DOM patch, not a re-render. Behavior authored in Python
@@ -11,19 +11,11 @@
 // (a `SendPatch` action's `spaday:patch`) are forwarded to the kernel over the model.
 
 import { applyPatch, diff, init, mount, Node, Store, unmount } from "./index";
+import { connectWidget, type AnyModel } from "./widget-transport";
 
 // the spaday wasm core, inlined into this bundle as bytes (esbuild `binary` loader; see build.mjs),
 // so the widget is one self-contained ESM with no separately-synced `_wasm`.
 import wasm from "../../dist/pkg/spaday_bg.wasm";
-
-interface AnyModel {
-  get(key: string): unknown;
-  set(key: string, value: unknown): void;
-  save_changes(): void;
-  on(event: string, cb: () => void): void;
-  off(event: string, cb: () => void): void;
-  send(content: unknown): void;
-}
 
 // The wasm core is inlined into this bundle and is process-wide, so initialize it once; later widgets
 // reuse the same promise. On failure, drop it so a retry can re-attempt (a cached rejection would
@@ -93,33 +85,52 @@ export default {
   }): Promise<() => void> {
     await ensureWasm();
 
-    // back the tree's reactive bindings with the widget's synced `_state`, seeded before mount so the
-    // bindings pick up their initial values.
+    // State mode seeds bindings before mount; session mode receives snapshots after mounting.
     const store = new Store();
-    const stateLink = connectState(store, model);
+    const session = (model.get("_wires") as unknown[] | undefined)?.length
+      ? await connectWidget(store, model, el)
+      : undefined;
+    const stateLink = session
+      ? () => session.dispose()
+      : connectState(store, model);
 
     let tree = model.get("_tree") as Node;
-    let root = mount(el, tree, store);
+    let root: Element | undefined;
+    try {
+      root = mount(el, tree, store);
+      session?.start();
+    } catch (error) {
+      if (root) unmount(root);
+      stateLink();
+      throw error;
+    }
 
     const onTree = () => {
       const next = model.get("_tree") as Node;
       const patch = JSON.parse(
         diff(JSON.stringify(tree), JSON.stringify(next)),
       );
-      root = applyPatch(root, patch, store);
+      root = applyPatch(root!, patch, store);
       tree = next;
     };
     model.on("change:_tree", onTree);
 
-    const forward = (event: Event) =>
-      model.send({ type: event.type, detail: (event as CustomEvent).detail });
+    const forward = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (session)
+        store.set(
+          detail.model ? `${detail.model}.${detail.field}` : detail.field,
+          detail.value,
+        );
+      model.send({ type: event.type, detail });
+    };
     for (const name of INTENTS) el.addEventListener(name, forward);
 
     return () => {
       stateLink();
       model.off("change:_tree", onTree);
       for (const name of INTENTS) el.removeEventListener(name, forward);
-      unmount(root);
+      unmount(root!);
     };
   },
 };
