@@ -179,6 +179,9 @@
     <a href="#render-a-tree">Render a tree</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
+    <a href="#load-a-component-package">Load a component package</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
     <a href="#update-the-rendered-tree">Update the rendered tree</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
@@ -186,6 +189,9 @@
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#bind-transports-models">Bind transports models</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#handle-client-owned-state-in-a-custom-element">Handle client-owned state in a custom element</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#handle-a-sendpatch-intent">Handle a SendPatch intent</a>
@@ -220,7 +226,38 @@ install at all in <a class="reference internal" href="pyodide.html"><span class=
 </pre></div>
 </div>
 <p>The widget bundles the spaday runtime and wasm core. It renders core <code class="docutils literal notranslate"><span class="pre">spa-*</span></code> components and native HTML
-elements; component-package browser assets are loaded by web backends through <code class="docutils literal notranslate"><span class="pre">packages=</span></code>.</p>
+elements without additional packages.</p>
+</section>
+<section id="load-a-component-package">
+<h2>Load a component package<a class="headerlink" href="#load-a-component-package" title="Link to this heading">¶</a></h2>
+<p>Install the peer in the notebook’s kernel, then select it with <code class="docutils literal notranslate"><span class="pre">packages=</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">spaday</span><span class="o">-</span><span class="n">webawesome</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">element</span><span class="p">,</span> <span class="n">ui</span>
+
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span>
+    <span class="n">element</span><span class="p">(</span><span class="s2">"section"</span><span class="p">,</span> <span class="n">ui</span><span class="o">.</span><span class="n">TextInput</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Name"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">)),</span>
+    <span class="n">packages</span><span class="o">=</span><span class="p">[</span><span class="s2">"webawesome"</span><span class="p">],</span>
+    <span class="n">state</span><span class="o">=</span><span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Ada"</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">w</span>
+</pre></div>
+</div>
+<p>The selected package’s design also applies to subsequent <code class="docutils literal notranslate"><span class="pre">w.update(...)</span></code> calls. Browser assets come
+from the installed Python package over binary widget comms. Scripts and styles load before the tree
+mounts and are shared across widgets in the same browser document. Displaying five widgets does not
+register their custom elements five times or transfer five copies of the package.</p>
+<p>After installing the packages and loading the notebook host, WebAwesome controls can render offline
+in JupyterLab and JupyterLite. Features that fetch external data or optional remote icons still need
+those resources. Package loading requires browser support for multiple import maps and permission
+to load blob modules and styles. Reload the notebook document after upgrading a loaded package.
+Conflicting library versions or custom elements registered outside this loader produce an error.</p>
+<p>For package authors, the loader follows relative imports, declared bare import mappings, dynamic
+imports, and stylesheet imports and URLs within <code class="docutils literal notranslate"><span class="pre">assets_dir</span></code>. Use <code class="docutils literal notranslate"><span class="pre">import.meta.resolve(&quot;./asset&quot;)</span></code>
+for packaged images or WASM fetched at runtime. Arbitrary URLs constructed from <code class="docutils literal notranslate"><span class="pre">import.meta.url</span></code>
+and worker module graphs are not supported by this loader. Test packages with such assets in a
+notebook before advertising notebook support.</p>
 </section>
 <section id="update-the-rendered-tree">
 <h2>Update the rendered tree<a class="headerlink" href="#update-the-rendered-tree" title="Link to this heading">¶</a></h2>
@@ -311,11 +348,45 @@ settings are not notebook options.</p>
 a Server. In a synchronous host, or when the application already drives comm syncing, use
 <code class="docutils literal notranslate"><span class="pre">autosync=False</span></code> and call <code class="docutils literal notranslate"><span class="pre">transports.sync(w.server)</span></code> after mutations. Transports’ socket-oriented
 <code class="docutils literal notranslate"><span class="pre">autosync()</span></code> is not the comm driver.</p>
+</section>
+<section id="handle-client-owned-state-in-a-custom-element">
+<h2>Handle client-owned state in a custom element<a class="headerlink" href="#handle-client-owned-state-in-a-custom-element" title="Link to this heading">¶</a></h2>
+<p>Bind <code class="docutils literal notranslate"><span class="pre">$owned.status.playing</span></code> to show whether this view owns the <code class="docutils literal notranslate"><span class="pre">playing</span></code> field in the <code class="docutils literal notranslate"><span class="pre">status</span></code> wire.
+The flag updates on ownership transfer and becomes false on disconnect. Use ownership flags for
+controls that should only be available in the owning view.</p>
 <p>Commands issued with <code class="docutils literal notranslate"><span class="pre">session.command(model_id,</span> <span class="pre">field,</span> <span class="pre">value)</span></code> remain queued until an owning client
-handles and acknowledges them. The widget root emits <code class="docutils literal notranslate"><span class="pre">spaday:wire-client</span></code> after mount, with
-<code class="docutils literal notranslate"><span class="pre">client</span></code>, <code class="docutils literal notranslate"><span class="pre">link</span></code>, <code class="docutils literal notranslate"><span class="pre">store</span></code>, and <code class="docutils literal notranslate"><span class="pre">namespace</span></code> in its detail. A root listener can register <code class="docutils literal notranslate"><span class="pre">client.onCommand</span></code>
-and call <code class="docutils literal notranslate"><span class="pre">client.ackCommand</span></code> after applying a command. This event stays on the widget root; it does
-not broadcast to other widgets or propagate down to descendants.</p>
+handles and acknowledges them. A custom element can request its wire in <code class="docutils literal notranslate"><span class="pre">connectedCallback</span></code>, before
+initial snapshots or commands arrive:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">requestWire</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"@1kbgz/spaday"</span><span class="p">;</span>
+
+<span class="kd">class</span><span class="w"> </span><span class="nx">PlaybackControl</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="nx">HTMLElement</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">connectedCallback</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">wire</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">requestWire</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="s2">"status"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">wire</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="k">this</span><span class="p">.</span><span class="nx">stop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">wire</span><span class="p">.</span><span class="nx">client</span><span class="p">.</span><span class="nx">onCommand</span><span class="p">((</span><span class="nx">command</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">command</span><span class="p">.</span><span class="nx">id</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="nx">wire</span><span class="p">.</span><span class="nx">link</span><span class="p">.</span><span class="nx">modelId</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">command</span><span class="p">.</span><span class="nx">field</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="s2">"playing"</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">      </span><span class="nx">wire</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s2">"status.playing"</span><span class="p">,</span><span class="w"> </span><span class="nx">command</span><span class="p">.</span><span class="nx">value</span><span class="p">.</span><span class="nx">Bool</span><span class="p">);</span>
+<span class="w">      </span><span class="nx">wire</span><span class="p">.</span><span class="nx">client</span><span class="p">.</span><span class="nx">ackCommand</span><span class="p">(</span><span class="nx">command</span><span class="p">);</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="nx">disconnectedCallback</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">this</span><span class="p">.</span><span class="nx">stop</span><span class="o">?</span><span class="p">.();</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+<span class="nx">customElements</span><span class="p">.</span><span class="nx">define</span><span class="p">(</span><span class="s2">"playback-control"</span><span class="p">,</span><span class="w"> </span><span class="nx">PlaybackControl</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Put this JavaScript in the component package selected by the widget. Apply the requested operation
+before acknowledging it; for asynchronous operations, acknowledge after successful completion.
+Transports delivers commands to the owner and replays pending commands to newly registered handlers.
+<code class="docutils literal notranslate"><span class="pre">wire.link.modelId</span></code> becomes available after the snapshot; use <code class="docutils literal notranslate"><span class="pre">wire.link.onModel(callback)</span></code> when a
+component needs notification of model discovery. Unsubscribe when the element disconnects.</p>
+<p><code class="docutils literal notranslate"><span class="pre">requestWire</span></code> finds the nearest widget root, including across shadow roots. Omit its namespace only
+when the widget has one wire. To avoid importing the runtime, dispatch a bubbling, composed
+<code class="docutils literal notranslate"><span class="pre">spaday:wire-request</span></code> event with a mutable <code class="docutils literal notranslate"><span class="pre">detail</span> <span class="pre">=</span> <span class="pre">{namespace:</span> <span class="pre">&quot;status&quot;}</span></code> object and read
+<code class="docutils literal notranslate"><span class="pre">detail.wire</span></code> synchronously afterward. The returned context contains <code class="docutils literal notranslate"><span class="pre">client</span></code>, <code class="docutils literal notranslate"><span class="pre">link</span></code>, <code class="docutils literal notranslate"><span class="pre">store</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">namespace</span></code>. The root also emits <code class="docutils literal notranslate"><span class="pre">spaday:wire-client</span></code> after mount for host-level listeners.</p>
 </section>
 <section id="handle-a-sendpatch-intent">
 <h2>Handle a SendPatch intent<a class="headerlink" href="#handle-a-sendpatch-intent" title="Link to this heading">¶</a></h2>
@@ -378,6 +449,9 @@ control→state edit.</p>
     <a href="#render-a-tree">Render a tree</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
+    <a href="#load-a-component-package">Load a component package</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
     <a href="#update-the-rendered-tree">Update the rendered tree</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
@@ -385,6 +459,9 @@ control→state edit.</p>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#bind-transports-models">Bind transports models</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#handle-client-owned-state-in-a-custom-element">Handle client-owned state in a custom element</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#handle-a-sendpatch-intent">Handle a SendPatch intent</a>
