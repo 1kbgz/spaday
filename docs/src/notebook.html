@@ -185,6 +185,9 @@
     <a href="#back-reactive-bindings-with-state">Back reactive bindings with state</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
+    <a href="#bind-transports-models">Bind transports models</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
     <a href="#handle-a-sendpatch-intent">Handle a SendPatch intent</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
@@ -249,6 +252,71 @@ updates the state from the browser, and assigning <code class="docutils literal 
 </pre></div>
 </div>
 </section>
+<section id="bind-transports-models">
+<h2>Bind transports models<a class="headerlink" href="#bind-transports-models" title="Link to this heading">¶</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">session=</span></code> for validated models, binary fields, or client-owned state. A widget accepts a
+<code class="docutils literal notranslate"><span class="pre">transports.Session</span></code> or an existing <code class="docutils literal notranslate"><span class="pre">transports.Server</span></code>; <code class="docutils literal notranslate"><span class="pre">state=</span></code> and <code class="docutils literal notranslate"><span class="pre">session=</span></code> are mutually exclusive.
+Select models with <code class="docutils literal notranslate"><span class="pre">Wire</span></code>, omitting its WebSocket URL:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transports</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetField</span><span class="p">,</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">Wire</span><span class="p">,</span> <span class="n">element</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">bpm</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mi">120</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">sample</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"pcm"</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Status</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">playing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">json_schema_extra</span><span class="o">=</span><span class="p">{</span><span class="s2">"owner"</span><span class="p">:</span> <span class="s2">"client"</span><span class="p">})</span>
+
+<span class="n">config</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(),</span> <span class="n">Status</span><span class="p">()</span>
+<span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">()</span>
+<span class="n">config_id</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">host</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="n">status_id</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">host</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+
+<span class="n">tree</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span>
+    <span class="s2">"section"</span><span class="p">,</span>
+    <span class="n">element</span><span class="p">(</span><span class="s2">"label"</span><span class="p">,</span> <span class="s2">"Tempo"</span><span class="p">,</span> <span class="n">element</span><span class="p">(</span><span class="s2">"input"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"number"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">"config.bpm"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">)),</span>
+    <span class="n">element</span><span class="p">(</span><span class="s2">"button"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">"Play"</span><span class="p">)</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"click"</span><span class="p">,</span> <span class="n">SetField</span><span class="p">(</span><span class="s2">"status.playing"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)),</span>
+    <span class="n">element</span><span class="p">(</span><span class="s2">"output"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"textContent"</span><span class="p">,</span> <span class="s2">"status.playing"</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">Widget</span><span class="p">(</span><span class="n">tree</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span> <span class="n">wires</span><span class="o">=</span><span class="p">[</span>
+    <span class="n">Wire</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">config_id</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"config"</span><span class="p">),</span>
+    <span class="n">Wire</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">status_id</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">"status"</span><span class="p">),</span>
+<span class="p">])</span>
+<span class="n">w</span>
+</pre></div>
+</div>
+<p>Changing tempo submits an edit validated by <code class="docutils literal notranslate"><span class="pre">Config</span></code>. Invalid values revert and publish an error
+under <code class="docutils literal notranslate"><span class="pre">$errors.config.bpm</span></code>. The owning view’s Play action updates locally before the kernel replies;
+<code class="docutils literal notranslate"><span class="pre">update_interval</span></code> controls how often client-owned updates are sent (default 0.25 seconds).</p>
+<p>Python assignments push automatically while the widget is open in an asynchronous kernel:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="o">.</span><span class="n">bpm</span> <span class="o">=</span> <span class="mi">140</span>
+<span class="n">config</span><span class="o">.</span><span class="n">sample</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"new pcm"</span>
+</pre></div>
+</div>
+<p>Bytes travel as separate comm buffers and arrive as <code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code> values in browser bindings. Keep
+large binary configuration separate from client-owned status models: ownership resynchronizes the
+status model with a full snapshot.</p>
+<p>Display <code class="docutils literal notranslate"><span class="pre">w</span></code> in another cell to open another view. Each display has a separate client; exactly one
+owns a given client-owned field, and other views observe it. Closing an owning view transfers
+ownership. Transports heartbeats expire abandoned views after the reconnect window. Call <code class="docutils literal notranslate"><span class="pre">w.close()</span></code>
+to close all views and release the widget’s connections and sync task.</p>
+<p>With several wires, each must select a model and use a distinct, non-overlapping namespace. Model
+selection accepts numeric IDs or unique type names. <code class="docutils literal notranslate"><span class="pre">flatten</span></code> and <code class="docutils literal notranslate"><span class="pre">connected</span></code> work as on served pages;
+namespaced wires default to <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.connected</span></code>. Codec, ownership participation, and
+<code class="docutils literal notranslate"><span class="pre">update_interval</span></code> apply to the shared connection and must agree across the wires. Notebook codecs
+are <code class="docutils literal notranslate"><span class="pre">json</span></code>, <code class="docutils literal notranslate"><span class="pre">msgpack</span></code>, and <code class="docutils literal notranslate"><span class="pre">cbor</span></code>. WebSocket URLs, session routing, batching, and reconnect/retry
+settings are not notebook options.</p>
+<p>One kernel timer drives <code class="docutils literal notranslate"><span class="pre">transports.sync()</span></code> per shared Server. Widgets given the same Session reuse
+a Server. In a synchronous host, or when the application already drives comm syncing, use
+<code class="docutils literal notranslate"><span class="pre">autosync=False</span></code> and call <code class="docutils literal notranslate"><span class="pre">transports.sync(w.server)</span></code> after mutations. Transports’ socket-oriented
+<code class="docutils literal notranslate"><span class="pre">autosync()</span></code> is not the comm driver.</p>
+<p>Commands issued with <code class="docutils literal notranslate"><span class="pre">session.command(model_id,</span> <span class="pre">field,</span> <span class="pre">value)</span></code> remain queued until an owning client
+handles and acknowledges them. The widget root emits <code class="docutils literal notranslate"><span class="pre">spaday:wire-client</span></code> after mount, with
+<code class="docutils literal notranslate"><span class="pre">client</span></code>, <code class="docutils literal notranslate"><span class="pre">link</span></code>, <code class="docutils literal notranslate"><span class="pre">store</span></code>, and <code class="docutils literal notranslate"><span class="pre">namespace</span></code> in its detail. A root listener can register <code class="docutils literal notranslate"><span class="pre">client.onCommand</span></code>
+and call <code class="docutils literal notranslate"><span class="pre">client.ackCommand</span></code> after applying a command. This event stays on the widget root; it does
+not broadcast to other widgets or propagate down to descendants.</p>
+</section>
 <section id="handle-a-sendpatch-intent">
 <h2>Handle a SendPatch intent<a class="headerlink" href="#handle-a-sendpatch-intent" title="Link to this heading">¶</a></h2>
 <p>A <a class="reference internal" href="behavior.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code></span></a> action surfaces an <em>intent</em> the host forwards to Python. Register a handler
@@ -256,6 +324,9 @@ with <code class="docutils literal notranslate"><span class="pre">on_intent</spa
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="o">.</span><span class="n">on_intent</span><span class="p">(</span><span class="k">lambda</span> <span class="n">content</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"intent:"</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>   <span class="c1"># content is {"type": "spaday:patch", "detail": {...}}</span>
 </pre></div>
 </div>
+<p>In session mode, <code class="docutils literal notranslate"><span class="pre">SendPatch(&quot;config&quot;,</span> <span class="pre">&quot;bpm&quot;,</span> <span class="pre">120)</span></code> also edits the <code class="docutils literal notranslate"><span class="pre">config.bpm</span></code> binding through
+transports, with the same validation as a two-way control. The model argument names the wire’s
+namespace; use an empty string for a wire without a namespace.</p>
 <p>For most cases prefer a two-way binding over <code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> + <code class="docutils literal notranslate"><span class="pre">on_intent</span></code> — the binding already carries the
 control→state edit.</p>
 </section>
@@ -311,6 +382,9 @@ control→state edit.</p>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#back-reactive-bindings-with-state">Back reactive bindings with state</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#bind-transports-models">Bind transports models</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#handle-a-sendpatch-intent">Handle a SendPatch intent</a>

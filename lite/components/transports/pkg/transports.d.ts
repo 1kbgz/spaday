@@ -2,6 +2,23 @@
 /* eslint-disable */
 
 /**
+ * A JSON control frame with native binary attachments.
+ */
+export class BufferFrame {
+    free(): void;
+    [Symbol.dispose](): void;
+    buffer(index: number): Uint8Array;
+    count(): number;
+    static decode(data: Uint8Array, codec: string): BufferFrame;
+    encode(codec: string): Uint8Array;
+    static from_json(json: string): BufferFrame;
+    constructor(header: string);
+    push(buffer: Uint8Array): void;
+    to_json(): string;
+    readonly header: string;
+}
+
+/**
  * Shared revision and proposal reducer for a language-level client adapter.
  */
 export class ClientState {
@@ -35,6 +52,55 @@ export class CrdtDocument {
 }
 
 /**
+ * Single-server authority for one model's client-owned fields.
+ */
+export class FieldAuthority {
+    free(): void;
+    [Symbol.dispose](): void;
+    acknowledge(connection: string, epoch: bigint, command: bigint): void;
+    close(connection: string): boolean;
+    command(field: string, value: string): bigint;
+    commit(sequence: bigint): void;
+    grant(connection: string): string;
+    constructor(id: bigint, fields: string, command_cap: number);
+    next_command(): string | undefined;
+    open(connection: string): string;
+    owner(): string | undefined;
+    validate(connection: string, message: string): boolean;
+}
+
+/**
+ * Client-side ownership classification and sequence generation.
+ */
+export class OwnedFields {
+    free(): void;
+    [Symbol.dispose](): void;
+    classify(id: bigint, ops: string): boolean;
+    disconnect(): void;
+    drain(): string;
+    edit(id: bigint, ops: string): string;
+    constructor();
+    owns(id: bigint, field: string): boolean;
+    queue(id: bigint, ops: string): string;
+    receive(message: string): boolean;
+    server_ops(id: bigint, ops: string): string;
+}
+
+/**
+ * Bounded per-model replay with shared binary attachments.
+ */
+export class ReplayLog {
+    free(): void;
+    [Symbol.dispose](): void;
+    append(patch: string): void;
+    blobs(): number;
+    bytes(): number;
+    count(): number;
+    constructor(cap: number, max_bytes: number, blob_threshold: number);
+    since(rev: bigint, current: bigint): string | undefined;
+}
+
+/**
  * In-process model store: host / mutate → patch / apply / snapshot.
  */
 export class Store {
@@ -44,6 +110,7 @@ export class Store {
      * Apply a JSON patch to a mirrored model; returns whether the id was known.
      */
     apply(id: bigint, patch_json: string): boolean;
+    field(id: bigint, name: string): string | undefined;
     /**
      * Host a model from its JSON; returns the assigned id.
      */
@@ -53,6 +120,7 @@ export class Store {
      */
     mutate(id: bigint, value_json: string): string | undefined;
     constructor();
+    revision(id: bigint): bigint | undefined;
     /**
      * `{"type_name":..,"rev":..,"value":..}` for a hosted model, or `undefined`.
      */
@@ -143,10 +211,23 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly __wbg_bufferframe_free: (a: number, b: number) => void;
     readonly __wbg_clientstate_free: (a: number, b: number) => void;
     readonly __wbg_crdtdocument_free: (a: number, b: number) => void;
+    readonly __wbg_fieldauthority_free: (a: number, b: number) => void;
+    readonly __wbg_ownedfields_free: (a: number, b: number) => void;
+    readonly __wbg_replaylog_free: (a: number, b: number) => void;
     readonly __wbg_store_free: (a: number, b: number) => void;
     readonly apply: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly bufferframe_buffer: (a: number, b: number) => [number, number, number, number];
+    readonly bufferframe_count: (a: number) => number;
+    readonly bufferframe_decode: (a: number, b: number, c: number, d: number) => [number, number, number];
+    readonly bufferframe_encode: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly bufferframe_from_json: (a: number, b: number) => [number, number, number];
+    readonly bufferframe_header: (a: number) => [number, number];
+    readonly bufferframe_new: (a: number, b: number) => number;
+    readonly bufferframe_push: (a: number, b: number, c: number) => void;
+    readonly bufferframe_to_json: (a: number) => [number, number, number, number];
     readonly cbor_to_json: (a: number, b: number) => [number, number, number, number];
     readonly clientstate_abandon: (a: number, b: number, c: number) => number;
     readonly clientstate_commit: (a: number, b: number, c: number) => [number, number];
@@ -173,16 +254,43 @@ export interface InitOutput {
     readonly encode: (a: number, b: number) => [number, number, number, number];
     readonly encode_as: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly encode_message: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly fieldauthority_acknowledge: (a: number, b: number, c: number, d: bigint, e: bigint) => [number, number];
+    readonly fieldauthority_close: (a: number, b: number, c: number) => number;
+    readonly fieldauthority_command: (a: number, b: number, c: number, d: number, e: number) => [bigint, number, number];
+    readonly fieldauthority_commit: (a: number, b: bigint) => void;
+    readonly fieldauthority_grant: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly fieldauthority_new: (a: bigint, b: number, c: number, d: number) => [number, number, number];
+    readonly fieldauthority_next_command: (a: number) => [number, number, number, number];
+    readonly fieldauthority_open: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly fieldauthority_owner: (a: number) => [number, number];
+    readonly fieldauthority_validate: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly json_to_cbor: (a: number, b: number) => [number, number, number, number];
     readonly json_to_msgpack: (a: number, b: number) => [number, number, number, number];
     readonly msgpack_to_json: (a: number, b: number) => [number, number, number, number];
     readonly normalize_crdt_spec: (a: number, b: number) => [number, number, number, number];
     readonly normalize_message: (a: number, b: number) => [number, number, number, number];
+    readonly ownedfields_classify: (a: number, b: bigint, c: number, d: number) => [number, number, number];
+    readonly ownedfields_disconnect: (a: number) => void;
+    readonly ownedfields_drain: (a: number) => [number, number, number, number];
+    readonly ownedfields_edit: (a: number, b: bigint, c: number, d: number) => [number, number, number, number];
+    readonly ownedfields_new: () => number;
+    readonly ownedfields_owns: (a: number, b: bigint, c: number, d: number) => number;
+    readonly ownedfields_queue: (a: number, b: bigint, c: number, d: number) => [number, number, number, number];
+    readonly ownedfields_receive: (a: number, b: number, c: number) => [number, number, number];
+    readonly ownedfields_server_ops: (a: number, b: bigint, c: number, d: number) => [number, number, number, number];
+    readonly replaylog_append: (a: number, b: number, c: number) => [number, number];
+    readonly replaylog_blobs: (a: number) => number;
+    readonly replaylog_bytes: (a: number) => number;
+    readonly replaylog_count: (a: number) => number;
+    readonly replaylog_new: (a: number, b: number, c: number) => number;
+    readonly replaylog_since: (a: number, b: bigint, c: bigint) => [number, number, number, number];
     readonly require_crdt_spec_hash: (a: number, b: number, c: number, d: number) => [number, number];
     readonly store_apply: (a: number, b: bigint, c: number, d: number) => [number, number, number];
+    readonly store_field: (a: number, b: bigint, c: number, d: number) => [number, number];
     readonly store_host: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [bigint, number, number];
     readonly store_mutate: (a: number, b: bigint, c: number, d: number) => [number, number, number, number];
     readonly store_new: () => number;
+    readonly store_revision: (a: number, b: bigint) => [number, bigint];
     readonly store_snapshot: (a: number, b: bigint) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

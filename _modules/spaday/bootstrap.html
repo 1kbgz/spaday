@@ -650,6 +650,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    in ``serve``/``bootstrap`` ``wire=[…]`` (both forms are accepted, mix freely):</span>
 
 <span class="sd">    - ``url`` — the websocket endpoint the model is mirrored over (matches a backend ``routes=`` entry).</span>
+<span class="sd">      Omit only for a notebook ``Widget(session=..., wires=[Wire(...)])`` using its comm.</span>
 <span class="sd">    - ``model`` — select a numeric model ID or unique snapshot type name. Selected wires with the</span>
 <span class="sd">      same connection settings share one client within this page. Omit to mirror the first model.</span>
 <span class="sd">    - ``namespace`` — mirror the model's fields under ``&lt;namespace&gt;.`` so several models share one signal</span>
@@ -674,7 +675,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    editor help; it serializes to exactly that dict.</span>
 <span class="sd">    """</span>
 
-    <span class="n">url</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">session</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">flatten</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
@@ -693,7 +694,7 @@ window.runMermaid = runMermaid;</script>
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">53</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire model must be a nonempty type name or a nonnegative safe integer ID"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire url must not be empty"</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">codec</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire codec must not be empty"</span><span class="p">)</span>
@@ -997,6 +998,8 @@ window.runMermaid = runMermaid;</script>
         <span class="n">wires</span> <span class="o">=</span> <span class="p">[</span><span class="n">asdict</span><span class="p">(</span><span class="n">w</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">Wire</span><span class="p">)</span> <span class="k">else</span> <span class="n">Wire</span><span class="p">(</span><span class="o">**</span><span class="n">w</span><span class="p">))</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wire</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">wires</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">wires</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"url"</span><span class="p">]</span> <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">wires</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Served-page Wire requires a url; omit url only with Widget(session=...)"</span><span class="p">)</span>
     <span class="n">wired</span> <span class="o">=</span> <span class="n">transports</span> <span class="ow">or</span> <span class="nb">bool</span><span class="p">(</span><span class="n">wires</span><span class="p">)</span>  <span class="c1"># any transports wiring — a single string model or a list of specs</span>
     <span class="n">frame</span> <span class="o">=</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"frame"</span>
     <span class="n">inline</span> <span class="o">=</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"inline"</span>

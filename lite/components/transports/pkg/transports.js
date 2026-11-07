@@ -1,6 +1,148 @@
 /* @ts-self-types="./transports.d.ts" */
 
 /**
+ * A JSON control frame with native binary attachments.
+ */
+export class BufferFrame {
+    static __wrap(ptr) {
+        const obj = Object.create(BufferFrame.prototype);
+        obj.__wbg_ptr = ptr;
+        BufferFrameFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        BufferFrameFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_bufferframe_free(ptr, 0);
+    }
+    /**
+     * @param {number} index
+     * @returns {Uint8Array}
+     */
+    buffer(index) {
+        const ret = wasm.bufferframe_buffer(this.__wbg_ptr, index);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * @returns {number}
+     */
+    count() {
+        const ret = wasm.bufferframe_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {Uint8Array} data
+     * @param {string} codec
+     * @returns {BufferFrame}
+     */
+    static decode(data, codec) {
+        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(codec, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.bufferframe_decode(ptr0, len0, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return BufferFrame.__wrap(ret[0]);
+    }
+    /**
+     * @param {string} codec
+     * @returns {Uint8Array}
+     */
+    encode(codec) {
+        const ptr0 = passStringToWasm0(codec, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.bufferframe_encode(this.__wbg_ptr, ptr0, len0);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v2;
+    }
+    /**
+     * @param {string} json
+     * @returns {BufferFrame}
+     */
+    static from_json(json) {
+        const ptr0 = passStringToWasm0(json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.bufferframe_from_json(ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return BufferFrame.__wrap(ret[0]);
+    }
+    /**
+     * @returns {string}
+     */
+    get header() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.bufferframe_header(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @param {string} header
+     */
+    constructor(header) {
+        const ptr0 = passStringToWasm0(header, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.bufferframe_new(ptr0, len0);
+        this.__wbg_ptr = ret;
+        BufferFrameFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {Uint8Array} buffer
+     */
+    push(buffer) {
+        const ptr0 = passArray8ToWasm0(buffer, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.bufferframe_push(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * @returns {string}
+     */
+    to_json() {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ret = wasm.bufferframe_to_json(this.__wbg_ptr);
+            var ptr1 = ret[0];
+            var len1 = ret[1];
+            if (ret[3]) {
+                ptr1 = 0; len1 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+}
+if (Symbol.dispose) BufferFrame.prototype[Symbol.dispose] = BufferFrame.prototype.free;
+
+/**
  * Shared revision and proposal reducer for a language-level client adapter.
  */
 export class ClientState {
@@ -365,6 +507,412 @@ export class CrdtDocument {
 if (Symbol.dispose) CrdtDocument.prototype[Symbol.dispose] = CrdtDocument.prototype.free;
 
 /**
+ * Single-server authority for one model's client-owned fields.
+ */
+export class FieldAuthority {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        FieldAuthorityFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_fieldauthority_free(ptr, 0);
+    }
+    /**
+     * @param {string} connection
+     * @param {bigint} epoch
+     * @param {bigint} command
+     */
+    acknowledge(connection, epoch, command) {
+        const ptr0 = passStringToWasm0(connection, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.fieldauthority_acknowledge(this.__wbg_ptr, ptr0, len0, epoch, command);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * @param {string} connection
+     * @returns {boolean}
+     */
+    close(connection) {
+        const ptr0 = passStringToWasm0(connection, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.fieldauthority_close(this.__wbg_ptr, ptr0, len0);
+        return ret !== 0;
+    }
+    /**
+     * @param {string} field
+     * @param {string} value
+     * @returns {bigint}
+     */
+    command(field, value) {
+        const ptr0 = passStringToWasm0(field, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(value, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.fieldauthority_command(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return BigInt.asUintN(64, ret[0]);
+    }
+    /**
+     * @param {bigint} sequence
+     */
+    commit(sequence) {
+        wasm.fieldauthority_commit(this.__wbg_ptr, sequence);
+    }
+    /**
+     * @param {string} connection
+     * @returns {string}
+     */
+    grant(connection) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(connection, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.fieldauthority_grant(this.__wbg_ptr, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    /**
+     * @param {bigint} id
+     * @param {string} fields
+     * @param {number} command_cap
+     */
+    constructor(id, fields, command_cap) {
+        const ptr0 = passStringToWasm0(fields, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.fieldauthority_new(id, ptr0, len0, command_cap);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        FieldAuthorityFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @returns {string | undefined}
+     */
+    next_command() {
+        const ret = wasm.fieldauthority_next_command(this.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        let v1;
+        if (ret[0] !== 0) {
+            v1 = getStringFromWasm0(ret[0], ret[1]);
+            wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        }
+        return v1;
+    }
+    /**
+     * @param {string} connection
+     * @returns {string}
+     */
+    open(connection) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(connection, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.fieldauthority_open(this.__wbg_ptr, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    /**
+     * @returns {string | undefined}
+     */
+    owner() {
+        const ret = wasm.fieldauthority_owner(this.__wbg_ptr);
+        let v1;
+        if (ret[0] !== 0) {
+            v1 = getStringFromWasm0(ret[0], ret[1]);
+            wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        }
+        return v1;
+    }
+    /**
+     * @param {string} connection
+     * @param {string} message
+     * @returns {boolean}
+     */
+    validate(connection, message) {
+        const ptr0 = passStringToWasm0(connection, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(message, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.fieldauthority_validate(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] !== 0;
+    }
+}
+if (Symbol.dispose) FieldAuthority.prototype[Symbol.dispose] = FieldAuthority.prototype.free;
+
+/**
+ * Client-side ownership classification and sequence generation.
+ */
+export class OwnedFields {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        OwnedFieldsFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_ownedfields_free(ptr, 0);
+    }
+    /**
+     * @param {bigint} id
+     * @param {string} ops
+     * @returns {boolean}
+     */
+    classify(id, ops) {
+        const ptr0 = passStringToWasm0(ops, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.ownedfields_classify(this.__wbg_ptr, id, ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] !== 0;
+    }
+    disconnect() {
+        wasm.ownedfields_disconnect(this.__wbg_ptr);
+    }
+    /**
+     * @returns {string}
+     */
+    drain() {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ret = wasm.ownedfields_drain(this.__wbg_ptr);
+            var ptr1 = ret[0];
+            var len1 = ret[1];
+            if (ret[3]) {
+                ptr1 = 0; len1 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * @param {bigint} id
+     * @param {string} ops
+     * @returns {string}
+     */
+    edit(id, ops) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(ops, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.ownedfields_edit(this.__wbg_ptr, id, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    constructor() {
+        const ret = wasm.ownedfields_new();
+        this.__wbg_ptr = ret;
+        OwnedFieldsFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {bigint} id
+     * @param {string} field
+     * @returns {boolean}
+     */
+    owns(id, field) {
+        const ptr0 = passStringToWasm0(field, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.ownedfields_owns(this.__wbg_ptr, id, ptr0, len0);
+        return ret !== 0;
+    }
+    /**
+     * @param {bigint} id
+     * @param {string} ops
+     * @returns {string}
+     */
+    queue(id, ops) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(ops, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.ownedfields_queue(this.__wbg_ptr, id, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    /**
+     * @param {string} message
+     * @returns {boolean}
+     */
+    receive(message) {
+        const ptr0 = passStringToWasm0(message, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.ownedfields_receive(this.__wbg_ptr, ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] !== 0;
+    }
+    /**
+     * @param {bigint} id
+     * @param {string} ops
+     * @returns {string}
+     */
+    server_ops(id, ops) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(ops, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.ownedfields_server_ops(this.__wbg_ptr, id, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+}
+if (Symbol.dispose) OwnedFields.prototype[Symbol.dispose] = OwnedFields.prototype.free;
+
+/**
+ * Bounded per-model replay with shared binary attachments.
+ */
+export class ReplayLog {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ReplayLogFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_replaylog_free(ptr, 0);
+    }
+    /**
+     * @param {string} patch
+     */
+    append(patch) {
+        const ptr0 = passStringToWasm0(patch, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.replaylog_append(this.__wbg_ptr, ptr0, len0);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * @returns {number}
+     */
+    blobs() {
+        const ret = wasm.replaylog_blobs(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    bytes() {
+        const ret = wasm.replaylog_bytes(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    count() {
+        const ret = wasm.replaylog_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} cap
+     * @param {number} max_bytes
+     * @param {number} blob_threshold
+     */
+    constructor(cap, max_bytes, blob_threshold) {
+        const ret = wasm.replaylog_new(cap, max_bytes, blob_threshold);
+        this.__wbg_ptr = ret;
+        ReplayLogFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {bigint} rev
+     * @param {bigint} current
+     * @returns {string | undefined}
+     */
+    since(rev, current) {
+        const ret = wasm.replaylog_since(this.__wbg_ptr, rev, current);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        let v1;
+        if (ret[0] !== 0) {
+            v1 = getStringFromWasm0(ret[0], ret[1]);
+            wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        }
+        return v1;
+    }
+}
+if (Symbol.dispose) ReplayLog.prototype[Symbol.dispose] = ReplayLog.prototype.free;
+
+/**
  * In-process model store: host / mutate → patch / apply / snapshot.
  */
 export class Store {
@@ -392,6 +940,22 @@ export class Store {
             throw takeFromExternrefTable0(ret[1]);
         }
         return ret[0] !== 0;
+    }
+    /**
+     * @param {bigint} id
+     * @param {string} name
+     * @returns {string | undefined}
+     */
+    field(id, name) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.store_field(this.__wbg_ptr, id, ptr0, len0);
+        let v2;
+        if (ret[0] !== 0) {
+            v2 = getStringFromWasm0(ret[0], ret[1]);
+            wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        }
+        return v2;
     }
     /**
      * Host a model from its JSON; returns the assigned id.
@@ -438,6 +1002,14 @@ export class Store {
         this.__wbg_ptr = ret;
         StoreFinalization.register(this, this.__wbg_ptr, this);
         return this;
+    }
+    /**
+     * @param {bigint} id
+     * @returns {bigint | undefined}
+     */
+    revision(id) {
+        const ret = wasm.store_revision(this.__wbg_ptr, id);
+        return ret[0] === 0 ? undefined : BigInt.asUintN(64, ret[1]);
     }
     /**
      * `{"type_name":..,"rev":..,"value":..}` for a hosted model, or `undefined`.
@@ -863,12 +1435,24 @@ function __wbg_get_imports() {
     };
 }
 
+const BufferFrameFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_bufferframe_free(ptr, 1));
 const ClientStateFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_clientstate_free(ptr, 1));
 const CrdtDocumentFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_crdtdocument_free(ptr, 1));
+const FieldAuthorityFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_fieldauthority_free(ptr, 1));
+const OwnedFieldsFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_ownedfields_free(ptr, 1));
+const ReplayLogFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_replaylog_free(ptr, 1));
 const StoreFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_store_free(ptr, 1));
