@@ -125,24 +125,34 @@ test("JupyterLite notebook views use transports ownership and binary comm buffer
           this.dataset.bytes = value ? Array.from(value).join(",") : "";
         }
         connectedCallback() {
-          const host = this.parentElement.parentElement;
-          host.addEventListener("spaday:wire-client", ({ detail }) => {
-            if (detail.namespace !== "status") return;
-            const update = () => {
-              this.dataset.owned = String(
-                detail.link.modelId !== undefined &&
-                  detail.client.owns(detail.link.modelId, "playing"),
-              );
-            };
-            detail.link.onModel(update);
-            detail.client.onOwnership(update);
-            detail.client.onDisconnect(update);
-            detail.client.onCommand(() => {
+          const detail = { namespace: "status" };
+          this.dispatchEvent(
+            new CustomEvent("spaday:wire-request", {
+              detail,
+              bubbles: true,
+              composed: true,
+            }),
+          );
+          const wire = detail.wire;
+          const update = () =>
+            (this.dataset.owned = String(
+              Boolean(wire.store.get("$owned.status.playing")),
+            ));
+          this.stops = [
+            wire.store.subscribe("$owned.status.playing", update),
+            wire.client.onCommand((command) => {
+              if (command.id !== wire.link.modelId) return;
               this.dataset.commands = String(
                 Number(this.dataset.commands || 0) + 1,
               );
-            });
-          });
+              wire.store.set("status.playing", command.value.Bool);
+              wire.client.ackCommand(command);
+            }),
+          ];
+          update();
+        }
+        disconnectedCallback() {
+          this.stops?.forEach((stop) => stop());
         }
       },
     );
@@ -194,4 +204,50 @@ test("JupyterLite notebook views use transports ownership and binary comm buffer
     .first()
     .click();
   await expect(page.locator("section output").nth(1)).toHaveText("true");
+});
+
+test("JupyterLite loads WebAwesome packages for five widgets without network access", async ({
+  page,
+}) => {
+  test.skip(!built, "run make jupyterlite first");
+  test.setTimeout(300_000);
+  const url = new URL("/dist/lite/repl/index.html", "http://127.0.0.1:3000");
+  url.searchParams.set("kernel", "python");
+  url.searchParams.append(
+    "code",
+    "%pip install -q spaday anywidget spaday-webawesome",
+  );
+  url.searchParams.append(
+    "code",
+    [
+      "from spaday import Widget, element, ui",
+      "from IPython.display import display",
+      "warm = Widget(element('div', 'Notebook ready', id='notebook-ready'))",
+      "display(warm)",
+    ].join("\n"),
+  );
+  await page.goto(url.toString());
+  await expect(page.locator("#notebook-ready")).toBeVisible({
+    timeout: 240_000,
+  });
+  const requests = [];
+  page.on("request", (request) => {
+    // JupyterLite's virtual filesystem uses its service worker's local drive API.
+    if (/^https?:/.test(request.url()) && !request.url().endsWith("/api/drive"))
+      requests.push(request.url());
+  });
+  await page.context().setOffline(true);
+  const prompt = page.locator(".jp-CodeConsole-promptCell .cm-content");
+  await prompt.click();
+  await page.keyboard.insertText(
+    "widgets = [Widget(element('div', element('wa-input').bind('value', 'name', mode='two-way'), element('wa-button', 'Save')), packages=['webawesome'], state={'name': 'Ada'}) for _ in range(5)]; [display(widget) for widget in widgets]",
+  );
+  await page.keyboard.press("Shift+Enter");
+  await expect(page.locator("wa-input input")).toHaveCount(5, {
+    timeout: 60_000,
+  });
+  for (const input of await page.locator("wa-input input").all())
+    await expect(input).toHaveValue("Ada");
+  expect(await page.locator("link[data-spaday-package]").count()).toBe(1);
+  expect(requests).toEqual([]);
 });

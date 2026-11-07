@@ -23,7 +23,43 @@ Widget(element("button").text("Run"))
 ```
 
 The widget bundles the spaday runtime and wasm core. It renders core `spa-*` components and native HTML
-elements; component-package browser assets are loaded by web backends through `packages=`.
+elements without additional packages.
+
+## Load a component package
+
+Install the peer in the notebook's kernel, then select it with `packages=`:
+
+```python
+%pip install spaday-webawesome
+```
+
+```python
+from spaday import Widget, element, ui
+
+w = Widget(
+    element("section", ui.TextInput(label="Name").bind("value", "name", mode="two-way")),
+    packages=["webawesome"],
+    state={"name": "Ada"},
+)
+w
+```
+
+The selected package's design also applies to subsequent `w.update(...)` calls. Browser assets come
+from the installed Python package over binary widget comms. Scripts and styles load before the tree
+mounts and are shared across widgets in the same browser document. Displaying five widgets does not
+register their custom elements five times or transfer five copies of the package.
+
+After installing the packages and loading the notebook host, WebAwesome controls can render offline
+in JupyterLab and JupyterLite. Features that fetch external data or optional remote icons still need
+those resources. Package loading requires browser support for multiple import maps and permission
+to load blob modules and styles. Reload the notebook document after upgrading a loaded package.
+Conflicting library versions or custom elements registered outside this loader produce an error.
+
+For package authors, the loader follows relative imports, declared bare import mappings, dynamic
+imports, and stylesheet imports and URLs within `assets_dir`. Use `import.meta.resolve("./asset")`
+for packaged images or WASM fetched at runtime. Arbitrary URLs constructed from `import.meta.url`
+and worker module graphs are not supported by this loader. Test packages with such assets in a
+notebook before advertising notebook support.
 
 ## Update the rendered tree
 
@@ -128,11 +164,48 @@ a Server. In a synchronous host, or when the application already drives comm syn
 `autosync=False` and call `transports.sync(w.server)` after mutations. Transports' socket-oriented
 `autosync()` is not the comm driver.
 
+## Handle client-owned state in a custom element
+
+Bind `$owned.status.playing` to show whether this view owns the `playing` field in the `status` wire.
+The flag updates on ownership transfer and becomes false on disconnect. Use ownership flags for
+controls that should only be available in the owning view.
+
 Commands issued with `session.command(model_id, field, value)` remain queued until an owning client
-handles and acknowledges them. The widget root emits `spaday:wire-client` after mount, with
-`client`, `link`, `store`, and `namespace` in its detail. A root listener can register `client.onCommand`
-and call `client.ackCommand` after applying a command. This event stays on the widget root; it does
-not broadcast to other widgets or propagate down to descendants.
+handles and acknowledges them. A custom element can request its wire in `connectedCallback`, before
+initial snapshots or commands arrive:
+
+```javascript
+import { requestWire } from "@1kbgz/spaday";
+
+class PlaybackControl extends HTMLElement {
+  connectedCallback() {
+    const wire = requestWire(this, "status");
+    if (!wire) return;
+    this.stop = wire.client.onCommand((command) => {
+      if (command.id !== wire.link.modelId || command.field !== "playing") return;
+      wire.store.set("status.playing", command.value.Bool);
+      wire.client.ackCommand(command);
+    });
+  }
+
+  disconnectedCallback() {
+    this.stop?.();
+  }
+}
+customElements.define("playback-control", PlaybackControl);
+```
+
+Put this JavaScript in the component package selected by the widget. Apply the requested operation
+before acknowledging it; for asynchronous operations, acknowledge after successful completion.
+Transports delivers commands to the owner and replays pending commands to newly registered handlers.
+`wire.link.modelId` becomes available after the snapshot; use `wire.link.onModel(callback)` when a
+component needs notification of model discovery. Unsubscribe when the element disconnects.
+
+`requestWire` finds the nearest widget root, including across shadow roots. Omit its namespace only
+when the widget has one wire. To avoid importing the runtime, dispatch a bubbling, composed
+`spaday:wire-request` event with a mutable `detail = {namespace: "status"}` object and read
+`detail.wire` synchronously afterward. The returned context contains `client`, `link`, `store`, and
+`namespace`. The root also emits `spaday:wire-client` after mount for host-level listeners.
 
 ## Handle a SendPatch intent
 

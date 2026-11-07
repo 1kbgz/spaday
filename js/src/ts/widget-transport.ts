@@ -8,6 +8,7 @@ import {
 import wasm from "@1kbgz/transports/dist/pkg/transports_bg.wasm";
 import { Store } from "./signals";
 import { connectStore } from "./store-sync";
+import { provideWires } from "./wire-context";
 
 export interface AnyModel {
   get(key: string): unknown;
@@ -64,6 +65,55 @@ export async function connectWidget(
       spec.model ?? undefined,
     ),
   }));
+  const stopRequests = provideWires(
+    el,
+    wires.map(({ spec, link }) => ({
+      client,
+      link,
+      store,
+      namespace: spec.namespace ?? null,
+    })),
+  );
+  const ownershipCleanups = wires.map(({ spec, link }) => {
+    const fields = new Set<string>();
+    const name = (field: string) =>
+      `$owned.${spec.namespace ? spec.namespace + "." : ""}${field}`;
+    const clear = () => {
+      for (const field of fields) store.set(name(field), false);
+    };
+    const publish = () => {
+      for (const field of fields)
+        store.set(
+          name(field),
+          link.modelId !== undefined && client.owns(link.modelId, field),
+        );
+    };
+    const stopModel = link.onModel((id) => {
+      clear();
+      for (const field of Object.keys(
+        fromValue(client.value(id) as Parameters<typeof fromValue>[0]) ?? {},
+      ))
+        fields.add(field);
+      publish();
+    });
+    const stopOwnership = client.onOwnership((grant) => {
+      if (grant.id !== link.modelId) return;
+      for (const field of grant.fields) fields.add(field);
+      publish();
+    });
+    // connectStore handles this change first and may invalidate a type-name selection.
+    const stopSelection = client.onChange(() => {
+      if (link.error) clear();
+    });
+    const stopDisconnect = client.onDisconnect(clear);
+    return () => {
+      clear();
+      stopModel();
+      stopOwnership();
+      stopSelection();
+      stopDisconnect();
+    };
+  });
   let heartbeat: ReturnType<typeof setInterval> | undefined;
   let disposed = false;
   let started = false;
@@ -151,6 +201,8 @@ export async function connectWidget(
       disposed = true;
       disconnect();
       model.off("msg:custom", receive);
+      stopRequests();
+      for (const cleanup of ownershipCleanups) cleanup();
       for (const { link } of wires) link.dispose();
       if (started) model.send({ closed: true, view });
     },

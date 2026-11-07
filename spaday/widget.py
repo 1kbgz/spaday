@@ -27,6 +27,7 @@ import traitlets
 
 from .bootstrap import Wire
 from .component import Component
+from .packages import PackageRef, resolve_component_packages
 from .ui.design import Design, resolve, select_design
 
 if TYPE_CHECKING:
@@ -51,6 +52,7 @@ class Widget(anywidget.AnyWidget):
     # two-way-bound control updates Python here, and a Python-side change updates the bound props.
     _state = traitlets.Dict().tag(sync=True)
     _wires = traitlets.List().tag(sync=True)
+    _packages = traitlets.List().tag(sync=True)
 
     def __init__(
         self,
@@ -58,6 +60,7 @@ class Widget(anywidget.AnyWidget):
         state: dict | None = None,
         *,
         design: Design | str | None = None,
+        packages: PackageRef | Sequence[PackageRef] = (),
         session: Session | Server | None = None,
         wires: Sequence[Wire | Mapping] | None = None,
         autosync: bool = True,
@@ -66,6 +69,7 @@ class Widget(anywidget.AnyWidget):
         self._channel = None
         self._stop_sync = None
         self._server = None
+        self._bundles = {}
         if session is not None and state is not None:
             raise ValueError("Widget state and session are mutually exclusive")
         if session is None and wires is not None:
@@ -79,11 +83,20 @@ class Widget(anywidget.AnyWidget):
             specs = notebook_wires(wires)
             self._server = server_for(session)
         self._autosync = autosync
+        selected = resolve_component_packages(packages)
+        resolved_design = select_design(design, selected)
+        if selected:
+            from .widget_packages import bundle_package
+
+            for package in selected:
+                bundle = bundle_package(package)
+                self._bundles[bundle.descriptor["id"]] = bundle
         super().__init__(**kwargs)
-        self._design = design  # renders the tree's generic controls (spaday.ui); None is the native baseline
-        self._tree = _to_node(tree, design)
+        self._design = resolved_design
+        self._tree = _to_node(tree, resolved_design)
         self._state = dict(state or {})
         self._wires = specs
+        self._packages = [bundle.descriptor for bundle in self._bundles.values()]
         self._intent_handlers: list[Callable[[dict], None]] = []
         self.on_msg(self._on_msg)
         if self._server is not None:
@@ -106,6 +119,7 @@ class Widget(anywidget.AnyWidget):
             stop_sync()
             self._stop_sync = None
         self.on_msg(self._on_msg, remove=True)
+        self._bundles.clear()
         super().close()
 
     def update(self, tree: Tree) -> None:
@@ -137,6 +151,17 @@ class Widget(anywidget.AnyWidget):
         self._intent_handlers.append(handler)
 
     def _on_msg(self, _widget: Any, content: Any, _buffers: Any) -> None:
+        if isinstance(content, dict) and content.get("type") == "spaday:assets":
+            request = content.get("request")
+            package_id = content.get("package")
+            if not isinstance(request, str) or not isinstance(package_id, str):
+                return
+            bundle = self._bundles.get(package_id)
+            if bundle is None:
+                self.send({"type": "spaday:assets", "request": request, "error": "Package is not selected by this widget"})
+            else:
+                self.send({"type": "spaday:assets", "request": request, "files": bundle.files}, buffers=[bundle.data])
+            return
         if isinstance(content, dict) and content.get("ready") and self._server is not None and self._autosync and self._stop_sync is None:
             try:
                 asyncio.get_running_loop()
