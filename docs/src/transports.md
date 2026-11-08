@@ -139,6 +139,8 @@ managed transports client.
 two-way field update to its declared policy:
 
 - register fields use `register_set`;
+- map fields use per-key additions, removals, and nested edits;
+- keyed sets use member additions and removals, with nested edits for retained identities;
 - string and list sequence fields use positional `sequence_splice` mutations, which transports turns
   into stable-ID operations before sending them.
 
@@ -159,8 +161,28 @@ the ranges instead of diffing the whole string. String offsets follow browser UT
 transports converts them to Unicode-scalar sequence positions. Controls that report only their final
 value still work through a minimal prefix/suffix splice.
 
-Whole map and set replacement is not inferred from a control event. Bind their register leaves or
-send explicit CRDT mutations when an application needs map membership or keyed-set operations.
+Bind a whole map or keyed set when a control reports its complete desired value. The transports
+client's `crdtDiff` plans the changes in the shared Rust core. Set ordering follows canonical identity;
+reordering the array alone has no effect. Duplicate member identities fail locally and restore the
+control's value, with the error at `$errors.<field>`. Remote updates preserve keyed `Each` instances.
+
+Use current values when making replacements. A stale copy can overwrite fields or remove members
+that arrived since it was captured. Keep explicit CRDT mutations for identity-addressed edits,
+precise sequence changes, and intentional remove-and-readd operations. `Each` item scopes remain
+read-only; this does not add writable item bindings or peer-specific table/tree adapters.
+
+Run the Python-authored map and record example:
+
+```bash
+python -m spaday.examples.collaborative_data
+```
+
+Open `http://127.0.0.1:8003` in two tabs. Edit different title/owner fields or different fields of
+one record; the changes merge. Add or remove records through the JSON editor. The example's
+query-string tenant selector is demonstration routing; authenticate tenants in a deployed app.
+
+Custom clients without `crdtDiff` retain register and sequence support. Structural bindings require
+the new transports planner; they fail rather than silently replacing an entire CRDT document.
 
 ## Go multi-tenant
 

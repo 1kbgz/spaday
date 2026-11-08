@@ -11,6 +11,7 @@ const SPECIALIZED_EXAMPLES = new Set(["pyodide.py"]);
 const EXAMPLES = [
   { name: "__main__", selector: "spa-app" },
   { name: "cluster", selector: "lightweight-chart" },
+  { name: "collaborative_data", selector: "#row-a" },
   { name: "data_dashboard", selector: "spa-app" },
   { name: "devices", selector: "article" },
   { name: "embed", path: "/spaday/", selector: "spa-app" },
@@ -126,6 +127,27 @@ test.describe("example visual smoke tests", () => {
         expect(box?.height).toBeGreaterThan(0);
         const screenshot = await page.screenshot({ animations: "disabled" });
         expect(screenshot.byteLength).toBeGreaterThan(1_000);
+
+        if (example.name === "collaborative_data") {
+          const other = await page.context().newPage();
+          try {
+            await other.goto(server.origin);
+            await expect(other.locator("#title")).toHaveValue("Shared board");
+            await page.locator("#title").fill("Shared title");
+            await page.locator("#title").dispatchEvent("change");
+            await expect(other.locator("#title")).toHaveValue("Shared title");
+            await other
+              .locator("#rows")
+              .fill(
+                JSON.stringify([{ id: "c", label: "New record", done: false }]),
+              );
+            await other.locator("#rows").dispatchEvent("change");
+            await expect(page.locator("#row-c")).toContainText("New record");
+            await expect(page.locator("#row-a")).toHaveCount(0);
+          } finally {
+            await other.close();
+          }
+        }
 
         if (example.name === "ssr") {
           const colors = await marker.evaluate((element) => {
