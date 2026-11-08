@@ -495,9 +495,9 @@ dependencies = [
 
 [[package]]
 name = "transports"
-version = "0.12.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba494d1dc4e2a331d3eafba556091be4e1721fda4a984d3c4b893b831d225f3e"
+checksum = "8d83d3395d8a2975f5a353a37bfab51a35601d09fe0f0773ce44861f1c2a3c0f"
 dependencies = [
  "base64",
  "ciborium",
