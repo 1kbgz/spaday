@@ -58,7 +58,7 @@ develop = [
     "hatchling",
     "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
-    "mdformat-frontmatter",
+    "mdformat-myst",
     "mdformat-tables>=1",
     "perspective-python",  # gateway + omnibus browser example tests
     "playwright",  # browser-backed Each performance benchmarks

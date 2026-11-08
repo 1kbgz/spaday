@@ -3,9 +3,9 @@
 requirements:  ## install required dev dependencies
 	rustup component add rustfmt
 	rustup component add clippy
-	cargo install --force --locked cargo-nextest
-	cargo install --force --locked cargo-llvm-cov
-	cargo install --force --locked wasm-bindgen-cli --version 0.2.129
+	cargo install --locked cargo-nextest
+	cargo install --locked cargo-llvm-cov
+	cargo install --locked wasm-bindgen-cli --version 0.2.129
 	rustup target add wasm32-unknown-unknown
 
 develop: requirements  ## install required dev dependencies
@@ -33,7 +33,7 @@ checks: check
 
 .PHONY: test tests test-ci tests-ci
 test:  ## run the tests
-	cargo llvm-cov nextest --cobertura --output-path  junit.xml
+	cargo llvm-cov nextest --cobertura --output-path coverage.xml
 
 # alias
 tests: test
