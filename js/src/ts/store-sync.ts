@@ -36,6 +36,21 @@ type CrdtPathSeg =
       id: { dot: { counter: number; replica: string }; index: number };
     };
 type CrdtMutation =
+  | { kind: "map_set"; path: CrdtPathSeg[]; key: string; value: unknown }
+  | { kind: "map_remove"; path: CrdtPathSeg[]; key: string }
+  | { kind: "set_add"; path: CrdtPathSeg[]; value: unknown }
+  | { kind: "set_remove"; path: CrdtPathSeg[]; key: string }
+  | {
+      kind: "sequence_insert";
+      path: CrdtPathSeg[];
+      after: Extract<CrdtPathSeg, { kind: "element" }>["id"] | null;
+      values: unknown[];
+    }
+  | {
+      kind: "sequence_delete";
+      path: CrdtPathSeg[];
+      ids: Extract<CrdtPathSeg, { kind: "element" }>["id"][];
+    }
   | { kind: "register_set"; path: CrdtPathSeg[]; value: unknown }
   | {
       kind: "sequence_splice";
@@ -103,6 +118,7 @@ export interface ModelClient {
   editCrdt?(id: number, mutations: CrdtMutation[]): string | Uint8Array;
   proposeCrdt?(id: number, mutations: CrdtMutation[]): boolean;
   crdtSpec?(id: number): CrdtSpecView | undefined;
+  crdtDiff?(id: number, value: unknown, path?: string[]): CrdtMutation[];
   abandonProposal?(proposal: string): boolean;
 }
 
@@ -625,7 +641,7 @@ function crdtFields(
  * Bidirectionally sync a `Store` with a transports-mirrored model. Model fields map by name to store
  * fields — and a nested sub-model flattens to dotted `parent.child` fields: inbound frames pull them
  * into the store; a store field change (e.g. from a two-way control) is pushed back through the client.
- * Plain models use server-authoritative proposals. CRDT models use their declared register or sequence
+ * Plain models use server-authoritative proposals. CRDT models use their declared merge
  * policy and update optimistically while transports retains the operations for reconnect.
  *
  * Pass a `namespace` to mirror under `${namespace}.<field>` so several models can share one `Store`
@@ -795,16 +811,29 @@ export function connectStore(
             throw new TypeError(
               "CRDT-backed clients must expose their model specification",
             );
-          const mutations = crdtMutations(
-            changedField,
-            readPlainPath(current, changedField.split(".")),
-            value,
-            crdtPolicy(spec, changedField),
-            change,
-          );
-          if (send === undefined && client.proposeCrdt)
-            client.proposeCrdt(id, mutations);
-          else send?.(client.editCrdt(id, mutations));
+          try {
+            const mutations =
+              client.crdtDiff && !change?.ranges.length
+                ? client.crdtDiff(id, value, changedField.split("."))
+                : crdtMutations(
+                    changedField,
+                    readPlainPath(current, changedField.split(".")),
+                    value,
+                    crdtPolicy(spec, changedField),
+                    change,
+                  );
+            if (mutations.length) {
+              if (send === undefined && client.proposeCrdt)
+                client.proposeCrdt(id, mutations);
+              else send?.(client.editCrdt(id, mutations));
+            }
+            // Sets have canonical order; a reorder-only edit must also restore that order.
+            if (client.crdtDiff) queueReconcile(changedField);
+          } catch (error) {
+            store.set(errorField(changedField), String(error));
+            queueReconcile(changedField);
+            throw error;
+          }
           return;
         }
         const ownerField = changedField.split(".")[0];
@@ -891,6 +920,15 @@ export function connectStore(
     if (id === undefined) return;
     const decoded = codec.fromValue(client.value(id));
     if (!isObj(decoded)) return;
+    if (!fields && crdtBacked) {
+      // A snapshot can remove map keys that leaf-by-leaf writes would leave behind.
+      fields = new Set([
+        ...Object.keys(decoded),
+        ...[...wired].map((key) =>
+          namespace ? key.slice(namespace.length + 1) : key,
+        ),
+      ]);
+    }
     if (fields) {
       for (const field of new Set(
         [...fields].map((candidate) => candidate.split(".")[0]),
