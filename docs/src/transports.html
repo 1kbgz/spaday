@@ -325,6 +325,8 @@ managed transports client.</p>
 two-way field update to its declared policy:</p>
 <ul class="simple">
 <li><p>register fields use <code class="docutils literal notranslate"><span class="pre">register_set</span></code>;</p></li>
+<li><p>map fields use per-key additions, removals, and nested edits;</p></li>
+<li><p>keyed sets use member additions and removals, with nested edits for retained identities;</p></li>
 <li><p>string and list sequence fields use positional <code class="docutils literal notranslate"><span class="pre">sequence_splice</span></code> mutations, which transports turns
 into stable-ID operations before sending them.</p></li>
 </ul>
@@ -341,8 +343,23 @@ echoes their causal IDs.</p>
 the ranges instead of diffing the whole string. String offsets follow browser UTF-16 indexing;
 transports converts them to Unicode-scalar sequence positions. Controls that report only their final
 value still work through a minimal prefix/suffix splice.</p>
-<p>Whole map and set replacement is not inferred from a control event. Bind their register leaves or
-send explicit CRDT mutations when an application needs map membership or keyed-set operations.</p>
+<p>Bind a whole map or keyed set when a control reports its complete desired value. The transports
+client’s <code class="docutils literal notranslate"><span class="pre">crdtDiff</span></code> plans the changes in the shared Rust core. Set ordering follows canonical identity;
+reordering the array alone has no effect. Duplicate member identities fail locally and restore the
+control’s value, with the error at <code class="docutils literal notranslate"><span class="pre">$errors.&lt;field&gt;</span></code>. Remote updates preserve keyed <code class="docutils literal notranslate"><span class="pre">Each</span></code> instances.</p>
+<p>Use current values when making replacements. A stale copy can overwrite fields or remove members
+that arrived since it was captured. Keep explicit CRDT mutations for identity-addressed edits,
+precise sequence changes, and intentional remove-and-readd operations. <code class="docutils literal notranslate"><span class="pre">Each</span></code> item scopes remain
+read-only; this does not add writable item bindings or peer-specific table/tree adapters.</p>
+<p>Run the Python-authored map and record example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>spaday.examples.collaborative_data
+</pre></div>
+</div>
+<p>Open <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8003</span></code> in two tabs. Edit different title/owner fields or different fields of
+one record; the changes merge. Add or remove records through the JSON editor. The example’s
+query-string tenant selector is demonstration routing; authenticate tenants in a deployed app.</p>
+<p>Custom clients without <code class="docutils literal notranslate"><span class="pre">crdtDiff</span></code> retain register and sequence support. Structural bindings require
+the new transports planner; they fail rather than silently replacing an entire CRDT document.</p>
 </section>
 <section id="go-multi-tenant">
 <h2>Go multi-tenant<a class="headerlink" href="#go-multi-tenant" title="Link to this heading">¶</a></h2>

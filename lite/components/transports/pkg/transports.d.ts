@@ -43,6 +43,7 @@ export class CrdtDocument {
     [Symbol.dispose](): void;
     apply(ops_json: string): string;
     compact(frontier_json: string): number;
+    diff(path_json: string, value_json: string): string;
     static from_state(spec_json: string, state_json: string, replica: string): CrdtDocument;
     member_key(path_json: string, value_json: string): string;
     mutate(mutations_json: string): string;
@@ -241,6 +242,7 @@ export interface InitOutput {
     readonly crdt_spec_hash: (a: number, b: number) => [number, number, number, number];
     readonly crdtdocument_apply: (a: number, b: number, c: number) => [number, number, number, number];
     readonly crdtdocument_compact: (a: number, b: number, c: number) => [number, number, number];
+    readonly crdtdocument_diff: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
     readonly crdtdocument_from_state: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
     readonly crdtdocument_member_key: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
     readonly crdtdocument_mutate: (a: number, b: number, c: number) => [number, number, number, number];

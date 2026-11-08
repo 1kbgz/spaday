@@ -31,6 +31,7 @@ export const clientstate_type_name: (a: number, b: bigint) => [number, number];
 export const crdt_spec_hash: (a: number, b: number) => [number, number, number, number];
 export const crdtdocument_apply: (a: number, b: number, c: number) => [number, number, number, number];
 export const crdtdocument_compact: (a: number, b: number, c: number) => [number, number, number];
+export const crdtdocument_diff: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
 export const crdtdocument_from_state: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
 export const crdtdocument_member_key: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
 export const crdtdocument_mutate: (a: number, b: number, c: number) => [number, number, number, number];
