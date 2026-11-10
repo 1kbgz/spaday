@@ -36,6 +36,12 @@ for (const codec of ["json", "msgpack", "cbor"]) {
           };
           for (const name of ["alice", "bob", "viewer"]) {
             const client = new transport.Client(codec);
+            const mutations = [];
+            const propose = client.proposeCrdt.bind(client);
+            client.proposeCrdt = (id, edits) => {
+              mutations.push(...structuredClone(edits));
+              return propose(id, edits);
+            };
             const store = new Store();
             store.set("unrelated", "keep");
             store.set("board.localUi", "keep");
@@ -56,12 +62,13 @@ for (const codec of ["json", "msgpack", "cbor"]) {
             host.id = name;
             document.body.append(host);
             mount(host, description.tree, store);
-            views[name] = { client, store, link, queue, send };
+            views[name] = { client, store, link, queue, send, mutations };
             deliver(await hubMessage({ op: "open", view: name }));
           }
           window.board = { views, deliver, model: description.model };
-          window.flushBoard = async () => {
-            for (const [name, view] of Object.entries(views)) {
+          window.flushBoard = async (names = Object.keys(views)) => {
+            for (const name of names) {
+              const view = views[name];
               while (view.queue.length)
                 deliver(
                   await hubMessage({
@@ -83,17 +90,25 @@ for (const codec of ["json", "msgpack", "cbor"]) {
         await page.locator(`#${user} #rows`).fill(JSON.stringify(value));
         await page.locator(`#${user} #rows`).dispatchEvent("change");
       };
-      const initial = (await server.call({ op: "state" })).result.rows;
-      await editRows(
-        "alice",
-        initial.map((row) =>
-          row.id === "a" ? { ...row, label: "Edited" } : row,
-        ),
-      );
-      await editRows(
-        "bob",
-        initial.map((row) => (row.id === "a" ? { ...row, done: true } : row)),
-      );
+      await page.locator("#alice #row-a .row-label").fill("Edited");
+      await page.locator("#bob #row-a .row-done").check();
+      const edits = await page.evaluate(() => [
+        ...board.views.alice.mutations,
+        ...board.views.bob.mutations,
+      ]);
+      expect(edits).toHaveLength(2);
+      expect(edits.map((edit) => edit.kind)).toEqual([
+        "register_set",
+        "register_set",
+      ]);
+      expect(edits.map((edit) => edit.path.map((part) => part.kind))).toEqual([
+        ["key", "member", "key"],
+        ["key", "member", "key"],
+      ]);
+      expect(edits.map((edit) => edit.path.at(-1).key)).toEqual([
+        "label",
+        "done",
+      ]);
       await page.locator("#alice #title").fill("Both clients");
       await page.locator("#alice #title").dispatchEvent("change");
       await page.locator("#bob #owner").fill("Bob");
@@ -141,6 +156,26 @@ for (const codec of ["json", "msgpack", "cbor"]) {
       await expect(page.locator("#viewer #settings")).toHaveValue(
         JSON.stringify(merged.settings),
       );
+      await page.locator("#viewer #title").fill("Denied title");
+      await page.evaluate(() => flushBoard());
+      await expect(page.locator("#viewer #title")).toHaveValue("Both clients");
+      await expect(page.locator("#viewer #settings-error")).not.toBeEmpty();
+      await page.locator("#viewer #title").fill("Retry title");
+      await expect(page.locator("#viewer #settings-error")).toBeEmpty();
+      await page.evaluate(() => flushBoard());
+      await expect(page.locator("#viewer #title")).toHaveValue("Both clients");
+      expect(
+        await page.evaluate(
+          () => typeof board.views.viewer.store.get("$errors.board.settings"),
+        ),
+      ).toBe("string");
+      await page.locator("#viewer #row-a .row-label").fill("Rejected edit");
+      await page.evaluate(() => flushBoard());
+      await expect(page.locator("#viewer #row-a .row-label")).toHaveValue(
+        "Edited",
+      );
+      await expect(page.locator("#viewer #rows-error")).not.toBeEmpty();
+      await expect(page.locator("#alice #rows-error")).toBeEmpty();
       await editRows("viewer", []);
       await page.evaluate(() => flushBoard());
       await expect(page.locator("#viewer #rows")).toHaveValue(
@@ -159,6 +194,7 @@ for (const codec of ["json", "msgpack", "cbor"]) {
         merged.rows[0],
         { id: "c", label: "Offline", done: false },
       ]);
+      await page.locator("#alice #row-a .row-label").fill("Offline edit");
       expect(
         await page.evaluate(() =>
           board.views.alice.client.pendingCrdtOps(board.model),
@@ -171,6 +207,12 @@ for (const codec of ["json", "msgpack", "cbor"]) {
       });
       const final = (await server.call({ op: "state" })).result;
       expect(final.rows.map((row) => row.id)).toEqual(["a", "c"]);
+      expect(final.rows.find((row) => row.id === "a").label).toBe(
+        "Offline edit",
+      );
+      await expect(page.locator("#bob #row-a .row-label")).toHaveValue(
+        "Offline edit",
+      );
       await expect(page.locator("#alice #settings")).toHaveValue("{}");
       expect(
         await page.evaluate(() =>
@@ -192,6 +234,19 @@ for (const codec of ["json", "msgpack", "cbor"]) {
           board.views.alice.client.pendingCrdtOps(board.model),
         ),
       ).toBe(0);
+      await page
+        .locator("#alice #row-a .row-label")
+        .fill("Concurrent with removal");
+      await editRows(
+        "bob",
+        final.rows.filter((row) => row.id !== "a"),
+      );
+      await page.evaluate(() => flushBoard(["bob", "alice", "viewer"]));
+      expect(
+        (await server.call({ op: "state" })).result.rows.map((row) => row.id),
+      ).toEqual(["c"]);
+      for (const user of ["alice", "bob", "viewer"])
+        await expect(page.locator(`#${user} #row-a`)).toHaveCount(0);
       await page.evaluate(() => {
         for (const view of Object.values(board.views)) {
           view.link.dispose();

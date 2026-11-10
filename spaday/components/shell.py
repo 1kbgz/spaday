@@ -431,8 +431,11 @@ class Each(Component):
 
         Each(Row(Strong().compute("textContent", item("name"))), field="rows", key="id", scope="row")
 
-    The first release supports one component template root and read-only item scopes. Item keys must be
-    unique strings or finite numbers. Reordering preserves each live root element and its local state.
+    Supports one component template root. Bind controls with ``bind("value", item("name"), mode="two-way")``
+    to edit the current record by key. Named ``scope()`` references can edit ancestors. Writable
+    collections use ``field=`` or direct ``field()``, ``item()``, or ``scope()`` references; derived
+    expressions and server windows are read-only. Item writes cannot change the repeater key.
+    Keys must be unique strings or finite numbers. Reordering preserves each live root element and its local state.
     Set ``direct=True`` when the parent custom element requires repeated roots to be direct light-DOM
     children; the ``spa-each`` element remains as an empty reconciliation anchor.
 

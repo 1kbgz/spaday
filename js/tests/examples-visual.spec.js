@@ -130,12 +130,38 @@ test.describe("example visual smoke tests", () => {
 
         if (example.name === "collaborative_data") {
           const other = await page.context().newPage();
+          const viewer = await page.context().newPage();
           try {
-            await other.goto(server.origin);
-            await expect(other.locator("#title")).toHaveValue("Shared board");
-            await page.locator("#title").fill("Shared title");
-            await page.locator("#title").dispatchEvent("change");
-            await expect(other.locator("#title")).toHaveValue("Shared title");
+            await other.goto(`${server.origin}/bob`);
+            await expect(other.locator("#title input")).toHaveValue(
+              "Shared board",
+            );
+            await page.locator("#title input").fill("Shared title");
+            await page.locator("#title input").dispatchEvent("change");
+            await expect(other.locator("#title input")).toHaveValue(
+              "Shared title",
+            );
+            await page
+              .locator("#row-a .row-label input")
+              .fill("Edited from WebAwesome");
+            await expect(other.locator("#row-a .row-label input")).toHaveValue(
+              "Edited from WebAwesome",
+            );
+            await other.locator("#row-a .row-done").click();
+            await expect(page.locator("#row-a .row-done")).toHaveJSProperty(
+              "checked",
+              true,
+            );
+            await viewer.goto(`${server.origin}/viewer`);
+            await expect(viewer.locator("#row-a .row-label input")).toHaveValue(
+              "Edited from WebAwesome",
+            );
+            await viewer.locator("#row-a .row-label input").fill("Rejected");
+            await expect(viewer.locator("#row-a .row-label input")).toHaveValue(
+              "Edited from WebAwesome",
+            );
+            await expect(viewer.locator("#rows-error")).not.toBeEmpty();
+            await expect(page.locator("#rows-error")).toBeEmpty();
             await other
               .locator("#rows")
               .fill(
@@ -146,6 +172,7 @@ test.describe("example visual smoke tests", () => {
             await expect(page.locator("#row-a")).toHaveCount(0);
           } finally {
             await other.close();
+            await viewer.close();
           }
         }
 
