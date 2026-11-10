@@ -317,6 +317,17 @@ collections. Derived expressions and `window=True` sources remain read-only. Use
 model action for server-window edits. With a CRDT-backed wire, item bindings use the existing
 transports planner; see [collaborative bindings](transports.md).
 
+Run `python -m spaday.examples.collection_editor` and open `http://127.0.0.1:8004/` to edit the
+same nested records through a table and a tree. Open the Bob and Viewer links in other tabs to try
+concurrent edits and rejected writes. The [example source](../../spaday/examples/collection_editor.py)
+uses `item("details.note")` for a nested field and `scope("group.owner")` for an ancestor.
+Child IDs repeat across groups; deletion sends both IDs to the endpoint, which checks the role and
+plans a CRDT removal against current server state. Never send a visible row index as the record ID.
+
+Field edits can queue while disconnected and replay on reconnect. Endpoint deletions require a live
+connection and are not queued for later execution. The example's URL-selected roles are for testing;
+derive production permissions from authenticated users. CRDT sets have identity but no editable order.
+
 Within an animation frame, consecutive granular updates to an item settle its scope once, including
 updates interleaved with other items. Insert, remove, move, and reorder operations separate these
 groups and retain their order. A reset supersedes all pending deltas; later deltas apply to that reset.
