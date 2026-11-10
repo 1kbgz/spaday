@@ -28,6 +28,7 @@ def page():
     return element(
         "main",
         element("h1", "Collaborative records"),
+        element("nav", element("a", "Alice", href="/"), " · ", element("a", "Bob", href="/bob"), " · ", element("a", "Viewer", href="/viewer")),
         element(
             "p", "Open two tabs. Map fields and record fields merge independently. Records use id as identity; their array order is not editable."
         ),
@@ -46,22 +47,38 @@ def page():
         ),
         element("p", "Change records, add a unique id, or remove a record, then leave the editor to apply the change."),
         element("output", id="rows-error").bind("textContent", "$errors.board.rows"),
-        Each(element("div", Text(item("label")), Text(item("done"))).compute("id", concat("row-", item("id"))), field="board.rows", key="id"),
+        Each(
+            element(
+                "div",
+                Text(item("label")),
+                ui.TextInput(label="Record label").prop("class", "row-label").bind("value", item("label"), mode="two-way"),
+                ui.Checkbox(label="Done").prop("class", "row-done").bind("value", item("done"), mode="two-way"),
+            ).compute("id", concat("row-", item("id"))),
+            field="board.rows",
+            key="id",
+        ),
     )
 
 
 def create_app():
+    from starlette.applications import Starlette
     from starlette.routing import WebSocketRoute
 
-    from spaday.backends.starlette import serve
+    from spaday.backends.starlette import PageSpec, build_site
 
     hub, model = create_hub()
-    return serve(
-        page,
-        wire=Wire("/ws", model=model, namespace="board", reconnect=True),
-        routes=[WebSocketRoute("/ws", ws_endpoint(hub))],
-        title="Collaborative records",
-        head="<style>body { font-family: system-ui, sans-serif; margin: 2rem; } main { max-width: 48rem; display: grid; gap: 1rem; } label { display: grid; gap: .5rem; } textarea { width: 100%; box-sizing: border-box; }</style>",
+    pages = {
+        path: PageSpec(
+            page,
+            packages=["webawesome"],
+            wire=Wire(f"/ws?user={user}", model=model, namespace="board", reconnect=True),
+            title="Collaborative records",
+            head="<style>body { font-family: system-ui, sans-serif; margin: 2rem; } main { max-width: 48rem; display: grid; gap: 1rem; } label { display: grid; gap: .5rem; } textarea { width: 100%; box-sizing: border-box; }</style>",
+        )
+        for path, user in (("/", "alice"), ("/bob", "bob"), ("/viewer", "viewer"))
+    }
+    return Starlette(
+        routes=build_site(pages, routes=[WebSocketRoute("/ws", ws_endpoint(hub))]).all(),
     )
 
 

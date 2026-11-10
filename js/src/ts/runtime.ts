@@ -21,6 +21,7 @@ import {
   exprFields,
   exprScopes,
   Scope,
+  valueReference,
   Store,
   type StoreChange,
 } from "./signals";
@@ -630,7 +631,7 @@ function wireBinding(
     });
   if (spec.compute !== undefined) {
     // computed (derived) binding: recompute the prop from the expression whenever any field it reads
-    // changes. One-way by nature — there is nothing to write back. One settled state change can notify
+    // changes. Direct references can also be write targets. One settled state change can notify
     // several of the fields the expression reads (an object write notifies the field and each changed
     // sub-path); skip the write when the recomputed value is unchanged, so effectful props (e.g. a
     // toast queue's message) see one write per real change, not one per notification.
@@ -638,7 +639,7 @@ function wireBinding(
     let wrote = false;
     const recompute = () => {
       const value = evalExpr(spec.compute, store, scope);
-      if (wrote && Object.is(value, last)) return;
+      if (spec.mode !== "two-way" && wrote && Object.is(value, last)) return;
       last = value;
       wrote = true;
       apply(value);
@@ -653,27 +654,52 @@ function wireBinding(
   } else if (spec.field !== undefined && store) {
     if (store.has(spec.field)) apply(store.get(spec.field)); // initial field → prop
     teardowns.push(store.subscribe(spec.field, (v) => apply(v)));
-    if (spec.mode === "two-way") {
-      const onChange = (event: Event) => {
-        // Don't propagate an invalid value (e.g. a non-numeric or out-of-range entry in a constrained
-        // control): the store/server keep the last good value and the control shows its own invalid
-        // state. Server-side validation (transports) is still the authority; this just avoids the
-        // doomed round-trip. Controls without constraint validation always pass.
-        const v = el as unknown as { checkValidity?: () => boolean };
-        if (typeof v.checkValidity === "function" && !v.checkValidity()) return;
-        const value = decodeBoundValue(
-          readBindingState(el, prop, spec.state),
-          spec.codec,
-          spec.scale,
-        );
-        store.set(spec.field!, value, boundRangeChange(event, value));
-      };
-      const events = spec.event ? [spec.event] : VALUE_EVENTS;
-      for (const ev of events) el.addEventListener(ev, onChange);
-      teardowns.push(() => {
-        for (const ev of events) el.removeEventListener(ev, onChange);
-      });
+  }
+  if (spec.mode === "two-way") {
+    const expression = spec.compute as
+      | { expr?: string; name?: string }
+      | undefined;
+    const globalField =
+      spec.field ??
+      (expression?.expr === "field" ? expression.name : undefined);
+    const reference = valueReference(
+      spec.compute ?? { expr: "field", name: spec.field },
+      store,
+      scope,
+    );
+    if (!reference) {
+      teardowns.forEach((teardown) => teardown());
+      throw new Error(
+        "two-way binding requires a writable field or item scope",
+      );
     }
+    const onChange = (event: Event) => {
+      // Don't propagate an invalid value (e.g. a non-numeric or out-of-range entry in a constrained
+      // control): the store/server keep the last good value and the control shows its own invalid
+      // state. Server-side validation (transports) is still the authority; this just avoids the
+      // doomed round-trip. Controls without constraint validation always pass.
+      const v = el as unknown as { checkValidity?: () => boolean };
+      if (typeof v.checkValidity === "function" && !v.checkValidity()) return;
+      const value = decodeBoundValue(
+        readBindingState(el, prop, spec.state),
+        spec.codec,
+        spec.scale,
+      );
+      if (globalField !== undefined && store)
+        store.set(globalField, value, boundRangeChange(event, value));
+      else {
+        try {
+          reference.set(value);
+        } finally {
+          apply(reference.get());
+        }
+      }
+    };
+    const events = spec.event ? [spec.event] : VALUE_EVENTS;
+    for (const ev of events) el.addEventListener(ev, onChange);
+    teardowns.push(() => {
+      for (const ev of events) el.removeEventListener(ev, onChange);
+    });
   }
   let map = bindings.get(el);
   if (!map) bindings.set(el, (map = new Map()));
@@ -953,6 +979,7 @@ function updateCollectionPath(
   current: unknown,
   path: readonly CollectionPathSegment[],
   value: unknown,
+  create = false,
 ): unknown {
   if (!path.length) return value;
   const [head, ...rest] = path;
@@ -967,18 +994,21 @@ function updateCollectionPath(
         `spa-each collection update has invalid path segment ${head}`,
       );
     const next = [...current];
-    next[head] = updateCollectionPath(next[head], rest, value);
+    next[head] = updateCollectionPath(next[head], rest, value, create);
     return next;
   }
+  if (current == null && create) current = {};
   if (current == null || typeof current !== "object" || Array.isArray(current))
     throw new Error(
       `spa-each collection update has invalid path segment ${JSON.stringify(head)}`,
     );
-  const next = { ...(current as Record<string, unknown>) };
-  next[head] = rest.length
-    ? updateCollectionPath(next[head], rest, value)
-    : value;
-  return next;
+  const record = current as Record<string, unknown>;
+  return {
+    ...record,
+    [head]: rest.length
+      ? updateCollectionPath(record[head], rest, value, create)
+      : value,
+  };
 }
 
 type PreparedEachDelta =
@@ -1239,6 +1269,60 @@ function wireEach(
     const value = evaluateValue();
     return Array.isArray(value) ? value : [];
   };
+  const sourceReference = windowed
+    ? undefined
+    : valueReference(
+        source?.compute ?? { expr: "field", name: source?.field },
+        store,
+        parentScope,
+      );
+  const currentRows = (): unknown[] => {
+    const rows = sourceReference?.get();
+    return Array.isArray(rows) ? rows : [];
+  };
+  const createScope = (item: unknown, identity: string): Scope => {
+    const itemScope = new Scope(
+      item,
+      scopeName,
+      parentScope,
+      sourceReference && {
+        get: () =>
+          currentRows().find((row) => eachIdentity(row, itemKey) === identity),
+        set: (path, value) => {
+          if (instances.get(identity)?.scope !== itemScope) return;
+          const rows = keyedItems(currentRows(), itemKey);
+          const index = rows.findIndex(([key]) => key === identity);
+          if (index < 0) return; // A pending DOM update may still contain a deleted record.
+          const current = rows[index][1];
+          if (Object.is(new Scope(current).get(path), value)) return;
+          const parts: CollectionPathSegment[] = [];
+          let nested = current;
+          for (const part of path ? path.split(".") : []) {
+            const segment = Array.isArray(nested) ? Number(part) : part;
+            parts.push(segment);
+            nested = new Scope(nested).get(part);
+          }
+          const updated = updateCollectionPath(current, parts, value, true);
+          if (eachIdentity(updated, itemKey) !== identity)
+            throw new Error("item bindings cannot change the Each key");
+          const next = rows.map(([, row], position) =>
+            position === index ? updated : row,
+          );
+          if (source?.field && store?.collectionKey(source.field) === itemKey)
+            store.setCollection(source.field, next, [
+              {
+                kind: "update",
+                key: new Scope(current).get(itemKey) as string | number,
+                path: [],
+                value: updated,
+              },
+            ]);
+          else sourceReference.set(next);
+        },
+      },
+    );
+    return itemScope;
+  };
   const reconcileItems = (items: Array<[string, unknown]>): void => {
     const stale = new Map(instances);
     const next = new Map<string, EachInstance>();
@@ -1247,7 +1331,7 @@ function wireEach(
       if (instance) {
         instance.scope.set(item);
       } else {
-        const itemScope = new Scope(item, scopeName, parentScope);
+        const itemScope = createScope(item, identity);
         instance = {
           element: build(template[0], store, itemScope),
           scope: itemScope,
@@ -1312,7 +1396,7 @@ function wireEach(
         if (delta.kind === "reset") {
           reconcileItems(delta.items);
         } else if (delta.kind === "insert") {
-          const itemScope = new Scope(delta.item, scopeName, parentScope);
+          const itemScope = createScope(delta.item, delta.identity);
           const instance = {
             element: build(template[0], store, itemScope),
             scope: itemScope,

@@ -73,7 +73,7 @@ pub struct BindingOptions {
 
 /// A reactive binding of a prop to state. Either a `field` — the prop tracks that state field (and a
 /// two-way binding writes it back when the control changes) — or a `compute` expression *derived* from
-/// state fields (one-way; recomputed when any field it reads changes). The runtime's signal store
+/// state fields (one-way unless it directly references a field or item scope). The runtime's signal store
 /// drives both; the compute expression is an opaque field-expr the runtime evaluates (see signals.ts).
 #[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 pub struct Binding {
@@ -124,15 +124,22 @@ pub fn normalize_binding(json: &str) -> Result<String, String> {
     if binding.field.is_some() == binding.compute.is_some() {
         return Err("binding requires exactly one of field or compute".into());
     }
-    if binding.compute.is_some() && binding.mode != BindMode::OneWay {
-        return Err("computed bindings must use one-way mode".into());
-    }
     if binding.codec == Some(BindingCodec::Json) && binding.encode.is_some() {
         return Err("binding encode cannot be combined with the json codec".into());
     }
     if let Some(compute) = &binding.compute {
-        serde_json::from_value::<crate::action::Expr>(compute.clone())
+        let expression = serde_json::from_value::<crate::action::Expr>(compute.clone())
             .map_err(|error| format!("invalid binding compute expression: {error}"))?;
+        if binding.mode == BindMode::TwoWay
+            && !matches!(
+                expression,
+                crate::action::Expr::Field { .. }
+                    | crate::action::Expr::Item { .. }
+                    | crate::action::Expr::Scope { .. }
+            )
+        {
+            return Err("two-way bindings require a field, item, or scope reference".into());
+        }
     }
     serde_json::to_string(&binding).map_err(|e| e.to_string())
 }
@@ -146,7 +153,10 @@ pub fn binding_schema_json() -> Result<String, String> {
         {
             "required": ["compute"],
             "not": {"required": ["field"]},
-            "properties": {"mode": {"const": "one-way"}}
+            "anyOf": [
+                {"properties": {"mode": {"const": "one-way"}}},
+                {"properties": {"compute": {"properties": {"expr": {"enum": ["field", "item", "scope"]}}}}}
+            ]
         }
     ]);
     serde_json::to_string(&schema).map_err(|e| e.to_string())
@@ -340,6 +350,24 @@ mod node_tests {
         assert!(normalize_binding(r#"{"field":"query","mode":"two-way"}"#).is_ok());
         assert!(normalize_binding(r#"{"mode":"one-way"}"#).is_err());
         assert!(normalize_binding(r#"{"compute":{"expr":"unknown"},"mode":"one-way"}"#).is_err());
+        for reference in [
+            serde_json::json!({"expr": "item", "path": "label"}),
+            serde_json::json!({"expr": "scope", "name": "row", "path": "label"}),
+            serde_json::json!({"expr": "field", "name": "label"}),
+        ] {
+            let binding = serde_json::json!({"compute": reference, "mode": "two-way"});
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(
+                    &normalize_binding(&binding.to_string()).unwrap()
+                )
+                .unwrap(),
+                binding
+            );
+        }
+        assert!(normalize_binding(
+            r#"{"compute":{"expr":"not","of":{"expr":"item","path":"done"}},"mode":"two-way"}"#
+        )
+        .is_err());
         let schema: serde_json::Value =
             serde_json::from_str(&binding_schema_json().unwrap()).unwrap();
         assert_eq!(schema["oneOf"].as_array().unwrap().len(), 2);

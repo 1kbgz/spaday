@@ -167,9 +167,17 @@ reordering the array alone has no effect. Duplicate member identities fail local
 control's value, with the error at `$errors.<field>`. Remote updates preserve keyed `Each` instances.
 
 Use current values when making replacements. A stale copy can overwrite fields or remove members
-that arrived since it was captured. Keep explicit CRDT mutations for identity-addressed edits,
-precise sequence changes, and intentional remove-and-readd operations. `Each` item scopes remain
-read-only; this does not add writable item bindings or peer-specific table/tree adapters.
+that arrived since it was captured. For individual record fields, use
+`bind("value", item("label"), mode="two-way")` inside a keyed `Each`. Spaday resolves the current
+record by key and changes only that field before calling the Rust planner. A keyed-set field edit
+produces a member-addressed mutation; it does not replace the set on the wire. Rejected edits restore
+the control. CRDT validation errors use the top-level model field (`$errors.board.rows` or
+`$errors.board.settings`, for example); editing that field clears its error. The same bindings work
+with a local Store and standard design-system controls.
+
+Keep explicit CRDT mutations for precise sequence changes and intentional remove-and-readd
+operations. Item bindings receive final control values; unlike direct global editor bindings, they
+do not forward editor change ranges. Peer-specific table/tree actions remain separate adapters.
 
 Run the Python-authored map and record example:
 
@@ -178,8 +186,9 @@ python -m spaday.examples.collaborative_data
 ```
 
 Open `http://127.0.0.1:8003` in two tabs. Edit different title/owner fields or different fields of
-one record; the changes merge. Add or remove records through the JSON editor. The example's
-query-string tenant selector is demonstration routing; authenticate tenants in a deployed app.
+one record using the WebAwesome inputs and checkboxes; the changes merge. Add or remove records
+through the JSON editor. Open `http://127.0.0.1:8003/viewer` to exercise rejected writes.
+The Alice, Bob, and Viewer routes select demonstration roles; authenticate tenants in a deployed app.
 
 Custom clients without `crdtDiff` retain register and sequence support. Structural bindings require
 the new transports planner; they fail rather than silently replacing an entire CRDT document.

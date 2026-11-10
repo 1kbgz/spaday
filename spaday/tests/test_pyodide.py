@@ -4,9 +4,15 @@ import pytest
 from pydantic import BaseModel
 from transports import Client, Server, Session, to_value
 
-from spaday import SendPatch, WorkerApp, element, lit
+from spaday import SendPatch, WorkerApp, element, item, lit, validate_binding
 
 pytestmark = pytest.mark.skipif(sys.platform != "emscripten", reason="requires Pyodide")
+
+
+def test_item_binding_uses_compiled_validation() -> None:
+    control = element("input").bind("value", item("label"), mode="two-way")
+    binding = control.to_node()["bindings"]["value"]
+    assert validate_binding(binding) == {"compute": {"expr": "item", "path": "label"}, "mode": "two-way"}
 
 
 def test_worker_round_trip_uses_compiled_diff() -> None:

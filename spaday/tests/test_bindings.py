@@ -105,3 +105,22 @@ def test_bind_root_attr_rejects_class_and_style():
     for name in ("class", "style"):
         with pytest.raises(ValueError, match="cannot set"):
             element("spa-app").bind_root_attr(name, "value")
+
+
+@pytest.mark.parametrize("reference", [spaday.item("label"), spaday.scope("row.label"), field("label")])
+def test_bind_reference_round_trip_and_design_adapter(reference):
+    binding = spaday.ui.TextInput(label="Label").bind("value", reference, mode="two-way").to_node()
+    concrete = spaday.ui.resolve(binding, spaday.ui.NATIVE)
+    old = element("input").to_json()
+    new = element("input").bind("value", reference, mode="two-way").to_json()
+    assert json.loads(spaday.apply(old, spaday.diff(old, new))) == json.loads(new)
+    control = next(node for node in concrete["slots"]["default"] if node["tag"] == "input")
+    assert control["bindings"]["value"] == binding["bindings"]["value"]
+    assert spaday.validate_binding(binding["bindings"]["value"]) == binding["bindings"]["value"]
+
+
+def test_bind_rejects_derived_write_targets():
+    with pytest.raises(ValueError, match="use compute"):
+        element("input").bind("value", not_(spaday.item("done")), mode="two-way")
+    with pytest.raises(ValueError, match="two-way bindings require"):
+        spaday.validate_binding({"compute": not_(spaday.item("done")).to_dict(), "mode": "two-way"})

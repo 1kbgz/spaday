@@ -97,6 +97,7 @@ type RejectChange = {
   rev: number;
   error: string;
   proposal?: string;
+  crdt_ops?: CrdtOp[];
 };
 
 export interface ModelClient {
@@ -619,9 +620,7 @@ function crdtPolicy(spec: CrdtSpecView, field: string): CrdtPolicy {
   return policy;
 }
 
-function crdtFields(
-  change: Extract<ReceiveChange, { t: "crdt" }>,
-): string[] | undefined {
+function crdtFields(change: { ops: CrdtOp[] }): string[] | undefined {
   const fields = new Set<string>();
   for (const op of change.ops) {
     const head = op.path[0];
@@ -796,7 +795,10 @@ export function connectStore(
           ? effectiveKey.slice(namespace.length + 1)
           : effectiveKey;
         const value = store.get(effectiveKey);
-        clearError(changedField);
+        const changedErrorField = crdtBacked
+          ? changedField.split(".")[0]
+          : changedField;
+        clearError(changedErrorField);
         for (const [proposal, field] of recovered)
           if (field === changedField) recovered.delete(proposal);
         if (disconnected) {
@@ -830,7 +832,7 @@ export function connectStore(
             // Sets have canonical order; a reorder-only edit must also restore that order.
             if (client.crdtDiff) queueReconcile(changedField);
           } catch (error) {
-            store.set(errorField(changedField), String(error));
+            store.set(errorField(changedErrorField), String(error));
             queueReconcile(changedField);
             throw error;
           }
@@ -1145,7 +1147,17 @@ export function connectStore(
       client.onReject((reject) => {
         if (id === undefined || reject.id !== id) return;
         const fields = new Set<string>();
-        if (reject.proposal) {
+        if (crdtBacked && reject.crdt_ops) {
+          const rejected = crdtFields({ ops: reject.crdt_ops }) ?? [];
+          for (const field of rejected) {
+            fields.add(field);
+            store.set(errorField(field), reject.error);
+          }
+          publishReject(
+            reject,
+            rejected.length === 1 ? rejected[0] : undefined,
+          );
+        } else if (reject.proposal) {
           const edit = pending.get(reject.proposal);
           const field = edit?.field ?? recovered.get(reject.proposal);
           const latestRejected =

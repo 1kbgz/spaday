@@ -456,7 +456,7 @@ class Component:
     def bind(
         self,
         prop: str,
-        field: str,
+        field: str | Expr,
         *,
         mode: str = "one-way",
         event: str | None = None,
@@ -471,6 +471,9 @@ class Component:
         ``mode="one-way"`` keeps the prop in sync with the field; ``"two-way"`` also writes the field
         back when the control changes (for value-like controls). The binding is data interpreted in the
         browser — the field's value flows to the prop with no round-trip to Python.
+        ``field`` also accepts ``item("label")`` or ``scope("row.label")`` inside an ``Each``.
+        Item writes resolve the current record by key; they cannot change that key. Collections
+        derived from arbitrary expressions and server-windowed collections remain read-only.
 
         A two-way binding writes back on ``change`` / ``input``; ``event`` names the event instead, for
         a control that reports its changes otherwise (a Lion control's ``model-value-changed``).
@@ -490,7 +493,14 @@ class Component:
         if mode not in ("one-way", "two-way"):
             raise ValueError(f"bind mode must be 'one-way' or 'two-way', not {mode!r}")
         self._check_text_binding(prop)
-        binding: dict[str, Any] = {"field": field, "mode": mode}
+        binding: dict[str, Any]
+        if isinstance(field, Expr):
+            reference = field.to_dict()
+            if reference.get("expr") not in ("field", "item", "scope"):
+                raise ValueError("bind requires a field, item, or scope reference; use compute for derived values")
+            binding = {"field": reference["name"], "mode": mode} if reference["expr"] == "field" else {"compute": reference, "mode": mode}
+        else:
+            binding = {"field": field, "mode": mode}
         if event is not None:
             binding["event"] = event
         if methods is not None:
@@ -513,7 +523,7 @@ class Component:
             raise ValueError("binding encode cannot be combined with the json codec")
         if encode is not None:
             binding["encode"] = encode
-        self._bindings[prop] = binding
+        self._bindings[prop] = validate_binding(binding)
         return self
 
     def compute(self, prop: str, expr: Expr) -> Self:

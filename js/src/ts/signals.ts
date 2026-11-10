@@ -69,6 +69,11 @@ function readPath(value: unknown, path: string): unknown {
   return current;
 }
 
+export interface ValueReference {
+  get(): unknown;
+  set(value: unknown): void;
+}
+
 /** A reactive lexical item scope. Named lookup chooses the nearest matching current/ancestor scope. */
 export class Scope {
   private subscribers = new Set<() => void>();
@@ -77,6 +82,10 @@ export class Scope {
     private value: unknown,
     readonly name?: string,
     readonly parent?: Scope,
+    readonly source?: {
+      get(): unknown;
+      set(path: string, value: unknown): void;
+    },
   ) {}
 
   get(path = ""): unknown {
@@ -100,6 +109,32 @@ export class Scope {
     this.subscribers.add(subscriber);
     return () => this.subscribers.delete(subscriber);
   }
+}
+
+/** Resolve direct references only; derived expressions never become write targets. */
+export function valueReference(
+  expr: unknown,
+  store?: Store,
+  scope?: Scope,
+): ValueReference | undefined {
+  if (!expr || typeof expr !== "object") return undefined;
+  const e = expr as { expr: string; name: string; path: string };
+  if (e.expr === "field" && store)
+    return {
+      get: () => store.get(e.name),
+      set: (value) => store.set(e.name, value),
+    };
+  const target =
+    e.expr === "item"
+      ? scope
+      : e.expr === "scope"
+        ? scope?.resolve(e.name)
+        : undefined;
+  if (!target?.source) return undefined;
+  return {
+    get: () => readPath(target.source!.get(), e.path),
+    set: (value) => target.source!.set(e.path, value),
+  };
 }
 
 /** Immutably set a path within `obj`, cloning each level so every parent gets a fresh identity. */
