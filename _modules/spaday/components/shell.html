@@ -1023,8 +1023,11 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">        Each(Row(Strong().compute("textContent", item("name"))), field="rows", key="id", scope="row")</span>
 
-<span class="sd">    The first release supports one component template root and read-only item scopes. Item keys must be</span>
-<span class="sd">    unique strings or finite numbers. Reordering preserves each live root element and its local state.</span>
+<span class="sd">    Supports one component template root. Bind controls with ``bind("value", item("name"), mode="two-way")``</span>
+<span class="sd">    to edit the current record by key. Named ``scope()`` references can edit ancestors. Writable</span>
+<span class="sd">    collections use ``field=`` or direct ``field()``, ``item()``, or ``scope()`` references; derived</span>
+<span class="sd">    expressions and server windows are read-only. Item writes cannot change the repeater key.</span>
+<span class="sd">    Keys must be unique strings or finite numbers. Reordering preserves each live root element and its local state.</span>
 <span class="sd">    Set ``direct=True`` when the parent custom element requires repeated roots to be direct light-DOM</span>
 <span class="sd">    children; the ``spa-each`` element remains as an empty reconciliation anchor.</span>
 

@@ -486,8 +486,27 @@ collection with <code class="docutils literal notranslate"><span class="pre">fie
 scope with that name. <code class="docutils literal notranslate"><span class="pre">field(&quot;name&quot;)</span></code> always reads global store state.</p>
 <p>Keys must be unique strings or finite numbers. Replacing, inserting, removing, or reordering the bound
 collection updates at most once per animation frame. Existing keys retain their live root element,
-focus, cursor position, local properties, bindings, and action scope. Item scopes are read-only; use an
-action to update global state, send a model patch, or call an endpoint.</p>
+focus, cursor position, local properties, bindings, and action scope.</p>
+<p>To edit a record, pass an item reference to <code class="docutils literal notranslate"><span class="pre">bind()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">spaday</span><span class="w"> </span><span class="kn">import</span> <span class="n">item</span><span class="p">,</span> <span class="n">ui</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">spaday.components</span><span class="w"> </span><span class="kn">import</span> <span class="n">Each</span>
+
+<span class="n">editor</span> <span class="o">=</span> <span class="n">Each</span><span class="p">(</span>
+    <span class="n">ui</span><span class="o">.</span><span class="n">TextInput</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">"Name"</span><span class="p">)</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="n">item</span><span class="p">(</span><span class="s2">"name"</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">),</span>
+    <span class="n">field</span><span class="o">=</span><span class="s2">"records"</span><span class="p">,</span>
+    <span class="n">key</span><span class="o">=</span><span class="s2">"id"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">scope(&quot;staging.channel&quot;)</span></code> as the binding target to edit a named ancestor. Each write resolves
+keys against current Store state, including changes that have not rendered yet. It changes only the
+selected path, preserves other fields, and ignores events from records that have been removed.
+Repeater keys cannot be edited through item bindings. Standard binding events, codecs, and design
+adapters also apply to item bindings.</p>
+<p>Writable sources are <code class="docutils literal notranslate"><span class="pre">field=</span></code> and direct <code class="docutils literal notranslate"><span class="pre">field()</span></code>, <code class="docutils literal notranslate"><span class="pre">item()</span></code>, or <code class="docutils literal notranslate"><span class="pre">scope()</span></code> references, including nested
+collections. Derived expressions and <code class="docutils literal notranslate"><span class="pre">window=True</span></code> sources remain read-only. Use an endpoint or
+model action for server-window edits. With a CRDT-backed wire, item bindings use the existing
+transports planner; see <a class="reference internal" href="transports.html"><span class="std std-doc">collaborative bindings</span></a>.</p>
 <p>Within an animation frame, consecutive granular updates to an item settle its scope once, including
 updates interleaved with other items. Insert, remove, move, and reorder operations separate these
 groups and retain their order. A reset supersedes all pending deltas; later deltas apply to that reset.

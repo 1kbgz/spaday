@@ -1101,7 +1101,7 @@ window.runMermaid = runMermaid;</script>
     <span class="k">def</span><span class="w"> </span><span class="nf">bind</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prop</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Expr</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"one-way"</span><span class="p">,</span>
         <span class="n">event</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1116,6 +1116,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        ``mode="one-way"`` keeps the prop in sync with the field; ``"two-way"`` also writes the field</span>
 <span class="sd">        back when the control changes (for value-like controls). The binding is data interpreted in the</span>
 <span class="sd">        browser — the field's value flows to the prop with no round-trip to Python.</span>
+<span class="sd">        ``field`` also accepts ``item("label")`` or ``scope("row.label")`` inside an ``Each``.</span>
+<span class="sd">        Item writes resolve the current record by key; they cannot change that key. Collections</span>
+<span class="sd">        derived from arbitrary expressions and server-windowed collections remain read-only.</span>
 
 <span class="sd">        A two-way binding writes back on ``change`` / ``input``; ``event`` names the event instead, for</span>
 <span class="sd">        a control that reports its changes otherwise (a Lion control's ``model-value-changed``).</span>
@@ -1135,7 +1138,14 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"one-way"</span><span class="p">,</span> <span class="s2">"two-way"</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bind mode must be 'one-way' or 'two-way', not </span><span class="si">{</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_text_binding</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
-        <span class="n">binding</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"field"</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="n">mode</span><span class="p">}</span>
+        <span class="n">binding</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">Expr</span><span class="p">):</span>
+            <span class="n">reference</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">reference</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"expr"</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"field"</span><span class="p">,</span> <span class="s2">"item"</span><span class="p">,</span> <span class="s2">"scope"</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"bind requires a field, item, or scope reference; use compute for derived values"</span><span class="p">)</span>
+            <span class="n">binding</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"field"</span><span class="p">:</span> <span class="n">reference</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="n">mode</span><span class="p">}</span> <span class="k">if</span> <span class="n">reference</span><span class="p">[</span><span class="s2">"expr"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"field"</span> <span class="k">else</span> <span class="p">{</span><span class="s2">"compute"</span><span class="p">:</span> <span class="n">reference</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="n">mode</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">binding</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"field"</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span> <span class="s2">"mode"</span><span class="p">:</span> <span class="n">mode</span><span class="p">}</span>
         <span class="k">if</span> <span class="n">event</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">binding</span><span class="p">[</span><span class="s2">"event"</span><span class="p">]</span> <span class="o">=</span> <span class="n">event</span>
         <span class="k">if</span> <span class="n">methods</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1158,7 +1168,7 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"binding encode cannot be combined with the json codec"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">encode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">binding</span><span class="p">[</span><span class="s2">"encode"</span><span class="p">]</span> <span class="o">=</span> <span class="n">encode</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">binding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bindings</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">validate_binding</span><span class="p">(</span><span class="n">binding</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
 

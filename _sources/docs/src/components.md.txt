@@ -291,8 +291,31 @@ scope with that name. `field("name")` always reads global store state.
 
 Keys must be unique strings or finite numbers. Replacing, inserting, removing, or reordering the bound
 collection updates at most once per animation frame. Existing keys retain their live root element,
-focus, cursor position, local properties, bindings, and action scope. Item scopes are read-only; use an
-action to update global state, send a model patch, or call an endpoint.
+focus, cursor position, local properties, bindings, and action scope.
+
+To edit a record, pass an item reference to `bind()`:
+
+```python
+from spaday import item, ui
+from spaday.components import Each
+
+editor = Each(
+    ui.TextInput(label="Name").bind("value", item("name"), mode="two-way"),
+    field="records",
+    key="id",
+)
+```
+
+Use `scope("staging.channel")` as the binding target to edit a named ancestor. Each write resolves
+keys against current Store state, including changes that have not rendered yet. It changes only the
+selected path, preserves other fields, and ignores events from records that have been removed.
+Repeater keys cannot be edited through item bindings. Standard binding events, codecs, and design
+adapters also apply to item bindings.
+
+Writable sources are `field=` and direct `field()`, `item()`, or `scope()` references, including nested
+collections. Derived expressions and `window=True` sources remain read-only. Use an endpoint or
+model action for server-window edits. With a CRDT-backed wire, item bindings use the existing
+transports planner; see [collaborative bindings](transports.md).
 
 Within an animation frame, consecutive granular updates to an item settle its scope once, including
 updates interleaved with other items. Insert, remove, move, and reorder operations separate these

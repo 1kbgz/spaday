@@ -348,16 +348,24 @@ client’s <code class="docutils literal notranslate"><span class="pre">crdtDiff
 reordering the array alone has no effect. Duplicate member identities fail locally and restore the
 control’s value, with the error at <code class="docutils literal notranslate"><span class="pre">$errors.&lt;field&gt;</span></code>. Remote updates preserve keyed <code class="docutils literal notranslate"><span class="pre">Each</span></code> instances.</p>
 <p>Use current values when making replacements. A stale copy can overwrite fields or remove members
-that arrived since it was captured. Keep explicit CRDT mutations for identity-addressed edits,
-precise sequence changes, and intentional remove-and-readd operations. <code class="docutils literal notranslate"><span class="pre">Each</span></code> item scopes remain
-read-only; this does not add writable item bindings or peer-specific table/tree adapters.</p>
+that arrived since it was captured. For individual record fields, use
+<code class="docutils literal notranslate"><span class="pre">bind(&quot;value&quot;,</span> <span class="pre">item(&quot;label&quot;),</span> <span class="pre">mode=&quot;two-way&quot;)</span></code> inside a keyed <code class="docutils literal notranslate"><span class="pre">Each</span></code>. Spaday resolves the current
+record by key and changes only that field before calling the Rust planner. A keyed-set field edit
+produces a member-addressed mutation; it does not replace the set on the wire. Rejected edits restore
+the control. CRDT validation errors use the top-level model field (<code class="docutils literal notranslate"><span class="pre">$errors.board.rows</span></code> or
+<code class="docutils literal notranslate"><span class="pre">$errors.board.settings</span></code>, for example); editing that field clears its error. The same bindings work
+with a local Store and standard design-system controls.</p>
+<p>Keep explicit CRDT mutations for precise sequence changes and intentional remove-and-readd
+operations. Item bindings receive final control values; unlike direct global editor bindings, they
+do not forward editor change ranges. Peer-specific table/tree actions remain separate adapters.</p>
 <p>Run the Python-authored map and record example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>spaday.examples.collaborative_data
 </pre></div>
 </div>
 <p>Open <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8003</span></code> in two tabs. Edit different title/owner fields or different fields of
-one record; the changes merge. Add or remove records through the JSON editor. The example’s
-query-string tenant selector is demonstration routing; authenticate tenants in a deployed app.</p>
+one record using the WebAwesome inputs and checkboxes; the changes merge. Add or remove records
+through the JSON editor. Open <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8003/viewer</span></code> to exercise rejected writes.
+The Alice, Bob, and Viewer routes select demonstration roles; authenticate tenants in a deployed app.</p>
 <p>Custom clients without <code class="docutils literal notranslate"><span class="pre">crdtDiff</span></code> retain register and sequence support. Structural bindings require
 the new transports planner; they fail rather than silently replacing an entire CRDT document.</p>
 </section>
