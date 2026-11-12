@@ -32,8 +32,20 @@ def test_lifecycle_assets_are_awaited_and_connections_disposed(tmp_path):
     assert 'await whenReady(root, ["fixture-editor"], 10000)' in html
     assert "connection.stop()" in html and "link.dispose()" in html
     assert "client.closeSocket()" in html
+    assert "cleanups.push(() => connection.stop(), () => client.closeSocket(), () => link.dispose(), stopWires);" in html
     assert "class MountClient extends Client" in html
     assert " onload=" not in html and " onerror=" not in html
+
+
+def test_lifecycle_wire_list_stops_providing_wires_on_cleanup():
+    html = bootstrap(wire=[{"url": "/ws", "namespace": "a"}, {"url": "/ws/b", "namespace": "b"}], lifecycle=Lifecycle())
+    assert (
+        'provideWires(document.body, [{ client: client0, link: link0, store, namespace: "a" }, { client: client1, link: link1, store, namespace: "b" }])'
+        in html
+    )
+    assert "cleanups.push(stopWires);" in html
+    plain = bootstrap(wire="transports", lifecycle=Lifecycle())
+    assert "cleanups.push(() => connection.close(), () => link.dispose(), stopWires);" in plain
 
 
 def test_static_bootstrap_mounts_without_a_wire():
