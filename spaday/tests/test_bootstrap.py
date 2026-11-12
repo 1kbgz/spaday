@@ -49,6 +49,7 @@ def test_transports_wire_bootstrap():
     assert "spaday:wire-client" in html
     assert "detail: { client, link, store" in html
     assert 'namespace: null, url: "/sock"' in html
+    assert "provideWires(document.body, [{ client, link, store, namespace: null }])" in html  # requestWire works in a served page
     assert "client.connect(`${wsProtocol}//${location.host}/sock`)" in html
     assert "mount(document.body, node, store)" in html
 
@@ -315,6 +316,10 @@ def test_wire_list_shares_one_store_with_namespaced_connectstores():
     assert "client1.connect(`${wsProtocol}//${location.host}/ws/b`)" in html
     assert html.count("spaday:wire-client") == 2
     assert 'client: client0, link: link0, store, namespace: "a", url: "/ws"' in html
+    assert (
+        'provideWires(document.body, [{ client: client0, link: link0, store, namespace: "a" }, { client: client1, link: link1, store, namespace: "b" }])'
+        in html
+    )
     assert "transports_bg.wasm" in html and "await wasm.default(" in html  # the transports prologue
     assert html.count("mount(document.body, node, store)") == 1  # one mount of the shared store
 

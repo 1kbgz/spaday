@@ -422,7 +422,7 @@ def _script(
         ["mount", "init", "trackRoot"]
         + (["Store"] if (wired or store or persist or url) else [])
         + (["bindUrl"] if url else [])
-        + (["connectStore"] if wired else [])
+        + (["connectStore", "provideWires"] if wired else [])
         + (["decodeFrame"] if frame else [])
     )
     if lifecycle:
@@ -502,10 +502,11 @@ def _script(
                 "const client = new MountClient();" if lifecycle else "const client = new Client();",
                 "const link = connectStore(store, client, undefined, { fromValue, toValue });",
                 f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client, link, store, namespace: null, url: {_script_json(ws)} }} }}));',
+                f"const stopWires = provideWires({into}, [{{ client, link, store, namespace: null }}]);",
                 f"const connection = client.run(`${{wsProtocol}}//${{location.host}}{base}{ws}`, {{ retry: 1000 }});"
                 if lifecycle
                 else f"client.run(`${{wsProtocol}}//${{location.host}}{base}{ws}`, {{ retry: 1000 }});",
-                *(["cleanups.push(() => connection.stop(), () => client.closeSocket(), () => link.dispose());"] if lifecycle else []),
+                *(["cleanups.push(() => connection.stop(), () => client.closeSocket(), () => link.dispose(), stopWires);"] if lifecycle else []),
                 f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
         )
@@ -516,10 +517,11 @@ def _script(
                 "const client = new Client();",
                 "const link = connectStore(store, client, undefined, { fromValue, toValue });",
                 f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client, link, store, namespace: null, url: {_script_json(ws)} }} }}));',
+                f"const stopWires = provideWires({into}, [{{ client, link, store, namespace: null }}]);",
                 f"const connection = client.connect(`${{wsProtocol}}//${{location.host}}{base}{ws}`);"
                 if lifecycle
                 else f"client.connect(`${{wsProtocol}}//${{location.host}}{base}{ws}`);",
-                *(["cleanups.push(() => connection.close(), () => link.dispose());"] if lifecycle else []),
+                *(["cleanups.push(() => connection.close(), () => link.dispose(), stopWires);"] if lifecycle else []),
                 f"trackRoot(mount({into}, node, store), node, {refresh_url}, store);",
             ]
         )
@@ -536,6 +538,12 @@ def _script(
             lines.extend(_wire_block(spec, base, i, managed=lifecycle is not None, shared=shared))
             if spec.get("model") is not None:
                 connections.setdefault(key, i)
+        provided = ", ".join(
+            f"{{ client: client{i}, link: link{i}, store, namespace: {_script_json(spec.get('namespace'))} }}" for i, spec in enumerate(wires)
+        )
+        lines.append(f"const stopWires = provideWires({into}, [{provided}]);")
+        if lifecycle:
+            lines.append("cleanups.push(stopWires);")
         # a SendPatch fires `spaday:patch {model, field, value}`; route it into the namespaced store so the
         # matching connectStore subscriber sends the edit (an empty model writes the bare field).
         lines.append(

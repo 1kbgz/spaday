@@ -38,7 +38,9 @@ view takes over after disconnect.
 
 Send Python instructions with `session.command(model_id, "playing", True)`. In an application script,
 use the client exposed by `spaday:wire-client` to handle `onCommand`, apply the result through the
-Spaday store, and call `ackCommand`. Use `onOwnership` and `onDisconnect` to start and stop any local
+Spaday store, and call `ackCommand`. A component inside the tree asks for the same client with
+`requestWire(element, namespace)` from the runtime: a served page provides its wires to the mounted
+root the way the notebook widget does, so a component package's command bridge works in both. Use `onOwnership` and `onDisconnect` to start and stop any local
 clock or other ongoing work. Command payloads are application-defined; Spaday does not interpret them.
 
 Use Python `bytes` for sample data. A browser binding receives a `Uint8Array`, including with default
