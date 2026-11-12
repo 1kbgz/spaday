@@ -119,7 +119,9 @@ class Widget(anywidget.AnyWidget):
             stop_sync()
             self._stop_sync = None
         self.on_msg(self._on_msg, remove=True)
-        self._bundles.clear()
+        bundles = getattr(self, "_bundles", None)
+        if bundles is not None:
+            bundles.clear()
         super().close()
 
     def update(self, tree: Tree) -> None:

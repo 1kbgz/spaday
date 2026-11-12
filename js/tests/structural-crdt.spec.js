@@ -83,6 +83,9 @@ for (const codec of ["json", "msgpack", "cbor"]) {
         { description: result, codec },
       );
       await expect(page.locator("#alice #title")).toHaveValue("Shared board");
+      await expect(page.locator("#alice #row-a .row-label")).toHaveValue(
+        "Draft",
+      );
       await page.evaluate(
         () => (window.originalRow = document.querySelector("#alice #row-a")),
       );

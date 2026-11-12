@@ -26,6 +26,18 @@ def test_update_reassigns_the_synced_tree():
     assert w._tree["tag"] == "section"
 
 
+def test_close_after_subclass_validation_fails_before_initialization():
+    class InvalidWidget(Widget):
+        def __init__(self):
+            raise ValueError("invalid component")
+
+    widget = InvalidWidget.__new__(InvalidWidget)
+    with pytest.raises(ValueError, match="invalid component"):
+        widget.__init__()
+    widget.close()
+    widget.close()
+
+
 def test_state_seeds_and_is_settable():
     w = Widget(element("div"), state={"on": True})
     assert w._state == {"on": True}
