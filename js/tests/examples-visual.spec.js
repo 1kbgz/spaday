@@ -12,6 +12,7 @@ const EXAMPLES = [
   { name: "__main__", selector: "spa-app" },
   { name: "cluster", selector: "lightweight-chart" },
   { name: "collaborative_data", selector: "#row-a" },
+  { name: "collection_editor", selector: "#table-work-a" },
   { name: "data_dashboard", selector: "spa-app" },
   { name: "devices", selector: "article" },
   { name: "embed", path: "/spaday/", selector: "spa-app" },
