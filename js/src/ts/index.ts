@@ -143,4 +143,4 @@ export { UI_CSS } from "./ui";
 export { tag, untag } from "./value";
 export type { Value } from "./value";
 
-export { requestWire, type WireContext } from "./wire-context";
+export { provideWires, requestWire, type WireContext } from "./wire-context";
