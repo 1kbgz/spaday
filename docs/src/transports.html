@@ -234,7 +234,9 @@ must never become the owner. The first eligible view owns the model’s client f
 view takes over after disconnect.</p>
 <p>Send Python instructions with <code class="docutils literal notranslate"><span class="pre">session.command(model_id,</span> <span class="pre">&quot;playing&quot;,</span> <span class="pre">True)</span></code>. In an application script,
 use the client exposed by <code class="docutils literal notranslate"><span class="pre">spaday:wire-client</span></code> to handle <code class="docutils literal notranslate"><span class="pre">onCommand</span></code>, apply the result through the
-Spaday store, and call <code class="docutils literal notranslate"><span class="pre">ackCommand</span></code>. Use <code class="docutils literal notranslate"><span class="pre">onOwnership</span></code> and <code class="docutils literal notranslate"><span class="pre">onDisconnect</span></code> to start and stop any local
+Spaday store, and call <code class="docutils literal notranslate"><span class="pre">ackCommand</span></code>. A component inside the tree asks for the same client with
+<code class="docutils literal notranslate"><span class="pre">requestWire(element,</span> <span class="pre">namespace)</span></code> from the runtime: a served page provides its wires to the mounted
+root the way the notebook widget does, so a component package’s command bridge works in both. Use <code class="docutils literal notranslate"><span class="pre">onOwnership</span></code> and <code class="docutils literal notranslate"><span class="pre">onDisconnect</span></code> to start and stop any local
 clock or other ongoing work. Command payloads are application-defined; Spaday does not interpret them.</p>
 <p>Use Python <code class="docutils literal notranslate"><span class="pre">bytes</span></code> for sample data. A browser binding receives a <code class="docutils literal notranslate"><span class="pre">Uint8Array</span></code>, including with default
 model flattening. Set a new array to replace the sample; mutating an existing array in place does not
