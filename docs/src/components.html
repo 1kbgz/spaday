@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Author a component tree &#8212; spaday v0.13.1</title>
+    <title>Author a component tree &#8212; spaday v0.14.0</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma.css?v=ca04d621" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma-code.css?v=a950e949" />
@@ -14,16 +14,16 @@
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/benched/benched.css?v=ead03eb6" />
-    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
-    <script src="../../_static/documentation_options.js?v=b4617fb1"></script>
+    <script src="../../_static/documentation_options.js?v=9e420a66"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script type="module" src="../../_static/benched/benched.js?v=8a4d8cf8"></script>
-    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
     <script data-searchlite-index="searchlite-index.json" defer="defer" src="../../_static/searchlite.js?v=a5320898"></script>
     <script defer="defer" src="../../_static/fuma.js?v=9c325f6c"></script>
     <script src="../../_static/js/custom.js?v=956e5d78"></script>
@@ -51,7 +51,7 @@
   <div class="fd-subnav-inner">
     <button type="button" class="fd-icon-button fd-sidebar-toggle" aria-controls="fd-sidebar" aria-expanded="false" aria-label="Toggle navigation" title="Toggle navigation">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.13.1</span>
+    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.0</span>
 </a>
 
     <div class="fd-nav-actions">
@@ -66,7 +66,7 @@
 
 <aside id="fd-sidebar" aria-label="Documentation">
   <div class="fd-sidebar-header">
-    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.13.1</span>
+    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.0</span>
 </a>
       <button type="button" class="fd-icon-button fd-sidebar-collapse" aria-label="Collapse sidebar" title="Collapse sidebar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
     </div>
@@ -191,7 +191,7 @@
     <a href="#lay-out-with-shell-components">Lay out with shell components</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
-    <a href="#use-generic-controls-any-design-renders">Use generic controls any design renders</a>
+    <a href="#generic-controls">Use generic controls any design renders</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#tabs-and-navigation">Tabs and navigation</a>
@@ -311,8 +311,8 @@ a sidebar), compose the shell from <strong>named regions</strong> with <code cla
 Footer only appears when its regions have contributions. <code class="docutils literal notranslate"><span class="pre">DRAWER_LEFT</span></code>, <code class="docutils literal notranslate"><span class="pre">DRAWER_RIGHT</span></code>, <code class="docutils literal notranslate"><span class="pre">DRAWER_BOTTOM</span></code>,
 and <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> append directly under <code class="docutils literal notranslate"><span class="pre">App</span></code>, after flow chrome, for top-layer UI.</p>
 </section>
-<section id="use-generic-controls-any-design-renders">
-<span id="generic-controls"></span><h2>Use generic controls any design renders<a class="headerlink" href="#use-generic-controls-any-design-renders" title="Link to this heading">¶</a></h2>
+<section id="generic-controls">
+<span id="use-generic-controls-any-design-renders"></span><h2>Use generic controls any design renders<a class="headerlink" href="#generic-controls" title="Link to this heading">¶</a></h2>
 <p>A typed catalog ties a page to one design system: <code class="docutils literal notranslate"><span class="pre">WaButton</span></code> is a <code class="docutils literal notranslate"><span class="pre">wa-button</span></code>. The 13 generic
 controls in <code class="docutils literal notranslate"><span class="pre">spaday.ui</span></code> cover actions, text, numbers, dates, boolean and single-choice input,
 progress, alerts, and dialogs. The page’s <strong>design</strong> decides what element each becomes:</p>
@@ -507,6 +507,15 @@ adapters also apply to item bindings.</p>
 collections. Derived expressions and <code class="docutils literal notranslate"><span class="pre">window=True</span></code> sources remain read-only. Use an endpoint or
 model action for server-window edits. With a CRDT-backed wire, item bindings use the existing
 transports planner; see <a class="reference internal" href="transports.html"><span class="std std-doc">collaborative bindings</span></a>.</p>
+<p>Run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">spaday.examples.collection_editor</span></code> and open <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8004/</span></code> to edit the
+same nested records through a table and a tree. Open the Bob and Viewer links in other tabs to try
+concurrent edits and rejected writes. The <a class="reference download internal" download="" href="../../_downloads/d0f78d198d65c9af0e6da13f0e43649a/collection_editor.py"><span class="xref download myst">example source</span></a>
+uses <code class="docutils literal notranslate"><span class="pre">item(&quot;details.note&quot;)</span></code> for a nested field and <code class="docutils literal notranslate"><span class="pre">scope(&quot;group.owner&quot;)</span></code> for an ancestor.
+Child IDs repeat across groups; deletion sends both IDs to the endpoint, which checks the role and
+plans a CRDT removal against current server state. Never send a visible row index as the record ID.</p>
+<p>Field edits can queue while disconnected and replay on reconnect. Endpoint deletions require a live
+connection and are not queued for later execution. The example’s URL-selected roles are for testing;
+derive production permissions from authenticated users. CRDT sets have identity but no editable order.</p>
 <p>Within an animation frame, consecutive granular updates to an item settle its scope once, including
 updates interleaved with other items. Insert, remove, move, and reorder operations separate these
 groups and retain their order. A reset supersedes all pending deltas; later deltas apply to that reset.
@@ -633,7 +642,7 @@ they are served as the tree the browser mounts.</p>
     <a href="#lay-out-with-shell-components">Lay out with shell components</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
-    <a href="#use-generic-controls-any-design-renders">Use generic controls any design renders</a>
+    <a href="#generic-controls">Use generic controls any design renders</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#tabs-and-navigation">Tabs and navigation</a>

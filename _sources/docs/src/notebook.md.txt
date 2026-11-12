@@ -164,6 +164,15 @@ a Server. In a synchronous host, or when the application already drives comm syn
 `autosync=False` and call `transports.sync(w.server)` after mutations. Transports' socket-oriented
 `autosync()` is not the comm driver.
 
+Configure `session`, `wires`, `packages`, and `design` when constructing the widget. `update(tree)`
+changes the tree using that configuration; it does not replace the connection or selected packages.
+Close the widget and construct another to change those settings. Removing one displayed view releases
+that view's ownership; `w.close()` releases every view and this widget's share of the kernel sync task.
+
+Notebook wires accept the shared `Wire` defaults, but reject nondefault WebSocket-only options rather
+than silently ignoring them: `url`, `session`, `batch`, `reconnect`, `retry`, and `authority`.
+Keep `update_interval` in seconds; the WebSocket-only `retry` setting uses milliseconds.
+
 ## Handle client-owned state in a custom element
 
 Bind `$owned.status.playing` to show whether this view owns the `playing` field in the `status` wire.
