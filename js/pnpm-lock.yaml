@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@1kbgz/transports':
-        specifier: '>=0.12.2 <0.13.0'
-        version: 0.12.2
+        specifier: '>=0.12.3 <0.13.0'
+        version: 0.12.3
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.64.1
@@ -53,8 +53,8 @@ importers:
 
 packages:
 
-  '@1kbgz/transports@0.12.2':
-    resolution: {integrity: sha512-SYHOyMvGN7TuwOTnj/V0lBiSWVcJptFCq0G5kdB62OQzpmFmj22RueCE9Nx5KkPKWwGXnD2/40ak+g5N3VhgtA==}
+  '@1kbgz/transports@0.12.3':
+    resolution: {integrity: sha512-kFsOTGsQtz9hu01j6QLLo3CVhMUEc/Xj9jXF3ImVMDax0HaUasuRKt+kJyQ9cP7yacblpRm2B8ftyV1QS+m77w==}
 
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
@@ -1558,7 +1558,7 @@ packages:
 
 snapshots:
 
-  '@1kbgz/transports@0.12.2': {}
+  '@1kbgz/transports@0.12.3': {}
 
   '@esbuild/aix-ppc64@0.28.2':
     optional: true

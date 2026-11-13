@@ -31,7 +31,7 @@ const ready = (async () => {
   pyodide.globals.set("wheel", wheel);
   pyodide.globals.set(
     "transports_wheel",
-    params.get("transports-wheel") || "transports>=0.12.2,<0.13",
+    params.get("transports-wheel") || "transports>=0.12.3,<0.13",
   );
   await pyodide.runPythonAsync(`
 import micropip
