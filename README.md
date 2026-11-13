@@ -68,6 +68,7 @@ registers its browser assets with spaday:
 ### Individual Components
 
 - [spaday-codemirror](https://github.com/1kbgz/spaday-codemirror) — [CodeMirror 6](https://codemirror.net/) code editor.
+- [spaday-collab](https://github.com/1kbgz/spaday-collab) — optional shared pointers and hover outlines for collaborative applications.
 - [spaday-dagre](https://github.com/1kbgz/spaday-dagre) — interactive directed-graph rendering with [dagre](https://github.com/dagrejs/dagre) layout.
 - [spaday-diffs](https://github.com/1kbgz/spaday-diffs) — read-only file comparisons and patches with line selection and annotations from [Pierre Diffs](https://diffs.com).
 - [spaday-lightweight-charts](https://github.com/1kbgz/spaday-lightweight-charts) — reactive [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts).
