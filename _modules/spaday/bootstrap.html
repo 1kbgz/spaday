@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>spaday.bootstrap &#8212; spaday v0.14.1</title>
+    <title>spaday.bootstrap &#8212; spaday v0.14.2</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma.css?v=ca04d621" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma-code.css?v=a950e949" />
@@ -16,7 +16,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
-    <script src="../../_static/documentation_options.js?v=3a3a8e7f"></script>
+    <script src="../../_static/documentation_options.js?v=0dc20415"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -455,7 +455,7 @@ window.runMermaid = runMermaid;</script>
   <div class="fd-subnav-inner">
     <button type="button" class="fd-icon-button fd-sidebar-toggle" aria-controls="fd-sidebar" aria-expanded="false" aria-label="Toggle navigation" title="Toggle navigation">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.1</span>
+    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.2</span>
 </a>
 
     <div class="fd-nav-actions">
@@ -470,7 +470,7 @@ window.runMermaid = runMermaid;</script>
 
 <aside id="fd-sidebar" aria-label="Documentation">
   <div class="fd-sidebar-header">
-    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.1</span>
+    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.2</span>
 </a>
       <button type="button" class="fd-icon-button fd-sidebar-collapse" aria-label="Collapse sidebar" title="Collapse sidebar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
     </div>
@@ -642,6 +642,28 @@ window.runMermaid = runMermaid;</script>
 <span class="n">Page</span> <span class="o">=</span> <span class="n">Component</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Component</span><span class="p">]</span>
 
 
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Awareness</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Bind one named awareness scope to local store fields.</span>
+
+<span class="sd">    ``local`` publishes its field value; None withdraws it. ``peers`` receives a list of</span>
+<span class="sd">    ``{peer, state}`` records from other connections. Omit either field for a one-way binding.</span>
+<span class="sd">    These fields belong to local UI state, outside the shared model's mirrored fields.</span>
+<span class="sd">    """</span>
+
+    <span class="n">local</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">peers</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">local</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">peers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Awareness requires local or peers"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">peers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Awareness fields must be nonempty strings"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">local</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">peers</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Awareness local and peers fields must differ"</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="Wire">
 <a class="viewcode-back" href="../../docs/src/api.html#spaday.bootstrap.Wire">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -688,6 +710,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">ownership</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">update_interval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span>
+    <span class="n">awareness</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Awareness</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span>
@@ -712,7 +735,24 @@ window.runMermaid = runMermaid;</script>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire update_interval must be a finite nonnegative number of seconds"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire connected field must not be empty"</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Wire connected field must not be empty"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">awareness</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">normalized</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">scope</span><span class="p">,</span> <span class="n">binding</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">awareness</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Awareness scope must be a string"</span><span class="p">)</span>
+                <span class="n">binding</span> <span class="o">=</span> <span class="n">binding</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">binding</span><span class="p">,</span> <span class="n">Awareness</span><span class="p">)</span> <span class="k">else</span> <span class="n">Awareness</span><span class="p">(</span><span class="o">**</span><span class="n">binding</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="n">binding</span><span class="o">.</span><span class="n">local</span><span class="p">,</span> <span class="n">binding</span><span class="o">.</span><span class="n">peers</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Awareness store fields must be distinct"</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="ow">and</span> <span class="p">(</span><span class="n">value</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="ow">or</span> <span class="n">value</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">+</span> <span class="s2">"."</span><span class="p">)):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Awareness fields must be outside the model namespace"</span><span class="p">)</span>
+                    <span class="n">fields</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="n">normalized</span><span class="p">[</span><span class="n">scope</span><span class="p">]</span> <span class="o">=</span> <span class="n">binding</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"awareness"</span><span class="p">,</span> <span class="n">normalized</span><span class="p">)</span></div>
 
 
 
@@ -931,6 +971,10 @@ window.runMermaid = runMermaid;</script>
         <span class="sa">f</span><span class="s2">"const </span><span class="si">{</span><span class="n">link</span><span class="si">}</span><span class="s2"> = connectStore(store, </span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">, undefined, </span><span class="se">{{</span><span class="s2"> fromValue, toValue </span><span class="se">}}</span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s2">);"</span><span class="p">,</span>
         <span class="sa">f</span><span class="s1">'document.dispatchEvent(new CustomEvent("spaday:wire-client", </span><span class="se">{{</span><span class="s1"> detail: </span><span class="se">{{</span><span class="s1"> client: </span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s1">, link: </span><span class="si">{</span><span class="n">link</span><span class="si">}</span><span class="s1">, store, namespace: </span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">ns</span><span class="p">)</span><span class="si">}</span><span class="s1">, url: </span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="si">}</span><span class="s1"> </span><span class="se">}}</span><span class="s1"> </span><span class="se">}}</span><span class="s1">));'</span><span class="p">,</span>
     <span class="p">]</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"awareness"</span><span class="p">):</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"const awareness</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> = connectAwareness(store, </span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">link</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">_script_json</span><span class="p">(</span><span class="n">spec</span><span class="p">[</span><span class="s1">'awareness'</span><span class="p">])</span><span class="si">}</span><span class="s2">);"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">managed</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cleanups.push(awareness</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">);"</span><span class="p">)</span>
     <span class="n">connected</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"connected"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ns</span><span class="si">}</span><span class="s2">.connected"</span> <span class="k">if</span> <span class="n">ns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">connected</span><span class="p">:</span>
         <span class="n">lines</span> <span class="o">+=</span> <span class="p">[</span>
@@ -1025,6 +1069,7 @@ window.runMermaid = runMermaid;</script>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"Store"</span><span class="p">]</span> <span class="k">if</span> <span class="p">(</span><span class="n">wired</span> <span class="ow">or</span> <span class="n">store</span> <span class="ow">or</span> <span class="n">persist</span> <span class="ow">or</span> <span class="n">url</span><span class="p">)</span> <span class="k">else</span> <span class="p">[])</span>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"bindUrl"</span><span class="p">]</span> <span class="k">if</span> <span class="n">url</span> <span class="k">else</span> <span class="p">[])</span>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"connectStore"</span><span class="p">,</span> <span class="s2">"provideWires"</span><span class="p">]</span> <span class="k">if</span> <span class="n">wired</span> <span class="k">else</span> <span class="p">[])</span>
+        <span class="o">+</span> <span class="p">([</span><span class="s2">"connectAwareness"</span><span class="p">]</span> <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"awareness"</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="p">(</span><span class="n">wires</span> <span class="ow">or</span> <span class="p">[]))</span> <span class="k">else</span> <span class="p">[])</span>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"decodeFrame"</span><span class="p">]</span> <span class="k">if</span> <span class="n">frame</span> <span class="k">else</span> <span class="p">[])</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">lifecycle</span><span class="p">:</span>

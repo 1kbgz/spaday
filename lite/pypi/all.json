@@ -1,24 +1,24 @@
 {
   "spaday": {
     "releases": {
-      "0.14.1": [
+      "0.14.2": [
         {
           "comment_text": "",
           "digests": {
-            "md5": "389738a4ac0a77a1d96eab4692aef76f",
-            "sha256": "c8aa86024c4b4e410922bec64fad267e78caac2741e6eb9ad9c6eb4260864c5c"
+            "md5": "0447255c0297e66077bf41fdf909af55",
+            "sha256": "1b2c0e079a08c4ea74914279d21cac61d6e68c727d600c13e82390cc580e3603"
           },
           "downloads": -1,
-          "filename": "spaday-0.14.1-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+          "filename": "spaday-0.14.2-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
           "has_sig": false,
-          "md5_digest": "389738a4ac0a77a1d96eab4692aef76f",
+          "md5_digest": "0447255c0297e66077bf41fdf909af55",
           "packagetype": "bdist_wheel",
           "python_version": "py3",
           "requires_python": ">=3.10",
-          "size": 3684114,
-          "upload_time": "2026-11-12T21:40:00.956601Z",
-          "upload_time_iso_8601": "2026-11-12T21:40:00.956601Z",
-          "url": "./spaday-0.14.1-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+          "size": 3696042,
+          "upload_time": "2026-11-13T21:49:30.161188Z",
+          "upload_time_iso_8601": "2026-11-13T21:49:30.161188Z",
+          "url": "./spaday-0.14.2-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
           "yanked": false,
           "yanked_reason": null
         }
@@ -42,8 +42,8 @@
           "python_version": "py3",
           "requires_python": ">=3.11",
           "size": 182622,
-          "upload_time": "2026-11-12T21:40:01.833505Z",
-          "upload_time_iso_8601": "2026-11-12T21:40:01.833505Z",
+          "upload_time": "2026-11-13T21:49:30.872120Z",
+          "upload_time_iso_8601": "2026-11-13T21:49:30.872120Z",
           "url": "./spaday_lightweight_charts-0.2.1-py3-none-any.whl",
           "yanked": false,
           "yanked_reason": null
@@ -68,8 +68,8 @@
           "python_version": "py3",
           "requires_python": ">=3.11",
           "size": 966594,
-          "upload_time": "2026-11-12T21:40:01.832648Z",
-          "upload_time_iso_8601": "2026-11-12T21:40:01.832648Z",
+          "upload_time": "2026-11-13T21:49:30.871413Z",
+          "upload_time_iso_8601": "2026-11-13T21:49:30.871413Z",
           "url": "./spaday_webawesome-0.4.0-py3-none-any.whl",
           "yanked": false,
           "yanked_reason": null
@@ -79,24 +79,24 @@
   },
   "transports": {
     "releases": {
-      "0.12.2": [
+      "0.12.3": [
         {
           "comment_text": "",
           "digests": {
-            "md5": "15efc15edfe4ac657b60a8213f94e1d5",
-            "sha256": "5ce5a8b6d3ecf3a76e7c8611a4e5f7300b0942a6a7911cf02124b107f9d66ca3"
+            "md5": "c8603f8ce58c1874638ccbc8c12b912c",
+            "sha256": "4a8e3497d9e0d4115fc5e82374c9efff8f7ceb67bd2bcd5fa36d810c5b07a3db"
           },
           "downloads": -1,
-          "filename": "transports-0.12.2-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+          "filename": "transports-0.12.3-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
           "has_sig": false,
-          "md5_digest": "15efc15edfe4ac657b60a8213f94e1d5",
+          "md5_digest": "c8603f8ce58c1874638ccbc8c12b912c",
           "packagetype": "bdist_wheel",
           "python_version": "py3",
           "requires_python": ">=3.10",
-          "size": 2427046,
-          "upload_time": "2026-11-12T21:40:02.215905Z",
-          "upload_time_iso_8601": "2026-11-12T21:40:02.215905Z",
-          "url": "./transports-0.12.2-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
+          "size": 2441965,
+          "upload_time": "2026-11-13T21:49:31.257223Z",
+          "upload_time_iso_8601": "2026-11-13T21:49:31.257223Z",
+          "url": "./transports-0.12.3-cp314-cp314-pyemscripten_2026_0_wasm32.whl",
           "yanked": false,
           "yanked_reason": null
         }

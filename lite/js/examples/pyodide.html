@@ -43,7 +43,9 @@
 
       const params = new URLSearchParams(location.search);
       const workerUrl = new URL("./pyodide-worker.js", location.href);
-      if (params.has("wheel")) workerUrl.searchParams.set("wheel", params.get("wheel"));
+      for (const name of ["wheel", "transports-wheel"]) {
+        if (params.has(name)) workerUrl.searchParams.set(name, params.get(name));
+      }
 
       try {
         await init({ module_or_path: "../dist/pkg/spaday_bg.wasm" });

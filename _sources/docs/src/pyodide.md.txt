@@ -85,6 +85,16 @@ Run the focused Playwright test against the wheel already in `dist/pyodide/`:
 make test-pyodide-browser
 ```
 
+To test an unpublished transports wheel alongside spaday, copy its Pyodide wheel into
+`js/dist/pyodide/` and pass its served URL:
+
+```bash
+TRANSPORTS_PYODIDE_WHEEL=/dist/pyodide/<transports-wheel>.whl make test-pyodide-browser
+```
+
+For a manual browser run, add `&transports-wheel=<wheel-url>` to the example URL. Without an
+override, the worker installs transports from the supported release range.
+
 ## Browse the standalone examples
 
 [Open the standalone gallery](https://1kbgz.github.io/spaday/lite/js/examples/standalone.html) to run

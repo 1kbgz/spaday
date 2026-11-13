@@ -288,6 +288,40 @@ Wire(
 A raw `{"url": …, "namespace": …}` dict works anywhere a `Wire` does. The omnibus
 (`python -m spaday.examples`) wires four models this way.
 
+For shared Hub models, bind named ephemeral scopes to local store fields:
+
+```python
+from spaday import Awareness, Wire
+
+Wire(
+    "/ws/document",
+    namespace="document",
+    reconnect=True,
+    awareness={
+        "editor": Awareness(local="cursor", peers="cursors"),
+        "table": Awareness(local="selected_row", peers="selected_rows"),
+    },
+)
+```
+
+`local` publishes that store field's current value; `None` withdraws the scope. `peers` receives a
+list of `{"peer": connection_id, "state": value}` records, excluding the local connection. Either
+field may be omitted for a one-way binding. These are exact local store field names, outside the
+mirrored model namespace. Names, colors, user grouping, and rendering remain application choices.
+Peer metadata is display data, not authorization.
+
+Bindings use the existing connection and selected model. They withdraw on page navigation or managed
+mount disposal, republish on cached-page restoration, and retain latest values across reconnects.
+Disposing one scope preserves others. Use one publishing binding per scope on a model/connection;
+multiple publishers targeting the same scope overwrite each other. The browser `connectAwareness`
+function exposes the same binding and returns an idempotent disposer.
+
+Run `python -m spaday_codemirror.shared_table` after installing `spaday-codemirror` and
+`spaday-regular-table` for an editor/table example using two scopes on one socket. It displays remote
+selection state without prescribing cursor overlays. Scoped awareness requires compatible browser
+and server transports builds; it remains local to one Hub process. Notebook Session/Server wires
+do not support awareness and reject this option.
+
 Component adapters that need a transports API outside model bindings can listen for
 `spaday:wire-client`. Spaday dispatches it after `connectStore` is configured and before the client
 connects:
