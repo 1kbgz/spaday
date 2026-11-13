@@ -144,3 +144,5 @@ export { tag, untag } from "./value";
 export type { Value } from "./value";
 
 export { provideWires, requestWire, type WireContext } from "./wire-context";
+
+export { connectAwareness, type AwarenessBinding } from "./awareness";

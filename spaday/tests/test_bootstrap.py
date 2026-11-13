@@ -508,3 +508,30 @@ def test_binary_props_round_trip_through_native_tree_frames_and_ssr():
     assert ' data="' not in render_html(node)
     payload = json.loads(decode_frame(tree_frame(node)))
     assert payload["payload"]["props"]["data"] == {"Bytes": "AP+AAQ=="}
+
+
+def test_awareness_bindings_are_validated_and_managed():
+    from spaday import Awareness, Wire
+
+    wire = Wire("/ws", namespace="doc", awareness={"editor": Awareness(local="cursor", peers="cursors"), "table": {"peers": "rows"}})
+    html = bootstrap(wire=wire, lifecycle=Lifecycle())
+    assert (
+        'connectAwareness(store, client0, link0, {"editor": {"local": "cursor", "peers": "cursors"}, "table": {"local": null, "peers": "rows"}})'
+        in html
+    )
+    assert "cleanups.push(awareness0)" in html
+    for options in ({}, {"local": ""}, {"peers": 1}, {"local": "same", "peers": "same"}):
+        with pytest.raises(ValueError):
+            Awareness(**options)  # ty: ignore[invalid-argument-type]
+    with pytest.raises(ValueError, match="namespace"):
+        Wire("/ws", namespace="doc", awareness={"editor": Awareness(local="doc.cursor")})
+    with pytest.raises(ValueError, match="distinct"):
+        Wire("/ws", awareness={"editor": Awareness(local="cursor"), "table": Awareness(peers="cursor")})
+
+
+def test_notebook_wires_reject_unsupported_awareness():
+    from spaday import Awareness, Wire
+    from spaday.widget_transport import notebook_wires
+
+    with pytest.raises(ValueError, match="shared Hub"):
+        notebook_wires([Wire(awareness={"editor": Awareness(local="cursor")})])

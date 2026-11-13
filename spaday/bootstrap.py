@@ -53,6 +53,28 @@ Page = Component | Callable[[], Component]
 
 
 @dataclass(frozen=True)
+class Awareness:
+    """Bind one named awareness scope to local store fields.
+
+    ``local`` publishes its field value; None withdraws it. ``peers`` receives a list of
+    ``{peer, state}`` records from other connections. Omit either field for a one-way binding.
+    These fields belong to local UI state, outside the shared model's mirrored fields.
+    """
+
+    local: str | None = None
+    peers: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.local is None and self.peers is None:
+            raise ValueError("Awareness requires local or peers")
+        for value in (self.local, self.peers):
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise ValueError("Awareness fields must be nonempty strings")
+        if self.local == self.peers:
+            raise ValueError("Awareness local and peers fields must differ")
+
+
+@dataclass(frozen=True)
 class Wire:
     """One transports model wire for a multi-model page — a typed, discoverable alternative to a raw dict
     in ``serve``/``bootstrap`` ``wire=[…]`` (both forms are accepted, mix freely):
@@ -96,6 +118,7 @@ class Wire:
     model: int | str | None = None
     ownership: bool = True
     update_interval: float = 0.25
+    awareness: dict[str, Awareness | dict] | None = None
 
     def __post_init__(self) -> None:
         if self.model is not None and not (
@@ -121,6 +144,23 @@ class Wire:
             raise ValueError("Wire update_interval must be a finite nonnegative number of seconds")
         if self.connected == "":
             raise ValueError("Wire connected field must not be empty")
+        if self.awareness is not None:
+            normalized = {}
+            fields = set()
+            for scope, binding in self.awareness.items():
+                if not isinstance(scope, str):
+                    raise ValueError("Awareness scope must be a string")
+                binding = binding if isinstance(binding, Awareness) else Awareness(**binding)
+                for value in (binding.local, binding.peers):
+                    if value is None:
+                        continue
+                    if value in fields:
+                        raise ValueError("Awareness store fields must be distinct")
+                    if self.namespace and (value == self.namespace or value.startswith(self.namespace + ".")):
+                        raise ValueError("Awareness fields must be outside the model namespace")
+                    fields.add(value)
+                normalized[scope] = binding
+            object.__setattr__(self, "awareness", normalized)
 
 
 @dataclass(frozen=True)
@@ -329,6 +369,10 @@ def _wire_block(spec: dict, base: str, idx: int, *, managed: bool = False, share
         f"const {link} = connectStore(store, {client}, undefined, {{ fromValue, toValue }}{extra});",
         f'document.dispatchEvent(new CustomEvent("spaday:wire-client", {{ detail: {{ client: {client}, link: {link}, store, namespace: {_script_json(ns)}, url: {_script_json(url)} }} }}));',
     ]
+    if spec.get("awareness"):
+        lines.append(f"const awareness{idx} = connectAwareness(store, {client}, {link}, {_script_json(spec['awareness'])});")
+        if managed:
+            lines.append(f"cleanups.push(awareness{idx});")
     connected = spec.get("connected") or (f"{ns}.connected" if ns else None)
     if connected:
         lines += [
@@ -423,6 +467,7 @@ def _script(
         + (["Store"] if (wired or store or persist or url) else [])
         + (["bindUrl"] if url else [])
         + (["connectStore", "provideWires"] if wired else [])
+        + (["connectAwareness"] if any(w.get("awareness") for w in (wires or [])) else [])
         + (["decodeFrame"] if frame else [])
     )
     if lifecycle:

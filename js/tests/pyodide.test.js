@@ -10,6 +10,11 @@ test("Python worker sends intents and incremental DOM patches", async ({
 
   const url = new URL("/examples/pyodide.html", "http://127.0.0.1:3000");
   url.searchParams.set("wheel", wheel);
+  if (process.env.TRANSPORTS_PYODIDE_WHEEL)
+    url.searchParams.set(
+      "transports-wheel",
+      process.env.TRANSPORTS_PYODIDE_WHEEL,
+    );
   await page.goto(url.toString());
 
   try {

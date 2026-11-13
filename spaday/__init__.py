@@ -43,7 +43,7 @@ from .actions import (
     this,
 )
 from .assets import AssetPolicy
-from .bootstrap import Js, Lifecycle, Wire
+from .bootstrap import Awareness, Js, Lifecycle, Wire
 from .catalog import ComponentSchema, PropertyKind, PropertySchema
 from .cem import classes, generate
 from .component import Component, Paragraph, Strong, Text, element

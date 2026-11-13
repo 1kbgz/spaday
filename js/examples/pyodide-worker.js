@@ -1,5 +1,6 @@
 const PYODIDE_VERSION = "314.0.4";
-const wheelOverride = new URL(self.location.href).searchParams.get("wheel");
+const params = new URL(self.location.href).searchParams;
+const wheelOverride = params.get("wheel");
 
 async function resolveWheel() {
   if (wheelOverride) return wheelOverride;
@@ -28,9 +29,13 @@ const ready = (async () => {
   await pyodide.loadPackage("micropip");
   const wheel = await resolveWheel();
   pyodide.globals.set("wheel", wheel);
+  pyodide.globals.set(
+    "transports_wheel",
+    params.get("transports-wheel") || "transports>=0.12.2,<0.13",
+  );
   await pyodide.runPythonAsync(`
 import micropip
-await micropip.install([wheel, "transports==0.9.0"])
+await micropip.install([wheel, transports_wheel])
 
 from spaday.examples.pyodide import app
 `);

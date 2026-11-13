@@ -753,3 +753,117 @@ test("binary fields stay atomic when flattening a model", async ({ page }) => {
   expect(result.typed).toBe(true);
   expect(result.bytes).toEqual([0, 255]);
 });
+
+for (const codec of ["json", "msgpack", "cbor"]) {
+  test(`awareness bindings compose and dispose over ${codec}`, async ({
+    page,
+  }) => {
+    await page.goto("/tests/transports.html");
+    await page.waitForFunction(() => window.__integration);
+    const result = await page.evaluate((codec) => {
+      const {
+        Client,
+        Store,
+        connectStore,
+        connectAwareness,
+        fromValue,
+        toValue,
+      } = __integration;
+      const client = new Client(codec),
+        store = new Store({ cursor: { anchor: 2 }, row: "a" });
+      const link = connectStore(
+        store,
+        client,
+        undefined,
+        { fromValue, toValue },
+        "doc",
+        true,
+        7,
+      );
+      const sent = [];
+      const sender = (frame) => sent.push(frame);
+      client.attach(sender);
+      client.recv(
+        client.encode({
+          t: "snapshot",
+          id: 7,
+          type: "Doc",
+          rev: 0,
+          value: toValue({ text: "hello" }),
+        }),
+      );
+      const editor = connectAwareness(store, client, link, {
+        editor: { local: "cursor", peers: "cursors" },
+      });
+      const table = connectAwareness(store, client, link, {
+        table: { local: "row", peers: "rows" },
+      });
+      const receive = (scope, state) =>
+        client.recv(
+          client.encode({
+            t: "scoped_awareness",
+            id: 7,
+            peer: "bob",
+            scope,
+            state,
+          }),
+        );
+      receive("editor", { anchor: 4 });
+      receive("table", "b");
+      const initial = [store.get("cursors"), store.get("rows")];
+      editor();
+      editor();
+      receive("editor", { anchor: 5 });
+      receive("table", "c");
+      const disposed = [store.get("cursors"), store.get("rows")];
+      client.detach(sender);
+      const disconnected = store.get("rows");
+      const resent = [];
+      const replacement = (frame) => resent.push(frame);
+      store.set("row", "d");
+      client.attach(replacement);
+      const decode = (frame) =>
+        JSON.parse(
+          typeof frame === "string"
+            ? frame
+            : __integration.decodeMessage(frame, codec),
+        );
+      const replayed = resent.map(decode);
+      window.dispatchEvent(
+        new PageTransitionEvent("pagehide", { persisted: true }),
+      );
+      store.set("row", "e");
+      client.detach(replacement);
+      resent.length = 0;
+      client.attach(replacement);
+      const hiddenReplay = resent.length;
+      window.dispatchEvent(
+        new PageTransitionEvent("pageshow", { persisted: true }),
+      );
+      const restored = resent.map(decode);
+      table();
+      link.dispose();
+      return {
+        initial,
+        disposed,
+        disconnected,
+        replayed,
+        hiddenReplay,
+        restored,
+      };
+    }, codec);
+    expect(result.initial).toEqual([
+      [{ peer: "bob", state: { anchor: 4 } }],
+      [{ peer: "bob", state: "b" }],
+    ]);
+    expect(result.disposed).toEqual([[], [{ peer: "bob", state: "c" }]]);
+    expect(result.disconnected).toEqual([]);
+    expect(result.replayed).toEqual([
+      { t: "scoped_awareness", id: 7, scope: "table", state: "d" },
+    ]);
+    expect(result.hiddenReplay).toBe(0);
+    expect(result.restored).toEqual([
+      { t: "scoped_awareness", id: 7, scope: "table", state: "e" },
+    ]);
+  });
+}
