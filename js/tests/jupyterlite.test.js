@@ -161,7 +161,7 @@ test("JupyterLite notebook views use transports ownership and binary comm buffer
   url.searchParams.set("kernel", "python");
   url.searchParams.append(
     "code",
-    "%pip install -q spaday anywidget transports==0.12.2",
+    "%pip install -q spaday anywidget transports==0.12.3",
   );
   url.searchParams.append(
     "code",

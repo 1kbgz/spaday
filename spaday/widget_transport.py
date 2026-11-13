@@ -31,6 +31,8 @@ def notebook_wires(wires: Sequence[Wire | Mapping] | None) -> list[dict]:
     if not specs:
         raise ValueError("Widget wires must select at least one model")
     for spec in specs:
+        if spec.pop("awareness", None):
+            raise ValueError("Widget awareness requires a shared Hub model; notebook wires use Session/Server")
         for key, default in {"url": None, "session": False, "batch": False, "reconnect": False, "retry": 1000, "authority": "server"}.items():
             if spec.pop(key) != default:
                 raise ValueError(f"Widget wires do not support WebSocket option {key!r}")
