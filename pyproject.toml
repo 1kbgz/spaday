@@ -67,8 +67,6 @@ develop = [
     "pytest-benchmark",
     "pytest-cov",
     "ruff",
-    "spaday-codemirror>=0.2.0",  # combined awareness browser example
-    "spaday-regular-table>=0.3.0",  # combined awareness browser example
     "spaday-lightweight-charts>=0.1.0",  # example gallery browser tests
     "spaday-perspective>=0.1.0",  # gateway + omnibus browser example tests
     "spaday-webawesome>=0.1.0",  # form and example gallery browser tests

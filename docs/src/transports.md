@@ -316,7 +316,7 @@ Disposing one scope preserves others. Use one publishing binding per scope on a 
 multiple publishers targeting the same scope overwrite each other. The browser `connectAwareness`
 function exposes the same binding and returns an idempotent disposer.
 
-Run `python -m spaday.examples.awareness` after installing `spaday-codemirror` and
+Run `python -m spaday_codemirror.shared_table` after installing `spaday-codemirror` and
 `spaday-regular-table` for an editor/table example using two scopes on one socket. It displays remote
 selection state without prescribing cursor overlays. Scoped awareness requires compatible browser
 and server transports builds; it remains local to one Hub process. Notebook Session/Server wires

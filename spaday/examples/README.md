@@ -194,12 +194,6 @@ pn.panel(widget)
 
 ## Editor and table presence
 
-Install `spaday-codemirror` and `spaday-regular-table` alongside `spaday[examples]`, then run:
-
-```bash
-python -m spaday.examples.awareness
-```
-
-Open <http://127.0.0.1:8005/> in two browsers and select different users. Edit the notes or click a table
-cell. Editor and table selections use independent ephemeral scopes on one model and connection.
-The example displays remote state as lists; applications choose their own indicators and overlays.
+The [CodeMirror shared-table example](https://github.com/1kbgz/spaday-codemirror/blob/main/spaday_codemirror/shared_table.py)
+combines editor and table selections on one connection using independent awareness scopes. Its Python
+page displays remote state as lists; applications choose their own indicators and overlays.
