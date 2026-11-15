@@ -136,6 +136,14 @@ Changing tempo submits an edit validated by `Config`. Invalid values revert and 
 under `$errors.config.bpm`. The owning view's Play action updates locally before the kernel replies;
 `update_interval` controls how often client-owned updates are sent (default 0.25 seconds).
 
+Updates within one interval coalesce to the latest value per field. A value followed by a reset can
+reach Python only as the reset; adding unique request tokens does not preserve intermediate values.
+Use batched bindings for status and latest selections. For separate interactions while connected,
+flush after each binding update with `requestWire(element, namespace).client.flushOwned()`.
+This does not acknowledge application completion or replay requests after disconnect. See
+[state and request delivery](transports.md#choose-state-or-request-delivery) for event ordering,
+shared-client effects, and request-handler alternatives.
+
 Python assignments push automatically while the widget is open in an asynchronous kernel:
 
 ```python

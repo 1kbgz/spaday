@@ -184,6 +184,9 @@
     <a href="#keep-browser-owned-state-and-binary-data-in-sync">Keep browser-owned state and binary data in sync</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
+    <a href="#choose-state-or-request-delivery">Choose state or request delivery</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
     <a href="#host-a-model-and-wire-the-page">Host a model and wire the page</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
@@ -256,6 +259,35 @@ hydration, rather than emitted as HTML attributes. Use a component with a binary
 the sample in the browser, and replace it from Python. Reload or close the owner tab to exercise
 reconnection and handover. This example displays a waveform and playhead; it does not produce sound.
 Its Python model, WebSocket, and browser store use the normal transports and Spaday APIs.</p>
+</section>
+<section id="choose-state-or-request-delivery">
+<h2>Choose state or request delivery<a class="headerlink" href="#choose-state-or-request-delivery" title="Link to this heading">¶</a></h2>
+<p>Client-owned bindings describe the latest state. Transports updates the owning browser immediately,
+then sends the latest value of each changed field after <code class="docutils literal notranslate"><span class="pre">update_interval</span></code> seconds (default <code class="docutils literal notranslate"><span class="pre">0.25</span></code>).
+Writing a value and clearing it before that flush can send only the cleared value. Distinct timestamps
+or request IDs distinguish repeated selections across flushes; they do not prevent coalescing within
+one flush. Setting the interval to zero still schedules a timer, so synchronous writes can coalesce.</p>
+<p>Keep this behavior for status and selections where the latest value is sufficient. To keep separate
+interactions from coalescing while connected, flush after each binding update:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">requestWire</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s2">"@1kbgz/spaday"</span><span class="p">;</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">wire</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">requestWire</span><span class="p">(</span><span class="nx">element</span><span class="p">,</span><span class="w"> </span><span class="s2">"status"</span><span class="p">);</span>
+<span class="c1">// This field is declared client-owned and bound in the status namespace.</span>
+<span class="nx">wire</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s2">"status.step_request"</span><span class="p">,</span><span class="w"> </span><span class="nx">wire</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">"status.step_request"</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1</span><span class="p">);</span>
+<span class="nx">wire</span><span class="p">.</span><span class="nx">client</span><span class="p">.</span><span class="nx">flushOwned</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>Call <code class="docutils literal notranslate"><span class="pre">flushOwned()</span></code> after the event that updates the binding has finished dispatching. A listener
+registered before the binding can otherwise flush the previous value. Flushing sends pending
+client-owned fields on the shared client, including unrelated status. It preserves the existing
+ownership rules and does not change the interval for later writes.</p>
+<p>This is immediate delivery over the active connection, not an application acknowledgement or a
+retry queue. Disconnect cancels unsent status, and a new owner starts from a snapshot. For work that
+must survive disconnects or be confirmed complete, use an application request handler with request
+IDs, acknowledgements, and idempotent retries. Served pages can use
+<a class="reference internal" href="behavior.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">CallEndpoint</span></code></span></a>; notebook hosts can handle <a class="reference internal" href="notebook.html#handle-a-sendpatch-intent"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">SendPatch</span></code> intents</span></a>.
+Those actions do not provide durable delivery themselves. <code class="docutils literal notranslate"><span class="pre">Session.command()</span></code> is the queued
+Python-to-browser path; it does not receive browser-to-Python requests.</p>
 </section>
 <section id="host-a-model-and-wire-the-page">
 <h2>Host a model and wire the page<a class="headerlink" href="#host-a-model-and-wire-the-page" title="Link to this heading">¶</a></h2>
@@ -561,6 +593,9 @@ full pattern.</p>
     </svg><ul class="fd-toc-list">
   <li class="fd-toc-item" data-depth="1">
     <a href="#keep-browser-owned-state-and-binary-data-in-sync">Keep browser-owned state and binary data in sync</a>
+  </li>
+  <li class="fd-toc-item" data-depth="1">
+    <a href="#choose-state-or-request-delivery">Choose state or request delivery</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#host-a-model-and-wire-the-page">Host a model and wire the page</a>

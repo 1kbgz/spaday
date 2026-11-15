@@ -331,6 +331,13 @@ Select models with <code class="docutils literal notranslate"><span class="pre">
 <p>Changing tempo submits an edit validated by <code class="docutils literal notranslate"><span class="pre">Config</span></code>. Invalid values revert and publish an error
 under <code class="docutils literal notranslate"><span class="pre">$errors.config.bpm</span></code>. The owning view’s Play action updates locally before the kernel replies;
 <code class="docutils literal notranslate"><span class="pre">update_interval</span></code> controls how often client-owned updates are sent (default 0.25 seconds).</p>
+<p>Updates within one interval coalesce to the latest value per field. A value followed by a reset can
+reach Python only as the reset; adding unique request tokens does not preserve intermediate values.
+Use batched bindings for status and latest selections. For separate interactions while connected,
+flush after each binding update with <code class="docutils literal notranslate"><span class="pre">requestWire(element,</span> <span class="pre">namespace).client.flushOwned()</span></code>.
+This does not acknowledge application completion or replay requests after disconnect. See
+<a class="reference internal" href="transports.html#choose-state-or-request-delivery"><span class="std std-ref">state and request delivery</span></a> for event ordering,
+shared-client effects, and request-handler alternatives.</p>
 <p>Python assignments push automatically while the widget is open in an asynchronous kernel:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="o">.</span><span class="n">bpm</span> <span class="o">=</span> <span class="mi">140</span>
 <span class="n">config</span><span class="o">.</span><span class="n">sample</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"new pcm"</span>

@@ -60,6 +60,39 @@ the sample in the browser, and replace it from Python. Reload or close the owner
 reconnection and handover. This example displays a waveform and playhead; it does not produce sound.
 Its Python model, WebSocket, and browser store use the normal transports and Spaday APIs.
 
+## Choose state or request delivery
+
+Client-owned bindings describe the latest state. Transports updates the owning browser immediately,
+then sends the latest value of each changed field after `update_interval` seconds (default `0.25`).
+Writing a value and clearing it before that flush can send only the cleared value. Distinct timestamps
+or request IDs distinguish repeated selections across flushes; they do not prevent coalescing within
+one flush. Setting the interval to zero still schedules a timer, so synchronous writes can coalesce.
+
+Keep this behavior for status and selections where the latest value is sufficient. To keep separate
+interactions from coalescing while connected, flush after each binding update:
+
+```javascript
+import { requestWire } from "@1kbgz/spaday";
+
+const wire = requestWire(element, "status");
+// This field is declared client-owned and bound in the status namespace.
+wire.store.set("status.step_request", wire.store.get("status.step_request") + 1);
+wire.client.flushOwned();
+```
+
+Call `flushOwned()` after the event that updates the binding has finished dispatching. A listener
+registered before the binding can otherwise flush the previous value. Flushing sends pending
+client-owned fields on the shared client, including unrelated status. It preserves the existing
+ownership rules and does not change the interval for later writes.
+
+This is immediate delivery over the active connection, not an application acknowledgement or a
+retry queue. Disconnect cancels unsent status, and a new owner starts from a snapshot. For work that
+must survive disconnects or be confirmed complete, use an application request handler with request
+IDs, acknowledgements, and idempotent retries. Served pages can use
+[`CallEndpoint`](behavior.md); notebook hosts can handle [`SendPatch` intents](notebook.md#handle-a-sendpatch-intent).
+Those actions do not provide durable delivery themselves. `Session.command()` is the queued
+Python-to-browser path; it does not receive browser-to-Python requests.
+
 ## Host a model and wire the page
 
 Host a model in a transports `Session`, author a tree whose controls **two-way bind** to its fields, and
