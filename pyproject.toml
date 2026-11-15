@@ -2,7 +2,7 @@
 requires = [
     "hatchling",
     "hatch-js",
-    "hatch-rs>=0.3.0",
+    "hatch-rs>=0.6.1",
 ]
 build-backend = "hatchling.build"
 
@@ -54,7 +54,7 @@ develop = [
     "codespell",
     "flask",  # the Flask backend — covered by test_backend_flask
     "hatch-js",
-    "hatch-rs>=0.3.0",
+    "hatch-rs>=0.6.1",
     "hatchling",
     "httpx",  # starlette TestClient backend (for test_backend_starlette)
     "mdformat",
