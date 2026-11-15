@@ -243,10 +243,19 @@ export class Store {
     deltas?: readonly CollectionDelta[],
     change?: StoreChange,
   ): void {
+    const parts = field.split(".");
+    let parent = this.values.get(parts[0]);
+    for (let i = 1; i < parts.length; i += 1) {
+      if (Array.isArray(parent)) {
+        throw new TypeError(
+          `Cannot write through array '${parts.slice(0, i).join(".")}'; use a keyed item binding or replace the array`,
+        );
+      }
+      parent = isObj(parent) ? parent[parts[i]] : undefined;
+    }
     if (Object.is(this.get(field), value)) return;
     const related = this.related(field);
     const before = new Map(related.map((key) => [key, this.get(key)]));
-    const parts = field.split(".");
     if (parts.length === 1) {
       this.values.set(field, value);
     } else {
@@ -330,6 +339,7 @@ export class Store {
    * Set a field and notify subscribers; a no-op if unchanged. A dotted `field` sets a nested leaf,
    * rebuilding its parents immutably, and notifies the leaf plus its ancestors (whose identity changed)
    * and any subscribed descendant whose value changed.
+   * Paths through arrays throw; use a keyed item binding or replace the array instead.
    */
   set(field: Field, value: unknown, change?: StoreChange): void {
     this.write(field, value, undefined, change);

@@ -82,6 +82,11 @@ already accepted by the server. Calls without `request=` retain their behavior a
 
 ### Store notifications
 
+`Store.set()` and `Store.setCollection()` accept dotted paths through objects. A path through an
+array, such as `config.channels.0.name`, raises `TypeError` before changing state or notifying
+subscribers. Numeric object keys remain supported. Array fields can be replaced directly;
+individual record fields can use keyed `Each` item bindings.
+
 Browser `Store.set()` updates values and notifies subscribers synchronously.
 A subscriber can write again. When that write changes a path whose notifications
 are still running, it supersedes the older notifications for that path. Later
