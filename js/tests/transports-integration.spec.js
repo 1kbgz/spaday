@@ -643,6 +643,68 @@ test("selected links share a client, route edits, and reject ambiguous types", a
   expect(result.a).toBe(12);
 });
 
+for (const updateInterval of [0, 0.25]) {
+  test(`owner request boundaries use explicit flushes with interval ${updateInterval}`, async ({
+    page,
+  }) => {
+    await page.goto("/tests/transports.html");
+    await page.waitForFunction(() => window.__integration);
+    const result = await page.evaluate((updateInterval) => {
+      const { Client, Store, connectStore, toValue, fromValue } =
+        window.__integration;
+      const client = new Client("json", { updateInterval });
+      const store = new Store();
+      const sent = [];
+      const send = (frame) => sent.push(JSON.parse(frame));
+      client.attach(send);
+      const link = connectStore(store, client, undefined, {
+        fromValue,
+        toValue,
+      });
+      client.recv(
+        JSON.stringify({
+          t: "snapshot",
+          id: 1,
+          type: "Controls",
+          rev: 0,
+          value: toValue({ selection: "", request: 0 }),
+        }),
+      );
+      client.recv(
+        JSON.stringify({
+          t: "ownership",
+          id: 1,
+          fields: ["selection", "request"],
+          owned: true,
+          epoch: 1,
+        }),
+      );
+      store.set("selection", "1:first");
+      store.set("selection", "2:last");
+      const before = sent.length;
+      client.flushOwned();
+      store.set("selection", "3:first");
+      store.set("selection", "");
+      client.flushOwned();
+      for (const value of [1, 2, 3]) {
+        store.set("request", value);
+        client.flushOwned();
+      }
+      store.set("request", 4);
+      client.detach(send);
+      client.flushOwned();
+      link.dispose();
+      return {
+        before,
+        values: sent.flatMap((message) =>
+          message.patch.ops.map((op) => fromValue(op.Set.value)),
+        ),
+      };
+    }, updateInterval);
+    expect(result).toEqual({ before: 0, values: ["2:last", "", 1, 2, 3] });
+  });
+}
+
 test("owner bindings are immediate, coalesced, and never leave optimistic proposals", async ({
   page,
 }) => {
