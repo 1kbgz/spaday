@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "run_id": "10798bfed1ce4b7a9209aa67b8a99538",
+  "started_at": "2026-11-14T18:19:50.629242+00:00",
+  "ended_at": "2026-11-14T18:19:52.396548+00:00",
+  "status": "success",
+  "exit_code": 0,
+  "suite": {
+    "name": "spaday",
+    "repository": "https://github.com/1kbgz/spaday",
+    "version": "0.14.2",
+    "revision": "139cbf8d13c560ddac5eb93451754843fd9c04f2",
+    "branch": "add-shared-state-recipe",
+    "dirty": true,
+    "labels": {}
+  },
+  "subject": {
+    "name": "spaday",
+    "repository": "https://github.com/1kbgz/spaday",
+    "version": "0.14.2",
+    "revision": "139cbf8d13c560ddac5eb93451754843fd9c04f2",
+    "branch": "add-shared-state-recipe",
+    "dirty": true,
+    "labels": {}
+  },
+  "machine": {
+    "id": "mbp-m5",
+    "fingerprint": "4947e1f640c8e065b0bdc2b3f1c521f706461fb493daa642d995091105a41e96",
+    "metadata": {
+      "system": "Darwin",
+      "release": "25.6.0",
+      "architecture": "arm64",
+      "processor": "arm",
+      "cpu_count": 18,
+      "memory_gib": 64.0
+    },
+    "labels": {}
+  },
+  "environment": {
+    "fingerprint": "08a3e8e6b02c3b8e1bbdfca23dbe380db01a1fb4802f32e1154b169bf43bdabb",
+    "python_implementation": "CPython",
+    "python_version": "3.12.13",
+    "platform": "Darwin",
+    "architecture": "arm64",
+    "labels": {}
+  },
+  "tool": {
+    "benched": "0.5.1",
+    "pytest": "9.2.0",
+    "pytest_benchmark": "5.3.1"
+  },
+  "measurements": [
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=1000",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[1k]",
+      "name": "test_virtual_collection[1k]",
+      "group": null,
+      "parameter_id": "1k",
+      "parameters": {
+        "size": 1000
+      },
+      "unit": "seconds",
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "extra_info": {
+        "records": 1000,
+        "realized_rows": 18,
+        "row_height": 24,
+        "viewport_height": 240,
+        "overscan": 4
+      },
+      "stats": {
+        "min": 0.06591637432575226,
+        "max": 0.06833283416926861,
+        "mean": 0.06696150017281373,
+        "stddev": 0.0012408176180969406,
+        "rounds": 3,
+        "median": 0.06663529202342033,
+        "iqr": 0.0018123448826372623,
+        "q1": 0.06609610375016928,
+        "q3": 0.06790844863280654,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.06591637432575226,
+        "hd15iqr": 0.06833283416926861,
+        "ops": 14.933954547302667,
+        "total": 0.2008845005184412,
+        "iterations": 1
+      },
+      "samples": null
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=1000:peak-memory",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[1k]",
+      "name": "test_virtual_collection[1k] peak memory",
+      "group": null,
+      "parameter_id": "1k",
+      "parameters": {
+        "size": 1000
+      },
+      "unit": "bytes",
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "extra_info": {},
+      "stats": {
+        "peak_memory": 182501376
+      },
+      "samples": null
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=10000",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[10k]",
+      "name": "test_virtual_collection[10k]",
+      "group": null,
+      "parameter_id": "10k",
+      "parameters": {
+        "size": 10000
+      },
+      "unit": "seconds",
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "extra_info": {
+        "records": 10000,
+        "realized_rows": 18,
+        "row_height": 24,
+        "viewport_height": 240,
+        "overscan": 4
+      },
+      "stats": {
+        "min": 0.06336541660130024,
+        "max": 0.06667499989271164,
+        "mean": 0.06544097202519576,
+        "stddev": 0.0018081653303299147,
+        "rounds": 3,
+        "median": 0.0662824995815754,
+        "iqr": 0.00248218746855855,
+        "q1": 0.06409468734636903,
+        "q3": 0.06657687481492758,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.06336541660130024,
+        "hd15iqr": 0.06667499989271164,
+        "ops": 15.280946615752972,
+        "total": 0.19632291607558727,
+        "iterations": 1
+      },
+      "samples": null
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=10000:peak-memory",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[10k]",
+      "name": "test_virtual_collection[10k] peak memory",
+      "group": null,
+      "parameter_id": "10k",
+      "parameters": {
+        "size": 10000
+      },
+      "unit": "bytes",
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "extra_info": {},
+      "stats": {
+        "peak_memory": 182501376
+      },
+      "samples": null
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=100000",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[100k]",
+      "name": "test_virtual_collection[100k]",
+      "group": null,
+      "parameter_id": "100k",
+      "parameters": {
+        "size": 100000
+      },
+      "unit": "seconds",
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "extra_info": {
+        "records": 100000,
+        "realized_rows": 18,
+        "row_height": 24,
+        "viewport_height": 240,
+        "overscan": 4
+      },
+      "stats": {
+        "min": 0.06187395937740803,
+        "max": 0.06667033396661282,
+        "mean": 0.06505550040553014,
+        "stddev": 0.0027554004274243284,
+        "rounds": 3,
+        "median": 0.06662220787256956,
+        "iqr": 0.003597280941903591,
+        "q1": 0.06306102150119841,
+        "q3": 0.066658302443102,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.06187395937740803,
+        "hd15iqr": 0.06667033396661282,
+        "ops": 15.371490400756239,
+        "total": 0.1951665012165904,
+        "iterations": 1
+      },
+      "samples": null
+    },
+    {
+      "benchmark_id": "benchmarks/test_virtual_collection.py::test_virtual_collection|size=100000:peak-memory",
+      "nodeid": "benchmarks/test_virtual_collection.py::test_virtual_collection[100k]",
+      "name": "test_virtual_collection[100k] peak memory",
+      "group": null,
+      "parameter_id": "100k",
+      "parameters": {
+        "size": 100000
+      },
+      "unit": "bytes",
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "precision": null,
+        "confidence": null,
+        "warmup": false
+      },
+      "extra_info": {},
+      "stats": {
+        "peak_memory": 182501376
+      },
+      "samples": null
+    }
+  ],
+  "provenance": {
+    "source_format": "pytest-benchmark",
+    "source_file": null,
+    "source_checksum": null,
+    "warnings": []
+  }
+}
