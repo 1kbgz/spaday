@@ -201,6 +201,9 @@ Swap the `Session` for a [`Hub`](https://github.com/1kbgz/transports), which rou
 own tenant session (and can share models across tenants). The UI code is unchanged — `connectStore` and
 the bindings don't know whether the model is private or shared.
 
+For multiple workers, use the [shared-state deployment recipe](shared-deployment.md), which covers
+CRDT merging, tenant isolation, an elected producer, and recovery.
+
 ## Several models on one page
 
 Pass one `Wire`, or a list of them, to configure transports connections. Several models share one

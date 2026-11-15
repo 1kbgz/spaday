@@ -120,6 +120,11 @@
     </a>
   </li>
   <li class="fd-tree-item">
+    <a class="fd-link" href="shared-deployment.html">
+      <span class="fd-link-text">How to serve shared state across workers</span>
+    </a>
+  </li>
+  <li class="fd-tree-item">
     <a class="fd-link" href="notebook.html">
       <span class="fd-link-text">Use spaday in a Jupyter notebook</span>
     </a>
@@ -216,7 +221,7 @@ positional and application-keyed diff policies; and streamed or batched updates.
 final values, retained element identity, unsaved input, focus, and selection. Keyed cases require
 the optional <code class="docutils literal notranslate"><span class="pre">Store.host(list_keys=...)</span></code> API and skip on older transports builds. The browser client
 remains the version installed from Spaday’s lockfile.</p>
-<benched-report src="../../_static/benched/reports/results-ae5517fd23f8.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report></section>
+<benched-report src="../../_static/benched/reports/results-18016238dff4.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report></section>
 <section id="measurement-boundaries">
 <h2>Measurement boundaries<a class="headerlink" href="#measurement-boundaries" title="Link to this heading">¶</a></h2>
 <p>The keyed wire cases enforce operation-count budgets: one operation for insert, removal, update,
@@ -229,7 +234,7 @@ checks, not universal limits on application data.</p>
 <p><code class="docutils literal notranslate"><span class="pre">test_virtual_collection</span></code> measures fixed-height mount and scroll at 1k, 10k, and 100k records.
 Its viewport realizes 18 rows at each size. <code class="docutils literal notranslate"><span class="pre">test_server_window_round_trip</span></code> serves the Python
 example over HTTP and checks that a 100k-record source returns at most 20 records per window.</p>
-<benched-report src="../../_static/benched/reports/results-2feeaa95ce9b.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report><benched-report src="../../_static/benched/reports/results-34e59adbddb9.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report><p>Virtualization bounds the DOM while retaining the full source array. Server windows bound both the
+<benched-report src="../../_static/benched/reports/results-644cde02b41c.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report><benched-report src="../../_static/benched/reports/results-34e59adbddb9.json" view="trend" metric="median" x-axis="time" data-theme="inherit"></benched-report><p>Virtualization bounds the DOM while retaining the full source array. Server windows bound both the
 response and mirrored data. Rows leaving the viewport are disposed, except a focused row that still
 exists in the available data. Neither mode preserves arbitrary offscreen element-local state.</p>
 </section>

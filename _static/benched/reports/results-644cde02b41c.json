@@ -1,8 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-15T23:33:55.964965+00:00",
+  "generated_at": "2026-11-14T18:19:52.396548+00:00",
   "source_run_ids": [
-    "9b40aa6981f74c93bf1c2b17617616f9"
+    "9b40aa6981f74c93bf1c2b17617616f9",
+    "10798bfed1ce4b7a9209aa67b8a99538"
   ],
   "runs": [
     {
@@ -50,6 +51,50 @@
         "architecture": "arm64",
         "labels": {}
       }
+    },
+    {
+      "run_id": "10798bfed1ce4b7a9209aa67b8a99538",
+      "started_at": "2026-11-14T18:19:50.629242+00:00",
+      "status": "success",
+      "suite": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.14.2",
+        "revision": "139cbf8d13c560ddac5eb93451754843fd9c04f2",
+        "branch": "add-shared-state-recipe",
+        "dirty": true,
+        "labels": {}
+      },
+      "subject": {
+        "name": "spaday",
+        "repository": "https://github.com/1kbgz/spaday",
+        "version": "0.14.2",
+        "revision": "139cbf8d13c560ddac5eb93451754843fd9c04f2",
+        "branch": "add-shared-state-recipe",
+        "dirty": true,
+        "labels": {}
+      },
+      "machine": {
+        "id": "mbp-m5",
+        "fingerprint": "4947e1f640c8e065b0bdc2b3f1c521f706461fb493daa642d995091105a41e96",
+        "metadata": {
+          "architecture": "arm64",
+          "cpu_count": 18,
+          "memory_gib": 64.0,
+          "processor": "arm",
+          "release": "25.6.0",
+          "system": "Darwin"
+        },
+        "labels": {}
+      },
+      "environment": {
+        "fingerprint": "08a3e8e6b02c3b8e1bbdfca23dbe380db01a1fb4802f32e1154b169bf43bdabb",
+        "python_implementation": "CPython",
+        "python_version": "3.12.13",
+        "platform": "Darwin",
+        "architecture": "arm64",
+        "labels": {}
+      }
     }
   ],
   "benchmarks": [
@@ -71,6 +116,17 @@
             "min": 0.05351483402773738,
             "max": 0.0663877921178937,
             "ops": 16.124188426250484,
+            "peak_memory": null
+          }
+        },
+        {
+          "run_id": "10798bfed1ce4b7a9209aa67b8a99538",
+          "metrics": {
+            "median": 0.06663529202342033,
+            "mean": 0.06696150017281373,
+            "min": 0.06591637432575226,
+            "max": 0.06833283416926861,
+            "ops": 14.933954547302667,
             "peak_memory": null
           }
         }
@@ -96,6 +152,17 @@
             "ops": 15.255277925326833,
             "peak_memory": null
           }
+        },
+        {
+          "run_id": "10798bfed1ce4b7a9209aa67b8a99538",
+          "metrics": {
+            "median": 0.0662824995815754,
+            "mean": 0.06544097202519576,
+            "min": 0.06336541660130024,
+            "max": 0.06667499989271164,
+            "ops": 15.280946615752972,
+            "peak_memory": null
+          }
         }
       ]
     },
@@ -117,6 +184,17 @@
             "min": 0.06160929100587964,
             "max": 0.06672924989834428,
             "ops": 15.3846022821854,
+            "peak_memory": null
+          }
+        },
+        {
+          "run_id": "10798bfed1ce4b7a9209aa67b8a99538",
+          "metrics": {
+            "median": 0.06662220787256956,
+            "mean": 0.06505550040553014,
+            "min": 0.06187395937740803,
+            "max": 0.06667033396661282,
+            "ops": 15.371490400756239,
             "peak_memory": null
           }
         }
@@ -142,6 +220,17 @@
             "ops": null,
             "peak_memory": 178044928.0
           }
+        },
+        {
+          "run_id": "10798bfed1ce4b7a9209aa67b8a99538",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 182501376.0
+          }
         }
       ]
     },
@@ -165,6 +254,17 @@
             "ops": null,
             "peak_memory": 178044928.0
           }
+        },
+        {
+          "run_id": "10798bfed1ce4b7a9209aa67b8a99538",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 182501376.0
+          }
         }
       ]
     },
@@ -187,6 +287,17 @@
             "max": null,
             "ops": null,
             "peak_memory": 178044928.0
+          }
+        },
+        {
+          "run_id": "10798bfed1ce4b7a9209aa67b8a99538",
+          "metrics": {
+            "median": null,
+            "mean": null,
+            "min": null,
+            "max": null,
+            "ops": null,
+            "peak_memory": 182501376.0
           }
         }
       ]
