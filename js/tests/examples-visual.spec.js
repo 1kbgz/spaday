@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 
 const REPO = fileURLToPath(new URL("../..", import.meta.url));
 const EXAMPLES_DIR = path.join(REPO, "spaday", "examples");
-const SPECIALIZED_EXAMPLES = new Set(["pyodide.py"]);
+// shared-deployment.spec.js starts the broker and two workers for this example.
+const SPECIALIZED_EXAMPLES = new Set(["pyodide.py", "shared_deployment.py"]);
 const EXAMPLES = [
   { name: "__main__", selector: "spa-app" },
   { name: "cluster", selector: "lightweight-chart" },
