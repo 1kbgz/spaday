@@ -1696,6 +1696,10 @@ already accepted by the server. Calls without <code class="docutils literal notr
 </section>
 <section id="store-notifications">
 <h3>Store notifications<a class="headerlink" href="#store-notifications" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Store.set()</span></code> and <code class="docutils literal notranslate"><span class="pre">Store.setCollection()</span></code> accept dotted paths through objects. A path through an
+array, such as <code class="docutils literal notranslate"><span class="pre">config.channels.0.name</span></code>, raises <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> before changing state or notifying
+subscribers. Numeric object keys remain supported. Array fields can be replaced directly;
+individual record fields can use keyed <code class="docutils literal notranslate"><span class="pre">Each</span></code> item bindings.</p>
 <p>Browser <code class="docutils literal notranslate"><span class="pre">Store.set()</span></code> updates values and notifies subscribers synchronously.
 A subscriber can write again. When that write changes a path whose notifications
 are still running, it supersedes the older notifications for that path. Later
