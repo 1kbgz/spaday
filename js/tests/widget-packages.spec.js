@@ -532,6 +532,130 @@ test("execution failures require reload and do not reexecute on retry", async ({
   await page.evaluate(() => late.dispose());
 });
 
+for (const withPackages of [false, true]) {
+  test(`equal package state replays preserve synchronous tree updates (${withPackages ? "loaded" : "empty"})`, async ({
+    page,
+  }) => {
+    await packageHarness(page);
+    const result = await page.evaluate(async (withPackages) => {
+      const assets = packageModel(
+        { name: "replayed", id: "replayed", assets: [["js", "index.js"]] },
+        {
+          "index.js":
+            "globalThis.replayExecutions = (globalThis.replayExecutions ?? 0) + 1;",
+        },
+      );
+      const state = {
+        _tree: { tag: "div", props: { textContent: { Str: "Original" } } },
+        _packages: withPackages ? assets.get("_packages") : [],
+      };
+      const model = __widget.fakeModel(state);
+      assets._emit = (...args) => model._emit(...args);
+      let requests = 0;
+      model.send = (content) => {
+        if (content.type === "spaday:assets") requests++;
+        assets.send(content);
+      };
+      const host = document.createElement("div");
+      const dispose = await __widget.widget.render({ model, el: host });
+      const root = host.firstElementChild;
+      // Backbone assigns equal-valued attributes without emitting their change event.
+      state._packages = structuredClone(state._packages);
+      model.set("_tree", {
+        tag: "div",
+        props: { textContent: { Str: "Updated" } },
+      });
+      const result = {
+        text: host.textContent,
+        sameRoot: root === host.firstElementChild,
+        requests,
+        executions: globalThis.replayExecutions ?? 0,
+      };
+      dispose();
+      return result;
+    }, withPackages);
+    expect(result).toEqual({
+      text: "Updated",
+      sameRoot: true,
+      requests: withPackages ? 1 : 0,
+      executions: withPackages ? 1 : 0,
+    });
+  });
+}
+
+test("an already cancelled host never starts rendering or requesting packages", async ({
+  page,
+}) => {
+  await packageHarness(page);
+  const result = await page.evaluate(async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const model = packageModel(
+      { name: "cancelled", id: "cancelled", assets: [] },
+      {},
+    );
+    model.send = (content) => model._sent.push(content);
+    const host = document.createElement("div");
+    const error = await __widget.widget
+      .render({ model, el: host, signal: controller.signal })
+      .then(
+        () => null,
+        (e) => e.name,
+      );
+    return { error, children: host.childElementCount, messages: model._sent };
+  });
+  expect(result).toEqual({ error: "AbortError", children: 0, messages: [] });
+});
+
+test("a queued render can be cancelled without cancelling the active view", async ({
+  page,
+}) => {
+  await packageHarness(page);
+  await page.evaluate(async () => {
+    window.late = await dynamicWidget();
+    late.add(
+      "queued",
+      "globalThis.queuedExecutions = (globalThis.queuedExecutions ?? 0) + 1;",
+    );
+    window.queuedController = new AbortController();
+    window.queuedHost = document.createElement("div");
+    window.queuedResult = undefined;
+    __widget.widget
+      .render({
+        model: late.model,
+        el: queuedHost,
+        signal: queuedController.signal,
+      })
+      .then(
+        () => {
+          queuedResult = "ready";
+        },
+        (error) => {
+          queuedResult = error.name;
+        },
+      );
+  });
+  await page.waitForFunction(() => late.requests.length === 1);
+  await page.evaluate(() => queuedController.abort());
+  await page.waitForFunction(() => queuedResult === "AbortError");
+  expect(
+    await page.evaluate(() => [
+      queuedHost.childElementCount,
+      late.requests.length,
+    ]),
+  ).toEqual([0, 1]);
+  await page.evaluate(() => late.reply());
+  await page.waitForFunction(() => late.statuses.at(-1)?.status === "ready");
+  expect(
+    await page.evaluate(() => [
+      queuedExecutions,
+      late.requests.length,
+      late.statuses.filter((s) => s.status === "ready").length,
+    ]),
+  ).toEqual([1, 1, 1]);
+  await page.evaluate(() => late.dispose());
+});
+
 test("a later dependency can recover a preparation failure", async ({
   page,
 }) => {
@@ -597,34 +721,42 @@ test("a late package conflict reports an error before transfer or tree changes",
   await page.evaluate(() => late.dispose());
 });
 
-test("destroy during initial loading rejects render and ignores a late reply", async ({
-  page,
-}) => {
-  await packageHarness(page);
-  await page.evaluate(async () => {
-    window.late = await dynamicWidget();
-    late.dispose();
-    late.add("destroyed", "globalThis.destroyedExecuted = true;");
-    window.renderResult = __widget.widget
-      .render({ model: late.model, el: late.host })
-      .catch((error) => error.message);
-  });
-  await page.waitForFunction(() => late.requests.length === 1);
-  expect(
+for (const cancellation of ["destroy", "host"]) {
+  test(`${cancellation} during initial loading rejects render and ignores a late reply`, async ({
+    page,
+  }) => {
+    await packageHarness(page);
     await page.evaluate(async () => {
-      late.model._emit("destroy");
-      late.reply();
-      return await renderResult;
-    }),
-  ).toContain("Widget closed");
-  expect(
-    await page.evaluate(() => [
-      late.host.childElementCount,
-      globalThis.destroyedExecuted ?? false,
-      late.statuses.map((s) => s.status),
-    ]),
-  ).toEqual([0, false, ["loading"]]);
-});
+      window.late = await dynamicWidget();
+      late.dispose();
+      late.add("destroyed", "globalThis.destroyedExecuted = true;");
+      window.hostController = new AbortController();
+      window.renderResult = __widget.widget
+        .render({
+          model: late.model,
+          el: late.host,
+          signal: hostController.signal,
+        })
+        .catch((error) => error.message);
+    });
+    await page.waitForFunction(() => late.requests.length === 1);
+    expect(
+      await page.evaluate(async (cancellation) => {
+        if (cancellation === "destroy") late.model._emit("destroy");
+        else hostController.abort();
+        late.reply();
+        return await renderResult;
+      }, cancellation),
+    ).toMatch(/Widget closed|aborted/);
+    expect(
+      await page.evaluate(() => [
+        late.host.childElementCount,
+        globalThis.destroyedExecuted ?? false,
+        late.statuses.map((s) => s.status),
+      ]),
+    ).toEqual([0, false, ["loading"]]);
+  });
+}
 
 test("disposing a loading view cancels its transfer and lets another view load", async ({
   page,

@@ -81,12 +81,21 @@ export default {
   async render({
     model,
     el,
+    signal: hostSignal,
   }: {
     model: AnyModel;
     el: HTMLElement;
+    signal?: AbortSignal;
   }): Promise<() => void> {
+    hostSignal?.throwIfAborted();
     const controller = new AbortController();
     const { signal } = controller;
+    const aborted = new Promise<never>((_, reject) => {
+      signal.addEventListener("abort", () => reject(signal.reason), {
+        once: true,
+      });
+    });
+    void aborted.catch(() => {});
     const view = crypto.randomUUID();
     const store = new Store();
     let session: Awaited<ReturnType<typeof connectWidget>> | undefined;
@@ -97,7 +106,9 @@ export default {
     let packagesReady = false;
     let generation = 0;
     let packageTask: Promise<void>;
-    let packageSpecs: { name: string }[] | undefined;
+    const packageSpecs = () =>
+      (model.get("_packages") ?? []) as { name: string; id: string }[];
+    let packageIds: string[] = [];
     let packageNames: string[] = [];
     const report = (status: string, error?: unknown) => {
       if (signal.aborted || !packageNames.length) return;
@@ -112,7 +123,12 @@ export default {
     const onTree = () => {
       if (!root || !packagesReady || signal.aborted) return;
       // A combined trait update can emit change:_tree before change:_packages.
-      if (model.get("_packages") !== packageSpecs) return;
+      const specs = packageSpecs();
+      if (
+        specs.length !== packageIds.length ||
+        specs.some((spec, i) => spec.id !== packageIds[i])
+      )
+        return;
       const next = model.get("_tree") as Node;
       const patch = JSON.parse(
         diff(JSON.stringify(tree), JSON.stringify(next)),
@@ -123,8 +139,9 @@ export default {
     const refreshPackages = () => {
       const current = ++generation;
       packagesReady = false;
-      packageSpecs = model.get("_packages") as typeof packageSpecs;
-      packageNames = (packageSpecs ?? []).map((spec) => spec.name);
+      const specs = packageSpecs();
+      packageIds = specs.map((spec) => spec.id);
+      packageNames = specs.map((spec) => spec.name);
       report("loading");
       packageTask = loadWidgetPackages(model, signal)
         .then(() => {
@@ -148,7 +165,8 @@ export default {
         signal.throwIfAborted();
         const pending = packageTask;
         try {
-          await pending;
+          // A queued load may be waiting on another view that is still open.
+          await Promise.race([pending, aborted]);
         } catch (error) {
           if (pending === packageTask) throw error;
         }
@@ -170,6 +188,7 @@ export default {
     };
     const dispose = () => {
       controller.abort();
+      hostSignal?.removeEventListener("abort", dispose);
       stateLink();
       stopRequests();
       stateLink = stopRequests = () => {};
@@ -185,6 +204,7 @@ export default {
     model.on("change:_packages", refreshPackages);
     model.on("msg:custom", onMessage);
     model.on("destroy", dispose);
+    hostSignal?.addEventListener("abort", dispose, { once: true });
     try {
       refreshPackages();
       await ensureWasm();
