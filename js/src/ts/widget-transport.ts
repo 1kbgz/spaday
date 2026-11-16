@@ -185,15 +185,18 @@ export async function connectWidget(
   connected(false);
   return {
     start() {
+      if (disposed) return;
       model.on("msg:custom", receive);
       client.attach(sender);
       started = true;
-      for (const { spec, link } of wires)
+      for (const { spec, link } of wires) {
         el.dispatchEvent(
           new CustomEvent("spaday:wire-client", {
             detail: { client, link, store, namespace: spec.namespace ?? null },
           }),
         );
+        if (disposed) return;
+      }
       open();
     },
     dispose() {

@@ -134,6 +134,11 @@ export default {
         diff(JSON.stringify(tree), JSON.stringify(next)),
       );
       root = applyPatch(root!, patch, store);
+      if (signal.aborted) {
+        unmount(root);
+        root = undefined;
+        return;
+      }
       tree = next;
     };
     const refreshPackages = () => {
@@ -220,7 +225,9 @@ export default {
       await waitForPackages();
       tree = model.get("_tree") as Node;
       root = mount(el, tree, store);
+      signal.throwIfAborted();
       session?.start();
+      signal.throwIfAborted();
       for (const name of INTENTS) el.addEventListener(name, forward);
       report("ready");
       return dispose;

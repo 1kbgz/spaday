@@ -656,6 +656,79 @@ test("a queued render can be cancelled without cancelling the active view", asyn
   await page.evaluate(() => late.dispose());
 });
 
+for (const trigger of ["mount", "replacement", "session-start"]) {
+  test(`synchronous host cancellation during ${trigger} leaves no mounted tree or reopened session`, async ({
+    page,
+  }) => {
+    await packageHarness(page);
+    const result = await page.evaluate(async (trigger) => {
+      const controller = new AbortController();
+      customElements.define(
+        "cancel-on-connect",
+        class extends HTMLElement {
+          connectedCallback() {
+            controller.abort();
+          }
+        },
+      );
+      const model = __widget.fakeModel({
+        _tree: { tag: trigger === "mount" ? "cancel-on-connect" : "div" },
+        _wires: [
+          {
+            codec: "json",
+            ownership: false,
+            update_interval: 0,
+            flatten: false,
+          },
+        ],
+      });
+      const host = document.createElement("div");
+      document.body.append(host);
+      if (trigger === "session-start")
+        host.addEventListener("spaday:wire-client", () => controller.abort());
+      let error;
+      let dispose;
+      try {
+        dispose = await __widget.widget.render({
+          model,
+          el: host,
+          signal: controller.signal,
+        });
+        if (trigger === "replacement")
+          model.set("_tree", { tag: "cancel-on-connect" });
+      } catch (e) {
+        error = e.name;
+      }
+      const children = host.childElementCount;
+      // A cancelled view must not keep forwarding intents or processing new trees.
+      const messages = model._sent.length;
+      host.dispatchEvent(
+        new CustomEvent("spaday:patch", {
+          detail: { field: "value", value: 1 },
+        }),
+      );
+      model.set("_tree", { tag: "div" });
+      dispose?.();
+      return {
+        children,
+        finalChildren: host.childElementCount,
+        error,
+        newMessages: model._sent.length - messages,
+        ready: model._sent.filter((c) => c.ready).length,
+        closed: model._sent.filter((c) => c.closed).length,
+      };
+    }, trigger);
+    expect(result).toEqual({
+      children: 0,
+      finalChildren: 0,
+      error: trigger === "replacement" ? undefined : "AbortError",
+      newMessages: 0,
+      ready: trigger === "replacement" ? 1 : 0,
+      closed: trigger === "mount" ? 0 : 1,
+    });
+  });
+}
+
 test("a later dependency can recover a preparation failure", async ({
   page,
 }) => {
