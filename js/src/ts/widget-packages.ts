@@ -75,6 +75,7 @@ function resolvePath(
 function requestAssets(
   model: AnyModel,
   spec: PackageSpec,
+  signal?: AbortSignal,
 ): Promise<{ files: AssetFile[]; data: Uint8Array }> {
   return new Promise((resolve, reject) => {
     const request = crypto.randomUUID();
@@ -82,6 +83,7 @@ function requestAssets(
       clearTimeout(timer);
       model.off("msg:custom", receive);
       model.off("destroy", closed);
+      signal?.removeEventListener("abort", closed);
     };
     const closed = () => {
       clean();
@@ -115,7 +117,9 @@ function requestAssets(
     }, 60_000);
     model.on("msg:custom", receive);
     model.on("destroy", closed);
+    signal?.addEventListener("abort", closed, { once: true });
     try {
+      signal?.throwIfAborted();
       model.send({ type: "spaday:assets", request, package: spec.id });
     } catch (error) {
       clean();
@@ -227,7 +231,12 @@ function registerUrls(urls: Map<string, string>): void {
   registry.urls = urls;
 }
 
-async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
+async function load(
+  model: AnyModel,
+  specs: PackageSpec[],
+  signal?: AbortSignal,
+): Promise<void> {
+  signal?.throwIfAborted();
   const fresh = specs.filter((spec) => {
     const existing = registry.packages.get(spec.name);
     if (existing && existing.id !== spec.id)
@@ -273,13 +282,14 @@ async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
   }
   const sources = new Map(registry.sources);
   for (const spec of fresh) {
-    const { files, data } = await requestAssets(model, spec);
+    const { files, data } = await requestAssets(model, spec, signal);
     for (const file of files)
       sources.set(new URL(file.path, base(spec)).href, {
         data: data.slice(file.offset, file.offset + file.length),
         type: file.type,
       });
   }
+  signal?.throwIfAborted();
   const urls = prepareAssets(
     fresh.flatMap((spec) =>
       spec.assets.map(([, path]) => new URL(path, base(spec)).href),
@@ -312,7 +322,11 @@ async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
           });
         }
       }
-    })();
+    })().catch((error) => {
+      throw new Error(
+        `Notebook package ${spec.name} failed during execution; reload the document: ${error instanceof Error ? error.message : error}`,
+      );
+    });
     registry.packages.set(spec.name, { id: spec.id, loaded });
     await loaded;
   }
@@ -322,10 +336,13 @@ async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
 }
 
 /** Load selected packages once per document before any component properties are assigned. */
-export function loadWidgetPackages(model: AnyModel): Promise<void> {
+export function loadWidgetPackages(
+  model: AnyModel,
+  signal?: AbortSignal,
+): Promise<void> {
   const specs = (model.get("_packages") ?? []) as PackageSpec[];
   if (!specs.length) return Promise.resolve();
-  const loaded = registry.queue.then(() => load(model, specs));
+  const loaded = registry.queue.then(() => load(model, specs, signal));
   registry.queue = loaded.catch(() => {});
   return loaded;
 }

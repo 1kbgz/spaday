@@ -27,7 +27,7 @@ import traitlets
 
 from .bootstrap import Wire
 from .component import Component
-from .packages import PackageRef, resolve_component_packages
+from .packages import PackageRef, _resolve_package_ref, resolve_component_packages
 from .ui.design import Design, resolve, select_design
 
 if TYPE_CHECKING:
@@ -70,6 +70,7 @@ class Widget(anywidget.AnyWidget):
         self._stop_sync = None
         self._server = None
         self._bundles = {}
+        self._closed = False
         if session is not None and state is not None:
             raise ValueError("Widget state and session are mutually exclusive")
         if session is None and wires is not None:
@@ -84,6 +85,7 @@ class Widget(anywidget.AnyWidget):
             self._server = server_for(session)
         self._autosync = autosync
         selected = resolve_component_packages(packages)
+        self._component_packages = selected
         resolved_design = select_design(design, selected)
         if selected:
             from .widget_packages import bundle_package
@@ -98,6 +100,7 @@ class Widget(anywidget.AnyWidget):
         self._wires = specs
         self._packages = [bundle.descriptor for bundle in self._bundles.values()]
         self._intent_handlers: list[Callable[[dict], None]] = []
+        self._package_handlers: list[Callable[[dict], None]] = []
         self.on_msg(self._on_msg)
         if self._server is not None:
             from .widget_transport import WidgetChannel
@@ -110,6 +113,7 @@ class Widget(anywidget.AnyWidget):
         return self._server
 
     def close(self) -> None:
+        self._closed = True
         channel = getattr(self, "_channel", None)
         if channel is not None:
             channel.close()
@@ -122,7 +126,53 @@ class Widget(anywidget.AnyWidget):
         bundles = getattr(self, "_bundles", None)
         if bundles is not None:
             bundles.clear()
+        self._component_packages = ()
+        getattr(self, "_package_handlers", []).clear()
         super().close()
+
+    def add_packages(self, *refs: PackageRef) -> None:
+        """Add component packages to existing and future views; identical additions are a no-op.
+
+        Resolve and bundle the complete addition before announcing it. A selected package cannot
+        change content, and adding packages does not change the widget's selected design.
+        """
+        from .widget_packages import bundle_package
+
+        if self._closed:
+            raise ValueError("Widget is closed")
+        selected = {package.name: package for package in self._component_packages}
+        bundles = dict(self._bundles)
+        identities = {bundle.descriptor["name"]: bundle.descriptor["id"] for bundle in bundles.values()}
+        for ref in refs:
+            package = _resolve_package_ref(ref)
+            bundle = bundle_package(package)
+            identity = bundle.descriptor["id"]
+            if package.name in identities and identities[package.name] != identity:
+                raise ValueError(f"component package {package.name!r} changed after selection; create a new widget and reload the document")
+            selected[package.name] = package
+            identities[package.name] = identity
+            bundles[identity] = bundle
+        self._component_packages = resolve_component_packages(tuple(selected.values()))
+        self._bundles = bundles
+        self._packages = [bundle.descriptor for bundle in bundles.values()]
+
+    def on_packages(self, handler: Callable[[dict], None]) -> None:
+        """Receive per-view package status: ``view``, ``packages``, ``status``, and optional ``error``.
+
+        Status is ``loading``, ``ready``, or ``error``. A ready view has loaded its announced
+        package set and applied the latest tree. Other displayed views may still be loading.
+        """
+        self._package_handlers.append(handler)
+
+    def retry_packages(self) -> None:
+        """Retry package loading in displayed views after a transfer or preparation failure.
+
+        JavaScript that has already begun execution cannot be replaced or safely re-executed;
+        execution failures require reloading the document.
+        """
+        if self._closed:
+            raise ValueError("Widget is closed")
+        self.send({"type": "spaday:packages:retry"})
 
     def update(self, tree: Tree) -> None:
         """Replace the rendered tree; the browser applies a minimal diff to the live DOM."""
@@ -153,6 +203,10 @@ class Widget(anywidget.AnyWidget):
         self._intent_handlers.append(handler)
 
     def _on_msg(self, _widget: Any, content: Any, _buffers: Any) -> None:
+        if isinstance(content, dict) and content.get("type") == "spaday:packages":
+            for handler in self._package_handlers:
+                handler(content)
+            return
         if isinstance(content, dict) and content.get("type") == "spaday:assets":
             request = content.get("request")
             package_id = content.get("package")

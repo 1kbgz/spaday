@@ -214,6 +214,10 @@ def _from_entry_point(name: str) -> ComponentPackage:
     return _require_package(matches[0].load(), f"component package entry point {name!r}")
 
 
+def _resolve_package_ref(package: PackageRef) -> ComponentPackage:
+    return package if isinstance(package, ComponentPackage) else (_from_python_path(package) if ":" in package else _from_entry_point(package))
+
+
 def resolve_component_packages(packages: PackageRef | Sequence[PackageRef] = ()) -> tuple[ComponentPackage, ...]:
     """Resolve descriptors, ``module:attribute`` paths, or installed entry-point names.
 
@@ -221,10 +225,7 @@ def resolve_component_packages(packages: PackageRef | Sequence[PackageRef] = ())
     never injects assets into unrelated applications.
     """
     refs = (packages,) if isinstance(packages, (str, ComponentPackage)) else packages
-    resolved = tuple(
-        package if isinstance(package, ComponentPackage) else (_from_python_path(package) if ":" in package else _from_entry_point(package))
-        for package in refs
-    )
+    resolved = tuple(_resolve_package_ref(package) for package in refs)
     names = [package.name for package in resolved]
     duplicate = next((name for name in names if names.count(name) > 1), None)
     if duplicate is not None:

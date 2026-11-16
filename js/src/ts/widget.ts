@@ -85,33 +85,34 @@ export default {
     model: AnyModel;
     el: HTMLElement;
   }): Promise<() => void> {
-    await ensureWasm();
-
-    await loadWidgetPackages(model);
-
-    // State mode seeds bindings before mount; session mode receives snapshots after mounting.
+    const controller = new AbortController();
+    const { signal } = controller;
+    const view = crypto.randomUUID();
     const store = new Store();
-    const session = (model.get("_wires") as unknown[] | undefined)?.length
-      ? await connectWidget(store, model, el)
-      : undefined;
-    const stateLink = session
-      ? () => session.dispose()
-      : connectState(store, model);
-    const stopRequests = session ? () => {} : provideWires(el, []);
-
+    let session: Awaited<ReturnType<typeof connectWidget>> | undefined;
+    let stateLink = () => {};
+    let stopRequests = () => {};
     let tree = model.get("_tree") as Node;
     let root: Element | undefined;
-    try {
-      root = mount(el, tree, store);
-      session?.start();
-    } catch (error) {
-      if (root) unmount(root);
-      stateLink();
-      stopRequests();
-      throw error;
-    }
-
+    let packagesReady = false;
+    let generation = 0;
+    let packageTask: Promise<void>;
+    let packageSpecs: { name: string }[] | undefined;
+    let packageNames: string[] = [];
+    const report = (status: string, error?: unknown) => {
+      if (signal.aborted || !packageNames.length) return;
+      model.send({
+        type: "spaday:packages",
+        view,
+        packages: packageNames,
+        status,
+        ...(error === undefined ? {} : { error: String(error) }),
+      });
+    };
     const onTree = () => {
+      if (!root || !packagesReady || signal.aborted) return;
+      // A combined trait update can emit change:_tree before change:_packages.
+      if (model.get("_packages") !== packageSpecs) return;
       const next = model.get("_tree") as Node;
       const patch = JSON.parse(
         diff(JSON.stringify(tree), JSON.stringify(next)),
@@ -119,7 +120,44 @@ export default {
       root = applyPatch(root!, patch, store);
       tree = next;
     };
-    model.on("change:_tree", onTree);
+    const refreshPackages = () => {
+      const current = ++generation;
+      packagesReady = false;
+      packageSpecs = model.get("_packages") as typeof packageSpecs;
+      packageNames = (packageSpecs ?? []).map((spec) => spec.name);
+      report("loading");
+      packageTask = loadWidgetPackages(model, signal)
+        .then(() => {
+          if (current !== generation || signal.aborted) return;
+          packagesReady = true;
+          onTree();
+          if (root) report("ready");
+        })
+        .catch((error) => {
+          if (current === generation) {
+            packagesReady = false;
+            report("error", error);
+          }
+          throw error;
+        });
+      // Late failures are reported to Python; initial failures also reject render().
+      void packageTask.catch(() => {});
+    };
+    const waitForPackages = async () => {
+      while (!packagesReady) {
+        signal.throwIfAborted();
+        const pending = packageTask;
+        try {
+          await pending;
+        } catch (error) {
+          if (pending === packageTask) throw error;
+        }
+      }
+      signal.throwIfAborted();
+    };
+    const onMessage = (content: any) => {
+      if (content?.type === "spaday:packages:retry") refreshPackages();
+    };
 
     const forward = (event: Event) => {
       const detail = (event as CustomEvent).detail;
@@ -130,14 +168,45 @@ export default {
         );
       model.send({ type: event.type, detail });
     };
-    for (const name of INTENTS) el.addEventListener(name, forward);
-
-    return () => {
+    const dispose = () => {
+      controller.abort();
       stateLink();
       stopRequests();
+      stateLink = stopRequests = () => {};
       model.off("change:_tree", onTree);
+      model.off("change:_packages", refreshPackages);
+      model.off("msg:custom", onMessage);
+      model.off("destroy", dispose);
       for (const name of INTENTS) el.removeEventListener(name, forward);
-      unmount(root!);
+      if (root) unmount(root);
+      root = undefined;
     };
+    model.on("change:_tree", onTree);
+    model.on("change:_packages", refreshPackages);
+    model.on("msg:custom", onMessage);
+    model.on("destroy", dispose);
+    try {
+      refreshPackages();
+      await ensureWasm();
+      await waitForPackages();
+      // State mode seeds bindings before mount; session mode receives snapshots after mounting.
+      session = (model.get("_wires") as unknown[] | undefined)?.length
+        ? await connectWidget(store, model, el)
+        : undefined;
+      stateLink = session
+        ? () => session!.dispose()
+        : connectState(store, model);
+      stopRequests = session ? () => {} : provideWires(el, []);
+      await waitForPackages();
+      tree = model.get("_tree") as Node;
+      root = mount(el, tree, store);
+      session?.start();
+      for (const name of INTENTS) el.addEventListener(name, forward);
+      report("ready");
+      return dispose;
+    } catch (error) {
+      dispose();
+      throw error;
+    }
   },
 };

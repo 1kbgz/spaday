@@ -7,10 +7,12 @@ from unittest.mock import Mock
 
 from spaday import Widget, element
 
+tree = element("div", element("wa-input", id="name").bind("value", "name", mode="two-way"), element("wa-button", "Save"))
+late = "--late" in sys.argv
 widget = Widget(
-    element("div", element("wa-input", id="name").bind("value", "name", mode="two-way"), element("wa-button", "Save")),
+    element("div", "Original") if late else tree,
     state={"name": "Ada"},
-    packages=["webawesome"],
+    packages=[] if late else ["webawesome"],
 )
 sent = []
 widget.send = Mock(
@@ -19,7 +21,11 @@ widget.send = Mock(
 try:
     for line in sys.stdin:
         request = json.loads(line)
-        if request["op"] == "describe":
+        if request["op"] == "add":
+            widget.add_packages("webawesome")
+            widget.update(tree)
+            result = {"_tree": widget._tree, "_packages": widget._packages}
+        elif request["op"] == "describe":
             result = {"_tree": widget._tree, "_state": widget._state, "_packages": widget._packages}
         elif request["op"] == "receive":
             widget._msg_callbacks(widget, request["content"], [])

@@ -61,6 +61,40 @@ for packaged images or WASM fetched at runtime. Arbitrary URLs constructed from 
 and worker module graphs are not supported by this loader. Test packages with such assets in a
 notebook before advertising notebook support.
 
+## Add a package from a later cell
+
+Keep the displayed widget and call `add_packages` before updating its tree to use the new components:
+
+```python
+w = Widget(element("div", "Loading controls"))
+w
+```
+
+In a later cell, after installing `spaday-webawesome`:
+
+```python
+w.on_packages(lambda event: print(event["view"], event["status"], event.get("error", "")))
+w.add_packages("webawesome")
+w.update(element("wa-button", "Run"))
+```
+
+`add_packages(*refs)` accepts the same package references as `packages=`. It resolves and bundles the
+addition before notifying displayed views; invalid additions leave the selection unchanged.
+Identical additions are a no-op. Adding packages preserves the design chosen at construction, so use
+the new package's concrete components or create another widget to select its design.
+
+Each view keeps its current tree while packages load, then applies the latest `update`. Assets are
+shared across views and widgets in the document. Use `on_packages` to observe `loading`, `ready`, and
+`error` notifications. Each notification includes a `view` ID and the announced package names in
+`packages`; `ready` means that view has loaded those packages and applied the latest tree. Other views
+may still be loading. Register the callback before displaying the widget to observe initial loading.
+
+After a transfer or asset-preparation failure in an existing view, call `w.retry_packages()` to retry.
+The old tree remains visible until loading succeeds. If initial rendering failed, display the widget
+again. If JavaScript execution failed, reload the notebook document before redisplaying it: module
+execution and custom-element registration cannot be rolled back. Packages cannot be removed or
+replaced in a running document; after upgrading a selected package, create a new widget and reload.
+
 ## Update the rendered tree
 
 Keep a reference and call `update` to replace the tree; the browser applies a minimal diff (live
@@ -172,9 +206,9 @@ a Server. In a synchronous host, or when the application already drives comm syn
 `autosync=False` and call `transports.sync(w.server)` after mutations. Transports' socket-oriented
 `autosync()` is not the comm driver.
 
-Configure `session`, `wires`, `packages`, and `design` when constructing the widget. `update(tree)`
-changes the tree using that configuration; it does not replace the connection or selected packages.
-Close the widget and construct another to change those settings. Removing one displayed view releases
+Configure `session`, `wires`, and `design` when constructing the widget. `update(tree)` changes the tree
+using that configuration; use `add_packages` to extend the package selection. Close the widget and
+construct another to change its connection or design. Removing one displayed view releases
 that view's ownership; `w.close()` releases every view and this widget's share of the kernel sync task.
 
 Notebook wires accept the shared `Wire` defaults, but reject nondefault WebSocket-only options rather
