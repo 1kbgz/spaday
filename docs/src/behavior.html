@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Add behavior and reactivity &#8212; spaday v0.14.3</title>
+    <title>Add behavior and reactivity &#8212; spaday v0.14.4</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma.css?v=ca04d621" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma-code.css?v=a950e949" />
@@ -17,7 +17,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
-    <script src="../../_static/documentation_options.js?v=a9ba800c"></script>
+    <script src="../../_static/documentation_options.js?v=623310c1"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -51,7 +51,7 @@
   <div class="fd-subnav-inner">
     <button type="button" class="fd-icon-button fd-sidebar-toggle" aria-controls="fd-sidebar" aria-expanded="false" aria-label="Toggle navigation" title="Toggle navigation">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.3</span>
+    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.4</span>
 </a>
 
     <div class="fd-nav-actions">
@@ -66,7 +66,7 @@
 
 <aside id="fd-sidebar" aria-label="Documentation">
   <div class="fd-sidebar-header">
-    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.3</span>
+    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.4</span>
 </a>
       <button type="button" class="fd-icon-button fd-sidebar-collapse" aria-label="Collapse sidebar" title="Collapse sidebar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
     </div>
@@ -203,6 +203,9 @@
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#call-component-methods-and-browser-side-effects">Call component methods and browser side effects</a>
+  </li>
+  <li class="fd-toc-item" data-depth="2">
+    <a href="#components-that-load-after-the-page">Components that load after the page</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#the-escape-hatch">The escape hatch</a>
@@ -504,6 +507,30 @@ data — while purely synchronous action chains still apply in the same tick:</p
 <p>Prefer methods a component’s manifest declares — they are part of its public surface. Method names
 are not yet checked against the catalog at authoring time (a mistyped name logs a console error at
 event time); catalog-backed validation is planned alongside CEM method parsing.</p>
+<section id="components-that-load-after-the-page">
+<h3>Components that load after the page<a class="headerlink" href="#components-that-load-after-the-page" title="Link to this heading">¶</a></h3>
+<p>A component bundle may define its elements some time after the page mounts. Until then an element
+is in the tree but has none of its methods or properties. Actions may still be fired at it, which
+wait 10 seconds (configurable via <code class="docutils literal notranslate"><span class="pre">definition_timeout</span></code> kwarg). If the element is still undefined,
+the action is dropped, the rest of its <code class="docutils literal notranslate"><span class="pre">Sequence</span></code> does not run, and the console names the tag. An
+action is also dropped when its element is removed while it waits or its class fails to upgrade.
+Spaday cancels pending actions when it removes or replaces their event handler.</p>
+<p>Only expressions that execute wait for definitions: unused conditional branches and short-circuited
+<code class="docutils literal notranslate"><span class="pre">all</span></code>/<code class="docutils literal notranslate"><span class="pre">any</span></code> operands do not wait. Existing DOM properties and primitive attribute fallbacks remain
+readable immediately. Queued properties are applied before methods run, and newer writes supersede
+earlier queued values.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Invoke</span></code> calls on the same element start in the order they arrive, including when arguments need
+other elements to load. A returned promise delays that invocation’s <code class="docutils literal notranslate"><span class="pre">Sequence</span></code>, but does not block
+later invocations. Property writes and expression reads, including <code class="docutils literal notranslate"><span class="pre">call</span></code>, run independently of this
+invocation queue. Use <code class="docutils literal notranslate"><span class="pre">Sequence</span></code> when those operations must follow an invocation.</p>
+<p><code class="docutils literal notranslate"><span class="pre">bootstrap</span></code>, every backend’s <code class="docutils literal notranslate"><span class="pre">mount</span></code> and <code class="docutils literal notranslate"><span class="pre">serve</span></code>, and Starlette’s <code class="docutils literal notranslate"><span class="pre">PageSpec</span></code> take the same option.
+It accepts integers from 1 through 2147483647 milliseconds, applies to the whole page, and is separate from <code class="docutils literal notranslate"><span class="pre">Lifecycle(timeout=...)</span></code>, which bounds startup.
+A hand-written bootstrap calls <code class="docutils literal notranslate"><span class="pre">setDefinitionTimeout(30000)</span></code> from the browser package before
+mounting. A notebook widget always uses the 10 second default. The wait ends when the element is
+<em>defined</em>, so a package that registers its element first and loads its internals afterwards may
+not be upgraded.</p>
+<p>Style a component that has not loaded with the CSS selector <code class="docutils literal notranslate"><span class="pre">:not(:defined)</span></code>.</p>
+</section>
 </section>
 <section id="the-escape-hatch">
 <h2>The escape hatch<a class="headerlink" href="#the-escape-hatch" title="Link to this heading">¶</a></h2>
@@ -749,6 +776,9 @@ show a separate copy button using the saved URL; the action does not bypass brow
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#call-component-methods-and-browser-side-effects">Call component methods and browser side effects</a>
+  </li>
+  <li class="fd-toc-item" data-depth="2">
+    <a href="#components-that-load-after-the-page">Components that load after the page</a>
   </li>
   <li class="fd-toc-item" data-depth="1">
     <a href="#the-escape-hatch">The escape hatch</a>

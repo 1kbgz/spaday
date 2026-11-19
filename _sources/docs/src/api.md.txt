@@ -227,6 +227,10 @@ removal does not invoke Spaday cleanup; call the disposer explicitly if a host
 owns removal. `whenReady` only waits for declared elements, rejects on timeout
 or disposal, and does not itself make the root inert.
 
+`setDefinitionTimeout(ms)` sets how long an action waits for a custom element that
+is not defined yet before it is dropped (10000 by default). See
+[Components that load after the page](behavior.md#components-that-load-after-the-page).
+
 `trackRoot(root, tree, source, store?, lifecycle?)` returns a handle with a current
 `root` and an idempotent `dispose()`. Optional `onReplace(root)` and `onDispose()`
 callbacks describe the mount lifetime, distinct from element controllers. Root

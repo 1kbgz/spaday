@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>spaday.bootstrap &#8212; spaday v0.14.3</title>
+    <title>spaday.bootstrap &#8212; spaday v0.14.4</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma.css?v=ca04d621" />
     <link rel="stylesheet" type="text/css" href="../../_static/fuma-code.css?v=a950e949" />
@@ -16,7 +16,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
     <link rel="stylesheet" type="text/css" href="../../_static/fonts/fuma-fonts.css?v=c2892c73" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/custom.css?v=88c24c6a" />
-    <script src="../../_static/documentation_options.js?v=a9ba800c"></script>
+    <script src="../../_static/documentation_options.js?v=623310c1"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -455,7 +455,7 @@ window.runMermaid = runMermaid;</script>
   <div class="fd-subnav-inner">
     <button type="button" class="fd-icon-button fd-sidebar-toggle" aria-controls="fd-sidebar" aria-expanded="false" aria-label="Toggle navigation" title="Toggle navigation">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.3</span>
+    </button><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.4</span>
 </a>
 
     <div class="fd-nav-actions">
@@ -470,7 +470,7 @@ window.runMermaid = runMermaid;</script>
 
 <aside id="fd-sidebar" aria-label="Documentation">
   <div class="fd-sidebar-header">
-    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.3</span>
+    <div class="fd-sidebar-brand-row"><a class="fd-brand" href="../../index.html"><span class="fd-brand-name">spaday v0.14.4</span>
 </a>
       <button type="button" class="fd-icon-button fd-sidebar-collapse" aria-label="Collapse sidebar" title="Collapse sidebar"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="fd-icon "><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg></button>
     </div>
@@ -1025,6 +1025,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">stylesheet_anchor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">package_scripts</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="n">asset_urls</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">definition_timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired</span>
 <span class="sd">    to transports. ``wire="transports"`` mirrors one model with default settings; a :class:`Wire` or list</span>
@@ -1076,6 +1077,7 @@ window.runMermaid = runMermaid;</script>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"connectStore"</span><span class="p">,</span> <span class="s2">"provideWires"</span><span class="p">]</span> <span class="k">if</span> <span class="n">wired</span> <span class="k">else</span> <span class="p">[])</span>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"connectAwareness"</span><span class="p">]</span> <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"awareness"</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="p">(</span><span class="n">wires</span> <span class="ow">or</span> <span class="p">[]))</span> <span class="k">else</span> <span class="p">[])</span>
         <span class="o">+</span> <span class="p">([</span><span class="s2">"decodeFrame"</span><span class="p">]</span> <span class="k">if</span> <span class="n">frame</span> <span class="k">else</span> <span class="p">[])</span>
+        <span class="o">+</span> <span class="p">([</span><span class="s2">"setDefinitionTimeout"</span><span class="p">]</span> <span class="k">if</span> <span class="n">definition_timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">lifecycle</span><span class="p">:</span>
         <span class="n">runtime_names</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"trackRoot: trackTree"</span>
@@ -1106,6 +1108,8 @@ window.runMermaid = runMermaid;</script>
         <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">'import </span><span class="se">{{</span><span class="s1"> </span><span class="si">{</span><span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">runtime_names</span><span class="p">)</span><span class="si">}</span><span class="s1"> </span><span class="se">}}</span><span class="s1"> from "</span><span class="si">{</span><span class="n">js</span><span class="si">}{</span><span class="n">assets</span><span class="p">[</span><span class="s2">"runtime"</span><span class="p">]</span><span class="si">}</span><span class="s1">";'</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">definition_timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"setDefinitionTimeout(</span><span class="si">{</span><span class="n">definition_timeout</span><span class="si">}</span><span class="s2">);"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">wired</span><span class="p">:</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';"</span><span class="p">)</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -1299,6 +1303,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">url</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">design</span><span class="p">:</span> <span class="n">Design</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">lifecycle</span><span class="p">:</span> <span class="n">Lifecycle</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">definition_timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">_asset_urls</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /</span>
@@ -1336,11 +1341,17 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    :func:`bundles_dir`. ``lifecycle=Lifecycle(...)`` enables mounted/ready/error events,</span>
 <span class="sd">    bounded required-asset loading, and root-owned cleanup; default behavior is unchanged.</span>
 <span class="sd">    Readiness covers declared components, not application data. See the API reference for</span>
-<span class="sd">    event details and host fallback composition."""</span>
+<span class="sd">    event details and host fallback composition. ``definition_timeout`` sets how long, in</span>
+<span class="sd">    milliseconds, an action waits for a component that is defined after the page mounts before it</span>
+<span class="sd">    is dropped (10000 when omitted); it is independent of ``lifecycle``."""</span>
     <span class="k">if</span> <span class="n">tree</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"json"</span><span class="p">,</span> <span class="s2">"frame"</span><span class="p">,</span> <span class="s2">"inline"</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"tree must be 'json', 'frame', or 'inline', not </span><span class="si">{</span><span class="n">tree</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">lifecycle</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lifecycle</span><span class="p">,</span> <span class="n">Lifecycle</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"lifecycle must be a Lifecycle or None"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">definition_timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">definition_timeout</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">definition_timeout</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">definition_timeout</span> <span class="o">&lt;=</span> <span class="mi">2147483647</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"definition_timeout must be an integer from 1 to 2147483647"</span><span class="p">)</span>
     <span class="n">n</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">' nonce="</span><span class="si">{</span><span class="n">nonce</span><span class="si">}</span><span class="s1">"'</span> <span class="k">if</span> <span class="n">nonce</span> <span class="k">else</span> <span class="s2">""</span>
     <span class="n">component_packages</span> <span class="o">=</span> <span class="n">resolve_component_packages</span><span class="p">(</span><span class="n">packages</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">"inline"</span> <span class="ow">and</span> <span class="n">page</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1406,6 +1417,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">stylesheet_anchor</span><span class="p">,</span>
         <span class="n">package_scripts</span><span class="p">,</span>
         <span class="n">asset_urls</span><span class="o">=</span><span class="n">_asset_urls</span><span class="p">,</span>
+        <span class="n">definition_timeout</span><span class="o">=</span><span class="n">definition_timeout</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment</span><span class="p">:</span>
         <span class="n">head_block</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">head_markup</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span> <span class="k">if</span> <span class="n">head_markup</span> <span class="k">else</span> <span class="s2">""</span>
