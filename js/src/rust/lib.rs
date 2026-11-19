@@ -6,29 +6,40 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
+    #[wasm_bindgen(js_namespace = console, js_name = error)]
+    fn report_error(error: JsValue);
     /// The DOM primitives the browser supplies so the (DOM-free) core interpreter can run. The
     /// interpreter decides *what* to do; this thin host does the actual DOM poking.
     pub type Host;
     #[wasm_bindgen(method)]
     fn cancelled(this: &Host) -> bool;
-    #[wasm_bindgen(method, js_name = whenDefined)]
-    fn when_defined(this: &Host, el: &JsValue, prop: Option<&str>) -> JsValue;
+    #[wasm_bindgen(catch, method, js_name = whenDefined)]
+    fn when_defined(this: &Host, el: &JsValue, prop: Option<&str>) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, js_name = reserveCall)]
+    fn reserve_call(this: &Host, el: &JsValue) -> CallSlot;
+    type CallSlot;
+    #[wasm_bindgen(method, getter, js_name = wait)]
+    fn call_wait(this: &CallSlot) -> JsValue;
+    #[wasm_bindgen(method, getter, js_name = usable)]
+    fn call_usable(this: &CallSlot) -> bool;
+    #[wasm_bindgen(method)]
+    fn release(this: &CallSlot);
     #[wasm_bindgen(method, js_name = copyToClipboard)]
     fn copy_to_clipboard(this: &Host, value: JsValue, result: Option<&str>) -> JsValue;
     #[wasm_bindgen(method, js_name = currentTarget)]
     fn current_target(this: &Host) -> JsValue;
     #[wasm_bindgen(method, js_name = queryId)]
     fn query_id(this: &Host, id: &str) -> JsValue;
-    #[wasm_bindgen(method, js_name = getProp)]
-    fn get_prop(this: &Host, el: &JsValue, name: &str) -> JsValue;
+    #[wasm_bindgen(catch, method, js_name = getProp)]
+    fn get_prop(this: &Host, el: &JsValue, name: &str) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, js_name = setProp)]
     fn set_prop(this: &Host, el: &JsValue, name: &str, value: JsValue);
-    #[wasm_bindgen(method, js_name = eventValue)]
-    fn event_value(this: &Host) -> JsValue;
+    #[wasm_bindgen(catch, method, js_name = eventValue)]
+    fn event_value(this: &Host) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, js_name = eventRaw)]
     fn event_raw(this: &Host) -> JsValue;
-    #[wasm_bindgen(method, js_name = eventClosest)]
-    fn event_closest(this: &Host, selector: &str) -> JsValue;
+    #[wasm_bindgen(catch, method, js_name = eventClosest)]
+    fn event_closest(this: &Host, selector: &str) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, js_name = getField)]
     fn get_field(this: &Host, name: &str) -> JsValue;
     #[wasm_bindgen(method, js_name = getItem)]
@@ -54,8 +65,13 @@ extern "C" {
     fn refresh_tree(this: &Host, url: Option<&str>) -> JsValue;
     #[wasm_bindgen(method, js_name = callNamed)]
     fn call_named(this: &Host, handler: &str);
-    #[wasm_bindgen(method, js_name = callMethod)]
-    fn call_method(this: &Host, el: &JsValue, method: &str, args: JsValue) -> JsValue;
+    #[wasm_bindgen(catch, method, js_name = callMethod)]
+    fn call_method(
+        this: &Host,
+        el: &JsValue,
+        method: &str,
+        args: JsValue,
+    ) -> Result<JsValue, JsValue>;
     #[wasm_bindgen(method, js_name = setStorage)]
     fn set_storage(this: &Host, key: &str, value: JsValue);
     #[wasm_bindgen(method)]
@@ -70,7 +86,7 @@ extern "C" {
 pub fn interpret(action: &str, host: Host) -> Result<(), JsError> {
     let action = spaday::parse_action(action).map_err(|e| JsError::new(&e))?;
     let mut fut = Box::pin(async move {
-        run(&action, &host).await;
+        let _ = run(&action, &host).await;
     });
     // Drive synchronously to the first pending await: purely-sync action chains apply inline
     // (same-tick reads keep working); only a chain blocked on a real promise — an `invoke` of
@@ -120,32 +136,37 @@ pub fn binding_schema() -> Result<String, JsError> {
     spaday::binding_schema_json().map_err(|error| JsError::new(&error))
 }
 
-fn run<'a>(action: &'a spaday::Action, host: &'a Host) -> Pin<Box<dyn Future<Output = bool> + 'a>> {
+// Release a reserved invocation even when an argument times out or its action is cancelled.
+struct CallTurn(CallSlot);
+impl Drop for CallTurn {
+    fn drop(&mut self) {
+        self.0.release();
+    }
+}
+
+fn run<'a>(
+    action: &'a spaday::Action,
+    host: &'a Host,
+) -> Pin<Box<dyn Future<Output = Result<(), ()>> + 'a>> {
     Box::pin(run_inner(action, host))
 }
 
-async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
+async fn run_inner(action: &spaday::Action, host: &Host) -> Result<(), ()> {
     use spaday::Action::{
         CallEndpoint, CopyToClipboard, Download, Emit, If, Invoke, NamedJs, Refresh, SendPatch,
         Sequence, SetField, SetProp, SetStorage, Toggle, ToggleField,
     };
     if host.cancelled() {
-        return false;
-    }
-    for read in action.reads() {
-        if let Some(el) = resolve(read.target, host) {
-            if !usable(&el, read.prop, host).await {
-                return false;
-            }
-        }
+        return Err(());
     }
     match action {
         CopyToClipboard { value, result } => {
-            let outcome =
-                resolve_thenable(host.copy_to_clipboard(eval(value, host), result.as_deref()))
-                    .await;
+            let outcome = resolve_thenable(
+                host.copy_to_clipboard(eval(value, host).await?, result.as_deref()),
+            )
+            .await;
             if outcome.as_bool() == Some(false) {
-                return false;
+                return Err(());
             }
         }
         SetProp {
@@ -154,17 +175,20 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             value,
         } => {
             if let Some(el) = resolve(target, host) {
-                host.set_prop(&el, prop, eval(value, host));
+                host.set_prop(&el, prop, eval(value, host).await?);
             }
         }
         Toggle { target, prop } => {
             if let Some(el) = resolve(target, host) {
-                let next = !truthy(&host.get_prop(&el, prop));
+                if !usable(&el, Some(prop), host).await {
+                    return Err(());
+                }
+                let next = !truthy(&host.get_prop(&el, prop).map_err(report_error)?);
                 host.set_prop(&el, prop, JsValue::from_bool(next));
             }
         }
         SetField { field, value } => {
-            host.set_field(field, eval(value, host));
+            host.set_field(field, eval(value, host).await?);
         }
         ToggleField { field } => {
             let next = !truthy(&host.get_field(field));
@@ -172,9 +196,7 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
         }
         Sequence { actions } => {
             for a in actions {
-                if !run(a, host).await {
-                    return false;
-                }
+                run(a, host).await?;
             }
         }
         Emit {
@@ -182,9 +204,7 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             detail,
             composed,
         } => {
-            let d = detail
-                .as_ref()
-                .map_or(JsValue::UNDEFINED, |e| eval(e, host));
+            let d = eval_optional(detail.as_ref(), host).await?;
             host.emit(event, d, *composed);
         }
         SendPatch {
@@ -192,10 +212,10 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             field,
             value,
         } => {
-            host.send_patch(model, field, eval(value, host));
+            host.send_patch(model, field, eval(value, host).await?);
         }
         If { cond, then, els } => {
-            if truthy(&eval(cond, host)) {
+            if truthy(&eval(cond, host).await?) {
                 return run(then, host).await;
             } else if let Some(e) = els {
                 return run(e, host).await;
@@ -210,9 +230,9 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
         } => {
             let u = match url {
                 spaday::EndpointUrl::Static(value) => JsValue::from_str(value),
-                spaday::EndpointUrl::Expr(expr) => eval(expr, host),
+                spaday::EndpointUrl::Expr(expr) => eval(expr, host).await?,
             };
-            let b = body.as_ref().map_or(JsValue::UNDEFINED, |e| eval(e, host));
+            let b = eval_optional(body.as_ref(), host).await?;
             let options = request
                 .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
                 .unwrap_or(JsValue::UNDEFINED);
@@ -220,7 +240,7 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             // await the round-trip so a `seq` continues after the response (and `result`) landed
             let outcome = resolve_thenable(done).await;
             if outcome.as_bool() == Some(false) {
-                return false;
+                return Err(());
             }
         }
         Refresh { url } => {
@@ -233,16 +253,22 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             result,
         } => {
             if let Some(el) = resolve(target, host) {
-                let args = eval_args(args, host);
+                let turn = CallTurn(host.reserve_call(&el));
+                let args = eval_args(args, host).await?;
                 if !usable(&el, None, host).await {
-                    return false;
+                    return Err(());
                 }
-                let value = host.call_method(&el, method, args);
+                resolve_thenable(turn.0.call_wait()).await;
+                if host.cancelled() || !turn.0.call_usable() {
+                    return Err(());
+                }
+                drop(turn);
+                let value = host.call_method(&el, method, args).map_err(report_error)?;
                 // await a returned promise so a `seq` continues only after the method settles;
                 // rejections were already marked handled (and logged) by the host
                 let resolved = resolve_thenable(value).await;
                 if host.cancelled() {
-                    return false;
+                    return Err(());
                 }
                 if let Some(field) = result {
                     host.set_field(field, resolved);
@@ -251,9 +277,9 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
         }
         SetStorage { key, value } => {
             // resolve a thenable value (e.g. a `call` of an async method) before persisting
-            let resolved = resolve_thenable(eval(value, host)).await;
+            let resolved = resolve_thenable(eval(value, host).await?).await;
             if host.cancelled() {
-                return false;
+                return Err(());
             }
             host.set_storage(key, resolved);
         }
@@ -262,19 +288,29 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             value,
             content_type,
         } => {
-            let resolved = resolve_thenable(eval(value, host)).await;
+            let resolved = resolve_thenable(eval(value, host).await?).await;
             if host.cancelled() {
-                return false;
+                return Err(());
             }
-            host.download(eval(filename, host), resolved, content_type.as_deref());
+            host.download(
+                eval(filename, host).await?,
+                resolved,
+                content_type.as_deref(),
+            );
         }
         NamedJs { handler } => host.call_named(handler),
     }
-    true
+    Ok(())
 }
 
 async fn usable(el: &JsValue, prop: Option<&str>, host: &Host) -> bool {
-    let wait = host.when_defined(el, prop);
+    let wait = match host.when_defined(el, prop) {
+        Ok(wait) => wait,
+        Err(error) => {
+            report_error(error);
+            return false;
+        }
+    };
     if wait.is_undefined() {
         return true;
     }
@@ -298,27 +334,41 @@ async fn resolve_thenable(value: JsValue) -> JsValue {
     }
 }
 
-fn eval_args(args: &[spaday::Expr], host: &Host) -> JsValue {
+async fn eval_args(args: &[spaday::Expr], host: &Host) -> Result<JsValue, ()> {
     let out = js_sys::Array::new();
     for arg in args {
-        out.push(&eval(arg, host));
+        out.push(&eval(arg, host).await?);
     }
-    out.into()
+    Ok(out.into())
 }
 
-fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
+async fn eval_optional(expr: Option<&spaday::Expr>, host: &Host) -> Result<JsValue, ()> {
+    match expr {
+        Some(expr) => eval(expr, host).await,
+        None => Ok(JsValue::UNDEFINED),
+    }
+}
+
+fn eval<'a>(
+    expr: &'a spaday::Expr,
+    host: &'a Host,
+) -> Pin<Box<dyn Future<Output = Result<JsValue, ()>> + 'a>> {
+    Box::pin(eval_inner(expr, host))
+}
+
+async fn eval_inner(expr: &spaday::Expr, host: &Host) -> Result<JsValue, ()> {
     use spaday::Expr::{
         All, Any, Arr, Call, Concat, Cond, Eq, Event, EventClosest, EventProp, Field, Item, Lit,
         Not, Obj, Prop, Scope,
     };
-    match expr {
+    Ok(match expr {
         // json_compatible: JSON objects become plain JS objects (not Maps), so they round-trip through
         // `JSON.stringify` (e.g. a CallEndpoint body) and set cleanly as props.
         Lit { value } => value
             .serialize(&serde_wasm_bindgen::Serializer::json_compatible())
             .unwrap_or(JsValue::UNDEFINED),
         Event { path } => {
-            let mut value = host.event_value();
+            let mut value = host.event_value().map_err(report_error)?;
             if let Some(path) = path {
                 for key in path.split('.').filter(|part| !part.is_empty()) {
                     if value.is_null() || value.is_undefined() {
@@ -346,7 +396,7 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
         EventClosest { selector, path } => {
             // Walk from the closest ancestor of the event target matching `selector` (the host
             // resolves `event.target.closest(selector)`); an empty path is the element itself.
-            let mut value = host.event_closest(selector);
+            let mut value = host.event_closest(selector).map_err(report_error)?;
             for key in path.split('.').filter(|part| !part.is_empty()) {
                 if value.is_null() || value.is_undefined() {
                     break;
@@ -360,43 +410,76 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
             target,
             method,
             args,
-        } => resolve(target, host).map_or(JsValue::UNDEFINED, |el| {
-            host.call_method(&el, method, eval_args(args, host))
-        }),
+        } => {
+            if let Some(el) = resolve(target, host) {
+                let args = eval_args(args, host).await?;
+                if !usable(&el, None, host).await {
+                    return Err(());
+                }
+                host.call_method(&el, method, args).map_err(report_error)?
+            } else {
+                JsValue::UNDEFINED
+            }
+        }
         Field { name } => host.get_field(name),
         Item { path } => host.get_item(path),
         Scope { name, path } => host.get_scope(name, path),
-        Not { of } => JsValue::from_bool(!truthy(&eval(of, host))),
-        Eq { a, b } => JsValue::from_bool(js_sys::Object::is(&eval(a, host), &eval(b, host))),
-        All { of } => JsValue::from_bool(of.iter().all(|value| truthy(&eval(value, host)))),
-        Any { of } => JsValue::from_bool(of.iter().any(|value| truthy(&eval(value, host)))),
+        Not { of } => JsValue::from_bool(!truthy(&eval(of, host).await?)),
+        Eq { a, b } => JsValue::from_bool(js_sys::Object::is(
+            &eval(a, host).await?,
+            &eval(b, host).await?,
+        )),
+        All { of } => {
+            for value in of {
+                if !truthy(&eval(value, host).await?) {
+                    return Ok(JsValue::FALSE);
+                }
+            }
+            JsValue::TRUE
+        }
+        Any { of } => {
+            for value in of {
+                if truthy(&eval(value, host).await?) {
+                    return Ok(JsValue::TRUE);
+                }
+            }
+            JsValue::FALSE
+        }
         Cond {
             test,
             then,
             otherwise,
         } => {
-            if truthy(&eval(test, host)) {
-                eval(then, host)
+            if truthy(&eval(test, host).await?) {
+                eval(then, host).await?
             } else {
-                eval(otherwise, host)
+                eval(otherwise, host).await?
             }
         }
         Prop { target, name } => {
-            resolve(target, host).map_or(JsValue::NULL, |el| host.get_prop(&el, name))
+            if let Some(el) = resolve(target, host) {
+                if !usable(&el, Some(name), host).await {
+                    return Err(());
+                }
+                host.get_prop(&el, name).map_err(report_error)?
+            } else {
+                JsValue::NULL
+            }
         }
         // Compose a plain JS object from each field's evaluated value — e.g. a whole model assembled from
         // live control values for a CallEndpoint body. Plain object => round-trips through JSON.stringify.
         Obj { fields } => {
             let obj = js_sys::Object::new();
             for (name, sub) in fields {
-                let _ = js_sys::Reflect::set(&obj, &JsValue::from_str(name), &eval(sub, host));
+                let _ =
+                    js_sys::Reflect::set(&obj, &JsValue::from_str(name), &eval(sub, host).await?);
             }
             obj.into()
         }
         Concat { parts } => {
             let values = js_sys::Array::new();
             for part in parts {
-                values.push(&eval(part, host));
+                values.push(&eval(part, host).await?);
             }
             values.join("").into()
         }
@@ -405,11 +488,11 @@ fn eval(expr: &spaday::Expr, host: &Host) -> JsValue {
         Arr { of } => {
             let values = js_sys::Array::new();
             for element in of {
-                values.push(&eval(element, host));
+                values.push(&eval(element, host).await?);
             }
             values.into()
         }
-    }
+    })
 }
 
 fn resolve(target: &spaday::Ref, host: &Host) -> Option<JsValue> {

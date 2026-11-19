@@ -137,70 +137,6 @@ pub enum Expr {
     Arr { of: Vec<Expr> },
 }
 
-/// An element an expression reads as it is evaluated: a method it calls (`prop` is `None`) or a
-/// property it reads. Evaluation cannot wait, so the interpreter checks each one first and holds
-/// the step while the element is a custom element that is not defined yet.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ElementRead<'a> {
-    pub target: &'a Ref,
-    pub prop: Option<&'a str>,
-}
-
-impl Expr {
-    /// Collect every element this expression may read, in evaluation order. Both arms of a `cond`
-    /// are included, since which one runs is not known until the test is evaluated.
-    pub fn reads<'a>(&'a self, out: &mut Vec<ElementRead<'a>>) {
-        match self {
-            Expr::Call { target, args, .. } => {
-                for arg in args {
-                    arg.reads(out);
-                }
-                out.push(ElementRead { target, prop: None });
-            }
-            Expr::Prop { target, name } => out.push(ElementRead {
-                target,
-                prop: Some(name),
-            }),
-            Expr::Not { of } => of.reads(out),
-            Expr::Eq { a, b } => {
-                a.reads(out);
-                b.reads(out);
-            }
-            Expr::All { of } | Expr::Any { of } | Expr::Arr { of } => {
-                for expr in of {
-                    expr.reads(out);
-                }
-            }
-            Expr::Concat { parts } => {
-                for part in parts {
-                    part.reads(out);
-                }
-            }
-            Expr::Cond {
-                test,
-                then,
-                otherwise,
-            } => {
-                test.reads(out);
-                then.reads(out);
-                otherwise.reads(out);
-            }
-            Expr::Obj { fields } => {
-                for expr in fields.values() {
-                    expr.reads(out);
-                }
-            }
-            Expr::Lit { .. }
-            | Expr::Event { .. }
-            | Expr::EventProp { .. }
-            | Expr::EventClosest { .. }
-            | Expr::Field { .. }
-            | Expr::Item { .. }
-            | Expr::Scope { .. } => {}
-        }
-    }
-}
-
 /// A static endpoint URL or one evaluated from event/store state at action time.
 #[derive(Clone, Debug, JsonSchema, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -295,8 +231,7 @@ pub enum Action {
     /// Call `method` on `target` with evaluated `args`, discarding the result. An async method's
     /// promise is fire-and-forget (a rejection is logged, not thrown). Methods are part of a
     /// component's declared surface — this stays "behavior as data": the method name rides the
-    /// wire, nothing is eval'd. A target whose custom element is not defined yet is called once it
-    /// is, with the arguments evaluated when the action fired.
+    /// wire, nothing is eval'd.
     #[serde(rename = "invoke")]
     Invoke {
         target: Ref,
@@ -341,162 +276,10 @@ pub enum Action {
     NamedJs { handler: String },
 }
 
-impl Action {
-    /// The elements this one step reads before it acts: those its own expressions read, and the
-    /// property a `toggle` flips. Nested actions (`seq`, the branches of `if`) are separate steps
-    /// and report their own when they run. The target of an `invoke` is not a read: its arguments
-    /// are evaluated first, so the interpreter waits on it separately.
-    pub fn reads(&self) -> Vec<ElementRead<'_>> {
-        let mut out = Vec::new();
-        match self {
-            Action::Toggle { target, prop } => out.push(ElementRead {
-                target,
-                prop: Some(prop),
-            }),
-            Action::CopyToClipboard { value, .. }
-            | Action::SetProp { value, .. }
-            | Action::SetField { value, .. }
-            | Action::SendPatch { value, .. }
-            | Action::SetStorage { value, .. } => value.reads(&mut out),
-            Action::Emit { detail, .. } => {
-                if let Some(detail) = detail {
-                    detail.reads(&mut out);
-                }
-            }
-            Action::If { cond, .. } => cond.reads(&mut out),
-            Action::CallEndpoint { url, body, .. } => {
-                if let EndpointUrl::Expr(url) = url {
-                    url.reads(&mut out);
-                }
-                if let Some(body) = body {
-                    body.reads(&mut out);
-                }
-            }
-            Action::Invoke { args, .. } => {
-                for arg in args {
-                    arg.reads(&mut out);
-                }
-            }
-            Action::Download {
-                filename, value, ..
-            } => {
-                value.reads(&mut out);
-                filename.reads(&mut out);
-            }
-            Action::ToggleField { .. }
-            | Action::Sequence { .. }
-            | Action::Refresh { .. }
-            | Action::NamedJs { .. } => {}
-        }
-        out
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
-
-    fn by_id(id: &str) -> Ref {
-        Ref::Id { id: id.into() }
-    }
-
-    fn read<'a>(target: &'a Ref, prop: Option<&'a str>) -> ElementRead<'a> {
-        ElementRead { target, prop }
-    }
-
-    #[test]
-    fn a_step_reports_the_elements_its_expressions_read() {
-        let (panel, grid, form) = (by_id("panel"), by_id("grid"), by_id("form"));
-        let action = Action::SetField {
-            field: "saved".into(),
-            value: Expr::Cond {
-                test: Box::new(Expr::Prop {
-                    target: form.clone(),
-                    name: "dirty".into(),
-                }),
-                then: Box::new(Expr::Call {
-                    target: panel.clone(),
-                    method: "save".into(),
-                    args: vec![Expr::Obj {
-                        fields: [(
-                            "rows".to_string(),
-                            Expr::Prop {
-                                target: grid.clone(),
-                                name: "rows".into(),
-                            },
-                        )]
-                        .into(),
-                    }],
-                }),
-                otherwise: Box::new(Expr::Arr {
-                    of: vec![Expr::Field { name: "x".into() }, Expr::Event { path: None }],
-                }),
-            },
-        };
-        assert_eq!(
-            action.reads(),
-            vec![
-                read(&form, Some("dirty")),
-                read(&grid, Some("rows")),
-                read(&panel, None),
-            ]
-        );
-    }
-
-    #[test]
-    fn a_toggle_reads_its_prop_and_an_invoke_only_its_arguments() {
-        let panel = by_id("panel");
-        let toggle = Action::Toggle {
-            target: Ref::This,
-            prop: "open".into(),
-        };
-        assert_eq!(toggle.reads(), vec![read(&Ref::This, Some("open"))]);
-        let invoke = Action::Invoke {
-            target: by_id("layout"),
-            method: "restore".into(),
-            args: vec![Expr::Call {
-                target: panel.clone(),
-                method: "save".into(),
-                args: vec![],
-            }],
-            result: None,
-        };
-        assert_eq!(invoke.reads(), vec![read(&panel, None)]);
-        let set = Action::SetProp {
-            target: panel.clone(),
-            prop: "config".into(),
-            value: Expr::Lit { value: json!(1) },
-        };
-        assert!(set.reads().is_empty());
-    }
-
-    #[test]
-    fn nested_actions_are_separate_steps() {
-        let panel = by_id("panel");
-        let step = Action::SetStorage {
-            key: "layout".into(),
-            value: Expr::Call {
-                target: panel.clone(),
-                method: "save".into(),
-                args: vec![],
-            },
-        };
-        let branch = Action::If {
-            cond: Expr::Prop {
-                target: Ref::This,
-                name: "checked".into(),
-            },
-            then: Box::new(step.clone()),
-            els: None,
-        };
-        assert_eq!(branch.reads(), vec![read(&Ref::This, Some("checked"))]);
-        let sequence = Action::Sequence {
-            actions: vec![branch, step.clone()],
-        };
-        assert!(sequence.reads().is_empty());
-        assert_eq!(step.reads(), vec![read(&panel, None)]);
-    }
 
     /// Assert the action serializes to exactly `wire` and parses back — locking the cross-binding form.
     fn round(action: &Action, wire: serde_json::Value) {

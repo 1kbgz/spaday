@@ -7,9 +7,9 @@ let definitionTimeout = 10000;
  * dropped (10000 by default). Page-wide. Applies to waits that start after the call.
  */
 export function setDefinitionTimeout(ms: number): void {
-  if (!Number.isFinite(ms) || ms <= 0)
+  if (!Number.isFinite(ms) || ms <= 0 || ms > 2147483647)
     throw new RangeError(
-      "spaday: definition timeout must be a positive number",
+      "spaday: definition timeout must be positive and at most 2147483647ms",
     );
   definitionTimeout = ms;
 }
@@ -55,19 +55,23 @@ function flush(tag: string): number {
     const target = ref.deref();
     const pending = target && deferredProps.get(target);
     if (!target || !pending) continue;
-    deferredProps.delete(target);
     try {
       customElements.upgrade(target); // the definition upgrades only elements in the document
       if (!target.matches(":defined")) continue;
       for (const [prop, value] of pending) setProp(target, prop, value);
     } catch (error) {
       console.error(`spaday: <${tag}> rejected a deferred prop`, error);
+    } finally {
+      deferredProps.delete(target);
     }
   }
   const waiters = [...entry.waiters];
   for (const waiter of waiters) {
     if (!waiter.el.matches(":defined")) customElements.upgrade(waiter.el);
-    waiter.settle(!waiter.connected || waiter.el.isConnected);
+    waiter.settle(
+      waiter.el.matches(":defined") &&
+        (!waiter.connected || waiter.el.isConnected),
+    );
   }
   return waiters.length;
 }
@@ -80,6 +84,15 @@ export function deferProp(el: Element, name: string, value: unknown): void {
   }
   deferredProps.set(el, new Map([[name, value]]));
   awaitTag(el.localName).props.push(new WeakRef(el));
+}
+
+/** Primitive fallback attributes remain readable before definition, including removed booleans. */
+export function hasAttributeValue(el: Element, name: string): boolean {
+  if (el.hasAttribute(name)) return true;
+  const props = deferredProps.get(el);
+  if (!props?.has(name)) return false;
+  const value = props.get(name);
+  return value === null || typeof value !== "object";
 }
 
 /** Drop a deferred prop: the write it was holding has been withdrawn. */
@@ -101,6 +114,7 @@ export function whenUsable(
   if (customElements.get(tag)) {
     const ahead = flush(tag);
     if (!el.matches(":defined")) customElements.upgrade(el);
+    if (!el.matches(":defined")) return Promise.resolve(false);
     return ahead ? Promise.resolve(true) : undefined;
   }
   if (el.matches(":defined")) return undefined;

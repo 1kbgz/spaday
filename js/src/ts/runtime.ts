@@ -284,6 +284,7 @@ function hydrateNode(
 // `SetEvent` when an action is added/changed and `RemoveEvent` when one is removed on an existing node.
 interface Listener {
   handler: EventListener;
+  controller: AbortController;
   action: unknown;
   options?: EventOptions;
   store?: Store;
@@ -308,22 +309,29 @@ function bindEvent(
   let map = listeners.get(el);
   if (!map) listeners.set(el, (map = new Map()));
   const existing = map.get(name);
-  if (existing)
-    el.removeEventListener(name, existing.handler, existing.options);
+  if (existing) unbindEvent(el, name);
+  const controller = new AbortController();
   const handler: EventListener = (event) => {
     // A bound context menu replaces the native one; suppression is scoped to exactly the
     // elements that carry a `contextmenu` action.
     if (name === "contextmenu" && !options?.passive) event.preventDefault();
-    interpret(action, { event, currentTarget: el, store, scope });
+    interpret(action, {
+      event,
+      currentTarget: el,
+      store,
+      scope,
+      signal: controller.signal,
+    });
   };
   el.addEventListener(name, handler, options);
-  map.set(name, { handler, action, options, store, scope });
+  map.set(name, { handler, controller, action, options, store, scope });
 }
 
 function unbindEvent(el: Element, name: string): void {
   const map = listeners.get(el);
   const listener = map?.get(name);
   if (listener) {
+    listener.controller.abort();
     el.removeEventListener(name, listener.handler, listener.options);
     map!.delete(name);
   }
@@ -1708,16 +1716,20 @@ function build(node: Node, store?: Store, scope?: Scope): Element {
 /** Set a prop the way the element expects: a DOM property when it has one, else an HTML attribute. */
 export function setProp(el: Element, name: string, value: unknown): void {
   if (name.startsWith("attr:")) {
+    forgetProp(el, name.slice(5));
     setAttr(el, name.slice(5), value);
     return;
   }
   if (name in el) {
+    forgetProp(el, name);
     (el as unknown as Record<string, unknown>)[name] = value;
     return;
   }
   if (el.localName.includes("-") && !el.matches(":defined")) {
     deferProp(el, name, value);
     if (typeof value === "object" && value !== null) return; // no attribute can carry it
+  } else {
+    forgetProp(el, name);
   }
   setAttr(el, name, value);
 }

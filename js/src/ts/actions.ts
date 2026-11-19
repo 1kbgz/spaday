@@ -7,7 +7,7 @@
 
 import { interpret as wasmInterpret } from "../../dist/pkg/spaday";
 import { getHandler } from "./handlers";
-import { whenUsable } from "./pending";
+import { hasAttributeValue, whenUsable } from "./pending";
 import { manageRequest, type RequestOptions } from "./requests";
 import { refreshRoots, setProp } from "./runtime";
 import type { Scope, Store } from "./signals";
@@ -60,16 +60,54 @@ function pinEvent(
   });
 }
 
+const callTails = new WeakMap<Element, Promise<void>>();
+
 // The DOM primitives the wasm interpreter calls back into (mirrors the `Host` extern in the js crate).
 function host(ctx: ActionContext) {
   const { currentTarget: firedOn, target: firedAt } = ctx.event;
+  const connected = ctx.currentTarget.isConnected;
   let pinned: Event | undefined;
   let frozen: { value: unknown } | undefined;
   return {
     cancelled: () =>
-      !!ctx.signal && (ctx.signal.aborted || !ctx.currentTarget.isConnected),
+      !!ctx.signal?.aborted || (connected && !ctx.currentTarget.isConnected),
+    reserveCall: (el: Element) => {
+      const targetConnected = el.isConnected;
+      const wait = callTails.get(el);
+      if (wait) frozen ??= { value: readEventValue(ctx.event, firedAt) };
+      let ready = !wait;
+      if (wait)
+        void wait.then(() => {
+          ready = true;
+        });
+      let finish!: () => void;
+      const tail = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      callTails.set(el, tail);
+      return {
+        wait,
+        get usable() {
+          return !targetConnected || el.isConnected;
+        },
+        release: () => {
+          // A cancelled call must not let later calls overtake an earlier reservation.
+          const done = () => {
+            if (callTails.get(el) === tail) callTails.delete(el);
+            finish();
+          };
+          if (ready) done();
+          else void wait!.then(done);
+        },
+      };
+    },
     whenDefined: (el: Element, prop?: string) => {
-      if (prop !== undefined && prop in el) return undefined;
+      if (
+        prop !== undefined &&
+        (prop in el || hasAttributeValue(el, prop)) &&
+        !customElements.get(el.localName)
+      )
+        return undefined;
       const wait = whenUsable(el, ctx.signal);
       if (wait) frozen ??= { value: readEventValue(ctx.event, firedAt) };
       return wait;

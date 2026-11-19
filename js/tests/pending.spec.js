@@ -400,14 +400,16 @@ test("setDefinitionTimeout changes how long later actions wait", async ({
   });
   const r = await page.evaluate(async () => {
     const { setDefinitionTimeout } = await import("/dist/esm/index.js");
-    const rejected = [0, -1, Number.NaN, Infinity, "200"].map((value) => {
-      try {
-        setDefinitionTimeout(value);
-        return false;
-      } catch (error) {
-        return error instanceof RangeError;
-      }
-    });
+    const rejected = [0, -1, Number.NaN, Infinity, "200", 2147483648].map(
+      (value) => {
+        try {
+          setDefinitionTimeout(value);
+          return false;
+        } catch (error) {
+          return error instanceof RangeError;
+        }
+      },
+    );
     setDefinitionTimeout(200);
     const el = window.__spaday.mount(document.body, {
       tag: "late-short",
@@ -429,7 +431,7 @@ test("setDefinitionTimeout changes how long later actions wait", async ({
     await new Promise((resolve) => setTimeout(resolve, 20));
     return { rejected, calls };
   });
-  expect(r.rejected).toEqual([true, true, true, true, true]);
+  expect(r.rejected).toEqual([true, true, true, true, true, true]);
   expect(r.calls).toBe(0);
   expect(warnings).toEqual([
     "spaday: <late-short> was not defined within 0.2s; the actions waiting on it were dropped",
@@ -619,5 +621,779 @@ test("an element whose constructor throws does not requeue its props forever", a
     await new Promise((resolve) => setTimeout(resolve, 50));
     return { defined: el.matches(":defined"), after: store.get("after") };
   });
-  expect(r).toEqual({ defined: false, after: true });
+  expect(r).toEqual({ defined: false, after: null });
+});
+
+test("an unused conditional branch must not block or drop the action", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    (await import("/dist/esm/index.js")).setDefinitionTimeout(25);
+    const store = new Store({ result: "unchanged", after: false });
+    const root = mount(
+      document.body,
+      {
+        tag: "div",
+        slots: {
+          default: [
+            { tag: "pending-unused", props: { id: { Str: "unused" } } },
+            {
+              tag: "button",
+              events: {
+                click: {
+                  kind: "seq",
+                  actions: [
+                    {
+                      kind: "set-field",
+                      field: "result",
+                      value: {
+                        expr: "cond",
+                        test: { expr: "lit", value: false },
+                        then: {
+                          expr: "prop",
+                          target: { ref: "id", id: "unused" },
+                          name: "value",
+                        },
+                        else: { expr: "lit", value: "fallback" },
+                      },
+                    },
+                    {
+                      kind: "set-field",
+                      field: "after",
+                      value: { expr: "lit", value: true },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    root.querySelector("button").click();
+    await new Promise((r) => setTimeout(r, 70));
+    return { result: store.get("result"), after: store.get("after") };
+  });
+  expect(result).toEqual({ result: "fallback", after: true });
+});
+
+test("upgrade events must read earlier queued properties", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ seen: "unchanged" });
+    const el = mount(
+      document.body,
+      {
+        tag: "pending-prop",
+        props: { config: { Map: { n: { Int: 7 } } } },
+        events: {
+          ready: {
+            kind: "set-field",
+            field: "seen",
+            value: { expr: "prop", target: { ref: "this" }, name: "config" },
+          },
+        },
+      },
+      store,
+    );
+    customElements.define(
+      "pending-prop",
+      class extends HTMLElement {
+        config = null;
+        connectedCallback() {
+          this.dispatchEvent(new CustomEvent("ready"));
+        }
+      },
+    );
+    await new Promise((r) => setTimeout(r, 10));
+    return { seen: store.get("seen"), config: el.config };
+  });
+  expect(result).toEqual({ seen: { n: 7 }, config: { n: 7 } });
+});
+
+test("calls to one target keep their order when the first has a pending argument", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount } = window.__spaday;
+    const root = mount(document.body, {
+      tag: "div",
+      slots: {
+        default: [
+          { tag: "pending-destination", props: { id: { Str: "destination" } } },
+          { tag: "pending-source", props: { id: { Str: "source" } } },
+          {
+            tag: "button",
+            props: { id: { Str: "first" } },
+            events: {
+              click: {
+                kind: "invoke",
+                target: { ref: "id", id: "destination" },
+                method: "record",
+                args: [
+                  {
+                    expr: "prop",
+                    target: { ref: "id", id: "source" },
+                    name: "value",
+                  },
+                ],
+              },
+            },
+          },
+          {
+            tag: "button",
+            props: { id: { Str: "second" } },
+            events: {
+              click: {
+                kind: "invoke",
+                target: { ref: "id", id: "destination" },
+                method: "record",
+                args: [{ expr: "lit", value: "second" }],
+              },
+            },
+          },
+        ],
+      },
+    });
+    root.querySelector("#first").click();
+    root.querySelector("#second").click();
+    const log = [];
+    customElements.define(
+      "pending-destination",
+      class extends HTMLElement {
+        record(value) {
+          log.push(value);
+        }
+      },
+    );
+    await new Promise((r) => setTimeout(r, 10));
+    customElements.define(
+      "pending-source",
+      class extends HTMLElement {
+        value = "first";
+      },
+    );
+    await new Promise((r) => setTimeout(r, 10));
+    return log;
+  });
+  expect(result).toEqual(["first", "second"]);
+});
+
+test("an upgrade event write must not be overwritten by an earlier queued prop before Invoke", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ seen: null });
+    const el = mount(
+      document.body,
+      {
+        tag: "pending-ready-write",
+        props: { config: { Str: "old" } },
+        events: {
+          ready: {
+            kind: "seq",
+            actions: [
+              {
+                kind: "set",
+                target: { ref: "this" },
+                prop: "config",
+                value: { expr: "lit", value: "new" },
+              },
+              {
+                kind: "invoke",
+                target: { ref: "this" },
+                method: "read",
+                result: "seen",
+              },
+            ],
+          },
+        },
+      },
+      store,
+    );
+    customElements.define(
+      "pending-ready-write",
+      class extends HTMLElement {
+        config = null;
+        connectedCallback() {
+          this.dispatchEvent(new CustomEvent("ready"));
+        }
+        read() {
+          return this.config;
+        }
+      },
+    );
+    await new Promise((r) => setTimeout(r, 10));
+    return { seen: store.get("seen"), config: el.config };
+  });
+  expect(result.seen).toBe("new");
+});
+
+test("a removed action owner must not invoke a surviving target after definition", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, Store } = window.__spaday;
+    const store = new Store({ after: false });
+    const root = mount(
+      document.body,
+      {
+        tag: "div",
+        slots: {
+          default: [
+            { tag: "pending-outside", props: { id: { Str: "target" } } },
+            {
+              tag: "button",
+              events: {
+                click: {
+                  kind: "seq",
+                  actions: [
+                    {
+                      kind: "invoke",
+                      target: { ref: "id", id: "target" },
+                      method: "run",
+                    },
+                    {
+                      kind: "set-field",
+                      field: "after",
+                      value: { expr: "lit", value: true },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+      store,
+    );
+    const button = root.querySelector("button");
+    button.click();
+    window.__spaday.applyPatch(root, {
+      ops: [{ RemoveChild: { path: [], slot: "default", index: 1 } }],
+    });
+    let calls = 0;
+    customElements.define(
+      "pending-outside",
+      class extends HTMLElement {
+        run() {
+          calls++;
+        }
+      },
+    );
+    await new Promise((r) => setTimeout(r, 10));
+    return { calls, after: store.get("after"), connected: button.isConnected };
+  });
+  expect(result).toEqual({ calls: 0, after: false, connected: false });
+});
+
+for (const [operator, first, expected] of [
+  ["all", false, false],
+  ["any", true, true],
+]) {
+  test(`${operator} skips unused pending reads and method calls`, async ({
+    page,
+  }) => {
+    const result = await page.evaluate(
+      ({ operator, first }) => {
+        const { mount, Store } = window.__spaday;
+        const store = new Store({ result: null });
+        let calls = 0;
+        customElements.define(
+          "pending-short-circuit",
+          class extends HTMLElement {
+            run() {
+              calls++;
+              return true;
+            }
+          },
+        );
+        const root = mount(
+          document.body,
+          {
+            tag: "div",
+            slots: {
+              default: [
+                { tag: "pending-never", props: { id: { Str: "never" } } },
+                {
+                  tag: "pending-short-circuit",
+                  props: { id: { Str: "counter" } },
+                },
+                {
+                  tag: "button",
+                  events: {
+                    click: {
+                      kind: "set-field",
+                      field: "result",
+                      value: {
+                        expr: operator,
+                        of: [
+                          { expr: "lit", value: first },
+                          {
+                            expr: "prop",
+                            target: { ref: "id", id: "never" },
+                            name: "value",
+                          },
+                          {
+                            expr: "call",
+                            target: { ref: "id", id: "counter" },
+                            method: "run",
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          store,
+        );
+        root.querySelector("button").click();
+        return { value: store.get("result"), calls };
+      },
+      { operator, first },
+    );
+    expect(result).toEqual({ value: expected, calls: 0 });
+  });
+}
+
+for (const removeTarget of [false, true]) {
+  test(`a timed-out argument releases its invocation queue${removeTarget ? " without calling a removed target" : ""}`, async ({
+    page,
+  }) => {
+    const result = await page.evaluate(async (removeTarget) => {
+      const { mount, Store } = window.__spaday;
+      (await import("/dist/esm/index.js")).setDefinitionTimeout(30);
+      const store = new Store({ after: false });
+      const calls = [];
+      customElements.define(
+        "pending-queue-target",
+        class extends HTMLElement {
+          run(value) {
+            calls.push(value);
+          }
+        },
+      );
+      const invoke = (args) => ({
+        kind: "invoke",
+        target: { ref: "id", id: "target" },
+        method: "run",
+        args,
+      });
+      const root = mount(
+        document.body,
+        {
+          tag: "div",
+          slots: {
+            default: [
+              { tag: "pending-queue-target", props: { id: { Str: "target" } } },
+              { tag: "pending-queue-source", props: { id: { Str: "source" } } },
+              {
+                tag: "button",
+                props: { id: { Str: "first" } },
+                events: {
+                  click: invoke([
+                    {
+                      expr: "prop",
+                      target: { ref: "id", id: "source" },
+                      name: "value",
+                    },
+                  ]),
+                },
+              },
+              {
+                tag: "button",
+                props: { id: { Str: "second" } },
+                events: {
+                  click: {
+                    kind: "seq",
+                    actions: [
+                      invoke([{ expr: "lit", value: "second" }]),
+                      {
+                        kind: "set-field",
+                        field: "after",
+                        value: { expr: "lit", value: true },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        },
+        store,
+      );
+      root.querySelector("#first").click();
+      root.querySelector("#second").click();
+      if (removeTarget) root.querySelector("#target").remove();
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      return { calls, after: store.get("after") };
+    }, removeTarget);
+    expect(result).toEqual(
+      removeTarget
+        ? { calls: [], after: false }
+        : { calls: ["second"], after: true },
+    );
+  });
+}
+
+test("queued invocations start in order without waiting for earlier method promises", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount } = window.__spaday;
+    const calls = [];
+    let finish;
+    customElements.define(
+      "pending-async-target",
+      class extends HTMLElement {
+        run(value) {
+          calls.push(value);
+          return new Promise((resolve) => {
+            finish = resolve;
+          });
+        }
+      },
+    );
+    const root = mount(document.body, {
+      tag: "pending-async-target",
+      events: {
+        click: {
+          kind: "invoke",
+          target: { ref: "this" },
+          method: "run",
+          args: [{ expr: "event" }],
+        },
+      },
+    });
+    root.dispatchEvent(new CustomEvent("click", { detail: "first" }));
+    root.dispatchEvent(new CustomEvent("click", { detail: "second" }));
+    const immediate = [...calls];
+    finish();
+    return immediate;
+  });
+  expect(result).toEqual(["first", "second"]);
+});
+
+test("a deferred setter can replace a later queued property", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount } = window.__spaday;
+    const root = mount(document.body, {
+      tag: "pending-setter",
+      props: { first: { Str: "start" }, second: { Str: "old" } },
+      events: {
+        ready: {
+          kind: "set",
+          target: { ref: "this" },
+          prop: "second",
+          value: { expr: "lit", value: "new" },
+        },
+      },
+    });
+    customElements.define(
+      "pending-setter",
+      class extends HTMLElement {
+        second = "default";
+        set first(value) {
+          this.dispatchEvent(new CustomEvent("ready"));
+        }
+      },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return root.second;
+  });
+  expect(result).toBe("new");
+});
+
+test("an upgrade event can replace a queued attribute fallback", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount } = window.__spaday;
+    const root = mount(document.body, {
+      tag: "pending-attribute",
+      props: { config: { Str: "old" } },
+      events: {
+        ready: {
+          kind: "set",
+          target: { ref: "this" },
+          prop: "config",
+          value: { expr: "lit", value: "new" },
+        },
+      },
+    });
+    customElements.define(
+      "pending-attribute",
+      class extends HTMLElement {
+        connectedCallback() {
+          this.dispatchEvent(new CustomEvent("ready"));
+        }
+      },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return root.getAttribute("config");
+  });
+  expect(result).toBe("new");
+});
+
+for (const expression of ["call", "prop", "event-closest"]) {
+  test(`a throwing ${expression} argument releases its invocation queue`, async ({
+    page,
+  }) => {
+    const result = await page.evaluate((expression) => {
+      const { mount, interpret } = window.__spaday;
+      const calls = [];
+      customElements.define(
+        "pending-throwing-argument",
+        class extends HTMLElement {
+          fail() {
+            throw Error("broken method");
+          }
+          get value() {
+            throw Error("broken getter");
+          }
+          record(value) {
+            calls.push(value);
+          }
+        },
+      );
+      const el = mount(document.body, { tag: "pending-throwing-argument" });
+      const ctx = { event: new Event("click"), currentTarget: el };
+      const invoke = (args) => ({
+        kind: "invoke",
+        target: { ref: "this" },
+        method: "record",
+        args,
+      });
+      const argument =
+        expression === "call"
+          ? { expr: "call", target: { ref: "this" }, method: "fail" }
+          : expression === "prop"
+            ? { expr: "prop", target: { ref: "this" }, name: "value" }
+            : { expr: "event-closest", selector: "[", path: "" };
+      el.addEventListener(
+        "click",
+        (event) => interpret(invoke([argument]), { ...ctx, event }),
+        { once: true },
+      );
+      el.click();
+      interpret(invoke([{ expr: "lit", value: "second" }]), ctx);
+      return calls;
+    }, expression);
+    expect(result).toEqual(["second"]);
+  });
+}
+
+test("attribute fallbacks on undefined styling tags remain synchronous", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { mount, interpret, Store } = window.__spaday;
+    const store = new Store({ state: null });
+    const el = mount(document.body, {
+      tag: "pending-styling",
+      props: { "data-state": { Str: "open" }, open: { Str: "yes" } },
+    });
+    const ctx = { event: new Event("click"), currentTarget: el, store };
+    interpret(
+      {
+        kind: "set-field",
+        field: "state",
+        value: { expr: "prop", target: { ref: "this" }, name: "data-state" },
+      },
+      ctx,
+    );
+    const toggle = { kind: "toggle", target: { ref: "this" }, prop: "open" };
+    interpret(toggle, ctx);
+    const closed = !el.hasAttribute("open");
+    interpret(toggle, ctx);
+    return {
+      state: store.get("state"),
+      closed,
+      opened: el.hasAttribute("open"),
+    };
+  });
+  expect(result).toEqual({ state: "open", closed: true, opened: true });
+});
+
+test("an explicit attribute write supersedes its pending property fallback", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, interpret } = window.__spaday;
+    const el = mount(document.body, {
+      tag: "pending-explicit-attribute",
+      props: { label: { Str: "old" } },
+    });
+    interpret(
+      {
+        kind: "set",
+        target: { ref: "this" },
+        prop: "attr:label",
+        value: { expr: "lit", value: "new" },
+      },
+      { event: new Event("click"), currentTarget: el },
+    );
+    customElements.define(
+      "pending-explicit-attribute",
+      class extends HTMLElement {},
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return el.getAttribute("label");
+  });
+  expect(result).toBe("new");
+});
+
+for (const operation of ["RemoveChild", "RemoveEvent", "SetEvent"]) {
+  test(`${operation} cancels pending arguments and releases another owner's invocation`, async ({
+    page,
+  }) => {
+    await page.evaluate((operation) => {
+      const { mount, Store, applyPatch } = window.__spaday;
+      const store = new Store({ after: false });
+      window.pendingOwnerStore = store;
+      customElements.define(
+        "pending-owner-target",
+        class extends HTMLElement {
+          run() {
+            store.set("after", true);
+          }
+        },
+      );
+      const action = {
+        kind: "invoke",
+        target: { ref: "id", id: "target" },
+        method: "run",
+      };
+      const root = mount(
+        document.body,
+        {
+          tag: "div",
+          slots: {
+            default: [
+              { tag: "pending-owner-target", props: { id: { Str: "target" } } },
+              { tag: "pending-owner-source", props: { id: { Str: "source" } } },
+              {
+                tag: "button",
+                props: { id: { Str: "first" } },
+                events: {
+                  click: {
+                    ...action,
+                    args: [
+                      {
+                        expr: "prop",
+                        target: { ref: "id", id: "source" },
+                        name: "value",
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                tag: "button",
+                props: { id: { Str: "second" } },
+                events: { click: action },
+              },
+            ],
+          },
+        },
+        store,
+      );
+      root.querySelector("#first").click();
+      root.querySelector("#second").click();
+      const change =
+        operation === "RemoveChild"
+          ? { RemoveChild: { path: [], slot: "default", index: 2 } }
+          : operation === "RemoveEvent"
+            ? {
+                RemoveEvent: {
+                  path: [{ slot: "default", index: 2 }],
+                  name: "click",
+                },
+              }
+            : {
+                SetEvent: {
+                  path: [{ slot: "default", index: 2 }],
+                  name: "click",
+                  action: {
+                    kind: "set-field",
+                    field: "changed",
+                    value: { expr: "lit", value: true },
+                  },
+                },
+              };
+      applyPatch(root, { ops: [change] });
+    }, operation);
+    await expect
+      .poll(() => page.evaluate(() => window.pendingOwnerStore.get("after")), {
+        timeout: 1000,
+      })
+      .toBe(true);
+  });
+}
+
+test("an invocation resumed behind another can invoke reentrantly in the same tick", async ({
+  page,
+}) => {
+  const result = await page.evaluate(async () => {
+    const { mount, interpret } = window.__spaday;
+    const log = [];
+    const action = (value) => ({
+      kind: "invoke",
+      target: { ref: "this" },
+      method: "run",
+      args: [{ expr: "lit", value }],
+    });
+    customElements.define(
+      "pending-reentrant-target",
+      class extends HTMLElement {
+        run(value) {
+          log.push(value);
+          if (value === "second") {
+            interpret(action("nested"), {
+              event: new Event("click"),
+              currentTarget: this,
+            });
+            log.push("second-end");
+          }
+        }
+      },
+    );
+    const root = mount(document.body, {
+      tag: "div",
+      slots: {
+        default: [
+          { tag: "pending-reentrant-target" },
+          { tag: "pending-reentrant-source", props: { id: { Str: "source" } } },
+        ],
+      },
+    });
+    const el = root.firstElementChild;
+    const ctx = { event: new Event("click"), currentTarget: el };
+    interpret(
+      {
+        ...action("first"),
+        args: [
+          { expr: "prop", target: { ref: "id", id: "source" }, name: "value" },
+        ],
+      },
+      ctx,
+    );
+    interpret(action("second"), ctx);
+    customElements.define(
+      "pending-reentrant-source",
+      class extends HTMLElement {
+        value = "first";
+      },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return log;
+  });
+  expect(result).toEqual(["first", "second", "nested", "second-end"]);
 });

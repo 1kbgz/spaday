@@ -29,7 +29,7 @@ def test_definition_timeout_is_opt_in_validated_and_independent_of_lifecycle():
     assert static.index("setDefinitionTimeout(30000);") < static.index("mount(")
     managed = bootstrap(definition_timeout=30000, lifecycle=Lifecycle(timeout=2345))
     assert "setDefinitionTimeout(30000);" in managed and "await whenReady(root, [], 2345)" in managed
-    for timeout in (0, -1, True, 1.5, "30000"):
+    for timeout in (0, -1, True, 1.5, "30000", 2147483648):
         with pytest.raises(ValueError, match="definition_timeout"):
             bootstrap(definition_timeout=timeout)  # ty: ignore[invalid-argument-type]
 

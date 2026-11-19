@@ -25,7 +25,7 @@ mod wire;
 
 pub use action::{
     action_schema_json, expr_schema_json, normalize_action, normalize_expr, parse_action, Action,
-    ElementRead, EndpointUrl, Expr, Ref, RequestOptions,
+    EndpointUrl, Expr, Ref, RequestOptions,
 };
 pub use behavior::{normalize_effect, normalize_readiness, Effect, Readiness};
 pub use cem::{parse_cem, parse_manifest, ComponentSchema, PropSchema, PropType};

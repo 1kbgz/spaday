@@ -737,9 +737,9 @@ def bootstrap(
     if lifecycle is not None and not isinstance(lifecycle, Lifecycle):
         raise TypeError("lifecycle must be a Lifecycle or None")
     if definition_timeout is not None and (
-        not isinstance(definition_timeout, int) or isinstance(definition_timeout, bool) or definition_timeout <= 0
+        not isinstance(definition_timeout, int) or isinstance(definition_timeout, bool) or not 0 < definition_timeout <= 2147483647
     ):
-        raise ValueError("definition_timeout must be a positive integer")
+        raise ValueError("definition_timeout must be an integer from 1 to 2147483647")
     n = f' nonce="{nonce}"' if nonce else ""
     component_packages = resolve_component_packages(packages)
     if tree == "inline" and page is None:
