@@ -10,9 +10,10 @@
 // (the action DSL) runs client-side here with no kernel round-trip; the DSL's outbound intents
 // (a `SendPatch` action's `spaday:patch`) are forwarded to the kernel over the model.
 
+import * as runtime from "./index";
 import { applyPatch, diff, init, mount, Node, Store, unmount } from "./index";
 import { connectWidget, type AnyModel } from "./widget-transport";
-import { loadWidgetPackages } from "./widget-packages";
+import { loadWidgetPackages, runtimeHost } from "./widget-packages";
 import { provideWires } from "./wire-context";
 
 // the spaday wasm core, inlined into this bundle as bytes (esbuild `binary` loader; see build.mjs),
@@ -74,17 +75,17 @@ function connectState(store: Store, model: AnyModel): () => void {
 // Python handler (Widget.on_intent) can react.
 const INTENTS = ["spaday:patch"];
 
-export default {
+const widget = {
   async initialize(): Promise<void> {
     await ensureWasm();
   },
-  async render({
-    model,
-    el,
-  }: {
+  async render(view: {
     model: AnyModel;
     el: HTMLElement;
   }): Promise<() => void> {
+    const host = runtimeHost(view.model, widget, runtime);
+    if (host !== widget) return host.render(view);
+    const { model, el } = view;
     await ensureWasm();
 
     await loadWidgetPackages(model);
@@ -141,3 +142,5 @@ export default {
     };
   },
 };
+
+export default widget;

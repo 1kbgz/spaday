@@ -60,6 +60,47 @@ test("loads WebAwesome from Python comm buffers once for five offline widgets", 
   }
 });
 
+test("a package imports the runtime a Python widget describes", async ({
+  page,
+}) => {
+  const kernel = await widgetKernel(
+    "../spaday/tests/widget_packages_bridge.py",
+    ["runtime"],
+  );
+  try {
+    const { result } = await kernel.call({ op: "describe" });
+    await page.exposeFunction("kernelMessage", (content) =>
+      kernel.call({ op: "receive", content }),
+    );
+    await page.goto("/tests/widget.html");
+    await page.waitForFunction(() => window.__widget);
+    await page.context().setOffline(true);
+    await page.evaluate(async (description) => {
+      const { widget, fakeModel } = window.__widget;
+      const model = fakeModel(description);
+      model.send = async (content) => {
+        const response = await window.kernelMessage(content);
+        for (const { content: reply, buffers } of response.messages)
+          model._emit(
+            "msg:custom",
+            reply,
+            buffers.map((b) =>
+              Uint8Array.from(atob(b), (c) => c.charCodeAt(0)),
+            ),
+          );
+      };
+      const el = document.createElement("div");
+      document.body.append(el);
+      await widget.render({ model, el });
+    }, result);
+    await page.locator("button").click();
+    await expect(page.locator("button")).toHaveText("handled");
+  } finally {
+    await kernel.call({ op: "close" });
+    kernel.close();
+  }
+});
+
 test("loads cyclic modules, computed imports, and relative stylesheet assets offline", async ({
   page,
 }) => {
@@ -344,6 +385,75 @@ test("prepares only reachable modules and defers optional dependencies until imp
     await page.evaluate(async () => (await loadOptional("./child.js")).answer),
   ).toBe(42);
   await page.evaluate(() => disposeLazy());
+});
+
+test("a package bundle imports the runtime that renders its widgets", async ({
+  page,
+}) => {
+  await packageHarness(page);
+  await page.context().setOffline(false);
+  await page.evaluate(async () => {
+    window.secondCopy = (await import("/dist/cdn/widget.js?copy=2")).default;
+  });
+  await page.context().setOffline(true);
+  const result = await page.evaluate(async () => {
+    const tree = {
+      tag: "button",
+      events: { click: { kind: "js", handler: "probe" } },
+    };
+    const spec = {
+      name: "uses-runtime",
+      id: "uses-runtime",
+      runtime: "1.0.0",
+      assets: [["js", "index.js"]],
+    };
+    const sources = {
+      "index.js": `
+        import { evalExpr, registerHandler, Scope } from "@1kbgz/spaday";
+        const lazy = await import("@1kbgz/spaday");
+        const expr = { expr: "eq", a: { expr: "item", path: "table" }, b: { expr: "lit", value: "orders" } };
+        globalThis.runtimeProbe = {
+          clicks: 0,
+          sameInstance: lazy.evalExpr === evalExpr,
+          evaluated: evalExpr(expr, undefined, new Scope({ table: "orders" })),
+        };
+        registerHandler("probe", () => runtimeProbe.clicks++);
+      `,
+    };
+    const click = async (widget, model) => {
+      model.set("_tree", tree);
+      const el = document.createElement("div");
+      document.body.append(el);
+      await widget.render({ model, el });
+      el.querySelector("button").click();
+      return runtimeProbe.clicks;
+    };
+    const first = __widget.widget;
+    const second = secondCopy;
+    const clicks = [
+      await click(first, packageModel(spec, sources)),
+      await click(second, packageModel(spec, sources)),
+      await click(second, __widget.fakeModel({})),
+    ];
+    const upgraded = packageModel(
+      { ...spec, name: "newer", id: "newer", runtime: "2.0.0" },
+      sources,
+    );
+    return {
+      sameInstance: runtimeProbe.sameInstance,
+      evaluated: runtimeProbe.evaluated,
+      separateCopies: first !== second,
+      clicks,
+      upgraded: await loadPackage(upgraded).catch((error) => error.message),
+    };
+  });
+  expect(result).toEqual({
+    sameInstance: true,
+    evaluated: true,
+    separateCopies: true,
+    clicks: [1, 2, 2],
+    upgraded: expect.stringContaining("reload the document"),
+  });
 });
 
 for (const firstVersion of [undefined, "2.0.0"]) {

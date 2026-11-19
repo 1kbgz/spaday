@@ -5,7 +5,7 @@ from types import ModuleType
 import pytest
 
 import spaday.packages as package_registry
-from spaday import Component, ComponentSchema, PropertySchema
+from spaday import Component, ComponentSchema, PropertySchema, __version__
 from spaday.bootstrap import bootstrap
 from spaday.packages import ComponentPackage, discover_component_package_names, discover_component_packages, resolve_component_packages
 
@@ -219,6 +219,35 @@ def test_the_same_specifier_at_the_same_url_is_not_a_conflict():
 
 def test_no_import_map_is_emitted_when_no_package_publishes_one():
     assert "importmap" not in bootstrap(packages=[_vendored("plain", ())], fragment=True)
+
+
+def _needs_runtime(range_: str = f"^{__version__}") -> ComponentPackage:
+    return ComponentPackage(name="needs", assets_dir=Path("."), assets=(("js", "index.js"),), requires={"@1kbgz/spaday": range_})
+
+
+@pytest.mark.parametrize(("layout", "path"), [("source", "/dist/esm/index.js"), ("installed", "/cdn/index.js")])
+def test_a_package_requiring_the_runtime_imports_the_pages_own_copy(layout, path):
+    html = bootstrap(packages=[_needs_runtime()], base="/app", layout=layout)
+    assert f'"@1kbgz/spaday": "/app/js{path}"' in html
+    assert f'from "/app/js{path}"' in html
+    assert html.index('type="importmap"') < html.index('type="module"')
+    hashed = bootstrap(packages=[_needs_runtime()], layout=layout, _asset_urls={"/js": "/js-abc123"})
+    assert f'"@1kbgz/spaday": "/js-abc123{path}"' in hashed and f'from "/js-abc123{path}"' in hashed
+
+
+def test_the_runtime_is_mapped_only_for_a_package_that_requires_it():
+    assert "@1kbgz/spaday" not in bootstrap(packages=[_vendored("perspective", (("@perspective-dev/client", "vendor/client.js"),))])
+
+
+def test_a_runtime_requirement_is_checked_against_the_installed_version():
+    with pytest.raises(ValueError, match=rf"'needs' requires @1kbgz/spaday \^99.0.0, but 'spaday' serves {__version__}"):
+        bootstrap(packages=[_needs_runtime("^99.0.0")])
+
+
+def test_a_package_cannot_publish_its_own_copy_of_the_runtime():
+    for specifier, path in (("@1kbgz/spaday", "vendor/spaday.js"), ("@1kbgz/spaday/", "vendor/")):
+        with pytest.raises(ValueError, match="spaday serves its own runtime"):
+            bootstrap(packages=[_vendored("copy", ((specifier, path),))])
 
 
 def test_import_paths_are_validated_like_asset_paths():

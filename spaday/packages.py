@@ -15,6 +15,7 @@ from .semver import parse_range, parse_version, satisfies
 from .ui.design import Design
 
 ENTRY_POINT_GROUP = "spaday.component_packages"
+RUNTIME_PACKAGE = "@1kbgz/spaday"
 _PACKAGE_NAME = re.compile(r"[a-z0-9][a-z0-9._-]*\Z")
 _NPM_NAME = re.compile(r"(?:@[a-z0-9][a-z0-9._~-]*/)?[a-z0-9][a-z0-9._~-]*\Z")
 
@@ -145,10 +146,18 @@ def npm_package(specifier: str) -> str:
 
 
 def _reconcile(packages: Sequence[ComponentPackage]) -> None:
-    """Reject a page whose packages disagree about a JS library: served at two versions, or required at
-    a version no selected package serves."""
-    served: dict[str, tuple[str, str]] = {}
+    """Reject a page whose packages disagree about a JS library: served at two versions, required at
+    a version no selected package serves, or published over spaday's own runtime."""
+    from . import __version__
+
+    served: dict[str, tuple[str, str]] = {RUNTIME_PACKAGE: (__version__, "spaday")}
     for package in packages:
+        for specifier, _ in package.imports:
+            if npm_package(specifier) == RUNTIME_PACKAGE:
+                raise ValueError(
+                    f"component package {package.name!r} publishes the import {specifier!r}, but spaday serves its own "
+                    f"runtime under that name; declare it in requires instead"
+                )
         for library, version in package.provides:
             if library in served and served[library][0] != version:
                 other, owner = served[library]

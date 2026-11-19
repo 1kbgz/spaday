@@ -5,7 +5,7 @@ import json
 import mimetypes
 from dataclasses import dataclass
 
-from .packages import ComponentPackage
+from .packages import RUNTIME_PACKAGE, ComponentPackage
 
 
 @dataclass(frozen=True)
@@ -16,6 +16,8 @@ class PackageBundle:
 
 
 def bundle_package(package: ComponentPackage) -> PackageBundle:
+    from . import __version__
+
     root = package.assets_dir.resolve()
     if not root.is_dir():
         raise ValueError(f"component package {package.name!r} has no built assets")
@@ -53,6 +55,8 @@ def bundle_package(package: ComponentPackage) -> PackageBundle:
         "requires": package.requires,
         "tags": [component.tag for component in package.components],
     }
+    if any(library == RUNTIME_PACKAGE for library, _ in package.requires):
+        descriptor["runtime"] = __version__
     data = b"".join(chunks)
     digest = hashlib.sha256(json.dumps([descriptor, files], sort_keys=True).encode() + data).hexdigest()
     return PackageBundle({**descriptor, "id": digest}, tuple(files), data)
