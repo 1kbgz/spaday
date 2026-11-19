@@ -18,6 +18,36 @@ def test_accepts_a_prebuilt_node_dict():
     assert Widget(node)._tree == node
 
 
+def test_comm_open_carries_the_tree_and_state(monkeypatch):
+    import comm
+    from ipywidgets.widgets import widget as ipywidget
+
+    opened = []
+
+    class RecordingComm(comm.base_comm.BaseComm):
+        def publish_msg(self, msg_type, data=None, metadata=None, buffers=None, **keys):
+            opened.append((msg_type, data))
+
+    monkeypatch.setattr(ipywidget.comm, "create_comm", lambda **kwargs: RecordingComm(**kwargs))
+    Widget(element("div").text("hi"), state={"on": True})
+    [state] = [data["state"] for kind, data in opened if kind == "comm_open" and "_tree" in data["state"]]
+    assert state["_tree"]["tag"] == "div"
+    assert state["_state"] == {"on": True}
+    assert not [data for kind, data in opened if kind == "comm_msg" and data.get("method") == "update"]
+
+
+def test_tree_observer_can_update_during_construction():
+    import traitlets
+
+    class Wrapping(Widget):
+        @traitlets.observe("_tree")
+        def _wrap(self, change):
+            if change["new"].get("tag") == "span":
+                self.update(element("div").text("wrapped"))
+
+    assert Wrapping(element("span"))._tree["tag"] == "div"
+
+
 def test_update_reassigns_the_synced_tree():
     w = Widget(element("div").text("a"))
     before = w._tree

@@ -91,12 +91,17 @@ class Widget(anywidget.AnyWidget):
             for package in selected:
                 bundle = bundle_package(package)
                 self._bundles[bundle.descriptor["id"]] = bundle
-        super().__init__(**kwargs)
         self._design = resolved_design
-        self._tree = _to_node(tree, resolved_design)
-        self._state = dict(state or {})
-        self._wires = specs
-        self._packages = [bundle.descriptor for bundle in self._bundles.values()]
+        # Pass the synced traits to the constructor so the comm_open message carries them. Set after
+        # the comm opens, they arrive as separate updates, and a host that renders before applying
+        # them (VS Code) mounts an empty tree with no wires or packages.
+        super().__init__(
+            _tree=_to_node(tree, resolved_design),
+            _state=dict(state or {}),
+            _wires=specs,
+            _packages=[bundle.descriptor for bundle in self._bundles.values()],
+            **kwargs,
+        )
         self._intent_handlers: list[Callable[[dict], None]] = []
         self.on_msg(self._on_msg)
         if self._server is not None:
