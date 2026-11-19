@@ -22,6 +22,18 @@ def test_lifecycle_is_opt_in_and_validated():
             Lifecycle(elements=elements)  # ty: ignore[invalid-argument-type]
 
 
+def test_definition_timeout_is_opt_in_validated_and_independent_of_lifecycle():
+    assert "setDefinitionTimeout" not in bootstrap()
+    static = bootstrap(definition_timeout=30000)
+    assert "setDefinitionTimeout }" in static and "setDefinitionTimeout(30000);" in static
+    assert static.index("setDefinitionTimeout(30000);") < static.index("mount(")
+    managed = bootstrap(definition_timeout=30000, lifecycle=Lifecycle(timeout=2345))
+    assert "setDefinitionTimeout(30000);" in managed and "await whenReady(root, [], 2345)" in managed
+    for timeout in (0, -1, True, 1.5, "30000", 2147483648):
+        with pytest.raises(ValueError, match="definition_timeout"):
+            bootstrap(definition_timeout=timeout)  # ty: ignore[invalid-argument-type]
+
+
 def test_lifecycle_assets_are_awaited_and_connections_disposed(tmp_path):
     package = ComponentPackage("fixture", tmp_path, (("css", "theme.css"), ("js", "index.js")))
     html = bootstrap(packages=[package], wire="transports", reconnect=True, lifecycle=Lifecycle(elements=("fixture-editor",)), nonce="test")

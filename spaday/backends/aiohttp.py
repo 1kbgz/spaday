@@ -46,6 +46,7 @@ def mount(
     head: str = "",
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    definition_timeout: int | None = None,
     assets: AssetPolicy | None = None,
 ) -> web.Application:
     """Add spaday's routes to an existing aiohttp ``app`` under ``prefix``. ``routes`` is a list of
@@ -74,6 +75,7 @@ def mount(
         layout=asset_layout,
         design=page_design,
         lifecycle=lifecycle,
+        definition_timeout=definition_timeout,
         _asset_urls={b.prefix: b.url for b in bundles},
     )
     js_dir = str(js) if js is not None else str(bundles_dir(asset_layout))

@@ -61,6 +61,7 @@ class PageSpec:
     url: dict[str, str] | None = None
     design: Design | str | None = None
     lifecycle: Lifecycle | None = None
+    definition_timeout: int | None = None
 
 
 @dataclass(frozen=True)
@@ -154,6 +155,7 @@ def _page_routes(
         url=spec.url,
         design=page_design,
         lifecycle=spec.lifecycle,
+        definition_timeout=spec.definition_timeout,
         _asset_urls=asset_urls,
     )
 
@@ -217,6 +219,7 @@ def build_routes(
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    definition_timeout: int | None = None,
     assets: AssetPolicy | None = None,
 ) -> list[BaseRoute]:
     """Build spaday's Starlette routes (page, tree, ``/js``, plus ``routes``) under
@@ -254,6 +257,7 @@ def build_routes(
         url=url,
         design=design,
         lifecycle=lifecycle,
+        definition_timeout=definition_timeout,
     )
     package_mounts = (
         [_asset_mount(bundle) for bundle in bundles]
@@ -450,6 +454,7 @@ def mount(
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    definition_timeout: int | None = None,
     assets: AssetPolicy | None = None,
 ) -> Starlette:
     """Add :func:`build_routes` to an existing Starlette ``app`` and return the app for chaining.
@@ -481,6 +486,7 @@ def mount(
             url=url,
             design=design,
             lifecycle=lifecycle,
+            definition_timeout=definition_timeout,
             assets=assets,
         )
     )

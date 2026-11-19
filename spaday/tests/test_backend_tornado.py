@@ -61,3 +61,11 @@ class TestTornadoLifecycle(AsyncHTTPTestCase):
 
     def test_lifecycle_reaches_bootstrap(self):
         assert "await whenReady(root, [], 2345)" in self.fetch("/").body.decode()
+
+
+class TestTornadoDefinitionTimeout(AsyncHTTPTestCase):
+    def get_app(self):
+        return serve(Main("hi"), definition_timeout=2345)
+
+    def test_definition_timeout_reaches_bootstrap(self):
+        assert "setDefinitionTimeout(2345);" in self.fetch("/").body.decode()

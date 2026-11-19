@@ -41,3 +41,8 @@ def test_serve_frame_tree(tmp_path):
 def test_lifecycle_reaches_bootstrap(tmp_path):
     client = serve(Main("hi"), js=tmp_path, lifecycle=Lifecycle(timeout=2345)).test_client()
     assert "await whenReady(root, [], 2345)" in client.get("/").get_data(as_text=True)
+
+
+def test_definition_timeout_reaches_bootstrap(tmp_path):
+    client = serve(Main("hi"), js=tmp_path, definition_timeout=2345).test_client()
+    assert "setDefinitionTimeout(2345);" in client.get("/").get_data(as_text=True)

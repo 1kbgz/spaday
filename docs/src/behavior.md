@@ -309,6 +309,34 @@ Prefer methods a component's manifest declares — they are part of its public s
 are not yet checked against the catalog at authoring time (a mistyped name logs a console error at
 event time); catalog-backed validation is planned alongside CEM method parsing.
 
+### Components that load after the page
+
+A component bundle may define its elements some time after the page mounts. Until then an element
+is in the tree but has none of its methods or properties. Actions may still be fired at it, which
+wait 10 seconds (configurable via `definition_timeout` kwarg). If the element is still undefined,
+the action is dropped, the rest of its `Sequence` does not run, and the console names the tag. An
+action is also dropped when its element is removed while it waits or its class fails to upgrade.
+Spaday cancels pending actions when it removes or replaces their event handler.
+
+Only expressions that execute wait for definitions: unused conditional branches and short-circuited
+`all`/`any` operands do not wait. Existing DOM properties and primitive attribute fallbacks remain
+readable immediately. Queued properties are applied before methods run, and newer writes supersede
+earlier queued values.
+
+`Invoke` calls on the same element start in the order they arrive, including when arguments need
+other elements to load. A returned promise delays that invocation's `Sequence`, but does not block
+later invocations. Property writes and expression reads, including `call`, run independently of this
+invocation queue. Use `Sequence` when those operations must follow an invocation.
+
+`bootstrap`, every backend's `mount` and `serve`, and Starlette's `PageSpec` take the same option.
+It accepts integers from 1 through 2147483647 milliseconds, applies to the whole page, and is separate from `Lifecycle(timeout=...)`, which bounds startup.
+A hand-written bootstrap calls `setDefinitionTimeout(30000)` from the browser package before
+mounting. A notebook widget always uses the 10 second default. The wait ends when the element is
+*defined*, so a package that registers its element first and loads its internals afterwards may
+not be upgraded.
+
+Style a component that has not loaded with the CSS selector `:not(:defined)`.
+
 ## The escape hatch
 
 For the rare irreducible case, `NamedJs("handler")` invokes a JavaScript handler you pre-registered in

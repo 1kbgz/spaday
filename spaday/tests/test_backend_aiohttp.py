@@ -64,3 +64,11 @@ def test_lifecycle_reaches_bootstrap(tmp_path):
             assert "await whenReady(root, [], 2345)" in await (await client.get("/")).text()
 
     asyncio.run(check())
+
+
+def test_definition_timeout_reaches_bootstrap(tmp_path):
+    async def check():
+        async with TestClient(TestServer(serve(Main("hi"), js=tmp_path, definition_timeout=2345))) as client:
+            assert "setDefinitionTimeout(2345);" in await (await client.get("/")).text()
+
+    asyncio.run(check())

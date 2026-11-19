@@ -418,6 +418,7 @@ def _script(
     stylesheet_anchor: str | None = None,
     package_scripts: Sequence[str] = (),
     asset_urls: dict[str, str] | None = None,
+    definition_timeout: int | None = None,
 ) -> str:
     """The page's module script: imports, wasm init(s), fetch the tree, then mount — statically, or wired
     to transports. ``wire="transports"`` mirrors one model with default settings; a :class:`Wire` or list
@@ -469,6 +470,7 @@ def _script(
         + (["connectStore", "provideWires"] if wired else [])
         + (["connectAwareness"] if any(w.get("awareness") for w in (wires or [])) else [])
         + (["decodeFrame"] if frame else [])
+        + (["setDefinitionTimeout"] if definition_timeout is not None else [])
     )
     if lifecycle:
         runtime_names[2] = "trackRoot: trackTree"
@@ -499,6 +501,8 @@ def _script(
         ]
     else:
         lines = [f'import {{ {", ".join(runtime_names)} }} from "{js}{assets["runtime"]}";']
+    if definition_timeout is not None:
+        lines.append(f"setDefinitionTimeout({definition_timeout});")
     if wired:
         lines.append("const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';")
         lines.append(
@@ -687,6 +691,7 @@ def bootstrap(
     url: dict[str, str] | None = None,
     design: Design | str | None = None,
     lifecycle: Lifecycle | None = None,
+    definition_timeout: int | None = None,
     _asset_urls: dict[str, str] | None = None,
 ) -> str:
     """The bootstrap markup (init the wasm core, fetch the tree, mount it). ``base`` prefixes the tree /
@@ -724,11 +729,17 @@ def bootstrap(
     :func:`bundles_dir`. ``lifecycle=Lifecycle(...)`` enables mounted/ready/error events,
     bounded required-asset loading, and root-owned cleanup; default behavior is unchanged.
     Readiness covers declared components, not application data. See the API reference for
-    event details and host fallback composition."""
+    event details and host fallback composition. ``definition_timeout`` sets how long, in
+    milliseconds, an action waits for a component that is defined after the page mounts before it
+    is dropped (10000 when omitted); it is independent of ``lifecycle``."""
     if tree not in ("json", "frame", "inline"):
         raise ValueError(f"tree must be 'json', 'frame', or 'inline', not {tree!r}")
     if lifecycle is not None and not isinstance(lifecycle, Lifecycle):
         raise TypeError("lifecycle must be a Lifecycle or None")
+    if definition_timeout is not None and (
+        not isinstance(definition_timeout, int) or isinstance(definition_timeout, bool) or not 0 < definition_timeout <= 2147483647
+    ):
+        raise ValueError("definition_timeout must be an integer from 1 to 2147483647")
     n = f' nonce="{nonce}"' if nonce else ""
     component_packages = resolve_component_packages(packages)
     if tree == "inline" and page is None:
@@ -794,6 +805,7 @@ def bootstrap(
         stylesheet_anchor,
         package_scripts,
         asset_urls=_asset_urls,
+        definition_timeout=definition_timeout,
     )
     if fragment:
         head_block = f"{head_markup}\n" if head_markup else ""

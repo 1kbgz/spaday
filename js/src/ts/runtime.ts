@@ -14,6 +14,7 @@ import {
   type Readiness,
 } from "./behaviors";
 import { disposeControllers } from "./lifecycle";
+import { deferProp, forgetProp } from "./pending";
 import {
   type CollectionDelta,
   type CollectionPathSegment,
@@ -283,6 +284,7 @@ function hydrateNode(
 // `SetEvent` when an action is added/changed and `RemoveEvent` when one is removed on an existing node.
 interface Listener {
   handler: EventListener;
+  controller: AbortController;
   action: unknown;
   options?: EventOptions;
   store?: Store;
@@ -307,22 +309,29 @@ function bindEvent(
   let map = listeners.get(el);
   if (!map) listeners.set(el, (map = new Map()));
   const existing = map.get(name);
-  if (existing)
-    el.removeEventListener(name, existing.handler, existing.options);
+  if (existing) unbindEvent(el, name);
+  const controller = new AbortController();
   const handler: EventListener = (event) => {
     // A bound context menu replaces the native one; suppression is scoped to exactly the
     // elements that carry a `contextmenu` action.
     if (name === "contextmenu" && !options?.passive) event.preventDefault();
-    interpret(action, { event, currentTarget: el, store, scope });
+    interpret(action, {
+      event,
+      currentTarget: el,
+      store,
+      scope,
+      signal: controller.signal,
+    });
   };
   el.addEventListener(name, handler, options);
-  map.set(name, { handler, action, options, store, scope });
+  map.set(name, { handler, controller, action, options, store, scope });
 }
 
 function unbindEvent(el: Element, name: string): void {
   const map = listeners.get(el);
   const listener = map?.get(name);
   if (listener) {
+    listener.controller.abort();
     el.removeEventListener(name, listener.handler, listener.options);
     map!.delete(name);
   }
@@ -1707,57 +1716,22 @@ function build(node: Node, store?: Store, scope?: Scope): Element {
 /** Set a prop the way the element expects: a DOM property when it has one, else an HTML attribute. */
 export function setProp(el: Element, name: string, value: unknown): void {
   if (name.startsWith("attr:")) {
+    forgetProp(el, name.slice(5));
     setAttr(el, name.slice(5), value);
     return;
   }
   if (name in el) {
+    forgetProp(el, name);
     (el as unknown as Record<string, unknown>)[name] = value;
     return;
   }
   if (el.localName.includes("-") && !el.matches(":defined")) {
     deferProp(el, name, value);
     if (typeof value === "object" && value !== null) return; // no attribute can carry it
+  } else {
+    forgetProp(el, name);
   }
   setAttr(el, name, value);
-}
-
-/* Props written to a custom element before its class has upgraded it, re-applied once it has.
- *
- * Until then the element has none of its class's properties, so setProp would fall back to an
- * attribute: an object stringifies to "[object Object]", and an element that never reads its
- * attributes loses even a primitive. A bundle that defines its elements after the page mounts (one
- * that awaits at the top level, or loads lazily) hits exactly that. So the last value written under
- * each name is kept and set through the property when the tag is defined. A primitive still goes to
- * the attribute at once, which keeps a never-defined tag working as a styling hook; an object waits.
- * Elements are tracked per tag through WeakRefs, so a tag that is never defined holds no element. */
-const deferredProps = new WeakMap<Element, Map<string, unknown>>();
-const awaitingTag = new Map<string, WeakRef<Element>[]>();
-
-function deferProp(el: Element, name: string, value: unknown): void {
-  const props = deferredProps.get(el);
-  if (props) {
-    props.set(name, value);
-    return;
-  }
-  deferredProps.set(el, new Map([[name, value]]));
-  const tag = el.localName;
-  let waiting = awaitingTag.get(tag);
-  if (!waiting) {
-    const refs: WeakRef<Element>[] = (waiting = []);
-    awaitingTag.set(tag, refs);
-    void customElements.whenDefined(tag).then(() => {
-      awaitingTag.delete(tag);
-      for (const ref of refs) {
-        const target = ref.deref();
-        const pending = target && deferredProps.get(target);
-        if (!target || !pending) continue;
-        deferredProps.delete(target);
-        customElements.upgrade(target); // the definition upgrades only elements in the document
-        for (const [prop, v] of pending) setProp(target, prop, v);
-      }
-    });
-  }
-  waiting.push(new WeakRef(el));
 }
 
 /** Write `value` as an attribute: `false`/`null`/`undefined` remove it, `true` gives the bare form. */
@@ -1774,7 +1748,7 @@ function removeProp(el: Element, name: string): void {
     el.removeAttribute(name.slice(5));
     return;
   }
-  deferredProps.get(el)?.delete(name);
+  forgetProp(el, name);
   if (name in el) {
     setProp(el, name, undefined);
   }
