@@ -7,6 +7,7 @@
 
 import { interpret as wasmInterpret } from "../../dist/pkg/spaday";
 import { getHandler } from "./handlers";
+import { whenUsable } from "./pending";
 import { manageRequest, type RequestOptions } from "./requests";
 import { refreshRoots, setProp } from "./runtime";
 import type { Scope, Store } from "./signals";
@@ -33,11 +34,46 @@ function readProp(el: Element, name: string): unknown {
   return el.hasAttribute(name) ? el.getAttribute(name) : null;
 }
 
+function readEventValue(event: Event, element: EventTarget | null): unknown {
+  if (element instanceof HTMLInputElement)
+    return element.type === "checkbox" || element.type === "radio"
+      ? element.checked
+      : element.value;
+  const target = element as Record<string, unknown> | null;
+  if (target && typeof target.checked === "boolean") return target.checked;
+  if (target && "value" in target) return target.value;
+  return (event as CustomEvent).detail;
+}
+
+function pinEvent(
+  event: Event,
+  currentTarget: EventTarget | null,
+  target: EventTarget | null,
+): Event {
+  return new Proxy(event, {
+    get(source, key) {
+      if (key === "currentTarget") return currentTarget;
+      if (key === "target") return target;
+      const value = Reflect.get(source, key, source);
+      return typeof value === "function" ? value.bind(source) : value;
+    },
+  });
+}
+
 // The DOM primitives the wasm interpreter calls back into (mirrors the `Host` extern in the js crate).
 function host(ctx: ActionContext) {
+  const { currentTarget: firedOn, target: firedAt } = ctx.event;
+  let pinned: Event | undefined;
+  let frozen: { value: unknown } | undefined;
   return {
     cancelled: () =>
       !!ctx.signal && (ctx.signal.aborted || !ctx.currentTarget.isConnected),
+    whenDefined: (el: Element, prop?: string) => {
+      if (prop !== undefined && prop in el) return undefined;
+      const wait = whenUsable(el, ctx.signal);
+      if (wait) frozen ??= { value: readEventValue(ctx.event, firedAt) };
+      return wait;
+    },
     currentTarget: () => ctx.currentTarget,
     queryId: (id: string) =>
       (ctx.currentTarget.getRootNode() as ParentNode).querySelector(
@@ -46,19 +82,13 @@ function host(ctx: ActionContext) {
     getProp: (el: Element, name: string) => readProp(el, name),
     setProp: (el: Element, name: string, value: unknown) =>
       setProp(el, name, value),
-    eventValue: () => {
-      const element = ctx.event.target;
-      if (element instanceof HTMLInputElement)
-        return element.type === "checkbox" || element.type === "radio"
-          ? element.checked
-          : element.value;
-      const target = element as Record<string, unknown> | null;
-      if (target && typeof target.checked === "boolean") return target.checked;
-      if (target && "value" in target) return target.value;
-      return (ctx.event as CustomEvent).detail;
-    },
+    eventValue: () =>
+      frozen ? frozen.value : readEventValue(ctx.event, ctx.event.target),
     // the raw DOM event object, for `event-prop` (pointer position, modifiers)
-    eventRaw: () => ctx.event,
+    eventRaw: () =>
+      ctx.event.currentTarget === firedOn
+        ? ctx.event
+        : (pinned ??= pinEvent(ctx.event, firedOn, firedAt)),
     // `call` expression / `invoke` action: call a component method by name — no eval, the
     // method must exist on the element. A returned promise is marked handled (fire-and-forget
     // for the action path; an expression needing a value should call a synchronous method).
@@ -114,7 +144,8 @@ function host(ctx: ActionContext) {
     },
     // the closest ancestor of the event target matching a selector, for `event-closest`
     eventClosest: (selector: string) =>
-      (ctx.event.target as Element | null)?.closest?.(selector) ?? null,
+      ((ctx.event.target ?? firedAt) as Element | null)?.closest?.(selector) ??
+      null,
     // a reactive state field from the mounted signal store (undefined if the tree has no store)
     getField: (name: string) => ctx.store?.get(name),
     getItem: (path: string) => ctx.scope?.get(path),

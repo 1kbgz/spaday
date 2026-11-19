@@ -77,6 +77,16 @@ def test_lifecycle_reaches_single_and_multiple_page_bootstraps(tmp_path):
         assert 'await whenReady(root, ["required-editor"], 2345)' in html
 
 
+def test_definition_timeout_reaches_single_and_multiple_page_bootstraps(tmp_path):
+    from starlette.applications import Starlette
+
+    single = TestClient(serve(Main("hi"), js=tmp_path, definition_timeout=2345))
+    site = build_site({"/editor": PageSpec(Main("hi"), definition_timeout=2345)}, js=tmp_path)
+    multiple = TestClient(Starlette(routes=site.all()))
+    for html in (single.get("/").text, multiple.get("/editor").text):
+        assert "setDefinitionTimeout(2345);" in html
+
+
 def test_multiple_design_packages_only_need_a_choice_for_generic_controls(tmp_path):
     first = ComponentPackage("first", tmp_path, (), design=Design(name="first", controls={"button": ControlSpec(tag="x-first-button")}))
     second = ComponentPackage("second", tmp_path, (), design=Design(name="second", controls={"button": ControlSpec(tag="x-second-button")}))

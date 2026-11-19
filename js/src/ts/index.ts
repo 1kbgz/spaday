@@ -97,6 +97,7 @@ export {
   refreshRoots,
 } from "./runtime";
 export { attachController, whenReady } from "./lifecycle";
+export { setDefinitionTimeout } from "./pending";
 export type { RequestOptions } from "./requests";
 export { createFormController } from "./forms";
 export type { FormController, FormOptions, FormSubmission } from "./forms";

@@ -11,6 +11,8 @@ extern "C" {
     pub type Host;
     #[wasm_bindgen(method)]
     fn cancelled(this: &Host) -> bool;
+    #[wasm_bindgen(method, js_name = whenDefined)]
+    fn when_defined(this: &Host, el: &JsValue, prop: Option<&str>) -> JsValue;
     #[wasm_bindgen(method, js_name = copyToClipboard)]
     fn copy_to_clipboard(this: &Host, value: JsValue, result: Option<&str>) -> JsValue;
     #[wasm_bindgen(method, js_name = currentTarget)]
@@ -72,7 +74,8 @@ pub fn interpret(action: &str, host: Host) -> Result<(), JsError> {
     });
     // Drive synchronously to the first pending await: purely-sync action chains apply inline
     // (same-tick reads keep working); only a chain blocked on a real promise — an `invoke` of
-    // an async method — continues on the microtask queue, preserving `seq` ordering across it.
+    // an async method, or a step waiting for its element to be defined — continues on the
+    // microtask queue, preserving `seq` ordering across it.
     let waker = std::task::Waker::noop();
     let mut cx = std::task::Context::from_waker(waker);
     if fut.as_mut().poll(&mut cx).is_pending() {
@@ -128,6 +131,13 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
     };
     if host.cancelled() {
         return false;
+    }
+    for read in action.reads() {
+        if let Some(el) = resolve(read.target, host) {
+            if !usable(&el, read.prop, host).await {
+                return false;
+            }
+        }
     }
     match action {
         CopyToClipboard { value, result } => {
@@ -223,7 +233,11 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
             result,
         } => {
             if let Some(el) = resolve(target, host) {
-                let value = host.call_method(&el, method, eval_args(args, host));
+                let args = eval_args(args, host);
+                if !usable(&el, None, host).await {
+                    return false;
+                }
+                let value = host.call_method(&el, method, args);
                 // await a returned promise so a `seq` continues only after the method settles;
                 // rejections were already marked handled (and logged) by the host
                 let resolved = resolve_thenable(value).await;
@@ -257,6 +271,14 @@ async fn run_inner(action: &spaday::Action, host: &Host) -> bool {
         NamedJs { handler } => host.call_named(handler),
     }
     true
+}
+
+async fn usable(el: &JsValue, prop: Option<&str>, host: &Host) -> bool {
+    let wait = host.when_defined(el, prop);
+    if wait.is_undefined() {
+        return true;
+    }
+    resolve_thenable(wait).await.as_bool() == Some(true) && !host.cancelled()
 }
 
 async fn await_thenable(value: JsValue) {
