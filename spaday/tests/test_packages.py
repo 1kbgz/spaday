@@ -250,6 +250,13 @@ def test_a_package_cannot_publish_its_own_copy_of_the_runtime():
             bootstrap(packages=[_vendored("copy", ((specifier, path),))])
 
 
+@pytest.mark.parametrize("version", [__version__, "99.0.0"])
+def test_a_package_cannot_claim_to_provide_the_runtime(version):
+    package = _serving("copy", provides={"@1kbgz/spaday": version})
+    with pytest.raises(ValueError, match="spaday serves its own runtime"):
+        resolve_component_packages([package])
+
+
 def test_import_paths_are_validated_like_asset_paths():
     for bad in (("@x", "/absolute.js"), ("@x", "../escape.js"), ("bad specifier", "x.js")):
         with pytest.raises(ValueError):

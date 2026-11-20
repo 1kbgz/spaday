@@ -301,7 +301,8 @@ ComponentPackage(
 
 `bootstrap` then maps the specifier to the runtime the page itself loads, so the bundle shares the
 page's handler registry and stores instead of loading a second copy. The range is checked against
-the installed spaday version. A notebook widget resolves the same import to the runtime it renders
+the installed spaday version. Packages cannot publish `@1kbgz/spaday` through
+`imports` or `provides`, even at the same version. A notebook widget resolves the same import to the runtime it renders
 with; see [Load a component package](notebook.md#load-a-component-package).
 
 That covers the copies spaday serves. A copy it does not — one inside your own bundle — is the

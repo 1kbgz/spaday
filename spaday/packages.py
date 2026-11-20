@@ -159,6 +159,10 @@ def _reconcile(packages: Sequence[ComponentPackage]) -> None:
                     f"runtime under that name; declare it in requires instead"
                 )
         for library, version in package.provides:
+            if library == RUNTIME_PACKAGE:
+                raise ValueError(
+                    f"component package {package.name!r} provides {library}, but spaday serves its own runtime; declare it in requires instead"
+                )
             if library in served and served[library][0] != version:
                 other, owner = served[library]
                 raise ValueError(

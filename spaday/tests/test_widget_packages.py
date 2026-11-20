@@ -62,6 +62,8 @@ def test_widget_checks_a_runtime_requirement_and_rejects_a_second_copy(tmp_path)
         Widget(element("div"), packages=[replace(descriptor, requires={"@1kbgz/spaday": "^99.0.0"})])
     with pytest.raises(ValueError, match="spaday serves its own runtime"):
         Widget(element("div"), packages=[replace(descriptor, imports=(("@1kbgz/spaday", "index.js"),))])
+    with pytest.raises(ValueError, match="spaday serves its own runtime"):
+        Widget(element("div"), packages=[replace(descriptor, provides={"@1kbgz/spaday": __version__})])
 
 
 def test_bundle_rejects_missing_assets_and_paths_outside_package(tmp_path):
