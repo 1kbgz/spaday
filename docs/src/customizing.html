@@ -211,6 +211,9 @@
     <a href="#record-the-versions-and-let-spaday-reconcile-them">Record the versions, and let spaday reconcile them</a>
   </li>
   <li class="fd-toc-item" data-depth="2">
+    <a href="#import-spaday-s-runtime-from-a-package-bundle">Import spaday’s runtime from a package bundle</a>
+  </li>
+  <li class="fd-toc-item" data-depth="2">
     <a href="#third-party-bundles-cannot-blank-your-page">Third-party bundles cannot blank your page</a>
   </li>
 </ul>
@@ -476,6 +479,23 @@ one library at different versions is an error naming both packages and both vers
 otherwise load a copy that half-works. Two packages serving the <em>same</em> version may both publish it in
 their import maps; the page imports the first. Ranges use npm’s syntax — <code class="docutils literal notranslate"><span class="pre">^3.1.0</span></code>, <code class="docutils literal notranslate"><span class="pre">~25.2</span></code>, <code class="docutils literal notranslate"><span class="pre">1.x</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&gt;=1.2</span> <span class="pre">&lt;2</span></code>, <code class="docutils literal notranslate"><span class="pre">||</span></code> — so a range can be copied from a <code class="docutils literal notranslate"><span class="pre">package.json</span></code>.</p>
+</section>
+<section id="import-spaday-s-runtime-from-a-package-bundle">
+<h3>Import spaday’s runtime from a package bundle<a class="headerlink" href="#import-spaday-s-runtime-from-a-package-bundle" title="Link to this heading">¶</a></h3>
+<p>A bundle that calls the browser runtime (<code class="docutils literal notranslate"><span class="pre">registerHandler</span></code>, <code class="docutils literal notranslate"><span class="pre">evalExpr</span></code>) imports it as
+<code class="docutils literal notranslate"><span class="pre">&#64;1kbgz/spaday</span></code>, leaves that import external in its build, and names it in <code class="docutils literal notranslate"><span class="pre">requires</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ComponentPackage</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"my-widgets"</span><span class="p">,</span>
+    <span class="o">...</span><span class="p">,</span>
+    <span class="n">requires</span><span class="o">=</span><span class="p">{</span><span class="s2">"@1kbgz/spaday"</span><span class="p">:</span> <span class="s2">"&gt;=0.15.0"</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">bootstrap</span></code> then maps the specifier to the runtime the page itself loads, so the bundle shares the
+page’s handler registry and stores instead of loading a second copy. The range is checked against
+the installed spaday version. Packages cannot publish <code class="docutils literal notranslate"><span class="pre">&#64;1kbgz/spaday</span></code> through
+<code class="docutils literal notranslate"><span class="pre">imports</span></code> or <code class="docutils literal notranslate"><span class="pre">provides</span></code>, even at the same version. A notebook widget resolves the same import to the runtime it renders
+with; see <a class="reference internal" href="notebook.html#load-a-component-package"><span class="std std-ref">Load a component package</span></a>.</p>
 <p>That covers the copies spaday serves. A copy it does not — one inside your own bundle — is the
 define-guard’s case above: the first registration wins, and the losing package logs which elements it
 found already registered, with the library and version it serves. Each bundle also publishes the
@@ -552,6 +572,9 @@ registering costs you that script, not every component on the page.</p>
   </li>
   <li class="fd-toc-item" data-depth="2">
     <a href="#record-the-versions-and-let-spaday-reconcile-them">Record the versions, and let spaday reconcile them</a>
+  </li>
+  <li class="fd-toc-item" data-depth="2">
+    <a href="#import-spaday-s-runtime-from-a-package-bundle">Import spaday’s runtime from a package bundle</a>
   </li>
   <li class="fd-toc-item" data-depth="2">
     <a href="#third-party-bundles-cannot-blank-your-page">Third-party bundles cannot blank your page</a>

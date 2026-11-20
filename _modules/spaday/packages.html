@@ -610,6 +610,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.ui.design</span><span class="w"> </span><span class="kn">import</span> <span class="n">Design</span>
 
 <span class="n">ENTRY_POINT_GROUP</span> <span class="o">=</span> <span class="s2">"spaday.component_packages"</span>
+<span class="n">RUNTIME_PACKAGE</span> <span class="o">=</span> <span class="s2">"@1kbgz/spaday"</span>
 <span class="n">_PACKAGE_NAME</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[a-z0-9][a-z0-9._-]*\Z"</span><span class="p">)</span>
 <span class="n">_NPM_NAME</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(?:@[a-z0-9][a-z0-9._~-]*/)?[a-z0-9][a-z0-9._~-]*\Z"</span><span class="p">)</span>
 
@@ -743,11 +744,23 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_reconcile</span><span class="p">(</span><span class="n">packages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ComponentPackage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Reject a page whose packages disagree about a JS library: served at two versions, or required at</span>
-<span class="sd">    a version no selected package serves."""</span>
-    <span class="n">served</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="w">    </span><span class="sd">"""Reject a page whose packages disagree about a JS library: served at two versions, required at</span>
+<span class="sd">    a version no selected package serves, or published over spaday's own runtime."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">__version__</span>
+
+    <span class="n">served</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span><span class="n">RUNTIME_PACKAGE</span><span class="p">:</span> <span class="p">(</span><span class="n">__version__</span><span class="p">,</span> <span class="s2">"spaday"</span><span class="p">)}</span>
     <span class="k">for</span> <span class="n">package</span> <span class="ow">in</span> <span class="n">packages</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">specifier</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">imports</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">npm_package</span><span class="p">(</span><span class="n">specifier</span><span class="p">)</span> <span class="o">==</span> <span class="n">RUNTIME_PACKAGE</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> publishes the import </span><span class="si">{</span><span class="n">specifier</span><span class="si">!r}</span><span class="s2">, but spaday serves its own "</span>
+                    <span class="sa">f</span><span class="s2">"runtime under that name; declare it in requires instead"</span>
+                <span class="p">)</span>
         <span class="k">for</span> <span class="n">library</span><span class="p">,</span> <span class="n">version</span> <span class="ow">in</span> <span class="n">package</span><span class="o">.</span><span class="n">provides</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">library</span> <span class="o">==</span> <span class="n">RUNTIME_PACKAGE</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"component package </span><span class="si">{</span><span class="n">package</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> provides </span><span class="si">{</span><span class="n">library</span><span class="si">}</span><span class="s2">, but spaday serves its own runtime; declare it in requires instead"</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="n">library</span> <span class="ow">in</span> <span class="n">served</span> <span class="ow">and</span> <span class="n">served</span><span class="p">[</span><span class="n">library</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">version</span><span class="p">:</span>
                 <span class="n">other</span><span class="p">,</span> <span class="n">owner</span> <span class="o">=</span> <span class="n">served</span><span class="p">[</span><span class="n">library</span><span class="p">]</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>

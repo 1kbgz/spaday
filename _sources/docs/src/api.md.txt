@@ -231,6 +231,14 @@ or disposal, and does not itself make the root inert.
 is not defined yet before it is dropped (10000 by default). See
 [Components that load after the page](behavior.md#components-that-load-after-the-page).
 
+`evalExpr(expr, store?, scope?)` evaluates the state-only subset of serialized
+expressions synchronously: `lit`, `field`, `item`, `scope`, `not`, `eq`, `all`,
+`any`, `cond`, `obj`, `arr`, and `concat`. `field` reads the store and `item` reads
+the scope, so a component whose API takes a callback can build one from an
+expression authored in Python. Event and DOM expressions (`event`, `event-prop`,
+`event-closest`, `prop`, and `call`) return `undefined`; they require the action
+interpreter's event and element context.
+
 `trackRoot(root, tree, source, store?, lifecycle?)` returns a handle with a current
 `root` and an idempotent `dispose()`. Optional `onReplace(root)` and `onDispose()`
 callbacks describe the mount lifetime, distinct from element controllers. Root
