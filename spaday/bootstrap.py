@@ -43,7 +43,7 @@ from typing import Literal, cast
 from uuid import uuid4
 
 from .component import Component
-from .packages import ComponentPackage, PackageRef, npm_package, package_url_prefix, resolve_component_packages
+from .packages import RUNTIME_PACKAGE, ComponentPackage, PackageRef, npm_package, package_url_prefix, resolve_component_packages
 from .spaday import encode_frame  # compiled core (always available); used by tree_frame
 from .ui.design import Design, _select_page_design, resolve, select_design
 
@@ -297,9 +297,16 @@ def _package_head(packages: Sequence[ComponentPackage], base: str, nonce: str | 
     return "\n    ".join(tags)
 
 
-def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | None = None, asset_urls: dict[str, str] | None = None) -> str:
+def _importmap(
+    packages: Sequence[ComponentPackage],
+    base: str,
+    nonce: str | None = None,
+    asset_urls: dict[str, str] | None = None,
+    layout: AssetLayout | None = None,
+) -> str:
     """The page's import map: every specifier a selected package publishes, resolved to the URL that
-    package is served from.
+    package is served from. When a selected package requires spaday's own runtime, its npm name maps
+    to the runtime URL the page's module script imports, so the package gets that one instance.
 
     Must precede every module script on the page, which is why it is emitted first -- a map that
     arrives after the first module load is ignored by the browser, silently. Two packages publishing
@@ -310,6 +317,9 @@ def _importmap(packages: Sequence[ComponentPackage], base: str, nonce: str | Non
     """
     resolved: dict[str, str] = {}
     owners: dict[str, ComponentPackage] = {}
+    if any(library == RUNTIME_PACKAGE for package in packages for library, _ in package.requires):
+        js = (asset_urls or {}).get(_js(base), _js(base))
+        resolved[RUNTIME_PACKAGE] = f"{js}{_ASSETS[_layout(layout)]['runtime']}"
     for package in packages:
         prefix = package_url_prefix(package, base)
         prefix = (asset_urls or {}).get(prefix, prefix)
@@ -762,7 +772,7 @@ def bootstrap(
     head_markup = "\n    ".join(
         p
         for p in (
-            _importmap(component_packages, base, nonce, _asset_urls),
+            _importmap(component_packages, base, nonce, _asset_urls, layout),
             _package_head(component_packages, base, nonce, _asset_urls) if lifecycle is None else "",
             f'<template id="{stylesheet_anchor}"></template>' if stylesheet_anchor else "",
             *style_tags,

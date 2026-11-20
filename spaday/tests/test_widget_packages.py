@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -5,7 +6,7 @@ import pytest
 
 pytest.importorskip("anywidget")
 
-from spaday import ComponentPackage, Widget, element
+from spaday import ComponentPackage, Widget, __version__, element
 from spaday.widget_packages import bundle_package
 
 
@@ -47,6 +48,24 @@ def test_bundle_identity_is_content_based_and_debug_maps_are_excluded(tmp_path):
     assert bundle_package(first).descriptor["id"] != bundle_package(second).descriptor["id"]
 
 
+def test_a_package_importing_the_runtime_names_the_version_the_widget_runs(tmp_path):
+    descriptor = package(tmp_path)
+    needs = replace(descriptor, requires={"@1kbgz/spaday": f"^{__version__}"})
+    assert "runtime" not in bundle_package(descriptor).descriptor
+    assert bundle_package(needs).descriptor["runtime"] == __version__
+    assert bundle_package(needs).descriptor["id"] != bundle_package(descriptor).descriptor["id"]
+
+
+def test_widget_checks_a_runtime_requirement_and_rejects_a_second_copy(tmp_path):
+    descriptor = package(tmp_path)
+    with pytest.raises(ValueError, match=rf"requires @1kbgz/spaday \^99.0.0, but 'spaday' serves {__version__}"):
+        Widget(element("div"), packages=[replace(descriptor, requires={"@1kbgz/spaday": "^99.0.0"})])
+    with pytest.raises(ValueError, match="spaday serves its own runtime"):
+        Widget(element("div"), packages=[replace(descriptor, imports=(("@1kbgz/spaday", "index.js"),))])
+    with pytest.raises(ValueError, match="spaday serves its own runtime"):
+        Widget(element("div"), packages=[replace(descriptor, provides={"@1kbgz/spaday": __version__})])
+
+
 def test_bundle_rejects_missing_assets_and_paths_outside_package(tmp_path):
     descriptor = package(tmp_path / "assets")
     (descriptor.assets_dir / "index.js").unlink()
@@ -59,8 +78,6 @@ def test_bundle_rejects_missing_assets_and_paths_outside_package(tmp_path):
 
 
 def test_widget_uses_selected_package_design_for_initial_and_updated_trees(tmp_path):
-    from dataclasses import replace
-
     from spaday import ui
     from spaday.ui.native import NATIVE
 

@@ -82,3 +82,55 @@ test("two libraries importing one specifier get the same module instance", async
   `);
   await expect.poll(() => page.evaluate(() => window.sameInstance)).toBe(true);
 });
+
+test("a bundle evaluates an expression with the page's own runtime", async ({
+  page,
+}) => {
+  await page.goto("/tests/runtime.html");
+  await page.setContent(`
+    <script type="importmap">
+    {"imports": {"@1kbgz/spaday": "/dist/esm/index.js"}}
+    </script>
+    <script type="module">
+      import * as runtime from "/dist/esm/index.js";
+      import * as imported from "@1kbgz/spaday";
+      import { evalExpr, Scope, Store } from "@1kbgz/spaday";
+      const item = (path) => ({ expr: "item", path });
+      const expr = {
+        expr: "obj",
+        fields: {
+          commands: {
+            expr: "cond",
+            test: {
+              expr: "all",
+              of: [
+                { expr: "eq", a: item("table"), b: { expr: "lit", value: "orders" } },
+                { expr: "not", of: item("hit.row_path.0") },
+              ],
+            },
+            then: { expr: "arr", of: [{ expr: "field", name: "command" }] },
+            else: { expr: "arr", of: [] },
+          },
+        },
+      };
+      const store = new Store({ command: "open" });
+      const schema = (context) => evalExpr(expr, store, new Scope(context));
+      window.result = {
+        sameInstance: runtime === imported,
+        leaf: schema({ table: "orders", hit: { row_path: [] } }),
+        group: schema({ table: "orders", hit: { row_path: ["east"] } }),
+        other: schema({ table: "trades", hit: { row_path: [] } }),
+        event: evalExpr({ expr: "event" }) === undefined,
+      };
+    </script>
+  `);
+  await expect
+    .poll(() => page.evaluate(() => window.result))
+    .toEqual({
+      sameInstance: true,
+      leaf: { commands: ["open"] },
+      group: { commands: [] },
+      other: { commands: [] },
+      event: true,
+    });
+});

@@ -9,6 +9,7 @@ interface PackageSpec {
   imports: [string, string][];
   provides: [string, string][];
   tags: string[];
+  runtime?: string;
 }
 interface AssetFile {
   path: string;
@@ -26,6 +27,7 @@ interface Registry {
   urls: Map<string, string>;
   sources: Sources;
   importVersions: Map<string, string | undefined>;
+  runtime?: { version: string; widget: unknown; exports: object };
   resolve(specifier: unknown, parent: string): string;
 }
 const key = Symbol.for("spaday.notebook.packages");
@@ -50,6 +52,8 @@ const registry = (globals[key] ??= {
 const base = (spec: PackageSpec) =>
   `https://spaday.invalid/notebook/${spec.id}/`;
 const helper = 'globalThis[Symbol.for("spaday.notebook.packages")]';
+const RUNTIME = "@1kbgz/spaday";
+const RUNTIME_URL = "https://spaday.invalid/notebook/runtime.js";
 
 function resolvePath(
   specifier: string,
@@ -280,6 +284,16 @@ async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
         type: file.type,
       });
   }
+  if (registry.runtime && fresh.some((spec) => spec.runtime !== undefined)) {
+    const names = Object.keys(registry.runtime.exports).join(", ");
+    imports.set(RUNTIME, RUNTIME_URL);
+    sources.set(RUNTIME_URL, {
+      data: new TextEncoder().encode(
+        `export const { ${names} } = ${helper}.runtime.exports;`,
+      ),
+      type: "text/javascript",
+    });
+  }
   const urls = prepareAssets(
     fresh.flatMap((spec) =>
       spec.assets.map(([, path]) => new URL(path, base(spec)).href),
@@ -319,6 +333,23 @@ async function load(model: AnyModel, specs: PackageSpec[]): Promise<void> {
   await Promise.all(
     specs.map((spec) => registry.packages.get(spec.name)!.loaded),
   );
+}
+
+/**
+ * The widget that renders `model`. A package bundle loads once per document and imports one copy of
+ * the runtime, so every widget selecting such a package renders with that copy: the first to ask
+ * publishes its own, and the rest get it back. Any other widget gets itself.
+ */
+export function runtimeHost<W>(model: AnyModel, widget: W, exports: object): W {
+  const specs = (model.get("_packages") ?? []) as PackageSpec[];
+  const version = specs.find((spec) => spec.runtime !== undefined)?.runtime;
+  if (version === undefined) return widget;
+  const host = (registry.runtime ??= { version, widget, exports });
+  if (host.version !== version)
+    throw new Error(
+      `Notebook packages imported the spaday ${host.version} runtime, which is now ${version}; reload the document`,
+    );
+  return host.widget as W;
 }
 
 /** Load selected packages once per document before any component properties are assigned. */

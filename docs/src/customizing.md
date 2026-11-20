@@ -286,6 +286,25 @@ otherwise load a copy that half-works. Two packages serving the *same* version m
 their import maps; the page imports the first. Ranges use npm's syntax — `^3.1.0`, `~25.2`, `1.x`,
 `>=1.2 <2`, `||` — so a range can be copied from a `package.json`.
 
+### Import spaday's runtime from a package bundle
+
+A bundle that calls the browser runtime (`registerHandler`, `evalExpr`) imports it as
+`@1kbgz/spaday`, leaves that import external in its build, and names it in `requires`:
+
+```python
+ComponentPackage(
+    name="my-widgets",
+    ...,
+    requires={"@1kbgz/spaday": ">=0.15.0"},
+)
+```
+
+`bootstrap` then maps the specifier to the runtime the page itself loads, so the bundle shares the
+page's handler registry and stores instead of loading a second copy. The range is checked against
+the installed spaday version. Packages cannot publish `@1kbgz/spaday` through
+`imports` or `provides`, even at the same version. A notebook widget resolves the same import to the runtime it renders
+with; see [Load a component package](notebook.md#load-a-component-package).
+
 That covers the copies spaday serves. A copy it does not — one inside your own bundle — is the
 define-guard's case above: the first registration wins, and the losing package logs which elements it
 found already registered, with the library and version it serves. Each bundle also publishes the
